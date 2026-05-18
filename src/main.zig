@@ -1,0 +1,176 @@
+const std = @import("std");
+const lint = @import("utoo_lint");
+
+const max_file_size = 64 * 1024 * 1024;
+
+const Stats = struct {
+    files: usize = 0,
+    diagnostics: usize = 0,
+    errors: usize = 0,
+};
+
+pub fn main() !void {
+    const allocator = std.heap.smp_allocator;
+
+    const args = try std.process.argsAlloc(allocator);
+    defer std.process.argsFree(allocator, args);
+
+    var options = lint.Options{};
+    var targets: std.ArrayList([]const u8) = .empty;
+    defer targets.deinit(allocator);
+
+    for (args[1..]) |arg| {
+        if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
+            printHelp();
+            return;
+        } else if (std.mem.eql(u8, arg, "--no-console=off")) {
+            options.no_console = false;
+        } else if (std.mem.eql(u8, arg, "--no-debugger=off")) {
+            options.no_debugger = false;
+        } else if (std.mem.eql(u8, arg, "--no-var=off")) {
+            options.no_var = false;
+        } else if (std.mem.eql(u8, arg, "--eqeqeq=off")) {
+            options.eqeqeq = false;
+        } else if (std.mem.eql(u8, arg, "--no-unused-vars=off")) {
+            options.no_unused_vars = false;
+        } else if (std.mem.eql(u8, arg, "--no-undef=off")) {
+            options.no_undef = false;
+        } else if (std.mem.eql(u8, arg, "--semantic-errors=off")) {
+            options.parser_semantic_errors = false;
+        } else {
+            try targets.append(allocator, arg);
+        }
+    }
+
+    if (targets.items.len == 0) {
+        try targets.append(allocator, ".");
+    }
+
+    var stats = Stats{};
+    for (targets.items) |target| {
+        try lintPath(allocator, target, options, &stats);
+    }
+
+    std.debug.print("{d} file(s) checked, {d} diagnostic(s)\n", .{
+        stats.files,
+        stats.diagnostics,
+    });
+
+    if (stats.errors > 0 or stats.diagnostics > 0) {
+        std.process.exit(1);
+    }
+}
+
+fn lintPath(
+    allocator: std.mem.Allocator,
+    path: []const u8,
+    options: lint.Options,
+    stats: *Stats,
+) !void {
+    const stat = std.fs.cwd().statFile(path) catch |err| {
+        std.debug.print("{s}: unable to stat path: {s}\n", .{ path, @errorName(err) });
+        stats.errors += 1;
+        stats.diagnostics += 1;
+        return;
+    };
+
+    switch (stat.kind) {
+        .file => {
+            if (lint.isLintablePath(path)) {
+                try lintFile(allocator, path, options, stats);
+            }
+        },
+        .directory => try lintDirectory(allocator, path, options, stats),
+        else => {},
+    }
+}
+
+fn lintDirectory(
+    allocator: std.mem.Allocator,
+    path: []const u8,
+    options: lint.Options,
+    stats: *Stats,
+) !void {
+    var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
+    defer dir.close();
+
+    var iter = dir.iterate();
+    while (try iter.next()) |entry| {
+        if (shouldSkipDirectoryEntry(entry.name)) continue;
+
+        const child_path = try std.fs.path.join(allocator, &.{ path, entry.name });
+        defer allocator.free(child_path);
+
+        switch (entry.kind) {
+            .file => {
+                if (lint.isLintablePath(child_path)) {
+                    try lintFile(allocator, child_path, options, stats);
+                }
+            },
+            .directory => try lintDirectory(allocator, child_path, options, stats),
+            else => {},
+        }
+    }
+}
+
+fn lintFile(
+    allocator: std.mem.Allocator,
+    path: []const u8,
+    options: lint.Options,
+    stats: *Stats,
+) !void {
+    const source = std.fs.cwd().readFileAlloc(allocator, path, max_file_size) catch |err| {
+        std.debug.print("{s}: unable to read file: {s}\n", .{ path, @errorName(err) });
+        stats.errors += 1;
+        stats.diagnostics += 1;
+        return;
+    };
+    defer allocator.free(source);
+
+    var result = try lint.lintSource(allocator, source, path, options);
+    defer result.deinit(allocator);
+
+    stats.files += 1;
+
+    for (result.diagnostics) |diagnostic| {
+        const position = lint.offsetToLineColumn(source, diagnostic.span.start);
+        std.debug.print("{s}:{d}:{d}: {s}: {s} [{s}]\n", .{
+            path,
+            position.line,
+            position.column,
+            diagnostic.severity.toString(),
+            diagnostic.message,
+            diagnostic.rule_id,
+        });
+
+        stats.diagnostics += 1;
+        if (diagnostic.severity == .@"error") {
+            stats.errors += 1;
+        }
+    }
+}
+
+fn shouldSkipDirectoryEntry(name: []const u8) bool {
+    return std.mem.eql(u8, name, ".git") or
+        std.mem.eql(u8, name, ".zig-cache") or
+        std.mem.eql(u8, name, "node_modules") or
+        std.mem.eql(u8, name, "vendor") or
+        std.mem.eql(u8, name, "zig-out");
+}
+
+fn printHelp() void {
+    std.debug.print(
+        \\Usage:
+        \\  utoo-lint [options] [file-or-directory ...]
+        \\
+        \\Options:
+        \\  --no-console=off          Disable no-console
+        \\  --no-debugger=off         Disable no-debugger
+        \\  --no-var=off              Disable no-var
+        \\  --eqeqeq=off              Disable eqeqeq
+        \\  --no-unused-vars=off      Disable no-unused-vars
+        \\  --no-undef=off            Disable no-undef
+        \\  --semantic-errors=off     Disable parser semantic errors
+        \\
+    , .{});
+}

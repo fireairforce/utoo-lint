@@ -1,0 +1,3 @@
+[submodule "vendor/yuku"]
+	path = vendor/yuku
+	url = https://github.com/yuku-toolchain/yuku.git
