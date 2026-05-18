@@ -56,8 +56,19 @@ utoo-lint --no-console=off --no-unused-vars=off src
 
 ## Architecture
 
-- `src/root.zig` owns the lint engine and rule implementations.
+- `src/root.zig` owns parsing, rule execution, and public API exports.
+- `src/core.zig` owns shared lint types, diagnostics, and common helpers.
+- `src/rules/root.zig` registers rules and dispatches AST visitor hooks.
+- `src/rules/*.zig` contains one lint rule per file.
 - `src/main.zig` owns CLI argument parsing, file discovery, and terminal output.
 - `vendor/yuku` is pinned as a git submodule so the parser API is reproducible.
 
 The current rule engine deliberately uses Yuku's native flat AST and semantic traverser instead of converting to ESTree. That keeps the first version small and avoids a JS runtime dependency.
+
+## Adding a Rule
+
+Add a new file under `src/rules`, then register it in `src/rules/root.zig`.
+
+For a structural rule, add a check function in the rule file and call it from the matching visitor hook in `BasicVisitor`.
+
+For a scope/symbol rule, add a `run` function in the rule file and call it from `runSemantic`.
