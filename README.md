@@ -29,8 +29,8 @@ The vendored Yuku `build.zig.zon` currently asks for `0.17.0-dev.224+c166c49b1` 
 
 ```bash
 git submodule update --init --recursive
-zig build test
-zig build run -- test/fixtures/bad.ts
+zig build test -Doptimize=ReleaseFast -j1
+zig build run -Doptimize=ReleaseFast -j1 -- test/fixtures/bad.ts
 ```
 
 Build the binary:

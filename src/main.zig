@@ -9,11 +9,10 @@ const Stats = struct {
     errors: usize = 0,
 };
 
-pub fn main() !void {
-    const allocator = std.heap.smp_allocator;
-
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const allocator = init.gpa;
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
 
     var options = lint.Options{};
     var targets: std.ArrayList([]const u8) = .empty;
@@ -48,7 +47,7 @@ pub fn main() !void {
 
     var stats = Stats{};
     for (targets.items) |target| {
-        try lintPath(allocator, target, options, &stats);
+        try lintPath(allocator, io, target, options, &stats);
     }
 
     std.debug.print("{d} file(s) checked, {d} diagnostic(s)\n", .{
@@ -63,11 +62,13 @@ pub fn main() !void {
 
 fn lintPath(
     allocator: std.mem.Allocator,
+    io: std.Io,
     path: []const u8,
     options: lint.Options,
     stats: *Stats,
 ) !void {
-    const stat = std.fs.cwd().statFile(path) catch |err| {
+    const cwd = std.Io.Dir.cwd();
+    const stat = cwd.statFile(io, path, .{}) catch |err| {
         std.debug.print("{s}: unable to stat path: {s}\n", .{ path, @errorName(err) });
         stats.errors += 1;
         stats.diagnostics += 1;
@@ -77,25 +78,26 @@ fn lintPath(
     switch (stat.kind) {
         .file => {
             if (lint.isLintablePath(path)) {
-                try lintFile(allocator, path, options, stats);
+                try lintFile(allocator, io, path, options, stats);
             }
         },
-        .directory => try lintDirectory(allocator, path, options, stats),
+        .directory => try lintDirectory(allocator, io, path, options, stats),
         else => {},
     }
 }
 
 fn lintDirectory(
     allocator: std.mem.Allocator,
+    io: std.Io,
     path: []const u8,
     options: lint.Options,
     stats: *Stats,
 ) !void {
-    var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
-    defer dir.close();
+    var dir = try std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true });
+    defer dir.close(io);
 
     var iter = dir.iterate();
-    while (try iter.next()) |entry| {
+    while (try iter.next(io)) |entry| {
         if (shouldSkipDirectoryEntry(entry.name)) continue;
 
         const child_path = try std.fs.path.join(allocator, &.{ path, entry.name });
@@ -104,10 +106,10 @@ fn lintDirectory(
         switch (entry.kind) {
             .file => {
                 if (lint.isLintablePath(child_path)) {
-                    try lintFile(allocator, child_path, options, stats);
+                    try lintFile(allocator, io, child_path, options, stats);
                 }
             },
-            .directory => try lintDirectory(allocator, child_path, options, stats),
+            .directory => try lintDirectory(allocator, io, child_path, options, stats),
             else => {},
         }
     }
@@ -115,11 +117,12 @@ fn lintDirectory(
 
 fn lintFile(
     allocator: std.mem.Allocator,
+    io: std.Io,
     path: []const u8,
     options: lint.Options,
     stats: *Stats,
 ) !void {
-    const source = std.fs.cwd().readFileAlloc(allocator, path, max_file_size) catch |err| {
+    const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_file_size)) catch |err| {
         std.debug.print("{s}: unable to read file: {s}\n", .{ path, @errorName(err) });
         stats.errors += 1;
         stats.diagnostics += 1;
