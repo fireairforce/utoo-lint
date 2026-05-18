@@ -40,6 +40,21 @@ zig build -Doptimize=ReleaseFast
 ./zig-out/bin/utoo-lint src test
 ```
 
+Build and stage the npm CLI packages:
+
+```bash
+./scripts/package-npm.sh
+node npm/utoo-lint/bin/utoo-lint.js test/fixtures/bad.ts
+```
+
+Local npm install test:
+
+```bash
+npm install -g ./npm/utoo-lint-darwin-arm64
+npm install -g ./npm/utoo-lint
+utoo-lint test/fixtures/bad.ts
+```
+
 ## CLI
 
 ```bash

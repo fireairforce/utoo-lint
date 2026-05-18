@@ -1,0 +1,16 @@
+{
+  "name": "utoo-lint-darwin-arm64",
+  "version": "0.1.0",
+  "description": "Native binary for utoo-lint on macOS arm64",
+  "license": "MIT",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "bin/utoo-lint"
+  ]
+}
+
