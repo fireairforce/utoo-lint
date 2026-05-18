@@ -25,3 +25,11 @@ npm install -g ./npm/utoo-lint
 utoo-lint test/fixtures/bad.ts
 ```
 
+Publishing order:
+
+```bash
+npm publish ./npm/utoo-lint-darwin-arm64 --access public
+npm publish ./npm/utoo-lint --access public
+```
+
+GitHub Actions uses the same order in `.github/workflows/release.yml`.

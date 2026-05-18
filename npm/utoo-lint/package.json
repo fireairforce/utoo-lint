@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "description": "Experimental JavaScript and TypeScript linter powered by Yuku",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fireairforce/utoo-lint.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fireairforce/utoo-lint/issues"
+  },
+  "homepage": "https://github.com/fireairforce/utoo-lint#readme",
   "type": "module",
   "bin": {
     "utoo-lint": "./bin/utoo-lint.js"
@@ -12,6 +20,8 @@
   ],
   "optionalDependencies": {
     "utoo-lint-darwin-arm64": "0.1.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
   }
 }
-

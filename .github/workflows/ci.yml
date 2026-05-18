@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-darwin-arm64:
+    name: Test macOS arm64
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+
+      - name: Test
+        run: zig build test -Doptimize=ReleaseFast -j1
+
+      - name: Build
+        run: zig build -Doptimize=ReleaseFast -j1
+
+      - name: Package npm artifacts
+        run: ./scripts/package-npm.sh
+
+      - name: Verify npm wrapper
+        run: node npm/utoo-lint/bin/utoo-lint.js test/fixtures/bad.ts || test "$?" = "1"

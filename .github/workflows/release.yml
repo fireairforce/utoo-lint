@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish_npm:
+        description: "Publish packages to npm"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release-darwin-arm64:
+    name: Release macOS arm64
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+
+      - name: Test
+        run: zig build test -Doptimize=ReleaseFast -j1
+
+      - name: Build npm packages
+        run: ./scripts/package-npm.sh
+
+      - name: Verify package contents
+        run: |
+          npm pack --dry-run ./npm/utoo-lint
+          npm pack --dry-run ./npm/utoo-lint-darwin-arm64
+
+      - name: Stage release asset
+        run: |
+          mkdir -p dist
+          cp npm/utoo-lint-darwin-arm64/bin/utoo-lint dist/utoo-lint-darwin-arm64
+          shasum -a 256 dist/utoo-lint-darwin-arm64 > dist/utoo-lint-darwin-arm64.sha256
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: utoo-lint-darwin-arm64
+          path: |
+            dist/utoo-lint-darwin-arm64
+            dist/utoo-lint-darwin-arm64.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub Release asset
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || gh release create "${GITHUB_REF_NAME}" --generate-notes
+          gh release upload "${GITHUB_REF_NAME}" dist/utoo-lint-darwin-arm64 dist/utoo-lint-darwin-arm64.sha256 --clobber
+
+      - name: Publish native npm package
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./npm/utoo-lint-darwin-arm64 --access public --provenance
+
+      - name: Publish npm CLI package
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./npm/utoo-lint --access public --provenance

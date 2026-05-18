@@ -55,6 +55,36 @@ npm install -g ./npm/utoo-lint
 utoo-lint test/fixtures/bad.ts
 ```
 
+## Publishing
+
+The npm publishing setup currently supports macOS arm64:
+
+- `npm/utoo-lint` is the public CLI wrapper.
+- `npm/utoo-lint-darwin-arm64` is the native binary package.
+- `.github/workflows/release.yml` builds the binary, uploads a GitHub Release asset, and publishes both npm packages.
+
+Required GitHub repository secret:
+
+```text
+NPM_TOKEN
+```
+
+Create it from npm as an automation token, then add it in GitHub under `Settings -> Secrets and variables -> Actions`.
+
+Publish from GitHub:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+After the workflow succeeds:
+
+```bash
+npm install -g utoo-lint
+utoo-lint test/fixtures/bad.ts
+```
+
 ## CLI
 
 ```bash
