@@ -31,6 +31,7 @@ pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
 pub const no_labels = @import("no_labels.zig");
 pub const no_lone_blocks = @import("no_lone_blocks.zig");
+pub const no_lonely_if = @import("no_lonely_if.zig");
 pub const no_multi_str = @import("no_multi_str.zig");
 pub const no_new = @import("no_new.zig");
 pub const no_nested_ternary = @import("no_nested_ternary.zig");
@@ -143,6 +144,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_else_return) {
             try no_else_return.check(self.allocator, self.diagnostics, ctx.tree, statement);
+        }
+        if (self.options.no_lonely_if) {
+            try no_lonely_if.check(self.allocator, self.diagnostics, ctx.tree, statement);
         }
         return .proceed;
     }

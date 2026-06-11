@@ -99,6 +99,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_lonely_if.zig");
+}
+
+comptime {
     _ = @import("rules/no_multi_str.zig");
 }
 
