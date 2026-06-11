@@ -26,6 +26,7 @@ pub const no_const_assign = @import("no_const_assign.zig");
 pub const no_control_regex = @import("no_control_regex.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
+pub const no_continue = @import("no_continue.zig");
 pub const no_constructor_return = @import("no_constructor_return.zig");
 pub const no_debugger = @import("no_debugger.zig");
 pub const no_dupe_else_if = @import("no_dupe_else_if.zig");
@@ -507,6 +508,18 @@ const BasicVisitor = struct {
         }
         if (self.options.no_return_assign) {
             try no_return_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.argument);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_continue_statement(
+        self: *BasicVisitor,
+        _: ast.ContinueStatement,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_continue) {
+            try no_continue.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
         return .proceed;
     }
