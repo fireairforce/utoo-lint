@@ -27,7 +27,7 @@ pub fn lintSource(
     });
     defer tree.deinit();
 
-    const needs_semantic = options.parser_semantic_errors or options.no_alert or options.no_global_is_finite or options.no_global_is_nan or options.no_unused_vars or options.no_undef;
+    const needs_semantic = options.parser_semantic_errors or options.no_alert or options.no_global_is_finite or options.no_global_is_nan or options.no_new_symbol or options.no_unused_vars or options.no_undef;
 
     if (needs_semantic) {
         var semantic_result = try parser.semantic.analyze(&tree);
@@ -394,6 +394,58 @@ test "can disable no-global-is-finite" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!hasRule(result, rules.no_global_is_finite.id));
+}
+
+test "reports no-new-symbol for constructed global Symbol" {
+    const source =
+        \\const foo = new Symbol("foo");
+        \\const bar = new (Symbol)("bar");
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), countRule(result, rules.no_new_symbol.id));
+}
+
+test "does not report no-new-symbol for calls or shadowed Symbol" {
+    const source =
+        \\const foo = Symbol("foo");
+        \\function local(Symbol) {
+        \\  const bar = new Symbol("bar");
+        \\}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_new_symbol.id));
+}
+
+test "can disable no-new-symbol" {
+    const source =
+        \\const foo = new Symbol("foo");
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_new_symbol = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_new_symbol.id));
 }
 
 test "reports no-comma-operator outside for init and update" {
