@@ -87,6 +87,7 @@ pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_ternary = @import("no_ternary.zig");
 pub const no_template_curly_in_string = @import("no_template_curly_in_string.zig");
 pub const no_throw_literal = @import("no_throw_literal.zig");
+pub const no_trailing_spaces = @import("no_trailing_spaces.zig");
 pub const no_undef_init = @import("no_undef_init.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
@@ -114,6 +115,9 @@ pub fn runBasic(
 ) Allocator.Error!void {
     if (options.no_warning_comments) {
         try no_warning_comments.run(allocator, diagnostics, tree);
+    }
+    if (options.no_trailing_spaces) {
+        try no_trailing_spaces.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{

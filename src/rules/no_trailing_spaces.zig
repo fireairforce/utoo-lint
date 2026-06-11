@@ -1,0 +1,65 @@
+const std = @import("std");
+const parser = @import("parser");
+const core = @import("../core.zig");
+
+const ast = parser.ast;
+const Allocator = std.mem.Allocator;
+
+pub const id = "no-trailing-spaces";
+
+pub fn run(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+) Allocator.Error!void {
+    const source = tree.source;
+    var line_start: usize = 0;
+    var index: usize = 0;
+
+    while (index <= source.len) {
+        const line_end = findLineEnd(source, index);
+        var trailing_start = line_end;
+
+        while (trailing_start > line_start and isTrailingWhitespace(source[trailing_start - 1])) {
+            trailing_start -= 1;
+        }
+
+        if (trailing_start < line_end) {
+            try addDiagnostic(allocator, diagnostics, trailing_start, line_end);
+        }
+
+        if (line_end >= source.len) break;
+
+        index = line_end + 1;
+        if (source[line_end] == '\r' and index < source.len and source[index] == '\n') {
+            index += 1;
+        }
+        line_start = index;
+    }
+}
+
+fn findLineEnd(source: []const u8, start: usize) usize {
+    var index = start;
+    while (index < source.len and source[index] != '\n' and source[index] != '\r') : (index += 1) {}
+    return index;
+}
+
+fn addDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    start: usize,
+    end: usize,
+) Allocator.Error!void {
+    try core.addDiagnostic(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        "Trailing spaces not allowed.",
+        .{ .start = @intCast(start), .end = @intCast(end) },
+    );
+}
+
+fn isTrailingWhitespace(char: u8) bool {
+    return char == ' ' or char == '\t' or char == 0x0B or char == 0x0C;
+}

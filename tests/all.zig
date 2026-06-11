@@ -319,6 +319,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_trailing_spaces.zig");
+}
+
+comptime {
     _ = @import("rules/no_undef_init.zig");
 }
 
