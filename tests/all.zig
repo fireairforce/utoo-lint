@@ -375,5 +375,9 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/radix.zig");
+}
+
+comptime {
     _ = @import("rules/use_isnan.zig");
 }
