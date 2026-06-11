@@ -40,6 +40,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-sparse-arrays`
 - `no-unsafe-finally`
 - `no-unsafe-negation`
+- `no-useless-catch`
 - `no-void`
 - `no-with`
 - `no-var`

@@ -127,6 +127,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_useless_catch.zig");
+}
+
+comptime {
     _ = @import("rules/no_unused_vars.zig");
 }
 
