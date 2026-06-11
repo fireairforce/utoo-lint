@@ -48,6 +48,7 @@ pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
 pub const no_implied_eval = @import("no_implied_eval.zig");
 pub const no_import_assign = @import("no_import_assign.zig");
+pub const no_iterator = @import("no_iterator.zig");
 pub const no_labels = @import("no_labels.zig");
 pub const no_lone_blocks = @import("no_lone_blocks.zig");
 pub const no_lonely_if = @import("no_lonely_if.zig");
@@ -712,6 +713,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_proto) {
             try no_proto.check(self.allocator, self.diagnostics, ctx.tree, member, index);
+        }
+        if (self.options.no_iterator) {
+            try no_iterator.check(self.allocator, self.diagnostics, ctx.tree, member, index);
         }
         return .proceed;
     }
