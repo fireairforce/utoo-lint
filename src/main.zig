@@ -188,6 +188,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_trailing_spaces = false;
         } else if (std.mem.eql(u8, arg, "--no-undef-init=off")) {
             options.no_undef_init = false;
+        } else if (std.mem.eql(u8, arg, "--unicode-bom=off")) {
+            options.unicode_bom = false;
         } else if (std.mem.eql(u8, arg, "--no-unneeded-ternary=off")) {
             options.no_unneeded_ternary = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-finally=off")) {
@@ -440,6 +442,7 @@ fn printHelp() void {
         \\  --no-throw-literal=off    Disable no-throw-literal
         \\  --no-trailing-spaces=off  Disable no-trailing-spaces
         \\  --no-undef-init=off       Disable no-undef-init
+        \\  --unicode-bom=off         Disable unicode-bom
         \\  --no-unneeded-ternary=off Disable no-unneeded-ternary
         \\  --no-unsafe-finally=off   Disable no-unsafe-finally
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation
