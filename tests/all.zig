@@ -75,6 +75,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_dupe_args.zig");
+}
+
+comptime {
     _ = @import("rules/no_dupe_keys.zig");
 }
 

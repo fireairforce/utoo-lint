@@ -25,6 +25,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-console`
 - `no-comma-operator`
 - `no-debugger`
+- `no-dupe-args`
 - `no-dupe-keys`
 - `no-delete-var`
 - `no-duplicate-case`
