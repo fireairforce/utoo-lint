@@ -50,6 +50,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-multi-str`
 - `no-new`
 - `no-nested-ternary`
+- `no-obj-calls`
 - `no-new-func`
 - `no-new-object`
 - `no-new-symbol`
