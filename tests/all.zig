@@ -135,6 +135,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_import_assign.zig");
+}
+
+comptime {
     _ = @import("rules/no_labels.zig");
 }
 

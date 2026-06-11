@@ -88,6 +88,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_global_is_nan = false;
         } else if (std.mem.eql(u8, arg, "--no-implied-eval=off")) {
             options.no_implied_eval = false;
+        } else if (std.mem.eql(u8, arg, "--no-import-assign=off")) {
+            options.no_import_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-labels=off")) {
             options.no_labels = false;
         } else if (std.mem.eql(u8, arg, "--no-lone-blocks=off")) {
@@ -328,6 +330,7 @@ fn printHelp() void {
         \\  --no-global-is-finite=off Disable no-global-is-finite
         \\  --no-global-is-nan=off    Disable no-global-is-nan
         \\  --no-implied-eval=off      Disable no-implied-eval
+        \\  --no-import-assign=off     Disable no-import-assign
         \\  --no-labels=off           Disable no-labels
         \\  --no-lone-blocks=off      Disable no-lone-blocks
         \\  --no-lonely-if=off        Disable no-lonely-if
