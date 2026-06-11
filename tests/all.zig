@@ -239,6 +239,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_return_await.zig");
+}
+
+comptime {
     _ = @import("rules/no_return_assign.zig");
 }
 
