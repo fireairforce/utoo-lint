@@ -23,6 +23,7 @@ pub const Options = struct {
     no_cond_assign: bool = true,
     no_compare_neg_zero: bool = true,
     no_constant_condition: bool = true,
+    no_control_regex: bool = true,
     no_console: bool = true,
     no_comma_operator: bool = true,
     no_debugger: bool = true,
