@@ -199,6 +199,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_new_native_nonconstructor.zig");
+}
+
+comptime {
     _ = @import("rules/no_obj_calls.zig");
 }
 
