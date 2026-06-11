@@ -17,6 +17,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-global-is-finite`
 - `no-global-is-nan`
 - `no-proto`
+- `no-unsafe-negation`
 - `no-void`
 - `no-with`
 - `no-var`
