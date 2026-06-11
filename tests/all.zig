@@ -163,6 +163,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_promise_executor_return.zig");
+}
+
+comptime {
     _ = @import("rules/no_proto.zig");
 }
 
