@@ -19,6 +19,7 @@ pub const Severity = enum {
 pub const Options = struct {
     no_array_constructor: bool = true,
     no_alert: bool = true,
+    no_caller: bool = true,
     no_compare_neg_zero: bool = true,
     no_console: bool = true,
     no_comma_operator: bool = true,

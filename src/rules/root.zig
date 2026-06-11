@@ -9,6 +9,7 @@ const Allocator = std.mem.Allocator;
 pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_array_constructor = @import("no_array_constructor.zig");
+pub const no_caller = @import("no_caller.zig");
 pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
@@ -241,6 +242,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_caller) {
+            try no_caller.check(self.allocator, self.diagnostics, ctx.tree, member, index);
+        }
         if (self.options.no_proto) {
             try no_proto.check(self.allocator, self.diagnostics, ctx.tree, member, index);
         }
