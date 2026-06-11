@@ -28,6 +28,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_alert = false;
         } else if (std.mem.eql(u8, arg, "--no-caller=off")) {
             options.no_caller = false;
+        } else if (std.mem.eql(u8, arg, "--no-cond-assign=off")) {
+            options.no_cond_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-compare-neg-zero=off")) {
             options.no_compare_neg_zero = false;
         } else if (std.mem.eql(u8, arg, "--no-console=off")) {
@@ -216,6 +218,7 @@ fn printHelp() void {
         \\  --no-array-constructor=off Disable no-array-constructor
         \\  --no-alert=off            Disable no-alert
         \\  --no-caller=off           Disable no-caller
+        \\  --no-cond-assign=off      Disable no-cond-assign
         \\  --no-compare-neg-zero=off Disable no-compare-neg-zero
         \\  --no-comma-operator=off   Disable no-comma-operator
         \\  --no-console=off          Disable no-console
