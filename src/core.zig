@@ -20,6 +20,7 @@ pub const Options = struct {
     default_case: bool = true,
     default_case_last: bool = true,
     eol_last: bool = true,
+    linebreak_style: bool = true,
     no_async_promise_executor: bool = true,
     no_array_constructor: bool = true,
     no_await_in_loop: bool = true,
