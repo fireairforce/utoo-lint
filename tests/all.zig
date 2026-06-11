@@ -83,6 +83,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_dupe_else_if.zig");
+}
+
+comptime {
     _ = @import("rules/no_dupe_keys.zig");
 }
 
