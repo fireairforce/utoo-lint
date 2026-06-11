@@ -16,6 +16,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-for-in`
 - `no-global-is-finite`
 - `no-global-is-nan`
+- `no-new-wrappers`
 - `no-proto`
 - `no-void`
 - `no-with`
