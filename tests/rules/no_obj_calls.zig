@@ -1,0 +1,84 @@
+const std = @import("std");
+const lint = @import("utoo_lint");
+const helpers = @import("../helpers.zig");
+
+test "reports no-obj-calls for global object calls" {
+    const source =
+        \\Math();
+        \\JSON();
+        \\Reflect();
+        \\Atomics();
+        \\Intl();
+        \\Temporal();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_obj_calls.id));
+}
+
+test "reports no-obj-calls for global object constructors" {
+    const source =
+        \\new Math();
+        \\new JSON();
+        \\new Reflect();
+        \\new Atomics();
+        \\new Intl();
+        \\new Temporal();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_new = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_obj_calls.id));
+}
+
+test "does not report no-obj-calls for member calls or shadowed names" {
+    const source =
+        \\Math.max(1, 2);
+        \\JSON.parse("{}");
+        \\function run(Math, JSON) {
+        \\  Math();
+        \\  new JSON();
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_empty_function = false,
+        .no_new = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_obj_calls.id));
+}
+
+test "can disable no-obj-calls" {
+    const source =
+        \\Math();
+        \\new JSON();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_obj_calls = false,
+        .no_new = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_obj_calls.id));
+}

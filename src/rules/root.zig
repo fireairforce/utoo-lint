@@ -49,6 +49,7 @@ pub const no_multi_str = @import("no_multi_str.zig");
 pub const no_new = @import("no_new.zig");
 pub const no_nested_ternary = @import("no_nested_ternary.zig");
 pub const no_new_func = @import("no_new_func.zig");
+pub const no_obj_calls = @import("no_obj_calls.zig");
 pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_new_wrappers = @import("no_new_wrappers.zig");
@@ -155,6 +156,10 @@ pub fn runSemantic(
 
     if (options.no_new_func) {
         try no_new_func.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_obj_calls) {
+        try no_obj_calls.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_new_object) {

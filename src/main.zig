@@ -106,6 +106,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_nested_ternary = false;
         } else if (std.mem.eql(u8, arg, "--no-new-func=off")) {
             options.no_new_func = false;
+        } else if (std.mem.eql(u8, arg, "--no-obj-calls=off")) {
+            options.no_obj_calls = false;
         } else if (std.mem.eql(u8, arg, "--no-new-object=off")) {
             options.no_new_object = false;
         } else if (std.mem.eql(u8, arg, "--no-new-symbol=off")) {
@@ -341,6 +343,7 @@ fn printHelp() void {
         \\  --no-new=off              Disable no-new
         \\  --no-nested-ternary=off   Disable no-nested-ternary
         \\  --no-new-func=off         Disable no-new-func
+        \\  --no-obj-calls=off        Disable no-obj-calls
         \\  --no-new-object=off       Disable no-new-object
         \\  --no-new-symbol=off       Disable no-new-symbol
         \\  --no-new-wrappers=off     Disable no-new-wrappers
