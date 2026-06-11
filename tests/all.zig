@@ -147,6 +147,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_ternary.zig");
+}
+
+comptime {
     _ = @import("rules/no_throw_literal.zig");
 }
 
