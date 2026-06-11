@@ -74,6 +74,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_multi_str = false;
         } else if (std.mem.eql(u8, arg, "--no-new=off")) {
             options.no_new = false;
+        } else if (std.mem.eql(u8, arg, "--no-nested-ternary=off")) {
+            options.no_nested_ternary = false;
         } else if (std.mem.eql(u8, arg, "--no-new-func=off")) {
             options.no_new_func = false;
         } else if (std.mem.eql(u8, arg, "--no-new-object=off")) {
@@ -279,6 +281,7 @@ fn printHelp() void {
         \\  --no-lone-blocks=off      Disable no-lone-blocks
         \\  --no-multi-str=off        Disable no-multi-str
         \\  --no-new=off              Disable no-new
+        \\  --no-nested-ternary=off   Disable no-nested-ternary
         \\  --no-new-func=off         Disable no-new-func
         \\  --no-new-object=off       Disable no-new-object
         \\  --no-new-symbol=off       Disable no-new-symbol

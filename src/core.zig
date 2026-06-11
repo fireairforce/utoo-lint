@@ -43,6 +43,7 @@ pub const Options = struct {
     no_lone_blocks: bool = true,
     no_multi_str: bool = true,
     no_new: bool = true,
+    no_nested_ternary: bool = true,
     no_new_func: bool = true,
     no_new_object: bool = true,
     no_new_symbol: bool = true,
