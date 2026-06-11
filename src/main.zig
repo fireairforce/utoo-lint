@@ -88,6 +88,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_self_compare = false;
         } else if (std.mem.eql(u8, arg, "--no-sparse-arrays=off")) {
             options.no_sparse_arrays = false;
+        } else if (std.mem.eql(u8, arg, "--no-throw-literal=off")) {
+            options.no_throw_literal = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-finally=off")) {
             options.no_unsafe_finally = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-negation=off")) {
@@ -274,6 +276,7 @@ fn printHelp() void {
         \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-self-compare=off     Disable no-self-compare
         \\  --no-sparse-arrays=off    Disable no-sparse-arrays
+        \\  --no-throw-literal=off    Disable no-throw-literal
         \\  --no-unsafe-finally=off   Disable no-unsafe-finally
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation
         \\  --no-useless-catch=off    Disable no-useless-catch

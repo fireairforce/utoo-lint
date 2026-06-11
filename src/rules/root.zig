@@ -40,6 +40,7 @@ pub const no_proto = @import("no_proto.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
+pub const no_throw_literal = @import("no_throw_literal.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_undef = @import("no_undef.zig");
@@ -253,6 +254,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_useless_catch) {
             try no_useless_catch.check(self.allocator, self.diagnostics, ctx.tree, clause, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_throw_statement(
+        self: *BasicVisitor,
+        statement: ast.ThrowStatement,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_throw_literal) {
+            try no_throw_literal.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
         return .proceed;
     }

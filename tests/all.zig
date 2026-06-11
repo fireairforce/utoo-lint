@@ -135,6 +135,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_throw_literal.zig");
+}
+
+comptime {
     _ = @import("rules/no_unsafe_finally.zig");
 }
 
