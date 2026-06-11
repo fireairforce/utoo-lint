@@ -137,3 +137,7 @@ comptime {
 comptime {
     _ = @import("rules/no_with.zig");
 }
+
+comptime {
+    _ = @import("rules/use_isnan.zig");
+}

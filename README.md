@@ -44,6 +44,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `eqeqeq`
 - `no-unused-vars`
 - `no-undef`
+- `use-isnan`
 - `parse` diagnostics from Yuku, including semantic early errors by default
 
 ## Prerequisites

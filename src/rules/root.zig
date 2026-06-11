@@ -41,6 +41,7 @@ pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
+pub const use_isnan = @import("use_isnan.zig");
 
 pub fn runBasic(
     allocator: Allocator,
@@ -299,6 +300,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_unsafe_negation) {
             try no_unsafe_negation.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.use_isnan) {
+            try use_isnan.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }

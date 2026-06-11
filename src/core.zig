@@ -50,6 +50,7 @@ pub const Options = struct {
     no_with: bool = true,
     no_var: bool = true,
     eqeqeq: bool = true,
+    use_isnan: bool = true,
     no_unused_vars: bool = true,
     no_undef: bool = true,
     parser_semantic_errors: bool = true,
