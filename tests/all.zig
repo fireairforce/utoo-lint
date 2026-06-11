@@ -163,6 +163,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_script_url.zig");
+}
+
+comptime {
     _ = @import("rules/no_self_assign.zig");
 }
 

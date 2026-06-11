@@ -47,6 +47,7 @@ pub const no_plusplus = @import("no_plusplus.zig");
 pub const no_proto = @import("no_proto.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_return_assign = @import("no_return_assign.zig");
+pub const no_script_url = @import("no_script_url.zig");
 pub const no_self_assign = @import("no_self_assign.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
@@ -404,15 +405,30 @@ const BasicVisitor = struct {
 
     pub fn enter_string_literal(
         self: *BasicVisitor,
-        _: ast.StringLiteral,
+        literal: ast.StringLiteral,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_script_url) {
+            try no_script_url.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
         if (self.options.no_multi_str) {
             try no_multi_str.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
         if (self.options.no_octal_escape) {
             try no_octal_escape.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_template_literal(
+        self: *BasicVisitor,
+        literal: ast.TemplateLiteral,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_script_url) {
+            try no_script_url.checkTemplateLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         return .proceed;
     }
