@@ -10,6 +10,7 @@ pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_array_constructor = @import("no_array_constructor.zig");
 pub const no_caller = @import("no_caller.zig");
+pub const no_cond_assign = @import("no_cond_assign.zig");
 pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
 pub const no_constant_condition = @import("no_constant_condition.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
@@ -116,6 +117,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_cond_assign) {
+            try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
         if (self.options.no_constant_condition) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
@@ -128,6 +132,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_cond_assign) {
+            try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
         if (self.options.no_constant_condition) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
@@ -140,6 +147,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_cond_assign) {
+            try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
         if (self.options.no_constant_condition) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
@@ -152,6 +162,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_cond_assign and statement.@"test" != .null) {
+            try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
         if (self.options.no_constant_condition and statement.@"test" != .null) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
