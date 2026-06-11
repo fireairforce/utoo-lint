@@ -112,6 +112,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_unsafe_finally = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-negation=off")) {
             options.no_unsafe_negation = false;
+        } else if (std.mem.eql(u8, arg, "--no-useless-concat=off")) {
+            options.no_useless_concat = false;
         } else if (std.mem.eql(u8, arg, "--no-useless-catch=off")) {
             options.no_useless_catch = false;
         } else if (std.mem.eql(u8, arg, "--no-void=off")) {
@@ -306,6 +308,7 @@ fn printHelp() void {
         \\  --no-throw-literal=off    Disable no-throw-literal
         \\  --no-unsafe-finally=off   Disable no-unsafe-finally
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation
+        \\  --no-useless-concat=off   Disable no-useless-concat
         \\  --no-useless-catch=off    Disable no-useless-catch
         \\  --no-void=off             Disable no-void
         \\  --no-with=off             Disable no-with
