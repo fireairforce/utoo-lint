@@ -21,6 +21,7 @@ pub const Options = struct {
     no_alert: bool = true,
     no_caller: bool = true,
     no_compare_neg_zero: bool = true,
+    no_constant_condition: bool = true,
     no_console: bool = true,
     no_comma_operator: bool = true,
     no_debugger: bool = true,

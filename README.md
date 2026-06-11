@@ -13,6 +13,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-array-constructor`
 - `no-caller`
 - `no-compare-neg-zero`
+- `no-constant-condition`
 - `no-console`
 - `no-comma-operator`
 - `no-debugger`
