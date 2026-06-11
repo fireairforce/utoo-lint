@@ -31,6 +31,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_class_assign.zig");
+}
+
+comptime {
     _ = @import("rules/no_comma_operator.zig");
 }
 
