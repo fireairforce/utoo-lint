@@ -1,4 +1,8 @@
 comptime {
+    _ = @import("rules/default_case.zig");
+}
+
+comptime {
     _ = @import("rules/eqeqeq.zig");
 }
 

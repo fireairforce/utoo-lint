@@ -6,6 +6,7 @@ const ast = parser.ast;
 const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
+pub const default_case = @import("default_case.zig");
 pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_array_constructor = @import("no_array_constructor.zig");
@@ -229,9 +230,12 @@ const BasicVisitor = struct {
     pub fn enter_switch_statement(
         self: *BasicVisitor,
         statement: ast.SwitchStatement,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.default_case) {
+            try default_case.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
         if (self.options.no_duplicate_case) {
             try no_duplicate_case.check(self.allocator, self.diagnostics, ctx.tree, statement);
         }
