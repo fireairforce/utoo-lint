@@ -36,6 +36,7 @@ pub const no_proto = @import("no_proto.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
+pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
@@ -220,6 +221,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_case_declarations) {
             try no_case_declarations.check(self.allocator, self.diagnostics, ctx.tree, switch_case);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_try_statement(
+        self: *BasicVisitor,
+        statement: ast.TryStatement,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_unsafe_finally) {
+            try no_unsafe_finally.check(self.allocator, self.diagnostics, ctx.tree, statement);
         }
         return .proceed;
     }
