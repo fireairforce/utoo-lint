@@ -19,7 +19,7 @@
     "bin"
   ],
   "optionalDependencies": {
-    "utoo-lint-darwin-arm64": "0.1.0"
+    "@utoo/lint-darwin-arm64": "0.1.0"
   },
   "publishConfig": {
     "access": "public",

@@ -70,7 +70,7 @@ node npm/utoo-lint/bin/utoo-lint.js test/fixtures/bad.ts
 Local npm install test:
 
 ```bash
-npm install -g ./npm/utoo-lint-darwin-arm64
+npm install -g ./npm/@utoo/lint-darwin-arm64
 npm install -g ./npm/utoo-lint
 utoo-lint test/fixtures/bad.ts
 ```
@@ -80,7 +80,7 @@ utoo-lint test/fixtures/bad.ts
 The npm publishing setup currently supports macOS arm64:
 
 - `npm/utoo-lint` is the public CLI wrapper published as `@utoo/lint`.
-- `npm/utoo-lint-darwin-arm64` is the native binary package.
+- `npm/@utoo/lint-darwin-arm64` is the native binary package published as `@utoo/lint-darwin-arm64`.
 - `.github/workflows/release.yml` builds the binary, uploads a GitHub Release asset, and publishes both npm packages.
 
 Required GitHub repository secret:
