@@ -78,6 +78,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-unneeded-ternary`
 - `no-unsafe-finally`
 - `no-unsafe-negation`
+- `no-useless-computed-key`
 - `no-useless-concat`
 - `no-useless-catch`
 - `no-useless-rename`
