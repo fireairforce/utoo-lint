@@ -27,7 +27,7 @@ pub fn lintSource(
     });
     defer tree.deinit();
 
-    const needs_semantic = options.parser_semantic_errors or options.no_alert or options.no_global_is_finite or options.no_global_is_nan or options.no_new_func or options.no_new_object or options.no_new_symbol or options.no_new_wrappers or options.no_unused_vars or options.no_undef;
+    const needs_semantic = options.parser_semantic_errors or options.no_array_constructor or options.no_alert or options.no_global_is_finite or options.no_global_is_nan or options.no_new_func or options.no_new_object or options.no_new_symbol or options.no_new_wrappers or options.no_unused_vars or options.no_undef;
 
     if (needs_semantic) {
         var semantic_result = try parser.semantic.analyze(&tree);
@@ -135,6 +135,63 @@ test "reports structural rules" {
     try std.testing.expect(hasRule(result, rules.no_debugger.id));
     try std.testing.expect(hasRule(result, rules.no_for_in.id));
     try std.testing.expect(hasRule(result, rules.no_with.id));
+}
+
+test "reports no-array-constructor for disallowed Array constructor usage" {
+    const source =
+        \\const a = Array();
+        \\const b = new Array();
+        \\const c = Array(1, 2);
+        \\const d = new Array("a", "b");
+        \\const e = Array(...items);
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), countRule(result, rules.no_array_constructor.id));
+}
+
+test "does not report no-array-constructor for single non-spread argument or shadowed Array" {
+    const source =
+        \\const a = Array(length);
+        \\const b = new Array(10);
+        \\function local(Array) {
+        \\  const c = Array();
+        \\  const d = new Array(1, 2);
+        \\}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_array_constructor.id));
+}
+
+test "can disable no-array-constructor" {
+    const source =
+        \\const a = Array();
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_array_constructor = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_array_constructor.id));
 }
 
 test "can disable no-for-in" {
