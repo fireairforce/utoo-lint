@@ -47,6 +47,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_const_assign.zig");
+}
+
+comptime {
     _ = @import("rules/no_constant_condition.zig");
 }
 

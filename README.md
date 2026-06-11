@@ -20,6 +20,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-cond-assign`
 - `no-compare-neg-zero`
 - `no-constant-condition`
+- `no-const-assign`
 - `no-control-regex`
 - `no-console`
 - `no-comma-operator`
