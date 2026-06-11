@@ -13,6 +13,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-console`
 - `no-debugger`
 - `no-for-in`
+- `no-global-is-nan`
 - `no-with`
 - `no-var`
 - `eqeqeq`
