@@ -43,12 +43,12 @@ jobs:
       - name: Verify package contents
         run: |
           npm pack --dry-run ./npm/utoo-lint
-          npm pack --dry-run ./npm/utoo-lint-darwin-arm64
+          npm pack --dry-run ./npm/@utoo/lint-darwin-arm64
 
       - name: Stage release asset
         run: |
           mkdir -p dist
-          cp npm/utoo-lint-darwin-arm64/bin/utoo-lint dist/utoo-lint-darwin-arm64
+          cp npm/@utoo/lint-darwin-arm64/bin/utoo-lint dist/utoo-lint-darwin-arm64
           shasum -a 256 dist/utoo-lint-darwin-arm64 > dist/utoo-lint-darwin-arm64.sha256
 
       - name: Upload workflow artifact
@@ -72,7 +72,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish ./npm/utoo-lint-darwin-arm64 --access public --provenance
+        run: npm publish ./npm/@utoo/lint-darwin-arm64 --access public --provenance
 
       - name: Publish npm CLI package
         if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_npm

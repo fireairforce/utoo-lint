@@ -7,7 +7,7 @@ ARCH="$(uname -m)"
 
 case "${PLATFORM}-${ARCH}" in
   Darwin-arm64)
-    PACKAGE_DIR="${ROOT_DIR}/npm/utoo-lint-darwin-arm64"
+    PACKAGE_DIR="${ROOT_DIR}/npm/@utoo/lint-darwin-arm64"
     BINARY_NAME="utoo-lint"
     ;;
   *)
@@ -24,4 +24,3 @@ cp "${ROOT_DIR}/zig-out/bin/utoo-lint" "${PACKAGE_DIR}/bin/${BINARY_NAME}"
 chmod 755 "${PACKAGE_DIR}/bin/${BINARY_NAME}"
 
 echo "staged ${PACKAGE_DIR}/bin/${BINARY_NAME}"
-

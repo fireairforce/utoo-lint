@@ -343,6 +343,56 @@ test "can disable no-dupe-keys" {
     try std.testing.expect(!hasRule(result, rules.no_dupe_keys.id));
 }
 
+test "reports no-delete-var for deleting identifiers" {
+    const source =
+        \\delete value;
+        \\delete undefined;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), countRule(result, rules.no_delete_var.id));
+}
+
+test "does not report no-delete-var for property deletion" {
+    const source =
+        \\delete object.value;
+        \\delete object["value"];
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_delete_var.id));
+}
+
+test "can disable no-delete-var" {
+    const source =
+        \\delete value;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_delete_var = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_delete_var.id));
+}
+
 test "reports no-empty-block-statements for empty blocks" {
     const source =
         \\if (ready) {}
@@ -884,6 +934,57 @@ test "can disable no-proto" {
     try std.testing.expect(!hasRule(result, rules.no_proto.id));
 }
 
+test "reports no-regex-spaces for consecutive regex pattern spaces" {
+    const source =
+        \\const first = /foo  bar/;
+        \\const second = /foo   bar/;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), countRule(result, rules.no_regex_spaces.id));
+}
+
+test "does not report no-regex-spaces for escaped or character class spaces" {
+    const source =
+        \\const first = /foo bar/;
+        \\const second = /foo\ \ bar/;
+        \\const third = /[  ]/;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_regex_spaces.id));
+}
+
+test "can disable no-regex-spaces" {
+    const source =
+        \\const first = /foo  bar/;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_regex_spaces = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_regex_spaces.id));
+}
+
 test "reports no-sparse-arrays for array holes" {
     const source =
         \\const first = [1,, 2];
@@ -934,6 +1035,59 @@ test "can disable no-sparse-arrays" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!hasRule(result, rules.no_sparse_arrays.id));
+}
+
+test "reports no-self-compare for equivalent comparison operands" {
+    const source =
+        \\value === value;
+        \\object.property != object.property;
+        \\(count) < count;
+        \\items[index] >= items[index];
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), countRule(result, rules.no_self_compare.id));
+}
+
+test "does not report no-self-compare for different operands or non-comparison operators" {
+    const source =
+        \\value === other;
+        \\object.left === object.right;
+        \\value + value;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_self_compare.id));
+}
+
+test "can disable no-self-compare" {
+    const source =
+        \\value === value;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_self_compare = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_self_compare.id));
 }
 
 test "reports no-void for void unary expressions" {

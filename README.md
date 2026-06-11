@@ -2,7 +2,7 @@
 
 ![utoo-lint logo](assets/utoo-lint-logo.svg)
 
-`utoo-lint` is an experimental JavaScript and TypeScript linter written in Zig.
+`@utoo/lint` is an experimental JavaScript and TypeScript linter written in Zig.
 It uses [`yuku`](https://github.com/yuku-toolchain/yuku) (GitHub: https://github.com/yuku-toolchain/yuku) for parsing, AST traversal, scope tracking, and symbol resolution.
 
 ## Status
@@ -17,6 +17,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-comma-operator`
 - `no-debugger`
 - `no-dupe-keys`
+- `no-delete-var`
 - `no-empty-block-statements`
 - `no-for-in`
 - `no-global-is-finite`
@@ -26,6 +27,8 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-new-symbol`
 - `no-new-wrappers`
 - `no-proto`
+- `no-regex-spaces`
+- `no-self-compare`
 - `no-sparse-arrays`
 - `no-unsafe-negation`
 - `no-void`
@@ -71,7 +74,7 @@ node npm/utoo-lint/bin/utoo-lint.js test/fixtures/bad.ts
 Local npm install test:
 
 ```bash
-npm install -g ./npm/utoo-lint-darwin-arm64
+npm install -g ./npm/@utoo/lint-darwin-arm64
 npm install -g ./npm/utoo-lint
 utoo-lint test/fixtures/bad.ts
 ```
@@ -80,8 +83,8 @@ utoo-lint test/fixtures/bad.ts
 
 The npm publishing setup currently supports macOS arm64:
 
-- `npm/utoo-lint` is the public CLI wrapper.
-- `npm/utoo-lint-darwin-arm64` is the native binary package.
+- `npm/utoo-lint` is the public CLI wrapper published as `@utoo/lint`.
+- `npm/@utoo/lint-darwin-arm64` is the native binary package published as `@utoo/lint-darwin-arm64`.
 - `.github/workflows/release.yml` builds the binary, uploads a GitHub Release asset, and publishes both npm packages.
 
 Required GitHub repository secret:
@@ -102,7 +105,7 @@ git push origin v0.1.0
 After the workflow succeeds:
 
 ```bash
-npm install -g utoo-lint
+npm install -g @utoo/lint
 utoo-lint test/fixtures/bad.ts
 ```
 
