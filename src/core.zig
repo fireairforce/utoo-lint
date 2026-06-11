@@ -46,6 +46,7 @@ pub const Options = struct {
     no_new_object: bool = true,
     no_new_symbol: bool = true,
     no_new_wrappers: bool = true,
+    no_octal: bool = true,
     no_proto: bool = true,
     no_regex_spaces: bool = true,
     no_self_compare: bool = true,

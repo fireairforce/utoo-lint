@@ -36,6 +36,7 @@ pub const no_new_func = @import("no_new_func.zig");
 pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_new_wrappers = @import("no_new_wrappers.zig");
+pub const no_octal = @import("no_octal.zig");
 pub const no_proto = @import("no_proto.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
@@ -367,6 +368,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_multi_str) {
             try no_multi_str.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_numeric_literal(
+        self: *BasicVisitor,
+        literal: ast.NumericLiteral,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_octal) {
+            try no_octal.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         return .proceed;
     }

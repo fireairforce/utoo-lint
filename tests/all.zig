@@ -119,6 +119,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_octal.zig");
+}
+
+comptime {
     _ = @import("rules/no_proto.zig");
 }
 
