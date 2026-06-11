@@ -24,6 +24,7 @@ pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_constructor_return = @import("no_constructor_return.zig");
 pub const no_debugger = @import("no_debugger.zig");
+pub const no_dupe_else_if = @import("no_dupe_else_if.zig");
 pub const no_duplicate_case = @import("no_duplicate_case.zig");
 pub const no_dupe_args = @import("no_dupe_args.zig");
 pub const no_dupe_keys = @import("no_dupe_keys.zig");
@@ -209,7 +210,7 @@ const BasicVisitor = struct {
     pub fn enter_if_statement(
         self: *BasicVisitor,
         statement: ast.IfStatement,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_cond_assign) {
@@ -220,6 +221,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_else_return) {
             try no_else_return.check(self.allocator, self.diagnostics, ctx.tree, statement);
+        }
+        if (self.options.no_dupe_else_if) {
+            try no_dupe_else_if.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }
         if (self.options.no_lonely_if) {
             try no_lonely_if.check(self.allocator, self.diagnostics, ctx.tree, statement);

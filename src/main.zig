@@ -56,6 +56,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_constructor_return = false;
         } else if (std.mem.eql(u8, arg, "--no-debugger=off")) {
             options.no_debugger = false;
+        } else if (std.mem.eql(u8, arg, "--no-dupe-else-if=off")) {
+            options.no_dupe_else_if = false;
         } else if (std.mem.eql(u8, arg, "--no-duplicate-case=off")) {
             options.no_duplicate_case = false;
         } else if (std.mem.eql(u8, arg, "--no-dupe-args=off")) {
@@ -322,6 +324,7 @@ fn printHelp() void {
         \\  --no-console=off          Disable no-console
         \\  --no-constructor-return=off Disable no-constructor-return
         \\  --no-debugger=off         Disable no-debugger
+        \\  --no-dupe-else-if=off     Disable no-dupe-else-if
         \\  --no-duplicate-case=off   Disable no-duplicate-case
         \\  --no-dupe-args=off        Disable no-dupe-args
         \\  --no-dupe-keys=off        Disable no-dupe-keys
