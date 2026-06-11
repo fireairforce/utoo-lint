@@ -68,6 +68,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-script-url`
 - `no-self-assign`
 - `no-self-compare`
+- `no-setter-return`
 - `no-sequences`
 - `no-sparse-arrays`
 - `no-ternary`

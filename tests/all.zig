@@ -239,6 +239,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_setter_return.zig");
+}
+
+comptime {
     _ = @import("rules/no_sequences.zig");
 }
 
