@@ -30,6 +30,7 @@ pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
 pub const no_labels = @import("no_labels.zig");
+pub const no_lone_blocks = @import("no_lone_blocks.zig");
 pub const no_new_func = @import("no_new_func.zig");
 pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
@@ -285,6 +286,11 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_lone_blocks) {
+            if (ctx.path.parent()) |parent| {
+                try no_lone_blocks.check(self.allocator, self.diagnostics, ctx.tree, block, index, parent);
+            }
+        }
         if (self.options.no_empty_block_statements) {
             try no_empty_block_statements.checkBlockStatement(self.allocator, self.diagnostics, ctx.tree, block, index);
         }
