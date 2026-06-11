@@ -179,6 +179,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_inline_comments.zig");
+}
+
+comptime {
     _ = @import("rules/no_irregular_whitespace.zig");
 }
 
