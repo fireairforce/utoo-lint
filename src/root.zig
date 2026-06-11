@@ -27,7 +27,7 @@ pub fn lintSource(
     });
     defer tree.deinit();
 
-    const needs_semantic = options.parser_semantic_errors or options.no_unused_vars or options.no_undef;
+    const needs_semantic = options.parser_semantic_errors or options.no_alert or options.no_unused_vars or options.no_undef;
 
     if (needs_semantic) {
         var semantic_result = try parser.semantic.analyze(&tree);
@@ -99,6 +99,14 @@ fn hasRule(result: Result, rule_id: []const u8) bool {
     return false;
 }
 
+fn countRule(result: Result, rule_id: []const u8) usize {
+    var count: usize = 0;
+    for (result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, rule_id)) count += 1;
+    }
+    return count;
+}
+
 test "reports structural rules" {
     const source =
         \\var value = 1;
@@ -163,6 +171,61 @@ test "can disable no-with" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!hasRule(result, rules.no_with.id));
+}
+
+test "reports no-alert for global alert APIs" {
+    const source =
+        \\alert("here");
+        \\confirm("continue?");
+        \\prompt("name");
+        \\window.alert("hello");
+        \\globalThis.prompt("name");
+        \\window["confirm"]("continue?");
+        \\(alert)("wrapped");
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 7), countRule(result, rules.no_alert.id));
+}
+
+test "does not report no-alert for shadowed alert" {
+    const source =
+        \\const alert = customAlert;
+        \\alert("custom");
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_alert.id));
+}
+
+test "can disable no-alert" {
+    const source =
+        \\alert("here");
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_alert = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_alert.id));
 }
 
 test "reports semantic rules" {

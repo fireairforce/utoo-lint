@@ -22,6 +22,8 @@ pub fn main(init: std.process.Init) !void {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
             printHelp();
             return;
+        } else if (std.mem.eql(u8, arg, "--no-alert=off")) {
+            options.no_alert = false;
         } else if (std.mem.eql(u8, arg, "--no-console=off")) {
             options.no_console = false;
         } else if (std.mem.eql(u8, arg, "--no-debugger=off")) {
@@ -171,6 +173,7 @@ fn printHelp() void {
         \\  utoo-lint [options] [file-or-directory ...]
         \\
         \\Options:
+        \\  --no-alert=off            Disable no-alert
         \\  --no-console=off          Disable no-console
         \\  --no-debugger=off         Disable no-debugger
         \\  --no-for-in=off           Disable no-for-in
