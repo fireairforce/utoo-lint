@@ -15,6 +15,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_async_promise_executor.zig");
+}
+
+comptime {
     _ = @import("rules/no_array_constructor.zig");
 }
 
