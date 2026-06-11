@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 
 const packages = {
-  "darwin-arm64": "utoo-lint-darwin-arm64"
+  "darwin-arm64": "@utoo/lint-darwin-arm64"
 };
 
 const platformKey = `${process.platform}-${process.arch}`;

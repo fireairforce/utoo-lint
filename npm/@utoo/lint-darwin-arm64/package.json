@@ -1,5 +1,5 @@
 {
-  "name": "utoo-lint-darwin-arm64",
+  "name": "@utoo/lint-darwin-arm64",
   "version": "0.1.0",
   "description": "Native binary for utoo-lint on macOS arm64",
   "license": "MIT",
@@ -21,6 +21,7 @@
     "bin/utoo-lint"
   ],
   "publishConfig": {
+    "access": "public",
     "registry": "https://registry.npmjs.org/"
   }
 }

@@ -36,6 +36,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_comma_operator = false;
         } else if (std.mem.eql(u8, arg, "--no-debugger=off")) {
             options.no_debugger = false;
+        } else if (std.mem.eql(u8, arg, "--no-delete-var=off")) {
+            options.no_delete_var = false;
         } else if (std.mem.eql(u8, arg, "--no-empty-block-statements=off")) {
             options.no_empty_block_statements = false;
         } else if (std.mem.eql(u8, arg, "--no-for-in=off")) {
@@ -56,6 +58,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_proto = false;
         } else if (std.mem.eql(u8, arg, "--no-regex-spaces=off")) {
             options.no_regex_spaces = false;
+        } else if (std.mem.eql(u8, arg, "--no-self-compare=off")) {
+            options.no_self_compare = false;
         } else if (std.mem.eql(u8, arg, "--no-sparse-arrays=off")) {
             options.no_sparse_arrays = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-negation=off")) {
@@ -212,6 +216,7 @@ fn printHelp() void {
         \\  --no-comma-operator=off   Disable no-comma-operator
         \\  --no-console=off          Disable no-console
         \\  --no-debugger=off         Disable no-debugger
+        \\  --no-delete-var=off       Disable no-delete-var
         \\  --no-empty-block-statements=off Disable no-empty-block-statements
         \\  --no-for-in=off           Disable no-for-in
         \\  --no-global-is-finite=off Disable no-global-is-finite
@@ -222,6 +227,7 @@ fn printHelp() void {
         \\  --no-new-wrappers=off     Disable no-new-wrappers
         \\  --no-proto=off            Disable no-proto
         \\  --no-regex-spaces=off     Disable no-regex-spaces
+        \\  --no-self-compare=off     Disable no-self-compare
         \\  --no-sparse-arrays=off    Disable no-sparse-arrays
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation
         \\  --no-void=off             Disable no-void
