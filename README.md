@@ -57,6 +57,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-lone-blocks`
 - `no-lonely-if`
 - `no-loss-of-precision`
+- `no-mixed-spaces-and-tabs`
 - `no-multi-str`
 - `no-new`
 - `no-nested-ternary`

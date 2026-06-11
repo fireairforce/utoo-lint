@@ -120,6 +120,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_loss_of_precision = false;
         } else if (std.mem.eql(u8, arg, "--no-multi-str=off")) {
             options.no_multi_str = false;
+        } else if (std.mem.eql(u8, arg, "--no-mixed-spaces-and-tabs=off")) {
+            options.no_mixed_spaces_and_tabs = false;
         } else if (std.mem.eql(u8, arg, "--no-new=off")) {
             options.no_new = false;
         } else if (std.mem.eql(u8, arg, "--no-nested-ternary=off")) {
@@ -410,6 +412,7 @@ fn printHelp() void {
         \\  --no-lonely-if=off        Disable no-lonely-if
         \\  --no-loss-of-precision=off Disable no-loss-of-precision
         \\  --no-multi-str=off        Disable no-multi-str
+        \\  --no-mixed-spaces-and-tabs=off Disable no-mixed-spaces-and-tabs
         \\  --no-new=off              Disable no-new
         \\  --no-nested-ternary=off   Disable no-nested-ternary
         \\  --no-negated-condition=off Disable no-negated-condition

@@ -195,6 +195,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_mixed_spaces_and_tabs.zig");
+}
+
+comptime {
     _ = @import("rules/no_multi_str.zig");
 }
 
