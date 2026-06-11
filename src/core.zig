@@ -41,6 +41,7 @@ pub const Options = struct {
     no_global_is_nan: bool = true,
     no_labels: bool = true,
     no_lone_blocks: bool = true,
+    no_multi_str: bool = true,
     no_new_func: bool = true,
     no_new_object: bool = true,
     no_new_symbol: bool = true,
