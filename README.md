@@ -90,6 +90,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-ternary`
 - `no-template-curly-in-string`
 - `no-throw-literal`
+- `no-tabs`
 - `no-trailing-spaces`
 - `no-undef-init`
 - `unicode-bom`

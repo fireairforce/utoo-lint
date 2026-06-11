@@ -311,6 +311,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_tabs.zig");
+}
+
+comptime {
     _ = @import("rules/no_ternary.zig");
 }
 
