@@ -9,6 +9,7 @@ const Allocator = std.mem.Allocator;
 pub const default_case = @import("default_case.zig");
 pub const default_case_last = @import("default_case_last.zig");
 pub const eol_last = @import("eol_last.zig");
+pub const guard_for_in = @import("guard_for_in.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const no_async_promise_executor = @import("no_async_promise_executor.zig");
 pub const no_alert = @import("no_alert.zig");
@@ -542,10 +543,13 @@ const BasicVisitor = struct {
 
     pub fn enter_for_in_statement(
         self: *BasicVisitor,
-        _: ast.ForInStatement,
+        statement: ast.ForInStatement,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.guard_for_in) {
+            try guard_for_in.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
         if (self.options.no_for_in) {
             try no_for_in.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
