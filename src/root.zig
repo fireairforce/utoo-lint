@@ -336,6 +336,55 @@ test "can disable no-global-is-finite" {
     try std.testing.expect(!hasRule(result, rules.no_global_is_finite.id));
 }
 
+test "reports no-comma-operator outside for init and update" {
+    const source =
+        \\const value = (doSomething(), 0);
+        \\for (; doSomething(), test; ) {}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(hasRule(result, rules.no_comma_operator.id));
+}
+
+test "allows comma operator in for init and update" {
+    const source =
+        \\for (i = 0, j = 0; test; i++, j++) {}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_comma_operator.id));
+}
+
+test "can disable no-comma-operator" {
+    const source =
+        \\const value = (doSomething(), 0);
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_comma_operator = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_comma_operator.id));
+}
+
 test "reports semantic rules" {
     const source =
         \\const unused = missing;
