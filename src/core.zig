@@ -19,6 +19,7 @@ pub const Severity = enum {
 pub const Options = struct {
     default_case: bool = true,
     default_case_last: bool = true,
+    no_async_promise_executor: bool = true,
     no_array_constructor: bool = true,
     no_alert: bool = true,
     no_caller: bool = true,

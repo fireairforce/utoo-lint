@@ -11,6 +11,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 
 - `default-case`
 - `default-case-last`
+- `no-async-promise-executor`
 - `no-alert`
 - `no-array-constructor`
 - `no-caller`
