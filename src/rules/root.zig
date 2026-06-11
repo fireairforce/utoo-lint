@@ -12,12 +12,14 @@ pub const no_array_constructor = @import("no_array_constructor.zig");
 pub const no_caller = @import("no_caller.zig");
 pub const no_cond_assign = @import("no_cond_assign.zig");
 pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
+pub const no_constant_condition = @import("no_constant_condition.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
 pub const no_dupe_keys = @import("no_dupe_keys.zig");
 pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
+pub const no_empty_character_class = @import("no_empty_character_class.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
@@ -118,6 +120,9 @@ const BasicVisitor = struct {
         if (self.options.no_cond_assign) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
+        if (self.options.no_constant_condition) {
+            try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
         return .proceed;
     }
 
@@ -129,6 +134,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_cond_assign) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
+        if (self.options.no_constant_condition) {
+            try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
         return .proceed;
     }
@@ -142,6 +150,9 @@ const BasicVisitor = struct {
         if (self.options.no_cond_assign) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
+        if (self.options.no_constant_condition) {
+            try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
         return .proceed;
     }
 
@@ -153,6 +164,21 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_cond_assign and statement.@"test" != .null) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
+        if (self.options.no_constant_condition and statement.@"test" != .null) {
+            try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
+        return .proceed;
+    }
+
+    pub fn enter_conditional_expression(
+        self: *BasicVisitor,
+        expression: ast.ConditionalExpression,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_constant_condition) {
+            try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, expression.@"test");
         }
         return .proceed;
     }
@@ -346,6 +372,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_empty_character_class) {
+            try no_empty_character_class.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
         if (self.options.no_regex_spaces) {
             try no_regex_spaces.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }

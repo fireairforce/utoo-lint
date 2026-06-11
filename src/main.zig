@@ -32,6 +32,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_cond_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-compare-neg-zero=off")) {
             options.no_compare_neg_zero = false;
+        } else if (std.mem.eql(u8, arg, "--no-constant-condition=off")) {
+            options.no_constant_condition = false;
         } else if (std.mem.eql(u8, arg, "--no-console=off")) {
             options.no_console = false;
         } else if (std.mem.eql(u8, arg, "--no-comma-operator=off")) {
@@ -44,6 +46,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_delete_var = false;
         } else if (std.mem.eql(u8, arg, "--no-empty-block-statements=off")) {
             options.no_empty_block_statements = false;
+        } else if (std.mem.eql(u8, arg, "--no-empty-character-class=off")) {
+            options.no_empty_character_class = false;
         } else if (std.mem.eql(u8, arg, "--no-extra-boolean-cast=off")) {
             options.no_extra_boolean_cast = false;
         } else if (std.mem.eql(u8, arg, "--no-for-in=off")) {
@@ -220,12 +224,14 @@ fn printHelp() void {
         \\  --no-caller=off           Disable no-caller
         \\  --no-cond-assign=off      Disable no-cond-assign
         \\  --no-compare-neg-zero=off Disable no-compare-neg-zero
+        \\  --no-constant-condition=off Disable no-constant-condition
         \\  --no-comma-operator=off   Disable no-comma-operator
         \\  --no-console=off          Disable no-console
         \\  --no-debugger=off         Disable no-debugger
         \\  --no-dupe-keys=off        Disable no-dupe-keys
         \\  --no-delete-var=off       Disable no-delete-var
         \\  --no-empty-block-statements=off Disable no-empty-block-statements
+        \\  --no-empty-character-class=off Disable no-empty-character-class
         \\  --no-extra-boolean-cast=off Disable no-extra-boolean-cast
         \\  --no-for-in=off           Disable no-for-in
         \\  --no-global-is-finite=off Disable no-global-is-finite

@@ -282,6 +282,59 @@ test "can disable no-cond-assign" {
     try std.testing.expect(!hasRule(result, rules.no_cond_assign.id));
 }
 
+test "reports no-constant-condition for constant boolean contexts" {
+    const source =
+        \\if ((true)) { use(); }
+        \\while ("ready") { break; }
+        \\do { break; } while (`ready`);
+        \\for (; /ready/; ) { break; }
+        \\const value = null ? 1 : 2;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), countRule(result, rules.no_constant_condition.id));
+}
+
+test "does not report no-constant-condition for dynamic conditions" {
+    const source =
+        \\if (ready) { use(); }
+        \\while (`${ready}`) { break; }
+        \\for (; ready; ) { break; }
+        \\const value = ready ? 1 : 2;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_constant_condition.id));
+}
+
+test "can disable no-constant-condition" {
+    const source =
+        \\if (false) { use(); }
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_constant_condition = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_constant_condition.id));
+}
+
 test "reports no-caller for arguments caller and callee access" {
     const source =
         \\function f() {
@@ -1039,6 +1092,57 @@ test "can disable no-proto" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!hasRule(result, rules.no_proto.id));
+}
+
+test "reports no-empty-character-class for empty regex character classes" {
+    const source =
+        \\const first = /^abc[]/;
+        \\const second = /foo[]bar/;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), countRule(result, rules.no_empty_character_class.id));
+}
+
+test "does not report no-empty-character-class for escaped or negated classes" {
+    const source =
+        \\const escaped = /\[\]/;
+        \\const negated = /[^]/;
+        \\const non_empty = /[a-z]/;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_empty_character_class.id));
+}
+
+test "can disable no-empty-character-class" {
+    const source =
+        \\const first = /^abc[]/;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_empty_character_class = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_empty_character_class.id));
 }
 
 test "reports no-regex-spaces for consecutive regex pattern spaces" {
