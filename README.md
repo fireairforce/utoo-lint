@@ -52,6 +52,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-sparse-arrays`
 - `no-ternary`
 - `no-throw-literal`
+- `no-unneeded-ternary`
 - `no-unsafe-finally`
 - `no-unsafe-negation`
 - `no-useless-concat`

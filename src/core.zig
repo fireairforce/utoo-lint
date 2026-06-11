@@ -60,6 +60,7 @@ pub const Options = struct {
     no_sparse_arrays: bool = true,
     no_ternary: bool = true,
     no_throw_literal: bool = true,
+    no_unneeded_ternary: bool = true,
     no_unsafe_finally: bool = true,
     no_unsafe_negation: bool = true,
     no_useless_concat: bool = true,

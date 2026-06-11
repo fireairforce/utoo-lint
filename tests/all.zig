@@ -175,6 +175,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_unneeded_ternary.zig");
+}
+
+comptime {
     _ = @import("rules/no_unsafe_finally.zig");
 }
 
