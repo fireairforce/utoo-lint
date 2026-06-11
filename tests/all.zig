@@ -211,6 +211,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_useless_rename.zig");
+}
+
+comptime {
     _ = @import("rules/no_unused_vars.zig");
 }
 

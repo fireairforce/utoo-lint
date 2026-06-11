@@ -60,6 +60,7 @@ pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_useless_concat = @import("no_useless_concat.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_useless_catch = @import("no_useless_catch.zig");
+pub const no_useless_rename = @import("no_useless_rename.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
@@ -612,6 +613,33 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_empty_pattern) {
             try no_empty_pattern.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern, index);
+        }
+        if (self.options.no_useless_rename) {
+            try no_useless_rename.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_import_specifier(
+        self: *BasicVisitor,
+        specifier: ast.ImportSpecifier,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_useless_rename) {
+            try no_useless_rename.checkImportSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_export_specifier(
+        self: *BasicVisitor,
+        specifier: ast.ExportSpecifier,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_useless_rename) {
+            try no_useless_rename.checkExportSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, index);
         }
         return .proceed;
     }
