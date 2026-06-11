@@ -103,6 +103,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_new.zig");
+}
+
+comptime {
     _ = @import("rules/no_new_func.zig");
 }
 

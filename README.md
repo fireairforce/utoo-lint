@@ -34,6 +34,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-labels`
 - `no-lone-blocks`
 - `no-multi-str`
+- `no-new`
 - `no-new-func`
 - `no-new-object`
 - `no-new-symbol`
