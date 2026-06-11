@@ -84,6 +84,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_octal = false;
         } else if (std.mem.eql(u8, arg, "--no-octal-escape=off")) {
             options.no_octal_escape = false;
+        } else if (std.mem.eql(u8, arg, "--no-plusplus=off")) {
+            options.no_plusplus = false;
         } else if (std.mem.eql(u8, arg, "--no-proto=off")) {
             options.no_proto = false;
         } else if (std.mem.eql(u8, arg, "--no-regex-spaces=off")) {
@@ -278,6 +280,7 @@ fn printHelp() void {
         \\  --no-new-wrappers=off     Disable no-new-wrappers
         \\  --no-octal=off            Disable no-octal
         \\  --no-octal-escape=off     Disable no-octal-escape
+        \\  --no-plusplus=off         Disable no-plusplus
         \\  --no-proto=off            Disable no-proto
         \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-self-compare=off     Disable no-self-compare

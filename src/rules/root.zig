@@ -38,6 +38,7 @@ pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_new_wrappers = @import("no_new_wrappers.zig");
 pub const no_octal = @import("no_octal.zig");
 pub const no_octal_escape = @import("no_octal_escape.zig");
+pub const no_plusplus = @import("no_plusplus.zig");
 pub const no_proto = @import("no_proto.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
@@ -423,6 +424,18 @@ const BasicVisitor = struct {
         }
         if (self.options.no_void) {
             try no_void.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_update_expression(
+        self: *BasicVisitor,
+        _: ast.UpdateExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_plusplus) {
+            try no_plusplus.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
         return .proceed;
     }
