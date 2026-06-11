@@ -85,6 +85,7 @@ pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_ternary = @import("no_ternary.zig");
 pub const no_template_curly_in_string = @import("no_template_curly_in_string.zig");
 pub const no_throw_literal = @import("no_throw_literal.zig");
+pub const no_undef_init = @import("no_undef_init.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
@@ -524,6 +525,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_var) {
             try no_var.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
+        }
+        if (self.options.no_undef_init) {
+            try no_undef_init.check(self.allocator, self.diagnostics, ctx.tree, declaration);
         }
         return .proceed;
     }
