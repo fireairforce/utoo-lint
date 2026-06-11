@@ -12,6 +12,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-alert`
 - `no-array-constructor`
 - `no-caller`
+- `no-case-declarations`
 - `no-cond-assign`
 - `no-compare-neg-zero`
 - `no-constant-condition`

@@ -15,6 +15,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_case_declarations.zig");
+}
+
+comptime {
     _ = @import("rules/no_comma_operator.zig");
 }
 
