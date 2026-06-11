@@ -395,6 +395,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/unicode_bom.zig");
+}
+
+comptime {
     _ = @import("rules/use_isnan.zig");
 }
 

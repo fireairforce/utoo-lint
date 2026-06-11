@@ -105,6 +105,7 @@ pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
 pub const radix = @import("radix.zig");
+pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
 pub const yoda = @import("yoda.zig");
 
@@ -122,6 +123,9 @@ pub fn runBasic(
     }
     if (options.eol_last) {
         try eol_last.run(allocator, diagnostics, tree);
+    }
+    if (options.unicode_bom) {
+        try unicode_bom.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{
