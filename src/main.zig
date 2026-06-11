@@ -22,6 +22,8 @@ pub fn main(init: std.process.Init) !void {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
             printHelp();
             return;
+        } else if (std.mem.eql(u8, arg, "--no-array-constructor=off")) {
+            options.no_array_constructor = false;
         } else if (std.mem.eql(u8, arg, "--no-alert=off")) {
             options.no_alert = false;
         } else if (std.mem.eql(u8, arg, "--no-compare-neg-zero=off")) {
@@ -195,6 +197,7 @@ fn printHelp() void {
         \\  utoo-lint [options] [file-or-directory ...]
         \\
         \\Options:
+        \\  --no-array-constructor=off Disable no-array-constructor
         \\  --no-alert=off            Disable no-alert
         \\  --no-compare-neg-zero=off Disable no-compare-neg-zero
         \\  --no-comma-operator=off   Disable no-comma-operator

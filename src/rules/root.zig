@@ -8,6 +8,7 @@ const Allocator = std.mem.Allocator;
 
 pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
+pub const no_array_constructor = @import("no_array_constructor.zig");
 pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
@@ -49,6 +50,10 @@ pub fn runSemantic(
     semantic_result: traverser.semantic.Result,
     options: core.Options,
 ) Allocator.Error!void {
+    if (options.no_array_constructor) {
+        try no_array_constructor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
     if (options.no_alert) {
         try no_alert.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
