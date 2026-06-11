@@ -63,6 +63,7 @@ pub const no_octal_escape = @import("no_octal_escape.zig");
 pub const no_plusplus = @import("no_plusplus.zig");
 pub const no_promise_executor_return = @import("no_promise_executor_return.zig");
 pub const no_proto = @import("no_proto.zig");
+pub const no_prototype_builtins = @import("no_prototype_builtins.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_return_assign = @import("no_return_assign.zig");
 pub const no_script_url = @import("no_script_url.zig");
@@ -650,6 +651,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_console) {
             try no_console.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        if (self.options.no_prototype_builtins) {
+            try no_prototype_builtins.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
         return .proceed;
     }

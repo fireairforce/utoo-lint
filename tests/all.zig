@@ -227,6 +227,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_prototype_builtins.zig");
+}
+
+comptime {
     _ = @import("rules/no_regex_spaces.zig");
 }
 
