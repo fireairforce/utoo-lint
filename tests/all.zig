@@ -179,6 +179,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_irregular_whitespace.zig");
+}
+
+comptime {
     _ = @import("rules/no_iterator.zig");
 }
 

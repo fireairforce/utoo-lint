@@ -51,6 +51,7 @@ pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
 pub const no_implied_eval = @import("no_implied_eval.zig");
 pub const no_import_assign = @import("no_import_assign.zig");
+pub const no_irregular_whitespace = @import("no_irregular_whitespace.zig");
 pub const no_iterator = @import("no_iterator.zig");
 pub const no_labels = @import("no_labels.zig");
 pub const no_lone_blocks = @import("no_lone_blocks.zig");
@@ -138,6 +139,9 @@ pub fn runBasic(
     }
     if (options.linebreak_style) {
         try linebreak_style.run(allocator, diagnostics, tree);
+    }
+    if (options.no_irregular_whitespace) {
+        try no_irregular_whitespace.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{
