@@ -79,6 +79,7 @@ pub const Options = struct {
     no_plusplus: bool = true,
     no_promise_executor_return: bool = true,
     no_proto: bool = true,
+    no_process_env: bool = true,
     no_prototype_builtins: bool = true,
     no_regex_spaces: bool = true,
     no_return_await: bool = true,

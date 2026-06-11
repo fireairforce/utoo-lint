@@ -251,6 +251,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_process_env.zig");
+}
+
+comptime {
     _ = @import("rules/no_prototype_builtins.zig");
 }
 
