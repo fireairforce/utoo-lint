@@ -97,6 +97,7 @@ pub const no_ternary = @import("no_ternary.zig");
 pub const no_template_curly_in_string = @import("no_template_curly_in_string.zig");
 pub const no_throw_literal = @import("no_throw_literal.zig");
 pub const no_trailing_spaces = @import("no_trailing_spaces.zig");
+pub const no_unreachable = @import("no_unreachable.zig");
 pub const no_undef_init = @import("no_undef_init.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
@@ -449,6 +450,9 @@ const BasicVisitor = struct {
         if (self.options.no_case_declarations) {
             try no_case_declarations.check(self.allocator, self.diagnostics, ctx.tree, switch_case);
         }
+        if (self.options.no_unreachable) {
+            try no_unreachable.checkRange(self.allocator, self.diagnostics, ctx.tree, switch_case.consequent);
+        }
         return .proceed;
     }
 
@@ -562,6 +566,9 @@ const BasicVisitor = struct {
         if (self.options.no_empty_block_statements) {
             try no_empty_block_statements.checkBlockStatement(self.allocator, self.diagnostics, ctx.tree, block, index);
         }
+        if (self.options.no_unreachable) {
+            try no_unreachable.checkRange(self.allocator, self.diagnostics, ctx.tree, block.body);
+        }
         return .proceed;
     }
 
@@ -576,6 +583,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_empty_function) {
             try no_empty_function.check(self.allocator, self.diagnostics, ctx.tree, body, index);
+        }
+        if (self.options.no_unreachable) {
+            try no_unreachable.checkRange(self.allocator, self.diagnostics, ctx.tree, body.body);
         }
         return .proceed;
     }

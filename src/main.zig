@@ -202,6 +202,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_tabs = false;
         } else if (std.mem.eql(u8, arg, "--no-trailing-spaces=off")) {
             options.no_trailing_spaces = false;
+        } else if (std.mem.eql(u8, arg, "--no-unreachable=off")) {
+            options.no_unreachable = false;
         } else if (std.mem.eql(u8, arg, "--no-undef-init=off")) {
             options.no_undef_init = false;
         } else if (std.mem.eql(u8, arg, "--unicode-bom=off")) {
@@ -465,6 +467,7 @@ fn printHelp() void {
         \\  --no-throw-literal=off    Disable no-throw-literal
         \\  --no-tabs=off             Disable no-tabs
         \\  --no-trailing-spaces=off  Disable no-trailing-spaces
+        \\  --no-unreachable=off      Disable no-unreachable
         \\  --no-undef-init=off       Disable no-undef-init
         \\  --unicode-bom=off         Disable unicode-bom
         \\  --no-unneeded-ternary=off Disable no-unneeded-ternary

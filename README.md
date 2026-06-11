@@ -99,6 +99,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-throw-literal`
 - `no-tabs`
 - `no-trailing-spaces`
+- `no-unreachable`
 - `no-undef-init`
 - `unicode-bom`
 - `no-unneeded-ternary`
