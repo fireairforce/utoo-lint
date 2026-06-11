@@ -61,6 +61,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-unsafe-negation`
 - `no-useless-concat`
 - `no-useless-catch`
+- `no-useless-rename`
 - `no-void`
 - `no-with`
 - `no-var`
