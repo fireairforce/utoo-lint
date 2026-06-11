@@ -8,6 +8,7 @@ const Allocator = std.mem.Allocator;
 
 pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
+pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
@@ -160,6 +161,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_compare_neg_zero) {
+            try no_compare_neg_zero.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
         if (self.options.eqeqeq) {
             try eqeqeq.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
