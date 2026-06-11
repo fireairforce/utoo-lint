@@ -71,6 +71,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_else_return.zig");
+}
+
+comptime {
     _ = @import("rules/no_extra_boolean_cast.zig");
 }
 

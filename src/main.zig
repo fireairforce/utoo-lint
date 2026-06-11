@@ -56,6 +56,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_empty_character_class = false;
         } else if (std.mem.eql(u8, arg, "--no-empty-pattern=off")) {
             options.no_empty_pattern = false;
+        } else if (std.mem.eql(u8, arg, "--no-else-return=off")) {
+            options.no_else_return = false;
         } else if (std.mem.eql(u8, arg, "--no-extra-boolean-cast=off")) {
             options.no_extra_boolean_cast = false;
         } else if (std.mem.eql(u8, arg, "--no-for-in=off")) {
@@ -250,6 +252,7 @@ fn printHelp() void {
         \\  --no-empty-block-statements=off Disable no-empty-block-statements
         \\  --no-empty-character-class=off Disable no-empty-character-class
         \\  --no-empty-pattern=off  Disable no-empty-pattern
+        \\  --no-else-return=off    Disable no-else-return
         \\  --no-extra-boolean-cast=off Disable no-extra-boolean-cast
         \\  --no-for-in=off           Disable no-for-in
         \\  --no-global-is-finite=off Disable no-global-is-finite
