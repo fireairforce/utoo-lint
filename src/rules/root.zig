@@ -76,6 +76,7 @@ pub const no_throw_literal = @import("no_throw_literal.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
+pub const no_useless_computed_key = @import("no_useless_computed_key.zig");
 pub const no_useless_concat = @import("no_useless_concat.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_useless_catch = @import("no_useless_catch.zig");
@@ -703,6 +704,9 @@ const BasicVisitor = struct {
         if (self.options.no_dupe_keys) {
             try no_dupe_keys.check(self.allocator, self.diagnostics, ctx.tree, expression);
         }
+        if (self.options.no_useless_computed_key) {
+            try no_useless_computed_key.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
         return .proceed;
     }
 
@@ -717,6 +721,33 @@ const BasicVisitor = struct {
         }
         if (self.options.no_useless_rename) {
             try no_useless_rename.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern);
+        }
+        if (self.options.no_useless_computed_key) {
+            try no_useless_computed_key.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_method_definition(
+        self: *BasicVisitor,
+        method: ast.MethodDefinition,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_useless_computed_key) {
+            try no_useless_computed_key.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_property_definition(
+        self: *BasicVisitor,
+        property: ast.PropertyDefinition,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_useless_computed_key) {
+            try no_useless_computed_key.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, index);
         }
         return .proceed;
     }

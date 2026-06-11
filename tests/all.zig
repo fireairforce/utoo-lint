@@ -279,6 +279,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_useless_computed_key.zig");
+}
+
+comptime {
     _ = @import("rules/no_useless_concat.zig");
 }
 
