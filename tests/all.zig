@@ -3,6 +3,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/default_case_last.zig");
+}
+
+comptime {
     _ = @import("rules/eqeqeq.zig");
 }
 
