@@ -108,6 +108,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_ternary = false;
         } else if (std.mem.eql(u8, arg, "--no-throw-literal=off")) {
             options.no_throw_literal = false;
+        } else if (std.mem.eql(u8, arg, "--no-unneeded-ternary=off")) {
+            options.no_unneeded_ternary = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-finally=off")) {
             options.no_unsafe_finally = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-negation=off")) {
@@ -306,6 +308,7 @@ fn printHelp() void {
         \\  --no-sparse-arrays=off    Disable no-sparse-arrays
         \\  --no-ternary=off          Disable no-ternary
         \\  --no-throw-literal=off    Disable no-throw-literal
+        \\  --no-unneeded-ternary=off Disable no-unneeded-ternary
         \\  --no-unsafe-finally=off   Disable no-unsafe-finally
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation
         \\  --no-useless-concat=off   Disable no-useless-concat

@@ -50,6 +50,7 @@ pub const no_self_compare = @import("no_self_compare.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_ternary = @import("no_ternary.zig");
 pub const no_throw_literal = @import("no_throw_literal.zig");
+pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_useless_concat = @import("no_useless_concat.zig");
@@ -210,6 +211,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_nested_ternary) {
             try no_nested_ternary.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.no_unneeded_ternary) {
+            try no_unneeded_ternary.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_ternary) {
             try no_ternary.check(self.allocator, self.diagnostics, ctx.tree, index);
