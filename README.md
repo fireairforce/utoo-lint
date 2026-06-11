@@ -61,6 +61,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-new-native-nonconstructor`
 - `no-obj-calls`
 - `no-new-func`
+- `no-new-require`
 - `no-new-object`
 - `no-new-symbol`
 - `no-new-wrappers`

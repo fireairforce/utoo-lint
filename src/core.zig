@@ -68,6 +68,7 @@ pub const Options = struct {
     no_nested_ternary: bool = true,
     no_new_native_nonconstructor: bool = true,
     no_new_func: bool = true,
+    no_new_require: bool = true,
     no_obj_calls: bool = true,
     no_new_object: bool = true,
     no_new_symbol: bool = true,
