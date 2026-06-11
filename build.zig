@@ -46,8 +46,15 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run utoo-lint");
     run_step.dependOn(&run_cmd.step);
 
+    const test_module = b.createModule(.{
+        .root_source_file = b.path("tests/all.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    test_module.addImport("utoo_lint", lint_module);
+
     const unit_tests = b.addTest(.{
-        .root_module = lint_module,
+        .root_module = test_module,
     });
     const run_unit_tests = b.addRunArtifact(unit_tests);
 

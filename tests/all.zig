@@ -1,0 +1,139 @@
+comptime {
+    _ = @import("rules/eqeqeq.zig");
+}
+
+comptime {
+    _ = @import("rules/no_alert.zig");
+}
+
+comptime {
+    _ = @import("rules/no_array_constructor.zig");
+}
+
+comptime {
+    _ = @import("rules/no_caller.zig");
+}
+
+comptime {
+    _ = @import("rules/no_comma_operator.zig");
+}
+
+comptime {
+    _ = @import("rules/no_cond_assign.zig");
+}
+
+comptime {
+    _ = @import("rules/no_console.zig");
+}
+
+comptime {
+    _ = @import("rules/no_constant_condition.zig");
+}
+
+comptime {
+    _ = @import("rules/no_control_regex.zig");
+}
+
+comptime {
+    _ = @import("rules/no_compare_neg_zero.zig");
+}
+
+comptime {
+    _ = @import("rules/no_debugger.zig");
+}
+
+comptime {
+    _ = @import("rules/no_delete_var.zig");
+}
+
+comptime {
+    _ = @import("rules/no_duplicate_case.zig");
+}
+
+comptime {
+    _ = @import("rules/no_dupe_keys.zig");
+}
+
+comptime {
+    _ = @import("rules/no_empty_block_statements.zig");
+}
+
+comptime {
+    _ = @import("rules/no_empty_character_class.zig");
+}
+
+comptime {
+    _ = @import("rules/no_empty_pattern.zig");
+}
+
+comptime {
+    _ = @import("rules/no_extra_boolean_cast.zig");
+}
+
+comptime {
+    _ = @import("rules/no_for_in.zig");
+}
+
+comptime {
+    _ = @import("rules/no_global_is_finite.zig");
+}
+
+comptime {
+    _ = @import("rules/no_global_is_nan.zig");
+}
+
+comptime {
+    _ = @import("rules/no_new_func.zig");
+}
+
+comptime {
+    _ = @import("rules/no_new_object.zig");
+}
+
+comptime {
+    _ = @import("rules/no_new_symbol.zig");
+}
+
+comptime {
+    _ = @import("rules/no_new_wrappers.zig");
+}
+
+comptime {
+    _ = @import("rules/no_proto.zig");
+}
+
+comptime {
+    _ = @import("rules/no_regex_spaces.zig");
+}
+
+comptime {
+    _ = @import("rules/no_self_compare.zig");
+}
+
+comptime {
+    _ = @import("rules/no_sparse_arrays.zig");
+}
+
+comptime {
+    _ = @import("rules/no_unsafe_negation.zig");
+}
+
+comptime {
+    _ = @import("rules/no_unused_vars.zig");
+}
+
+comptime {
+    _ = @import("rules/no_undef.zig");
+}
+
+comptime {
+    _ = @import("rules/no_var.zig");
+}
+
+comptime {
+    _ = @import("rules/no_void.zig");
+}
+
+comptime {
+    _ = @import("rules/no_with.zig");
+}
