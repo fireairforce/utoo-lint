@@ -88,6 +88,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_var = false;
         } else if (std.mem.eql(u8, arg, "--eqeqeq=off")) {
             options.eqeqeq = false;
+        } else if (std.mem.eql(u8, arg, "--use-isnan=off")) {
+            options.use_isnan = false;
         } else if (std.mem.eql(u8, arg, "--no-unused-vars=off")) {
             options.no_unused_vars = false;
         } else if (std.mem.eql(u8, arg, "--no-undef=off")) {
@@ -258,6 +260,7 @@ fn printHelp() void {
         \\  --no-with=off             Disable no-with
         \\  --no-var=off              Disable no-var
         \\  --eqeqeq=off              Disable eqeqeq
+        \\  --use-isnan=off           Disable use-isnan
         \\  --no-unused-vars=off      Disable no-unused-vars
         \\  --no-undef=off            Disable no-undef
         \\  --semantic-errors=off     Disable parser semantic errors
