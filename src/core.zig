@@ -69,6 +69,7 @@ pub const Options = struct {
     no_loss_of_precision: bool = true,
     no_multi_str: bool = true,
     no_mixed_spaces_and_tabs: bool = true,
+    no_multiple_empty_lines: bool = true,
     no_new: bool = true,
     no_nested_ternary: bool = true,
     no_negated_condition: bool = true,

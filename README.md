@@ -61,6 +61,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-loss-of-precision`
 - `no-mixed-spaces-and-tabs`
 - `no-multi-str`
+- `no-multiple-empty-lines`
 - `no-new`
 - `no-nested-ternary`
 - `no-negated-condition`

@@ -59,6 +59,7 @@ pub const no_lonely_if = @import("no_lonely_if.zig");
 pub const no_loss_of_precision = @import("no_loss_of_precision.zig");
 pub const no_mixed_spaces_and_tabs = @import("no_mixed_spaces_and_tabs.zig");
 pub const no_multi_str = @import("no_multi_str.zig");
+pub const no_multiple_empty_lines = @import("no_multiple_empty_lines.zig");
 pub const no_new = @import("no_new.zig");
 pub const no_nested_ternary = @import("no_nested_ternary.zig");
 pub const no_negated_condition = @import("no_negated_condition.zig");
@@ -142,6 +143,9 @@ pub fn runBasic(
     }
     if (options.no_irregular_whitespace) {
         try no_irregular_whitespace.run(allocator, diagnostics, tree);
+    }
+    if (options.no_multiple_empty_lines) {
+        try no_multiple_empty_lines.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{
