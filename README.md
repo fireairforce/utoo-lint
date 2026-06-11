@@ -19,6 +19,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-dupe-keys`
 - `no-delete-var`
 - `no-empty-block-statements`
+- `no-extra-boolean-cast`
 - `no-for-in`
 - `no-global-is-finite`
 - `no-global-is-nan`

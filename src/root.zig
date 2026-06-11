@@ -27,7 +27,7 @@ pub fn lintSource(
     });
     defer tree.deinit();
 
-    const needs_semantic = options.parser_semantic_errors or options.no_array_constructor or options.no_alert or options.no_global_is_finite or options.no_global_is_nan or options.no_new_func or options.no_new_object or options.no_new_symbol or options.no_new_wrappers or options.no_unused_vars or options.no_undef;
+    const needs_semantic = options.parser_semantic_errors or options.no_array_constructor or options.no_alert or options.no_extra_boolean_cast or options.no_global_is_finite or options.no_global_is_nan or options.no_new_func or options.no_new_object or options.no_new_symbol or options.no_new_wrappers or options.no_unused_vars or options.no_undef;
 
     if (needs_semantic) {
         var semantic_result = try parser.semantic.analyze(&tree);
@@ -451,6 +451,61 @@ test "can disable no-empty-block-statements" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!hasRule(result, rules.no_empty_block_statements.id));
+}
+
+test "reports no-extra-boolean-cast in boolean contexts" {
+    const source =
+        \\if (Boolean(value)) { use(value); }
+        \\while (!!value) { break; }
+        \\do { value++; } while (Boolean(value));
+        \\for (; !!value; value++) { break; }
+        \\const selected = Boolean(value) ? 1 : 2;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), countRule(result, rules.no_extra_boolean_cast.id));
+}
+
+test "does not report no-extra-boolean-cast outside boolean contexts or for shadowed Boolean" {
+    const source =
+        \\const a = Boolean(value);
+        \\const b = !!value;
+        \\function local(Boolean) {
+        \\  if (Boolean(value)) { use(value); }
+        \\}
+        \\if (!value) { use(value); }
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_extra_boolean_cast.id));
+}
+
+test "can disable no-extra-boolean-cast" {
+    const source =
+        \\if (Boolean(value)) { use(value); }
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_extra_boolean_cast = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_extra_boolean_cast.id));
 }
 
 test "reports no-alert for global alert APIs" {
