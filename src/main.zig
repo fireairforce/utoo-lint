@@ -70,6 +70,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_else_return = false;
         } else if (std.mem.eql(u8, arg, "--no-eval=off")) {
             options.no_eval = false;
+        } else if (std.mem.eql(u8, arg, "--no-ex-assign=off")) {
+            options.no_ex_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-extra-semi=off")) {
             options.no_extra_semi = false;
         } else if (std.mem.eql(u8, arg, "--no-extra-boolean-cast=off")) {
@@ -315,6 +317,7 @@ fn printHelp() void {
         \\  --no-empty-static-block=off Disable no-empty-static-block
         \\  --no-else-return=off    Disable no-else-return
         \\  --no-eval=off           Disable no-eval
+        \\  --no-ex-assign=off      Disable no-ex-assign
         \\  --no-extra-semi=off      Disable no-extra-semi
         \\  --no-extra-boolean-cast=off Disable no-extra-boolean-cast
         \\  --no-for-in=off           Disable no-for-in

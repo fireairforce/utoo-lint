@@ -31,6 +31,7 @@ pub const no_empty_pattern = @import("no_empty_pattern.zig");
 pub const no_empty_static_block = @import("no_empty_static_block.zig");
 pub const no_else_return = @import("no_else_return.zig");
 pub const no_eval = @import("no_eval.zig");
+pub const no_ex_assign = @import("no_ex_assign.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_extra_semi = @import("no_extra_semi.zig");
 pub const no_for_in = @import("no_for_in.zig");
@@ -111,6 +112,10 @@ pub fn runSemantic(
 
     if (options.no_eval) {
         try no_eval.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_ex_assign) {
+        try no_ex_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_alert) {

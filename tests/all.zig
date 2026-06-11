@@ -99,6 +99,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_ex_assign.zig");
+}
+
+comptime {
     _ = @import("rules/no_extra_boolean_cast.zig");
 }
 
