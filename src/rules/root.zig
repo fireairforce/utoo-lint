@@ -29,6 +29,7 @@ pub const no_empty_pattern = @import("no_empty_pattern.zig");
 pub const no_empty_static_block = @import("no_empty_static_block.zig");
 pub const no_else_return = @import("no_else_return.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
+pub const no_extra_semi = @import("no_extra_semi.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
@@ -235,6 +236,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_debugger) {
             try no_debugger.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_empty_statement(
+        self: *BasicVisitor,
+        _: ast.EmptyStatement,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_extra_semi) {
+            try no_extra_semi.check(self.allocator, self.diagnostics, ctx.tree, index, ctx);
         }
         return .proceed;
     }

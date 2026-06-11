@@ -91,6 +91,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_extra_semi.zig");
+}
+
+comptime {
     _ = @import("rules/no_for_in.zig");
 }
 
