@@ -106,9 +106,12 @@ test "reports structural rules" {
         \\  console.log(value);
         \\  debugger;
         \\}
+        \\with (point) {
+        \\  x = 1;
+        \\}
     ;
 
-    var result = try lintSource(std.testing.allocator, source, "fixture.ts", .{
+    var result = try lintSource(std.testing.allocator, source, "fixture.cjs", .{
         .no_unused_vars = false,
         .no_undef = false,
         .parser_semantic_errors = false,
@@ -119,6 +122,25 @@ test "reports structural rules" {
     try std.testing.expect(hasRule(result, rules.eqeqeq.id));
     try std.testing.expect(hasRule(result, rules.no_console.id));
     try std.testing.expect(hasRule(result, rules.no_debugger.id));
+    try std.testing.expect(hasRule(result, rules.no_with.id));
+}
+
+test "can disable no-with" {
+    const source =
+        \\with (point) {
+        \\  x = 1;
+        \\}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.cjs", .{
+        .no_with = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_with.id));
 }
 
 test "reports semantic rules" {

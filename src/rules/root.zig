@@ -12,6 +12,7 @@ pub const no_debugger = @import("no_debugger.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_var = @import("no_var.zig");
+pub const no_with = @import("no_with.zig");
 
 pub fn runBasic(
     allocator: Allocator,
@@ -61,6 +62,18 @@ const BasicVisitor = struct {
         return .proceed;
     }
 
+    pub fn enter_with_statement(
+        self: *BasicVisitor,
+        _: ast.WithStatement,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_with) {
+            try no_with.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        return .proceed;
+    }
+
     pub fn enter_variable_declaration(
         self: *BasicVisitor,
         declaration: ast.VariableDeclaration,
@@ -97,4 +110,3 @@ const BasicVisitor = struct {
         return .proceed;
     }
 };
-
