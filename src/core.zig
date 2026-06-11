@@ -21,6 +21,7 @@ pub const Options = struct {
     default_case_last: bool = true,
     no_async_promise_executor: bool = true,
     no_array_constructor: bool = true,
+    no_await_in_loop: bool = true,
     no_alert: bool = true,
     no_caller: bool = true,
     no_case_declarations: bool = true,

@@ -19,6 +19,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_await_in_loop.zig");
+}
+
+comptime {
     _ = @import("rules/no_array_constructor.zig");
 }
 
