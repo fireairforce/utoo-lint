@@ -70,6 +70,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_labels = false;
         } else if (std.mem.eql(u8, arg, "--no-lone-blocks=off")) {
             options.no_lone_blocks = false;
+        } else if (std.mem.eql(u8, arg, "--no-lonely-if=off")) {
+            options.no_lonely_if = false;
         } else if (std.mem.eql(u8, arg, "--no-multi-str=off")) {
             options.no_multi_str = false;
         } else if (std.mem.eql(u8, arg, "--no-new=off")) {
@@ -279,6 +281,7 @@ fn printHelp() void {
         \\  --no-global-is-nan=off    Disable no-global-is-nan
         \\  --no-labels=off           Disable no-labels
         \\  --no-lone-blocks=off      Disable no-lone-blocks
+        \\  --no-lonely-if=off        Disable no-lonely-if
         \\  --no-multi-str=off        Disable no-multi-str
         \\  --no-new=off              Disable no-new
         \\  --no-nested-ternary=off   Disable no-nested-ternary
