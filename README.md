@@ -10,6 +10,7 @@ It uses [`yuku`](https://github.com/yuku-toolchain/yuku) (GitHub: https://github
 This repo is a working scaffold, not a production linter yet. The first rules are:
 
 - `no-alert`
+- `no-caller`
 - `no-compare-neg-zero`
 - `no-console`
 - `no-comma-operator`

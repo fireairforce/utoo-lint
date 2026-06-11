@@ -173,6 +173,61 @@ test "can disable no-with" {
     try std.testing.expect(!hasRule(result, rules.no_with.id));
 }
 
+test "reports no-caller for arguments caller and callee access" {
+    const source =
+        \\function f() {
+        \\  arguments.callee;
+        \\  arguments.caller;
+        \\  arguments["callee"];
+        \\  arguments["caller"];
+        \\}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), countRule(result, rules.no_caller.id));
+}
+
+test "does not report no-caller for other objects or properties" {
+    const source =
+        \\object.callee;
+        \\arguments.length;
+        \\arguments[name];
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_caller.id));
+}
+
+test "can disable no-caller" {
+    const source =
+        \\arguments.callee;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_caller = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_caller.id));
+}
+
 test "reports no-empty-block-statements for empty blocks" {
     const source =
         \\if (ready) {}
