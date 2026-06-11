@@ -173,6 +173,66 @@ test "can disable no-with" {
     try std.testing.expect(!hasRule(result, rules.no_with.id));
 }
 
+test "reports no-empty-block-statements for empty blocks" {
+    const source =
+        \\if (ready) {}
+        \\function empty() {}
+        \\class C {
+        \\  static {}
+        \\  method() {}
+        \\}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), countRule(result, rules.no_empty_block_statements.id));
+}
+
+test "does not report no-empty-block-statements for commented blocks" {
+    const source =
+        \\if (ready) { /* intentionally empty */ }
+        \\function empty() {
+        \\  // intentionally empty
+        \\}
+        \\class C {
+        \\  static { /* intentionally empty */ }
+        \\  method() { /* intentionally empty */ }
+        \\}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_empty_block_statements.id));
+}
+
+test "can disable no-empty-block-statements" {
+    const source =
+        \\if (ready) {}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_empty_block_statements = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_empty_block_statements.id));
+}
+
 test "reports no-alert for global alert APIs" {
     const source =
         \\alert("here");
