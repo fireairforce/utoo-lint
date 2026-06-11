@@ -7,6 +7,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/eol_last.zig");
+}
+
+comptime {
     _ = @import("rules/eqeqeq.zig");
 }
 

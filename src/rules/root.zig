@@ -8,6 +8,7 @@ const Allocator = std.mem.Allocator;
 
 pub const default_case = @import("default_case.zig");
 pub const default_case_last = @import("default_case_last.zig");
+pub const eol_last = @import("eol_last.zig");
 pub const no_async_promise_executor = @import("no_async_promise_executor.zig");
 pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
@@ -118,6 +119,9 @@ pub fn runBasic(
     }
     if (options.no_trailing_spaces) {
         try no_trailing_spaces.run(allocator, diagnostics, tree);
+    }
+    if (options.eol_last) {
+        try eol_last.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{
