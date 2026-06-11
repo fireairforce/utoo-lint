@@ -24,6 +24,8 @@ pub fn main(init: std.process.Init) !void {
             return;
         } else if (std.mem.eql(u8, arg, "--default-case=off")) {
             options.default_case = false;
+        } else if (std.mem.eql(u8, arg, "--default-case-last=off")) {
+            options.default_case_last = false;
         } else if (std.mem.eql(u8, arg, "--no-array-constructor=off")) {
             options.no_array_constructor = false;
         } else if (std.mem.eql(u8, arg, "--no-alert=off")) {
@@ -260,6 +262,7 @@ fn printHelp() void {
         \\
         \\Options:
         \\  --default-case=off        Disable default-case
+        \\  --default-case-last=off   Disable default-case-last
         \\  --no-array-constructor=off Disable no-array-constructor
         \\  --no-alert=off            Disable no-alert
         \\  --no-caller=off           Disable no-caller

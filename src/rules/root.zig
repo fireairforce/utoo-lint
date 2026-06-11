@@ -7,6 +7,7 @@ const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 pub const default_case = @import("default_case.zig");
+pub const default_case_last = @import("default_case_last.zig");
 pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_array_constructor = @import("no_array_constructor.zig");
@@ -235,6 +236,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.default_case) {
             try default_case.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
+        if (self.options.default_case_last) {
+            try default_case_last.check(self.allocator, self.diagnostics, ctx.tree, statement);
         }
         if (self.options.no_duplicate_case) {
             try no_duplicate_case.check(self.allocator, self.diagnostics, ctx.tree, statement);
