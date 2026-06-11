@@ -27,7 +27,7 @@ pub fn lintSource(
     });
     defer tree.deinit();
 
-    const needs_semantic = options.parser_semantic_errors or options.no_alert or options.no_global_is_finite or options.no_global_is_nan or options.no_new_symbol or options.no_unused_vars or options.no_undef;
+    const needs_semantic = options.parser_semantic_errors or options.no_alert or options.no_global_is_finite or options.no_global_is_nan or options.no_new_symbol or options.no_new_wrappers or options.no_unused_vars or options.no_undef;
 
     if (needs_semantic) {
         var semantic_result = try parser.semantic.analyze(&tree);
@@ -446,6 +446,61 @@ test "can disable no-new-symbol" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!hasRule(result, rules.no_new_symbol.id));
+}
+
+test "reports no-new-wrappers for global wrapper constructors" {
+    const source =
+        \\const string = new String("text");
+        \\const number = new Number(1);
+        \\const boolean = new Boolean(false);
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), countRule(result, rules.no_new_wrappers.id));
+}
+
+test "does not report no-new-wrappers for calls or shadowed constructors" {
+    const source =
+        \\const string = String(value);
+        \\const number = Number(value);
+        \\const boolean = Boolean(value);
+        \\function local(String) {
+        \\  const value = new String("text");
+        \\}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_new_wrappers.id));
+}
+
+test "can disable no-new-wrappers" {
+    const source =
+        \\const string = new String("text");
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_new_wrappers = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_new_wrappers.id));
 }
 
 test "reports no-comma-operator outside for init and update" {

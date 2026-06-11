@@ -42,6 +42,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_global_is_nan = false;
         } else if (std.mem.eql(u8, arg, "--no-new-symbol=off")) {
             options.no_new_symbol = false;
+        } else if (std.mem.eql(u8, arg, "--no-new-wrappers=off")) {
+            options.no_new_wrappers = false;
         } else if (std.mem.eql(u8, arg, "--no-proto=off")) {
             options.no_proto = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-negation=off")) {
@@ -201,6 +203,7 @@ fn printHelp() void {
         \\  --no-global-is-finite=off Disable no-global-is-finite
         \\  --no-global-is-nan=off    Disable no-global-is-nan
         \\  --no-new-symbol=off       Disable no-new-symbol
+        \\  --no-new-wrappers=off     Disable no-new-wrappers
         \\  --no-proto=off            Disable no-proto
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation
         \\  --no-void=off             Disable no-void
