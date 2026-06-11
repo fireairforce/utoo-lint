@@ -363,6 +363,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_warning_comments.zig");
+}
+
+comptime {
     _ = @import("rules/no_var.zig");
 }
 
