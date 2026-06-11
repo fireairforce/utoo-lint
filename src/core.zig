@@ -24,6 +24,7 @@ pub const Options = struct {
     no_console: bool = true,
     no_comma_operator: bool = true,
     no_debugger: bool = true,
+    no_dupe_keys: bool = true,
     no_empty_block_statements: bool = true,
     no_for_in: bool = true,
     no_global_is_finite: bool = true,
