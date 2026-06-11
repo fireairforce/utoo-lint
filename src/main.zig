@@ -42,6 +42,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_delete_var = false;
         } else if (std.mem.eql(u8, arg, "--no-empty-block-statements=off")) {
             options.no_empty_block_statements = false;
+        } else if (std.mem.eql(u8, arg, "--no-extra-boolean-cast=off")) {
+            options.no_extra_boolean_cast = false;
         } else if (std.mem.eql(u8, arg, "--no-for-in=off")) {
             options.no_for_in = false;
         } else if (std.mem.eql(u8, arg, "--no-global-is-finite=off")) {
@@ -221,6 +223,7 @@ fn printHelp() void {
         \\  --no-dupe-keys=off        Disable no-dupe-keys
         \\  --no-delete-var=off       Disable no-delete-var
         \\  --no-empty-block-statements=off Disable no-empty-block-statements
+        \\  --no-extra-boolean-cast=off Disable no-extra-boolean-cast
         \\  --no-for-in=off           Disable no-for-in
         \\  --no-global-is-finite=off Disable no-global-is-finite
         \\  --no-global-is-nan=off    Disable no-global-is-nan

@@ -17,6 +17,7 @@ pub const no_debugger = @import("no_debugger.zig");
 pub const no_dupe_keys = @import("no_dupe_keys.zig");
 pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
+pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
@@ -59,6 +60,10 @@ pub fn runSemantic(
 ) Allocator.Error!void {
     if (options.no_array_constructor) {
         try no_array_constructor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_extra_boolean_cast) {
+        try no_extra_boolean_cast.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_alert) {
