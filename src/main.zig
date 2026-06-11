@@ -40,6 +40,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_comma_operator = false;
         } else if (std.mem.eql(u8, arg, "--no-debugger=off")) {
             options.no_debugger = false;
+        } else if (std.mem.eql(u8, arg, "--no-duplicate-case=off")) {
+            options.no_duplicate_case = false;
         } else if (std.mem.eql(u8, arg, "--no-dupe-keys=off")) {
             options.no_dupe_keys = false;
         } else if (std.mem.eql(u8, arg, "--no-delete-var=off")) {
@@ -228,6 +230,7 @@ fn printHelp() void {
         \\  --no-comma-operator=off   Disable no-comma-operator
         \\  --no-console=off          Disable no-console
         \\  --no-debugger=off         Disable no-debugger
+        \\  --no-duplicate-case=off   Disable no-duplicate-case
         \\  --no-dupe-keys=off        Disable no-dupe-keys
         \\  --no-delete-var=off       Disable no-delete-var
         \\  --no-empty-block-statements=off Disable no-empty-block-statements

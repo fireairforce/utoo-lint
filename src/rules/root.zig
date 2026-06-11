@@ -16,6 +16,7 @@ pub const no_constant_condition = @import("no_constant_condition.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
+pub const no_duplicate_case = @import("no_duplicate_case.zig");
 pub const no_dupe_keys = @import("no_dupe_keys.zig");
 pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
@@ -191,6 +192,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_debugger) {
             try no_debugger.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_switch_statement(
+        self: *BasicVisitor,
+        statement: ast.SwitchStatement,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_duplicate_case) {
+            try no_duplicate_case.check(self.allocator, self.diagnostics, ctx.tree, statement);
         }
         return .proceed;
     }

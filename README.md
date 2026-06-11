@@ -20,6 +20,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-debugger`
 - `no-dupe-keys`
 - `no-delete-var`
+- `no-duplicate-case`
 - `no-empty-block-statements`
 - `no-empty-character-class`
 - `no-extra-boolean-cast`
