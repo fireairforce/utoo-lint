@@ -167,6 +167,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_iterator.zig");
+}
+
+comptime {
     _ = @import("rules/no_labels.zig");
 }
 

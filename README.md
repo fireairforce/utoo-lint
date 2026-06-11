@@ -50,6 +50,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-global-is-nan`
 - `no-implied-eval`
 - `no-import-assign`
+- `no-iterator`
 - `no-labels`
 - `no-lone-blocks`
 - `no-lonely-if`
