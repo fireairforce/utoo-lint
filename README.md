@@ -24,6 +24,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-duplicate-case`
 - `no-empty-block-statements`
 - `no-empty-character-class`
+- `no-empty-pattern`
 - `no-extra-boolean-cast`
 - `no-for-in`
 - `no-global-is-finite`
