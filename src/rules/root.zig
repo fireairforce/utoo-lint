@@ -80,6 +80,7 @@ pub const no_script_url = @import("no_script_url.zig");
 pub const no_self_assign = @import("no_self_assign.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
 pub const no_setter_return = @import("no_setter_return.zig");
+pub const no_shadow_restricted_names = @import("no_shadow_restricted_names.zig");
 pub const no_sequences = @import("no_sequences.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_ternary = @import("no_ternary.zig");
@@ -229,6 +230,21 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_dupe_args) {
             try no_dupe_args.check(self.allocator, self.diagnostics, ctx.tree, function);
+        }
+        if (self.options.no_shadow_restricted_names) {
+            try no_shadow_restricted_names.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_class(
+        self: *BasicVisitor,
+        class: ast.Class,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_shadow_restricted_names) {
+            try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, class.id, false);
         }
         return .proceed;
     }
@@ -398,6 +414,9 @@ const BasicVisitor = struct {
         if (self.options.no_useless_catch) {
             try no_useless_catch.check(self.allocator, self.diagnostics, ctx.tree, clause, index);
         }
+        if (self.options.no_shadow_restricted_names) {
+            try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, clause.param, false);
+        }
         return .proceed;
     }
 
@@ -529,6 +548,9 @@ const BasicVisitor = struct {
         if (self.options.no_undef_init) {
             try no_undef_init.check(self.allocator, self.diagnostics, ctx.tree, declaration);
         }
+        if (self.options.no_shadow_restricted_names) {
+            try no_shadow_restricted_names.checkVariableDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration);
+        }
         return .proceed;
     }
 
@@ -591,6 +613,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_return_assign and expression.expression) {
             try no_return_assign.check(self.allocator, self.diagnostics, ctx.tree, expression.body);
+        }
+        if (self.options.no_shadow_restricted_names) {
+            try no_shadow_restricted_names.checkFormalParameters(self.allocator, self.diagnostics, ctx.tree, expression.params);
         }
         return .proceed;
     }
@@ -827,6 +852,33 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_useless_rename) {
             try no_useless_rename.checkImportSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, index);
+        }
+        if (self.options.no_shadow_restricted_names) {
+            try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, specifier.local, false);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_import_default_specifier(
+        self: *BasicVisitor,
+        specifier: ast.ImportDefaultSpecifier,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_shadow_restricted_names) {
+            try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, specifier.local, false);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_import_namespace_specifier(
+        self: *BasicVisitor,
+        specifier: ast.ImportNamespaceSpecifier,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_shadow_restricted_names) {
+            try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, specifier.local, false);
         }
         return .proceed;
     }

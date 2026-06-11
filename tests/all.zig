@@ -319,6 +319,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_shadow_restricted_names.zig");
+}
+
+comptime {
     _ = @import("rules/no_unneeded_ternary.zig");
 }
 

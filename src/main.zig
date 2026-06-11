@@ -168,6 +168,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_self_compare = false;
         } else if (std.mem.eql(u8, arg, "--no-setter-return=off")) {
             options.no_setter_return = false;
+        } else if (std.mem.eql(u8, arg, "--no-shadow-restricted-names=off")) {
+            options.no_shadow_restricted_names = false;
         } else if (std.mem.eql(u8, arg, "--no-sequences=off")) {
             options.no_sequences = false;
         } else if (std.mem.eql(u8, arg, "--no-sparse-arrays=off")) {
@@ -416,6 +418,7 @@ fn printHelp() void {
         \\  --no-self-assign=off      Disable no-self-assign
         \\  --no-self-compare=off     Disable no-self-compare
         \\  --no-setter-return=off    Disable no-setter-return
+        \\  --no-shadow-restricted-names=off Disable no-shadow-restricted-names
         \\  --no-sequences=off        Disable no-sequences
         \\  --no-sparse-arrays=off    Disable no-sparse-arrays
         \\  --no-ternary=off          Disable no-ternary
