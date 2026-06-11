@@ -36,6 +36,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_comma_operator = false;
         } else if (std.mem.eql(u8, arg, "--no-debugger=off")) {
             options.no_debugger = false;
+        } else if (std.mem.eql(u8, arg, "--no-dupe-keys=off")) {
+            options.no_dupe_keys = false;
         } else if (std.mem.eql(u8, arg, "--no-delete-var=off")) {
             options.no_delete_var = false;
         } else if (std.mem.eql(u8, arg, "--no-empty-block-statements=off")) {
@@ -216,6 +218,7 @@ fn printHelp() void {
         \\  --no-comma-operator=off   Disable no-comma-operator
         \\  --no-console=off          Disable no-console
         \\  --no-debugger=off         Disable no-debugger
+        \\  --no-dupe-keys=off        Disable no-dupe-keys
         \\  --no-delete-var=off       Disable no-delete-var
         \\  --no-empty-block-statements=off Disable no-empty-block-statements
         \\  --no-for-in=off           Disable no-for-in

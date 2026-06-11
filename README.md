@@ -16,6 +16,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-console`
 - `no-comma-operator`
 - `no-debugger`
+- `no-dupe-keys`
 - `no-delete-var`
 - `no-empty-block-statements`
 - `no-for-in`
@@ -80,11 +81,21 @@ utoo-lint test/fixtures/bad.ts
 
 ## Publishing
 
+GitHub Releases publish binary archives for:
+
+- `utoo-lint-darwin-arm64.tar.gz`
+- `utoo-lint-darwin-x64.tar.gz`
+- `utoo-lint-linux-arm64.tar.gz`
+- `utoo-lint-linux-x64.tar.gz`
+- `utoo-lint-windows-x64.zip`
+
+Each archive is uploaded with a matching `.sha256` file.
+
 The npm publishing setup currently supports macOS arm64:
 
 - `npm/utoo-lint` is the public CLI wrapper published as `@utoo/lint`.
 - `npm/@utoo/lint-darwin-arm64` is the native binary package published as `@utoo/lint-darwin-arm64`.
-- `.github/workflows/release.yml` builds the binary, uploads a GitHub Release asset, and publishes both npm packages.
+- `.github/workflows/release.yml` builds all release archives, uploads them to the GitHub Release, and publishes both npm packages.
 
 Required GitHub repository secret:
 
