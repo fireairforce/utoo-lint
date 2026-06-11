@@ -102,6 +102,7 @@ pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
 pub const radix = @import("radix.zig");
 pub const use_isnan = @import("use_isnan.zig");
+pub const yoda = @import("yoda.zig");
 
 pub fn runBasic(
     allocator: Allocator,
@@ -663,6 +664,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_path_concat) {
             try no_path_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.yoda) {
+            try yoda.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }

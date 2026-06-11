@@ -114,6 +114,7 @@ pub const Options = struct {
     no_undef: bool = true,
     radix: bool = true,
     parser_semantic_errors: bool = true,
+    yoda: bool = true,
 };
 
 pub const Diagnostic = struct {

@@ -105,6 +105,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-undef`
 - `radix`
 - `use-isnan`
+- `yoda`
 - `parse` diagnostics from Yuku, including semantic early errors by default
 
 ## Prerequisites
