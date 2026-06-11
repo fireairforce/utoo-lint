@@ -381,3 +381,7 @@ comptime {
 comptime {
     _ = @import("rules/use_isnan.zig");
 }
+
+comptime {
+    _ = @import("rules/yoda.zig");
+}

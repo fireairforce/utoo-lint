@@ -216,6 +216,8 @@ pub fn main(init: std.process.Init) !void {
             options.radix = false;
         } else if (std.mem.eql(u8, arg, "--semantic-errors=off")) {
             options.parser_semantic_errors = false;
+        } else if (std.mem.eql(u8, arg, "--yoda=off")) {
+            options.yoda = false;
         } else {
             try targets.append(allocator, arg);
         }
@@ -444,6 +446,7 @@ fn printHelp() void {
         \\  --no-undef=off            Disable no-undef
         \\  --radix=off               Disable radix
         \\  --semantic-errors=off     Disable parser semantic errors
+        \\  --yoda=off                Disable yoda
         \\
     , .{});
 }
