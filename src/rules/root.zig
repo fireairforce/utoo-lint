@@ -32,6 +32,7 @@ pub const no_global_is_nan = @import("no_global_is_nan.zig");
 pub const no_labels = @import("no_labels.zig");
 pub const no_lone_blocks = @import("no_lone_blocks.zig");
 pub const no_multi_str = @import("no_multi_str.zig");
+pub const no_new = @import("no_new.zig");
 pub const no_new_func = @import("no_new_func.zig");
 pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
@@ -464,6 +465,20 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_console) {
             try no_console.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_new_expression(
+        self: *BasicVisitor,
+        _: ast.NewExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_new) {
+            if (ctx.path.parent()) |parent| {
+                try no_new.check(self.allocator, self.diagnostics, ctx.tree, index, parent);
+            }
         }
         return .proceed;
     }
