@@ -66,6 +66,7 @@ pub const no_return_assign = @import("no_return_assign.zig");
 pub const no_script_url = @import("no_script_url.zig");
 pub const no_self_assign = @import("no_self_assign.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
+pub const no_setter_return = @import("no_setter_return.zig");
 pub const no_sequences = @import("no_sequences.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_ternary = @import("no_ternary.zig");
@@ -395,6 +396,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_constructor_return) {
             try no_constructor_return.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
+        }
+        if (self.options.no_setter_return) {
+            try no_setter_return.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }
         if (self.options.no_return_assign) {
             try no_return_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.argument);
