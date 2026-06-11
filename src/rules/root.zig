@@ -14,6 +14,7 @@ pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
+pub const no_dupe_keys = @import("no_dupe_keys.zig");
 pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
 pub const no_for_in = @import("no_for_in.zig");
@@ -24,6 +25,7 @@ pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_new_wrappers = @import("no_new_wrappers.zig");
 pub const no_proto = @import("no_proto.zig");
+pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
@@ -268,6 +270,30 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_sparse_arrays) {
             try no_sparse_arrays.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_object_expression(
+        self: *BasicVisitor,
+        expression: ast.ObjectExpression,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_dupe_keys) {
+            try no_dupe_keys.check(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_regexp_literal(
+        self: *BasicVisitor,
+        literal: ast.RegExpLiteral,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_regex_spaces) {
+            try no_regex_spaces.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         return .proceed;
     }

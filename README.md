@@ -16,6 +16,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-console`
 - `no-comma-operator`
 - `no-debugger`
+- `no-dupe-keys`
 - `no-delete-var`
 - `no-empty-block-statements`
 - `no-for-in`
@@ -26,6 +27,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-new-symbol`
 - `no-new-wrappers`
 - `no-proto`
+- `no-regex-spaces`
 - `no-self-compare`
 - `no-sparse-arrays`
 - `no-unsafe-negation`
