@@ -50,6 +50,7 @@ pub const no_return_assign = @import("no_return_assign.zig");
 pub const no_script_url = @import("no_script_url.zig");
 pub const no_self_assign = @import("no_self_assign.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
+pub const no_sequences = @import("no_sequences.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_ternary = @import("no_ternary.zig");
 pub const no_throw_literal = @import("no_throw_literal.zig");
@@ -531,6 +532,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_comma_operator) {
             try no_comma_operator.check(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx);
+        }
+        if (self.options.no_sequences) {
+            try no_sequences.check(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx);
         }
         return .proceed;
     }

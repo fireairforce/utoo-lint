@@ -60,6 +60,7 @@ pub const Options = struct {
     no_script_url: bool = true,
     no_self_assign: bool = true,
     no_self_compare: bool = true,
+    no_sequences: bool = true,
     no_sparse_arrays: bool = true,
     no_ternary: bool = true,
     no_throw_literal: bool = true,
