@@ -8,6 +8,7 @@ const Allocator = std.mem.Allocator;
 
 pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
+pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
 pub const no_for_in = @import("no_for_in.zig");
@@ -122,6 +123,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.eqeqeq) {
             try eqeqeq.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_sequence_expression(
+        self: *BasicVisitor,
+        expression: ast.SequenceExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_comma_operator) {
+            try no_comma_operator.check(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx);
         }
         return .proceed;
     }

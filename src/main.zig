@@ -26,6 +26,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_alert = false;
         } else if (std.mem.eql(u8, arg, "--no-console=off")) {
             options.no_console = false;
+        } else if (std.mem.eql(u8, arg, "--no-comma-operator=off")) {
+            options.no_comma_operator = false;
         } else if (std.mem.eql(u8, arg, "--no-debugger=off")) {
             options.no_debugger = false;
         } else if (std.mem.eql(u8, arg, "--no-for-in=off")) {
@@ -178,6 +180,7 @@ fn printHelp() void {
         \\
         \\Options:
         \\  --no-alert=off            Disable no-alert
+        \\  --no-comma-operator=off   Disable no-comma-operator
         \\  --no-console=off          Disable no-console
         \\  --no-debugger=off         Disable no-debugger
         \\  --no-for-in=off           Disable no-for-in
