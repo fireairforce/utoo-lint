@@ -52,6 +52,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_console = false;
         } else if (std.mem.eql(u8, arg, "--no-comma-operator=off")) {
             options.no_comma_operator = false;
+        } else if (std.mem.eql(u8, arg, "--no-constructor-return=off")) {
+            options.no_constructor_return = false;
         } else if (std.mem.eql(u8, arg, "--no-debugger=off")) {
             options.no_debugger = false;
         } else if (std.mem.eql(u8, arg, "--no-duplicate-case=off")) {
@@ -318,6 +320,7 @@ fn printHelp() void {
         \\  --no-control-regex=off   Disable no-control-regex
         \\  --no-comma-operator=off   Disable no-comma-operator
         \\  --no-console=off          Disable no-console
+        \\  --no-constructor-return=off Disable no-constructor-return
         \\  --no-debugger=off         Disable no-debugger
         \\  --no-duplicate-case=off   Disable no-duplicate-case
         \\  --no-dupe-args=off        Disable no-dupe-args

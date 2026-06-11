@@ -23,6 +23,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-const-assign`
 - `no-control-regex`
 - `no-console`
+- `no-constructor-return`
 - `no-comma-operator`
 - `no-debugger`
 - `no-dupe-args`

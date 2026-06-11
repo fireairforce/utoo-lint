@@ -22,6 +22,7 @@ pub const no_const_assign = @import("no_const_assign.zig");
 pub const no_control_regex = @import("no_control_regex.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
+pub const no_constructor_return = @import("no_constructor_return.zig");
 pub const no_debugger = @import("no_debugger.zig");
 pub const no_duplicate_case = @import("no_duplicate_case.zig");
 pub const no_dupe_args = @import("no_dupe_args.zig");
@@ -385,9 +386,12 @@ const BasicVisitor = struct {
     pub fn enter_return_statement(
         self: *BasicVisitor,
         statement: ast.ReturnStatement,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_constructor_return) {
+            try no_constructor_return.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
+        }
         if (self.options.no_return_assign) {
             try no_return_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.argument);
         }
