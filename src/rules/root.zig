@@ -24,6 +24,7 @@ pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
 pub const no_empty_character_class = @import("no_empty_character_class.zig");
 pub const no_empty_pattern = @import("no_empty_pattern.zig");
+pub const no_else_return = @import("no_else_return.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
@@ -129,6 +130,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_constant_condition) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
+        if (self.options.no_else_return) {
+            try no_else_return.check(self.allocator, self.diagnostics, ctx.tree, statement);
         }
         return .proceed;
     }
