@@ -16,8 +16,88 @@ permissions:
   id-token: write
 
 jobs:
-  release-darwin-arm64:
-    name: Release macOS arm64
+  build-release-assets:
+    name: Build ${{ matrix.asset }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - asset: utoo-lint-darwin-arm64
+            target: aarch64-macos
+            binary: utoo-lint
+            archive: tar.gz
+          - asset: utoo-lint-darwin-x64
+            target: x86_64-macos
+            binary: utoo-lint
+            archive: tar.gz
+          - asset: utoo-lint-linux-arm64
+            target: aarch64-linux-gnu
+            binary: utoo-lint
+            archive: tar.gz
+          - asset: utoo-lint-linux-x64
+            target: x86_64-linux-gnu
+            binary: utoo-lint
+            archive: tar.gz
+          - asset: utoo-lint-windows-x64
+            target: x86_64-windows-gnu
+            binary: utoo-lint.exe
+            archive: zip
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+
+      - name: Build
+        run: |
+          zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseFast -j1 --prefix zig-out/${{ matrix.asset }}
+          mkdir -p dist/${{ matrix.asset }}
+          cp zig-out/${{ matrix.asset }}/bin/${{ matrix.binary }} dist/${{ matrix.asset }}/${{ matrix.binary }}
+
+      - name: Package archive
+        run: |
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            (cd dist/${{ matrix.asset }} && zip -9 ../${{ matrix.asset }}.zip ${{ matrix.binary }})
+            shasum -a 256 dist/${{ matrix.asset }}.zip > dist/${{ matrix.asset }}.zip.sha256
+          else
+            tar -C dist/${{ matrix.asset }} -czf dist/${{ matrix.asset }}.tar.gz ${{ matrix.binary }}
+            shasum -a 256 dist/${{ matrix.asset }}.tar.gz > dist/${{ matrix.asset }}.tar.gz.sha256
+          fi
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: |
+            dist/${{ matrix.asset }}.*
+          if-no-files-found: error
+
+  publish-github-release:
+    name: Publish GitHub Release assets
+    needs: build-release-assets
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || gh release create "${GITHUB_REF_NAME}" --generate-notes
+          gh release upload "${GITHUB_REF_NAME}" dist/release-assets/* --clobber
+
+  publish-npm-darwin-arm64:
+    name: Publish npm macOS arm64 packages
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_npm)
     runs-on: macos-15
     steps:
       - name: Checkout
@@ -45,37 +125,12 @@ jobs:
           npm pack --dry-run ./npm/utoo-lint
           npm pack --dry-run ./npm/@utoo/lint-darwin-arm64
 
-      - name: Stage release asset
-        run: |
-          mkdir -p dist
-          cp npm/@utoo/lint-darwin-arm64/bin/utoo-lint dist/utoo-lint-darwin-arm64
-          shasum -a 256 dist/utoo-lint-darwin-arm64 > dist/utoo-lint-darwin-arm64.sha256
-
-      - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: utoo-lint-darwin-arm64
-          path: |
-            dist/utoo-lint-darwin-arm64
-            dist/utoo-lint-darwin-arm64.sha256
-          if-no-files-found: error
-
-      - name: Publish GitHub Release asset
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || gh release create "${GITHUB_REF_NAME}" --generate-notes
-          gh release upload "${GITHUB_REF_NAME}" dist/utoo-lint-darwin-arm64 dist/utoo-lint-darwin-arm64.sha256 --clobber
-
       - name: Publish native npm package
-        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish ./npm/@utoo/lint-darwin-arm64 --access public --provenance
 
       - name: Publish npm CLI package
-        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish ./npm/utoo-lint --access public --provenance
