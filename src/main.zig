@@ -64,6 +64,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_empty_static_block = false;
         } else if (std.mem.eql(u8, arg, "--no-else-return=off")) {
             options.no_else_return = false;
+        } else if (std.mem.eql(u8, arg, "--no-extra-semi=off")) {
+            options.no_extra_semi = false;
         } else if (std.mem.eql(u8, arg, "--no-extra-boolean-cast=off")) {
             options.no_extra_boolean_cast = false;
         } else if (std.mem.eql(u8, arg, "--no-for-in=off")) {
@@ -298,6 +300,7 @@ fn printHelp() void {
         \\  --no-empty-pattern=off  Disable no-empty-pattern
         \\  --no-empty-static-block=off Disable no-empty-static-block
         \\  --no-else-return=off    Disable no-else-return
+        \\  --no-extra-semi=off      Disable no-extra-semi
         \\  --no-extra-boolean-cast=off Disable no-extra-boolean-cast
         \\  --no-for-in=off           Disable no-for-in
         \\  --no-global-is-finite=off Disable no-global-is-finite
