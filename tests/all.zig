@@ -127,6 +127,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_plusplus.zig");
+}
+
+comptime {
     _ = @import("rules/no_proto.zig");
 }
 

@@ -40,6 +40,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-new-wrappers`
 - `no-octal`
 - `no-octal-escape`
+- `no-plusplus`
 - `no-proto`
 - `no-regex-spaces`
 - `no-self-compare`
