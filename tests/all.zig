@@ -279,6 +279,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_template_curly_in_string.zig");
+}
+
+comptime {
     _ = @import("rules/no_throw_literal.zig");
 }
 

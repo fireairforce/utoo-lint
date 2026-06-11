@@ -78,6 +78,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-sequences`
 - `no-sparse-arrays`
 - `no-ternary`
+- `no-template-curly-in-string`
 - `no-throw-literal`
 - `no-unneeded-ternary`
 - `no-unsafe-finally`
