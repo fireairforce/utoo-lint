@@ -30,6 +30,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-dupe-else-if`
 - `no-dupe-keys`
 - `no-delete-var`
+- `no-div-regex`
 - `no-duplicate-case`
 - `no-empty-block-statements`
 - `no-empty-character-class`

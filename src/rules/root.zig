@@ -29,6 +29,7 @@ pub const no_duplicate_case = @import("no_duplicate_case.zig");
 pub const no_dupe_args = @import("no_dupe_args.zig");
 pub const no_dupe_keys = @import("no_dupe_keys.zig");
 pub const no_delete_var = @import("no_delete_var.zig");
+pub const no_div_regex = @import("no_div_regex.zig");
 pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
 pub const no_empty_character_class = @import("no_empty_character_class.zig");
 pub const no_empty_function = @import("no_empty_function.zig");
@@ -767,6 +768,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_empty_character_class) {
             try no_empty_character_class.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.no_div_regex) {
+            try no_div_regex.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         if (self.options.no_regex_spaces) {
             try no_regex_spaces.check(self.allocator, self.diagnostics, ctx.tree, literal, index);

@@ -75,6 +75,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_div_regex.zig");
+}
+
+comptime {
     _ = @import("rules/no_duplicate_case.zig");
 }
 
