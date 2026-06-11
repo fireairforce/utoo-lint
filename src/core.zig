@@ -32,6 +32,7 @@ pub const Options = struct {
     no_control_regex: bool = true,
     no_console: bool = true,
     no_comma_operator: bool = true,
+    no_constructor_return: bool = true,
     no_debugger: bool = true,
     no_duplicate_case: bool = true,
     no_dupe_args: bool = true,
