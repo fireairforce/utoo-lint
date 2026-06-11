@@ -34,6 +34,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_await_in_loop = false;
         } else if (std.mem.eql(u8, arg, "--no-alert=off")) {
             options.no_alert = false;
+        } else if (std.mem.eql(u8, arg, "--no-buffer-constructor=off")) {
+            options.no_buffer_constructor = false;
         } else if (std.mem.eql(u8, arg, "--no-caller=off")) {
             options.no_caller = false;
         } else if (std.mem.eql(u8, arg, "--no-case-declarations=off")) {
@@ -345,6 +347,7 @@ fn printHelp() void {
         \\  --no-array-constructor=off Disable no-array-constructor
         \\  --no-await-in-loop=off    Disable no-await-in-loop
         \\  --no-alert=off            Disable no-alert
+        \\  --no-buffer-constructor=off Disable no-buffer-constructor
         \\  --no-caller=off           Disable no-caller
         \\  --no-case-declarations=off Disable no-case-declarations
         \\  --no-class-assign=off     Disable no-class-assign
