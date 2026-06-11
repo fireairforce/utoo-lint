@@ -175,6 +175,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_loss_of_precision.zig");
+}
+
+comptime {
     _ = @import("rules/no_multi_str.zig");
 }
 
