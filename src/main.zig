@@ -126,6 +126,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_loss_of_precision = false;
         } else if (std.mem.eql(u8, arg, "--no-multi-str=off")) {
             options.no_multi_str = false;
+        } else if (std.mem.eql(u8, arg, "--no-multi-spaces=off")) {
+            options.no_multi_spaces = false;
         } else if (std.mem.eql(u8, arg, "--no-mixed-spaces-and-tabs=off")) {
             options.no_mixed_spaces_and_tabs = false;
         } else if (std.mem.eql(u8, arg, "--no-multiple-empty-lines=off")) {
@@ -423,6 +425,7 @@ fn printHelp() void {
         \\  --no-lonely-if=off        Disable no-lonely-if
         \\  --no-loss-of-precision=off Disable no-loss-of-precision
         \\  --no-multi-str=off        Disable no-multi-str
+        \\  --no-multi-spaces=off     Disable no-multi-spaces
         \\  --no-mixed-spaces-and-tabs=off Disable no-mixed-spaces-and-tabs
         \\  --no-multiple-empty-lines=off Disable no-multiple-empty-lines
         \\  --no-new=off              Disable no-new

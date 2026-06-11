@@ -215,6 +215,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_multi_spaces.zig");
+}
+
+comptime {
     _ = @import("rules/no_multiple_empty_lines.zig");
 }
 
