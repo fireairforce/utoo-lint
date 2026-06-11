@@ -29,6 +29,7 @@ pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
+pub const no_labels = @import("no_labels.zig");
 pub const no_new_func = @import("no_new_func.zig");
 pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
@@ -250,6 +251,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_useless_catch) {
             try no_useless_catch.check(self.allocator, self.diagnostics, ctx.tree, clause, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_labeled_statement(
+        self: *BasicVisitor,
+        _: ast.LabeledStatement,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_labels) {
+            try no_labels.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
         return .proceed;
     }
