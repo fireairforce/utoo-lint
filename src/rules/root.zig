@@ -50,6 +50,7 @@ pub const no_import_assign = @import("no_import_assign.zig");
 pub const no_labels = @import("no_labels.zig");
 pub const no_lone_blocks = @import("no_lone_blocks.zig");
 pub const no_lonely_if = @import("no_lonely_if.zig");
+pub const no_loss_of_precision = @import("no_loss_of_precision.zig");
 pub const no_multi_str = @import("no_multi_str.zig");
 pub const no_new = @import("no_new.zig");
 pub const no_nested_ternary = @import("no_nested_ternary.zig");
@@ -546,6 +547,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_floating_decimal) {
             try no_floating_decimal.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.no_loss_of_precision) {
+            try no_loss_of_precision.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         return .proceed;
     }
