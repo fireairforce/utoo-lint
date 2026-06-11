@@ -66,6 +66,7 @@ pub const no_promise_executor_return = @import("no_promise_executor_return.zig")
 pub const no_proto = @import("no_proto.zig");
 pub const no_prototype_builtins = @import("no_prototype_builtins.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
+pub const no_return_await = @import("no_return_await.zig");
 pub const no_return_assign = @import("no_return_assign.zig");
 pub const no_script_url = @import("no_script_url.zig");
 pub const no_self_assign = @import("no_self_assign.zig");
@@ -404,6 +405,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_setter_return) {
             try no_setter_return.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
+        }
+        if (self.options.no_return_await) {
+            try no_return_await.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }
         if (self.options.no_return_assign) {
             try no_return_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.argument);
