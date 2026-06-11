@@ -138,6 +138,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_octal = false;
         } else if (std.mem.eql(u8, arg, "--no-octal-escape=off")) {
             options.no_octal_escape = false;
+        } else if (std.mem.eql(u8, arg, "--no-path-concat=off")) {
+            options.no_path_concat = false;
         } else if (std.mem.eql(u8, arg, "--no-plusplus=off")) {
             options.no_plusplus = false;
         } else if (std.mem.eql(u8, arg, "--no-promise-executor-return=off")) {
@@ -391,6 +393,7 @@ fn printHelp() void {
         \\  --no-new-wrappers=off     Disable no-new-wrappers
         \\  --no-octal=off            Disable no-octal
         \\  --no-octal-escape=off     Disable no-octal-escape
+        \\  --no-path-concat=off      Disable no-path-concat
         \\  --no-plusplus=off         Disable no-plusplus
         \\  --no-promise-executor-return=off Disable no-promise-executor-return
         \\  --no-proto=off            Disable no-proto

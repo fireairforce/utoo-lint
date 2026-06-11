@@ -235,6 +235,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_path_concat.zig");
+}
+
+comptime {
     _ = @import("rules/no_plusplus.zig");
 }
 

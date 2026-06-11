@@ -65,6 +65,7 @@ pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_new_wrappers = @import("no_new_wrappers.zig");
 pub const no_octal = @import("no_octal.zig");
 pub const no_octal_escape = @import("no_octal_escape.zig");
+pub const no_path_concat = @import("no_path_concat.zig");
 pub const no_plusplus = @import("no_plusplus.zig");
 pub const no_promise_executor_return = @import("no_promise_executor_return.zig");
 pub const no_proto = @import("no_proto.zig");
@@ -618,6 +619,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_useless_concat) {
             try no_useless_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.no_path_concat) {
+            try no_path_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }

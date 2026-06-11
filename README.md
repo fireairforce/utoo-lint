@@ -67,6 +67,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-new-wrappers`
 - `no-octal`
 - `no-octal-escape`
+- `no-path-concat`
 - `no-plusplus`
 - `no-promise-executor-return`
 - `no-proto`
