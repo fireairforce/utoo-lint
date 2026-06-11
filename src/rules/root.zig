@@ -82,6 +82,7 @@ pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_useless_computed_key = @import("no_useless_computed_key.zig");
+pub const no_useless_call = @import("no_useless_call.zig");
 pub const no_useless_concat = @import("no_useless_concat.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_useless_catch = @import("no_useless_catch.zig");
@@ -667,6 +668,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_prototype_builtins) {
             try no_prototype_builtins.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        if (self.options.no_useless_call) {
+            try no_useless_call.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
         return .proceed;
     }

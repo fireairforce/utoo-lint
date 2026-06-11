@@ -92,6 +92,7 @@ pub const Options = struct {
     no_unsafe_finally: bool = true,
     no_unsafe_negation: bool = true,
     no_useless_computed_key: bool = true,
+    no_useless_call: bool = true,
     no_useless_concat: bool = true,
     no_useless_catch: bool = true,
     no_useless_rename: bool = true,
