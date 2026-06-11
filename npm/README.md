@@ -1,8 +1,8 @@
 # npm packaging
 
-This directory contains the npm CLI wrapper and native platform package for `utoo-lint`.
+This directory contains the npm CLI wrapper for `@utoo/lint` and the native platform package for `utoo-lint`.
 
-- `utoo-lint` is the JavaScript CLI package.
+- `@utoo/lint` is the JavaScript CLI package.
 - `utoo-lint-darwin-arm64` contains the native Zig binary for macOS arm64.
 
 Build and stage the local native package:
