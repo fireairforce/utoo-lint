@@ -42,6 +42,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-regex-spaces`
 - `no-self-compare`
 - `no-sparse-arrays`
+- `no-throw-literal`
 - `no-unsafe-finally`
 - `no-unsafe-negation`
 - `no-useless-catch`
