@@ -100,6 +100,7 @@ pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
+pub const radix = @import("radix.zig");
 pub const use_isnan = @import("use_isnan.zig");
 
 pub fn runBasic(
@@ -206,6 +207,10 @@ pub fn runSemantic(
 
     if (options.no_promise_executor_return) {
         try no_promise_executor_return.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.radix) {
+        try radix.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_unused_vars) {

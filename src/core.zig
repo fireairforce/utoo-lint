@@ -112,6 +112,7 @@ pub const Options = struct {
     use_isnan: bool = true,
     no_unused_vars: bool = true,
     no_undef: bool = true,
+    radix: bool = true,
     parser_semantic_errors: bool = true,
 };
 

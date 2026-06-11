@@ -212,6 +212,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_unused_vars = false;
         } else if (std.mem.eql(u8, arg, "--no-undef=off")) {
             options.no_undef = false;
+        } else if (std.mem.eql(u8, arg, "--radix=off")) {
+            options.radix = false;
         } else if (std.mem.eql(u8, arg, "--semantic-errors=off")) {
             options.parser_semantic_errors = false;
         } else {
@@ -440,6 +442,7 @@ fn printHelp() void {
         \\  --use-isnan=off           Disable use-isnan
         \\  --no-unused-vars=off      Disable no-unused-vars
         \\  --no-undef=off            Disable no-undef
+        \\  --radix=off               Disable radix
         \\  --semantic-errors=off     Disable parser semantic errors
         \\
     , .{});
