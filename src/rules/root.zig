@@ -10,6 +10,7 @@ pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_array_constructor = @import("no_array_constructor.zig");
 pub const no_caller = @import("no_caller.zig");
+pub const no_case_declarations = @import("no_case_declarations.zig");
 pub const no_cond_assign = @import("no_cond_assign.zig");
 pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
 pub const no_constant_condition = @import("no_constant_condition.zig");
@@ -207,6 +208,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_duplicate_case) {
             try no_duplicate_case.check(self.allocator, self.diagnostics, ctx.tree, statement);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_switch_case(
+        self: *BasicVisitor,
+        switch_case: ast.SwitchCase,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_case_declarations) {
+            try no_case_declarations.check(self.allocator, self.diagnostics, ctx.tree, switch_case);
         }
         return .proceed;
     }
