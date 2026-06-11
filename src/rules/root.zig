@@ -23,6 +23,7 @@ pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_new_wrappers = @import("no_new_wrappers.zig");
 pub const no_proto = @import("no_proto.zig");
+pub const no_self_compare = @import("no_self_compare.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_undef = @import("no_undef.zig");
@@ -194,6 +195,9 @@ const BasicVisitor = struct {
         }
         if (self.options.eqeqeq) {
             try eqeqeq.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.no_self_compare) {
+            try no_self_compare.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_unsafe_negation) {
             try no_unsafe_negation.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
