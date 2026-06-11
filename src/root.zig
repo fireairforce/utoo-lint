@@ -285,6 +285,56 @@ test "can disable no-caller" {
     try std.testing.expect(!hasRule(result, rules.no_caller.id));
 }
 
+test "reports no-delete-var for deleting identifiers" {
+    const source =
+        \\delete value;
+        \\delete undefined;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), countRule(result, rules.no_delete_var.id));
+}
+
+test "does not report no-delete-var for property deletion" {
+    const source =
+        \\delete object.value;
+        \\delete object["value"];
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_delete_var.id));
+}
+
+test "can disable no-delete-var" {
+    const source =
+        \\delete value;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_delete_var = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_delete_var.id));
+}
+
 test "reports no-empty-block-statements for empty blocks" {
     const source =
         \\if (ready) {}

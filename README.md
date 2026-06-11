@@ -16,6 +16,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-console`
 - `no-comma-operator`
 - `no-debugger`
+- `no-delete-var`
 - `no-empty-block-statements`
 - `no-for-in`
 - `no-global-is-finite`
