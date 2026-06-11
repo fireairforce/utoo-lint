@@ -91,6 +91,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_labels.zig");
+}
+
+comptime {
     _ = @import("rules/no_new_func.zig");
 }
 

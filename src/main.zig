@@ -66,6 +66,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_global_is_finite = false;
         } else if (std.mem.eql(u8, arg, "--no-global-is-nan=off")) {
             options.no_global_is_nan = false;
+        } else if (std.mem.eql(u8, arg, "--no-labels=off")) {
+            options.no_labels = false;
         } else if (std.mem.eql(u8, arg, "--no-new-func=off")) {
             options.no_new_func = false;
         } else if (std.mem.eql(u8, arg, "--no-new-object=off")) {
@@ -257,6 +259,7 @@ fn printHelp() void {
         \\  --no-for-in=off           Disable no-for-in
         \\  --no-global-is-finite=off Disable no-global-is-finite
         \\  --no-global-is-nan=off    Disable no-global-is-nan
+        \\  --no-labels=off           Disable no-labels
         \\  --no-new-func=off         Disable no-new-func
         \\  --no-new-object=off       Disable no-new-object
         \\  --no-new-symbol=off       Disable no-new-symbol
