@@ -48,6 +48,7 @@ pub const Options = struct {
     no_sparse_arrays: bool = true,
     no_unsafe_finally: bool = true,
     no_unsafe_negation: bool = true,
+    no_useless_catch: bool = true,
     no_void: bool = true,
     no_with: bool = true,
     no_var: bool = true,

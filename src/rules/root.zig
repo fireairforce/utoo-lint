@@ -39,6 +39,7 @@ pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_undef = @import("no_undef.zig");
+pub const no_useless_catch = @import("no_useless_catch.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
@@ -233,6 +234,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_unsafe_finally) {
             try no_unsafe_finally.check(self.allocator, self.diagnostics, ctx.tree, statement);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_catch_clause(
+        self: *BasicVisitor,
+        clause: ast.CatchClause,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_useless_catch) {
+            try no_useless_catch.check(self.allocator, self.diagnostics, ctx.tree, clause, index);
         }
         return .proceed;
     }
