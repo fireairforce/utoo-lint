@@ -27,7 +27,7 @@ pub fn lintSource(
     });
     defer tree.deinit();
 
-    const needs_semantic = options.parser_semantic_errors or options.no_alert or options.no_global_is_finite or options.no_global_is_nan or options.no_new_object or options.no_new_symbol or options.no_new_wrappers or options.no_unused_vars or options.no_undef;
+    const needs_semantic = options.parser_semantic_errors or options.no_alert or options.no_global_is_finite or options.no_global_is_nan or options.no_new_func or options.no_new_object or options.no_new_symbol or options.no_new_wrappers or options.no_unused_vars or options.no_undef;
 
     if (needs_semantic) {
         var semantic_result = try parser.semantic.analyze(&tree);
@@ -394,6 +394,62 @@ test "can disable no-global-is-finite" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!hasRule(result, rules.no_global_is_finite.id));
+}
+
+test "reports no-new-func for Function constructor usage" {
+    const source =
+        \\const a = new Function("return 1");
+        \\const b = Function("return 1");
+        \\const c = Function.call(null, "return 1");
+        \\const d = Function.apply(null, ["return 1"]);
+        \\const e = Function.bind(null, "return 1");
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), countRule(result, rules.no_new_func.id));
+}
+
+test "does not report no-new-func for shadowed Function" {
+    const source =
+        \\function local(Function) {
+        \\  const a = new Function("return 1");
+        \\  const b = Function("return 1");
+        \\  const c = Function.call(null, "return 1");
+        \\}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_new_func.id));
+}
+
+test "can disable no-new-func" {
+    const source =
+        \\const a = new Function("return 1");
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_new_func = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_new_func.id));
 }
 
 test "reports no-new-object for constructed global Object" {

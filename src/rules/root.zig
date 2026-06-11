@@ -16,6 +16,7 @@ pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
+pub const no_new_func = @import("no_new_func.zig");
 pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_new_wrappers = @import("no_new_wrappers.zig");
@@ -59,6 +60,10 @@ pub fn runSemantic(
 
     if (options.no_global_is_nan) {
         try no_global_is_nan.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_new_func) {
+        try no_new_func.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_new_object) {
