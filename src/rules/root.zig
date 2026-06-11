@@ -70,6 +70,7 @@ pub const no_plusplus = @import("no_plusplus.zig");
 pub const no_promise_executor_return = @import("no_promise_executor_return.zig");
 pub const no_proto = @import("no_proto.zig");
 pub const no_process_env = @import("no_process_env.zig");
+pub const no_process_exit = @import("no_process_exit.zig");
 pub const no_prototype_builtins = @import("no_prototype_builtins.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_return_await = @import("no_return_await.zig");
@@ -683,6 +684,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_useless_call) {
             try no_useless_call.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        if (self.options.no_process_exit) {
+            try no_process_exit.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
         return .proceed;
     }
