@@ -85,6 +85,7 @@ pub const no_setter_return = @import("no_setter_return.zig");
 pub const no_shadow_restricted_names = @import("no_shadow_restricted_names.zig");
 pub const no_sequences = @import("no_sequences.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
+pub const no_tabs = @import("no_tabs.zig");
 pub const no_ternary = @import("no_ternary.zig");
 pub const no_template_curly_in_string = @import("no_template_curly_in_string.zig");
 pub const no_throw_literal = @import("no_throw_literal.zig");
@@ -126,6 +127,9 @@ pub fn runBasic(
     }
     if (options.unicode_bom) {
         try unicode_bom.run(allocator, diagnostics, tree);
+    }
+    if (options.no_tabs) {
+        try no_tabs.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{
