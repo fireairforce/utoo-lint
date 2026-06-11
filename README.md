@@ -72,6 +72,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-promise-executor-return`
 - `no-proto`
 - `no-process-env`
+- `no-process-exit`
 - `no-prototype-builtins`
 - `no-regex-spaces`
 - `no-return-await`

@@ -255,6 +255,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_process_exit.zig");
+}
+
+comptime {
     _ = @import("rules/no_prototype_builtins.zig");
 }
 
