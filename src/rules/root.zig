@@ -22,6 +22,7 @@ pub const no_dupe_keys = @import("no_dupe_keys.zig");
 pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
 pub const no_empty_character_class = @import("no_empty_character_class.zig");
+pub const no_empty_pattern = @import("no_empty_pattern.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
@@ -376,6 +377,30 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_dupe_keys) {
             try no_dupe_keys.check(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_object_pattern(
+        self: *BasicVisitor,
+        pattern: ast.ObjectPattern,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_empty_pattern) {
+            try no_empty_pattern.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_array_pattern(
+        self: *BasicVisitor,
+        pattern: ast.ArrayPattern,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_empty_pattern) {
+            try no_empty_pattern.checkArrayPattern(self.allocator, self.diagnostics, ctx.tree, pattern, index);
         }
         return .proceed;
     }
