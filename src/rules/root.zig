@@ -14,6 +14,7 @@ pub const no_debugger = @import("no_debugger.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
+pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_proto = @import("no_proto.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
@@ -53,6 +54,10 @@ pub fn runSemantic(
 
     if (options.no_global_is_nan) {
         try no_global_is_nan.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_new_symbol) {
+        try no_new_symbol.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_unused_vars) {
