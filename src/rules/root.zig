@@ -11,6 +11,7 @@ pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
 pub const no_for_in = @import("no_for_in.zig");
+pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
@@ -41,6 +42,10 @@ pub fn runSemantic(
 ) Allocator.Error!void {
     if (options.no_alert) {
         try no_alert.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_global_is_finite) {
+        try no_global_is_finite.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_global_is_nan) {
