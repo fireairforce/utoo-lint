@@ -211,6 +211,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_multiple_empty_lines.zig");
+}
+
+comptime {
     _ = @import("rules/no_negated_condition.zig");
 }
 
