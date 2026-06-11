@@ -112,6 +112,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_import_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-irregular-whitespace=off")) {
             options.no_irregular_whitespace = false;
+        } else if (std.mem.eql(u8, arg, "--no-inline-comments=off")) {
+            options.no_inline_comments = false;
         } else if (std.mem.eql(u8, arg, "--no-iterator=off")) {
             options.no_iterator = false;
         } else if (std.mem.eql(u8, arg, "--no-labels=off")) {
@@ -414,6 +416,7 @@ fn printHelp() void {
         \\  --no-implied-eval=off      Disable no-implied-eval
         \\  --no-import-assign=off     Disable no-import-assign
         \\  --no-irregular-whitespace=off Disable no-irregular-whitespace
+        \\  --no-inline-comments=off   Disable no-inline-comments
         \\  --no-iterator=off          Disable no-iterator
         \\  --no-labels=off           Disable no-labels
         \\  --no-lone-blocks=off      Disable no-lone-blocks
