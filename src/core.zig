@@ -46,6 +46,7 @@ pub const Options = struct {
     no_for_in: bool = true,
     no_global_is_finite: bool = true,
     no_global_is_nan: bool = true,
+    no_implied_eval: bool = true,
     no_labels: bool = true,
     no_lone_blocks: bool = true,
     no_lonely_if: bool = true,

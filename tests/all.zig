@@ -119,6 +119,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_implied_eval.zig");
+}
+
+comptime {
     _ = @import("rules/no_labels.zig");
 }
 
