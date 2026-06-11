@@ -29,6 +29,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-console`
 - `no-constructor-return`
 - `no-comma-operator`
+- `no-continue`
 - `no-debugger`
 - `no-dupe-args`
 - `no-dupe-else-if`

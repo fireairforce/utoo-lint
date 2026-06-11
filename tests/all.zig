@@ -63,6 +63,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_continue.zig");
+}
+
+comptime {
     _ = @import("rules/no_constructor_return.zig");
 }
 
