@@ -24,6 +24,7 @@ pub const Options = struct {
     no_for_in: bool = true,
     no_global_is_finite: bool = true,
     no_global_is_nan: bool = true,
+    no_proto: bool = true,
     no_with: bool = true,
     no_var: bool = true,
     eqeqeq: bool = true,

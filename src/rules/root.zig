@@ -14,6 +14,7 @@ pub const no_debugger = @import("no_debugger.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
+pub const no_proto = @import("no_proto.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_var = @import("no_var.zig");
@@ -147,6 +148,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_console) {
             try no_console.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_member_expression(
+        self: *BasicVisitor,
+        member: ast.MemberExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_proto) {
+            try no_proto.check(self.allocator, self.diagnostics, ctx.tree, member, index);
         }
         return .proceed;
     }
