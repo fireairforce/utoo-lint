@@ -33,6 +33,7 @@ pub const no_labels = @import("no_labels.zig");
 pub const no_lone_blocks = @import("no_lone_blocks.zig");
 pub const no_multi_str = @import("no_multi_str.zig");
 pub const no_new = @import("no_new.zig");
+pub const no_nested_ternary = @import("no_nested_ternary.zig");
 pub const no_new_func = @import("no_new_func.zig");
 pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
@@ -199,6 +200,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_constant_condition) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, expression.@"test");
+        }
+        if (self.options.no_nested_ternary) {
+            try no_nested_ternary.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_ternary) {
             try no_ternary.check(self.allocator, self.diagnostics, ctx.tree, index);

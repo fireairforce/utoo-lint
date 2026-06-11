@@ -107,6 +107,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_nested_ternary.zig");
+}
+
+comptime {
     _ = @import("rules/no_new_func.zig");
 }
 
