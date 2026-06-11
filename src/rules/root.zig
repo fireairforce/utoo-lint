@@ -26,6 +26,7 @@ pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
 pub const no_empty_character_class = @import("no_empty_character_class.zig");
 pub const no_empty_pattern = @import("no_empty_pattern.zig");
+pub const no_empty_static_block = @import("no_empty_static_block.zig");
 pub const no_else_return = @import("no_else_return.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_for_in = @import("no_for_in.zig");
@@ -377,6 +378,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_empty_block_statements) {
             try no_empty_block_statements.checkStaticBlock(self.allocator, self.diagnostics, ctx.tree, block, index);
+        }
+        if (self.options.no_empty_static_block) {
+            try no_empty_static_block.check(self.allocator, self.diagnostics, ctx.tree, block, index);
         }
         return .proceed;
     }

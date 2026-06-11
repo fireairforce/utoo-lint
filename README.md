@@ -28,6 +28,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-empty-block-statements`
 - `no-empty-character-class`
 - `no-empty-pattern`
+- `no-empty-static-block`
 - `no-else-return`
 - `no-extra-boolean-cast`
 - `no-for-in`

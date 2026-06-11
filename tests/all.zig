@@ -79,6 +79,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_empty_static_block.zig");
+}
+
+comptime {
     _ = @import("rules/no_else_return.zig");
 }
 
