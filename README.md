@@ -87,6 +87,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-ternary`
 - `no-template-curly-in-string`
 - `no-throw-literal`
+- `no-undef-init`
 - `no-unneeded-ternary`
 - `no-unsafe-finally`
 - `no-unsafe-negation`

@@ -315,6 +315,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_undef_init.zig");
+}
+
+comptime {
     _ = @import("rules/no_unneeded_ternary.zig");
 }
 

@@ -178,6 +178,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_template_curly_in_string = false;
         } else if (std.mem.eql(u8, arg, "--no-throw-literal=off")) {
             options.no_throw_literal = false;
+        } else if (std.mem.eql(u8, arg, "--no-undef-init=off")) {
+            options.no_undef_init = false;
         } else if (std.mem.eql(u8, arg, "--no-unneeded-ternary=off")) {
             options.no_unneeded_ternary = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-finally=off")) {
@@ -419,6 +421,7 @@ fn printHelp() void {
         \\  --no-ternary=off          Disable no-ternary
         \\  --no-template-curly-in-string=off Disable no-template-curly-in-string
         \\  --no-throw-literal=off    Disable no-throw-literal
+        \\  --no-undef-init=off       Disable no-undef-init
         \\  --no-unneeded-ternary=off Disable no-unneeded-ternary
         \\  --no-unsafe-finally=off   Disable no-unsafe-finally
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation
