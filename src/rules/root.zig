@@ -14,6 +14,7 @@ pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_array_constructor = @import("no_array_constructor.zig");
 pub const no_caller = @import("no_caller.zig");
 pub const no_case_declarations = @import("no_case_declarations.zig");
+pub const no_class_assign = @import("no_class_assign.zig");
 pub const no_cond_assign = @import("no_cond_assign.zig");
 pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
 pub const no_constant_condition = @import("no_constant_condition.zig");
@@ -120,6 +121,10 @@ pub fn runSemantic(
 
     if (options.no_alert) {
         try no_alert.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_class_assign) {
+        try no_class_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_func_assign) {
