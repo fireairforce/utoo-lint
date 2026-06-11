@@ -33,6 +33,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-global-is-nan`
 - `no-labels`
 - `no-lone-blocks`
+- `no-multi-str`
 - `no-new-func`
 - `no-new-object`
 - `no-new-symbol`

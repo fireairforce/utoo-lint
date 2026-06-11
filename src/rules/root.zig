@@ -31,6 +31,7 @@ pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
 pub const no_labels = @import("no_labels.zig");
 pub const no_lone_blocks = @import("no_lone_blocks.zig");
+pub const no_multi_str = @import("no_multi_str.zig");
 pub const no_new_func = @import("no_new_func.zig");
 pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
@@ -341,6 +342,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_var) {
             try no_var.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_string_literal(
+        self: *BasicVisitor,
+        _: ast.StringLiteral,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_multi_str) {
+            try no_multi_str.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
         return .proceed;
     }
