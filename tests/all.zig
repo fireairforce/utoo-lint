@@ -131,6 +131,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_floating_decimal.zig");
+}
+
+comptime {
     _ = @import("rules/no_for_in.zig");
 }
 

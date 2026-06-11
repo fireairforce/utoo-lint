@@ -39,6 +39,7 @@ pub const no_eval = @import("no_eval.zig");
 pub const no_ex_assign = @import("no_ex_assign.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_extra_semi = @import("no_extra_semi.zig");
+pub const no_floating_decimal = @import("no_floating_decimal.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_func_assign = @import("no_func_assign.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
@@ -539,6 +540,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_octal) {
             try no_octal.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.no_floating_decimal) {
+            try no_floating_decimal.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         return .proceed;
     }

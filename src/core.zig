@@ -49,6 +49,7 @@ pub const Options = struct {
     no_ex_assign: bool = true,
     no_extra_semi: bool = true,
     no_extra_boolean_cast: bool = true,
+    no_floating_decimal: bool = true,
     no_for_in: bool = true,
     no_func_assign: bool = true,
     no_global_is_finite: bool = true,
