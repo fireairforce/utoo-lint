@@ -43,6 +43,7 @@ pub const no_proto = @import("no_proto.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
+pub const no_ternary = @import("no_ternary.zig");
 pub const no_throw_literal = @import("no_throw_literal.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
@@ -192,11 +193,14 @@ const BasicVisitor = struct {
     pub fn enter_conditional_expression(
         self: *BasicVisitor,
         expression: ast.ConditionalExpression,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_constant_condition) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, expression.@"test");
+        }
+        if (self.options.no_ternary) {
+            try no_ternary.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
         return .proceed;
     }
