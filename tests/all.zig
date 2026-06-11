@@ -79,6 +79,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_empty_function.zig");
+}
+
+comptime {
     _ = @import("rules/no_empty_pattern.zig");
 }
 
