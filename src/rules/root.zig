@@ -24,6 +24,7 @@ pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
 pub const no_duplicate_case = @import("no_duplicate_case.zig");
+pub const no_dupe_args = @import("no_dupe_args.zig");
 pub const no_dupe_keys = @import("no_dupe_keys.zig");
 pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
@@ -191,6 +192,18 @@ const BasicVisitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     options: core.Options,
+
+    pub fn enter_function(
+        self: *BasicVisitor,
+        function: ast.Function,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_dupe_args) {
+            try no_dupe_args.check(self.allocator, self.diagnostics, ctx.tree, function);
+        }
+        return .proceed;
+    }
 
     pub fn enter_if_statement(
         self: *BasicVisitor,

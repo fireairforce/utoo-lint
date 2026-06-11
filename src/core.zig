@@ -34,6 +34,7 @@ pub const Options = struct {
     no_comma_operator: bool = true,
     no_debugger: bool = true,
     no_duplicate_case: bool = true,
+    no_dupe_args: bool = true,
     no_dupe_keys: bool = true,
     no_delete_var: bool = true,
     no_empty_block_statements: bool = true,
