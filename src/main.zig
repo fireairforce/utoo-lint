@@ -26,6 +26,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_console = false;
         } else if (std.mem.eql(u8, arg, "--no-debugger=off")) {
             options.no_debugger = false;
+        } else if (std.mem.eql(u8, arg, "--no-for-in=off")) {
+            options.no_for_in = false;
         } else if (std.mem.eql(u8, arg, "--no-with=off")) {
             options.no_with = false;
         } else if (std.mem.eql(u8, arg, "--no-var=off")) {
@@ -171,6 +173,7 @@ fn printHelp() void {
         \\Options:
         \\  --no-console=off          Disable no-console
         \\  --no-debugger=off         Disable no-debugger
+        \\  --no-for-in=off           Disable no-for-in
         \\  --no-with=off             Disable no-with
         \\  --no-var=off              Disable no-var
         \\  --eqeqeq=off              Disable eqeqeq
