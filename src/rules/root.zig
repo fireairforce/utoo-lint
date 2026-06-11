@@ -97,6 +97,7 @@ pub const no_undef = @import("no_undef.zig");
 pub const no_useless_catch = @import("no_useless_catch.zig");
 pub const no_useless_rename = @import("no_useless_rename.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
+pub const no_warning_comments = @import("no_warning_comments.zig");
 pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
@@ -110,6 +111,10 @@ pub fn runBasic(
     tree: *const ast.Tree,
     options: core.Options,
 ) Allocator.Error!void {
+    if (options.no_warning_comments) {
+        try no_warning_comments.run(allocator, diagnostics, tree);
+    }
+
     var visitor = BasicVisitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
