@@ -111,6 +111,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_func_assign.zig");
+}
+
+comptime {
     _ = @import("rules/no_global_is_finite.zig");
 }
 

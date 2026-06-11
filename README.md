@@ -36,6 +36,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-extra-semi`
 - `no-extra-boolean-cast`
 - `no-for-in`
+- `no-func-assign`
 - `no-global-is-finite`
 - `no-global-is-nan`
 - `no-implied-eval`
