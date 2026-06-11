@@ -18,6 +18,7 @@ pub const no_class_assign = @import("no_class_assign.zig");
 pub const no_cond_assign = @import("no_cond_assign.zig");
 pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
 pub const no_constant_condition = @import("no_constant_condition.zig");
+pub const no_const_assign = @import("no_const_assign.zig");
 pub const no_control_regex = @import("no_control_regex.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
@@ -126,6 +127,10 @@ pub fn runSemantic(
 
     if (options.no_class_assign) {
         try no_class_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_const_assign) {
+        try no_const_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_func_assign) {

@@ -44,6 +44,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_compare_neg_zero = false;
         } else if (std.mem.eql(u8, arg, "--no-constant-condition=off")) {
             options.no_constant_condition = false;
+        } else if (std.mem.eql(u8, arg, "--no-const-assign=off")) {
+            options.no_const_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-control-regex=off")) {
             options.no_control_regex = false;
         } else if (std.mem.eql(u8, arg, "--no-console=off")) {
@@ -308,6 +310,7 @@ fn printHelp() void {
         \\  --no-cond-assign=off      Disable no-cond-assign
         \\  --no-compare-neg-zero=off Disable no-compare-neg-zero
         \\  --no-constant-condition=off Disable no-constant-condition
+        \\  --no-const-assign=off    Disable no-const-assign
         \\  --no-control-regex=off   Disable no-control-regex
         \\  --no-comma-operator=off   Disable no-comma-operator
         \\  --no-console=off          Disable no-console
