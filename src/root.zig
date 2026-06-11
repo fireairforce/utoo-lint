@@ -826,6 +826,58 @@ test "can disable no-proto" {
     try std.testing.expect(!hasRule(result, rules.no_proto.id));
 }
 
+test "reports no-sparse-arrays for array holes" {
+    const source =
+        \\const first = [1,, 2];
+        \\const second = [,];
+        \\const third = [,,];
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), countRule(result, rules.no_sparse_arrays.id));
+}
+
+test "does not report no-sparse-arrays for explicit values" {
+    const source =
+        \\const first = [1, undefined, 2];
+        \\const second = [...items];
+        \\const third = [];
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_sparse_arrays.id));
+}
+
+test "can disable no-sparse-arrays" {
+    const source =
+        \\const first = [1,, 2];
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_sparse_arrays = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_sparse_arrays.id));
+}
+
 test "reports no-void for void unary expressions" {
     const source =
         \\void 0;

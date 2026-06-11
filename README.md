@@ -25,6 +25,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-new-symbol`
 - `no-new-wrappers`
 - `no-proto`
+- `no-sparse-arrays`
 - `no-unsafe-negation`
 - `no-void`
 - `no-with`
