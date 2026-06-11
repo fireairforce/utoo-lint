@@ -9,6 +9,7 @@ It uses [`yuku`](https://github.com/yuku-toolchain/yuku) for parsing, AST traver
 
 This repo is a working scaffold, not a production linter yet. The first rules are:
 
+- `no-alert`
 - `no-console`
 - `no-debugger`
 - `no-for-in`

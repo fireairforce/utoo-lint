@@ -6,6 +6,7 @@ const ast = parser.ast;
 const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
+pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
@@ -37,6 +38,10 @@ pub fn runSemantic(
     semantic_result: traverser.semantic.Result,
     options: core.Options,
 ) Allocator.Error!void {
+    if (options.no_alert) {
+        try no_alert.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
     if (options.no_unused_vars) {
         try no_unused_vars.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }

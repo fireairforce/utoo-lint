@@ -17,6 +17,7 @@ pub const Severity = enum {
 };
 
 pub const Options = struct {
+    no_alert: bool = true,
     no_console: bool = true,
     no_debugger: bool = true,
     no_for_in: bool = true,
@@ -112,10 +113,12 @@ pub fn freeDiagnostics(allocator: Allocator, diagnostics: *DiagnosticList) void 
 
 pub fn isKnownGlobal(name: []const u8) bool {
     const globals = [_][]const u8{
+        "alert",
         "Array",
         "BigInt",
         "Boolean",
         "Buffer",
+        "confirm",
         "Date",
         "Error",
         "Headers",
@@ -150,6 +153,7 @@ pub fn isKnownGlobal(name: []const u8) bool {
         "globalThis",
         "module",
         "process",
+        "prompt",
         "queueMicrotask",
         "require",
         "setInterval",
