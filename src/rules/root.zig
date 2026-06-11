@@ -36,6 +36,7 @@ pub const no_extra_semi = @import("no_extra_semi.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
+pub const no_implied_eval = @import("no_implied_eval.zig");
 pub const no_labels = @import("no_labels.zig");
 pub const no_lone_blocks = @import("no_lone_blocks.zig");
 pub const no_lonely_if = @import("no_lonely_if.zig");
@@ -121,6 +122,10 @@ pub fn runSemantic(
 
     if (options.no_global_is_nan) {
         try no_global_is_nan.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_implied_eval) {
+        try no_implied_eval.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_new_func) {
