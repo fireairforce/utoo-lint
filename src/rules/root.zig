@@ -13,6 +13,7 @@ pub const no_caller = @import("no_caller.zig");
 pub const no_cond_assign = @import("no_cond_assign.zig");
 pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
 pub const no_constant_condition = @import("no_constant_condition.zig");
+pub const no_control_regex = @import("no_control_regex.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
@@ -385,6 +386,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_control_regex) {
+            try no_control_regex.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
         if (self.options.no_empty_character_class) {
             try no_empty_character_class.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }

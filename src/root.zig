@@ -335,6 +335,56 @@ test "can disable no-constant-condition" {
     try std.testing.expect(!hasRule(result, rules.no_constant_condition.id));
 }
 
+test "reports no-control-regex for control characters in regex literals" {
+    const source =
+        \\const first = /\x1f/;
+        \\const second = /\u001f/;
+        \\const third = /\u{1f}/u;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), countRule(result, rules.no_control_regex.id));
+}
+
+test "does not report no-control-regex for printable regex escapes" {
+    const source =
+        \\const first = /\x20/;
+        \\const second = /\u0020/;
+        \\const third = /\cA/;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_control_regex.id));
+}
+
+test "can disable no-control-regex" {
+    const source =
+        \\const pattern = /\x1f/;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_control_regex = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_control_regex.id));
+}
+
 test "reports no-caller for arguments caller and callee access" {
     const source =
         \\function f() {
