@@ -11,6 +11,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/guard_for_in.zig");
+}
+
+comptime {
     _ = @import("rules/linebreak_style.zig");
 }
 
