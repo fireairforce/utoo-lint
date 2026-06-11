@@ -62,6 +62,7 @@ pub const Options = struct {
     no_throw_literal: bool = true,
     no_unsafe_finally: bool = true,
     no_unsafe_negation: bool = true,
+    no_useless_concat: bool = true,
     no_useless_catch: bool = true,
     no_void: bool = true,
     no_with: bool = true,

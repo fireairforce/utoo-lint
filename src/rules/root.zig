@@ -52,6 +52,7 @@ pub const no_ternary = @import("no_ternary.zig");
 pub const no_throw_literal = @import("no_throw_literal.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
+pub const no_useless_concat = @import("no_useless_concat.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_useless_catch = @import("no_useless_catch.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
@@ -430,6 +431,9 @@ const BasicVisitor = struct {
         }
         if (self.options.use_isnan) {
             try use_isnan.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.no_useless_concat) {
+            try no_useless_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }
