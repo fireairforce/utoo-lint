@@ -1,0 +1,74 @@
+const std = @import("std");
+const lint = @import("utoo_lint");
+const helpers = @import("../helpers.zig");
+
+test "reports no-mixed-spaces-and-tabs for mixed indentation" {
+    const source =
+        "if (ok) {\n" ++
+        " \tfoo();\n" ++
+        "\t bar();\n" ++
+        "  baz();\n" ++
+        "}\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_tabs = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_mixed_spaces_and_tabs.id));
+}
+
+test "does not report no-mixed-spaces-and-tabs for pure spaces or tabs" {
+    const source =
+        "if (ok) {\n" ++
+        "  foo();\n" ++
+        "\tbar();\n" ++
+        "}\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_tabs = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_mixed_spaces_and_tabs.id));
+}
+
+test "ignores mixed indentation inside block comment continuation and template literals" {
+    const source =
+        "/* block\n" ++
+        " \tcomment\n" ++
+        "*/\n" ++
+        "const text = `\n" ++
+        " \tinside\n" ++
+        "`;\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_tabs = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_mixed_spaces_and_tabs.id));
+}
+
+test "can disable no-mixed-spaces-and-tabs" {
+    const source = "if (ok) {\n \tfoo();\n}\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_mixed_spaces_and_tabs = false,
+        .no_tabs = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_mixed_spaces_and_tabs.id));
+}
