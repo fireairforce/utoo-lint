@@ -86,6 +86,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_extra_semi = false;
         } else if (std.mem.eql(u8, arg, "--no-extra-boolean-cast=off")) {
             options.no_extra_boolean_cast = false;
+        } else if (std.mem.eql(u8, arg, "--no-floating-decimal=off")) {
+            options.no_floating_decimal = false;
         } else if (std.mem.eql(u8, arg, "--no-for-in=off")) {
             options.no_for_in = false;
         } else if (std.mem.eql(u8, arg, "--no-func-assign=off")) {
@@ -341,6 +343,7 @@ fn printHelp() void {
         \\  --no-ex-assign=off      Disable no-ex-assign
         \\  --no-extra-semi=off      Disable no-extra-semi
         \\  --no-extra-boolean-cast=off Disable no-extra-boolean-cast
+        \\  --no-floating-decimal=off Disable no-floating-decimal
         \\  --no-for-in=off           Disable no-for-in
         \\  --no-func-assign=off      Disable no-func-assign
         \\  --no-global-is-finite=off Disable no-global-is-finite
