@@ -49,6 +49,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-proto`
 - `no-regex-spaces`
 - `no-return-assign`
+- `no-self-assign`
 - `no-self-compare`
 - `no-sparse-arrays`
 - `no-ternary`
