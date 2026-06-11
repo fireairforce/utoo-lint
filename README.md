@@ -39,6 +39,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-new-symbol`
 - `no-new-wrappers`
 - `no-octal`
+- `no-octal-escape`
 - `no-proto`
 - `no-regex-spaces`
 - `no-self-compare`

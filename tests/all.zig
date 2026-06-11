@@ -123,6 +123,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_octal_escape.zig");
+}
+
+comptime {
     _ = @import("rules/no_proto.zig");
 }
 
