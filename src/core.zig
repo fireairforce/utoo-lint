@@ -57,6 +57,7 @@ pub const Options = struct {
     no_proto: bool = true,
     no_regex_spaces: bool = true,
     no_return_assign: bool = true,
+    no_self_assign: bool = true,
     no_self_compare: bool = true,
     no_sparse_arrays: bool = true,
     no_ternary: bool = true,

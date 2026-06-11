@@ -47,6 +47,7 @@ pub const no_plusplus = @import("no_plusplus.zig");
 pub const no_proto = @import("no_proto.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_return_assign = @import("no_return_assign.zig");
+pub const no_self_assign = @import("no_self_assign.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_ternary = @import("no_ternary.zig");
@@ -436,6 +437,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_return_assign and expression.expression) {
             try no_return_assign.check(self.allocator, self.diagnostics, ctx.tree, expression.body);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_assignment_expression(
+        self: *BasicVisitor,
+        expression: ast.AssignmentExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_self_assign) {
+            try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }

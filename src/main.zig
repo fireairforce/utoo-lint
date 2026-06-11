@@ -102,6 +102,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_regex_spaces = false;
         } else if (std.mem.eql(u8, arg, "--no-return-assign=off")) {
             options.no_return_assign = false;
+        } else if (std.mem.eql(u8, arg, "--no-self-assign=off")) {
+            options.no_self_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-self-compare=off")) {
             options.no_self_compare = false;
         } else if (std.mem.eql(u8, arg, "--no-sparse-arrays=off")) {
@@ -307,6 +309,7 @@ fn printHelp() void {
         \\  --no-proto=off            Disable no-proto
         \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-return-assign=off    Disable no-return-assign
+        \\  --no-self-assign=off      Disable no-self-assign
         \\  --no-self-compare=off     Disable no-self-compare
         \\  --no-sparse-arrays=off    Disable no-sparse-arrays
         \\  --no-ternary=off          Disable no-ternary
