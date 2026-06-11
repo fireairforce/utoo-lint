@@ -47,6 +47,7 @@ pub const no_new_wrappers = @import("no_new_wrappers.zig");
 pub const no_octal = @import("no_octal.zig");
 pub const no_octal_escape = @import("no_octal_escape.zig");
 pub const no_plusplus = @import("no_plusplus.zig");
+pub const no_promise_executor_return = @import("no_promise_executor_return.zig");
 pub const no_proto = @import("no_proto.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_return_assign = @import("no_return_assign.zig");
@@ -130,6 +131,10 @@ pub fn runSemantic(
 
     if (options.no_new_wrappers) {
         try no_new_wrappers.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_promise_executor_return) {
+        try no_promise_executor_return.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_unused_vars) {
