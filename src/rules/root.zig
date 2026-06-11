@@ -12,6 +12,7 @@ pub const no_async_promise_executor = @import("no_async_promise_executor.zig");
 pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_array_constructor = @import("no_array_constructor.zig");
+pub const no_await_in_loop = @import("no_await_in_loop.zig");
 pub const no_caller = @import("no_caller.zig");
 pub const no_case_declarations = @import("no_case_declarations.zig");
 pub const no_class_assign = @import("no_class_assign.zig");
@@ -676,6 +677,18 @@ const BasicVisitor = struct {
             if (ctx.path.parent()) |parent| {
                 try no_new.check(self.allocator, self.diagnostics, ctx.tree, index, parent);
             }
+        }
+        return .proceed;
+    }
+
+    pub fn enter_await_expression(
+        self: *BasicVisitor,
+        _: ast.AwaitExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_await_in_loop) {
+            try no_await_in_loop.check(self.allocator, self.diagnostics, ctx.tree, index, ctx);
         }
         return .proceed;
     }

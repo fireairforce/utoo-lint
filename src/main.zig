@@ -30,6 +30,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_async_promise_executor = false;
         } else if (std.mem.eql(u8, arg, "--no-array-constructor=off")) {
             options.no_array_constructor = false;
+        } else if (std.mem.eql(u8, arg, "--no-await-in-loop=off")) {
+            options.no_await_in_loop = false;
         } else if (std.mem.eql(u8, arg, "--no-alert=off")) {
             options.no_alert = false;
         } else if (std.mem.eql(u8, arg, "--no-caller=off")) {
@@ -325,6 +327,7 @@ fn printHelp() void {
         \\  --default-case-last=off   Disable default-case-last
         \\  --no-async-promise-executor=off Disable no-async-promise-executor
         \\  --no-array-constructor=off Disable no-array-constructor
+        \\  --no-await-in-loop=off    Disable no-await-in-loop
         \\  --no-alert=off            Disable no-alert
         \\  --no-caller=off           Disable no-caller
         \\  --no-case-declarations=off Disable no-case-declarations

@@ -14,6 +14,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-async-promise-executor`
 - `no-alert`
 - `no-array-constructor`
+- `no-await-in-loop`
 - `no-caller`
 - `no-case-declarations`
 - `no-class-assign`
