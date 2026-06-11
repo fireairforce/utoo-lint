@@ -86,6 +86,7 @@ pub const Options = struct {
     no_sequences: bool = true,
     no_sparse_arrays: bool = true,
     no_ternary: bool = true,
+    no_template_curly_in_string: bool = true,
     no_throw_literal: bool = true,
     no_unneeded_ternary: bool = true,
     no_unsafe_finally: bool = true,

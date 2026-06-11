@@ -76,6 +76,7 @@ pub const no_setter_return = @import("no_setter_return.zig");
 pub const no_sequences = @import("no_sequences.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_ternary = @import("no_ternary.zig");
+pub const no_template_curly_in_string = @import("no_template_curly_in_string.zig");
 pub const no_throw_literal = @import("no_throw_literal.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
@@ -525,6 +526,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_octal_escape) {
             try no_octal_escape.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        if (self.options.no_template_curly_in_string) {
+            try no_template_curly_in_string.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         return .proceed;
     }
