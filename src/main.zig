@@ -108,6 +108,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_self_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-self-compare=off")) {
             options.no_self_compare = false;
+        } else if (std.mem.eql(u8, arg, "--no-sequences=off")) {
+            options.no_sequences = false;
         } else if (std.mem.eql(u8, arg, "--no-sparse-arrays=off")) {
             options.no_sparse_arrays = false;
         } else if (std.mem.eql(u8, arg, "--no-ternary=off")) {
@@ -314,6 +316,7 @@ fn printHelp() void {
         \\  --no-script-url=off       Disable no-script-url
         \\  --no-self-assign=off      Disable no-self-assign
         \\  --no-self-compare=off     Disable no-self-compare
+        \\  --no-sequences=off        Disable no-sequences
         \\  --no-sparse-arrays=off    Disable no-sparse-arrays
         \\  --no-ternary=off          Disable no-ternary
         \\  --no-throw-literal=off    Disable no-throw-literal

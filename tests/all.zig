@@ -175,6 +175,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_sequences.zig");
+}
+
+comptime {
     _ = @import("rules/no_sparse_arrays.zig");
 }
 
