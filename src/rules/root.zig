@@ -58,6 +58,7 @@ pub const no_new = @import("no_new.zig");
 pub const no_nested_ternary = @import("no_nested_ternary.zig");
 pub const no_new_native_nonconstructor = @import("no_new_native_nonconstructor.zig");
 pub const no_new_func = @import("no_new_func.zig");
+pub const no_new_require = @import("no_new_require.zig");
 pub const no_obj_calls = @import("no_obj_calls.zig");
 pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
@@ -683,7 +684,7 @@ const BasicVisitor = struct {
 
     pub fn enter_new_expression(
         self: *BasicVisitor,
-        _: ast.NewExpression,
+        expression: ast.NewExpression,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
@@ -691,6 +692,9 @@ const BasicVisitor = struct {
             if (ctx.path.parent()) |parent| {
                 try no_new.check(self.allocator, self.diagnostics, ctx.tree, index, parent);
             }
+        }
+        if (self.options.no_new_require) {
+            try no_new_require.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }

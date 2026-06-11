@@ -211,6 +211,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_new_require.zig");
+}
+
+comptime {
     _ = @import("rules/no_new_object.zig");
 }
 
