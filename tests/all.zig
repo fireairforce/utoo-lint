@@ -119,6 +119,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_unsafe_finally.zig");
+}
+
+comptime {
     _ = @import("rules/no_unsafe_negation.zig");
 }
 
