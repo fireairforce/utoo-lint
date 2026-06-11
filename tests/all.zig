@@ -11,6 +11,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/linebreak_style.zig");
+}
+
+comptime {
     _ = @import("rules/eqeqeq.zig");
 }
 

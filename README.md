@@ -12,6 +12,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `default-case`
 - `default-case-last`
 - `eol-last`
+- `linebreak-style`
 - `no-async-promise-executor`
 - `no-alert`
 - `no-array-constructor`

@@ -9,6 +9,7 @@ const Allocator = std.mem.Allocator;
 pub const default_case = @import("default_case.zig");
 pub const default_case_last = @import("default_case_last.zig");
 pub const eol_last = @import("eol_last.zig");
+pub const linebreak_style = @import("linebreak_style.zig");
 pub const no_async_promise_executor = @import("no_async_promise_executor.zig");
 pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
@@ -134,6 +135,9 @@ pub fn runBasic(
     }
     if (options.no_mixed_spaces_and_tabs) {
         try no_mixed_spaces_and_tabs.run(allocator, diagnostics, tree);
+    }
+    if (options.linebreak_style) {
+        try linebreak_style.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{
