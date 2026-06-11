@@ -1,0 +1,37 @@
+const std = @import("std");
+const parser = @import("parser");
+const core = @import("../core.zig");
+
+const ast = parser.ast;
+const Allocator = std.mem.Allocator;
+
+pub const id = "no-unsafe-negation";
+
+pub fn check(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.BinaryExpression,
+    index: ast.NodeIndex,
+) Allocator.Error!void {
+    if (expression.operator != .in and expression.operator != .instanceof) return;
+    if (!isLogicalNot(tree, expression.left)) return;
+
+    try core.addDiagnostic(
+        allocator,
+        diagnostics,
+        .@"error",
+        id,
+        "The negation operator is used unsafely on the left side of this binary expression.",
+        tree.span(index),
+    );
+}
+
+fn isLogicalNot(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    if (index == .null) return false;
+
+    return switch (tree.data(index)) {
+        .unary_expression => |unary| unary.operator == .logical_not,
+        else => false,
+    };
+}

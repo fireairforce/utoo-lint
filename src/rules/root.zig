@@ -17,6 +17,7 @@ pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
 pub const no_proto = @import("no_proto.zig");
+pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_var = @import("no_var.zig");
@@ -166,6 +167,9 @@ const BasicVisitor = struct {
         }
         if (self.options.eqeqeq) {
             try eqeqeq.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.no_unsafe_negation) {
+            try no_unsafe_negation.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }

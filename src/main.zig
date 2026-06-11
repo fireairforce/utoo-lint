@@ -42,6 +42,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_global_is_nan = false;
         } else if (std.mem.eql(u8, arg, "--no-proto=off")) {
             options.no_proto = false;
+        } else if (std.mem.eql(u8, arg, "--no-unsafe-negation=off")) {
+            options.no_unsafe_negation = false;
         } else if (std.mem.eql(u8, arg, "--no-void=off")) {
             options.no_void = false;
         } else if (std.mem.eql(u8, arg, "--no-with=off")) {
@@ -197,6 +199,7 @@ fn printHelp() void {
         \\  --no-global-is-finite=off Disable no-global-is-finite
         \\  --no-global-is-nan=off    Disable no-global-is-nan
         \\  --no-proto=off            Disable no-proto
+        \\  --no-unsafe-negation=off  Disable no-unsafe-negation
         \\  --no-void=off             Disable no-void
         \\  --no-with=off             Disable no-with
         \\  --no-var=off              Disable no-var

@@ -608,6 +608,58 @@ test "can disable no-compare-neg-zero" {
     try std.testing.expect(!hasRule(result, rules.no_compare_neg_zero.id));
 }
 
+test "reports no-unsafe-negation before in and instanceof" {
+    const source =
+        \\!value in object;
+        \\!value instanceof Constructor;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), countRule(result, rules.no_unsafe_negation.id));
+}
+
+test "does not report no-unsafe-negation for other unary expressions" {
+    const source =
+        \\-value in object;
+        \\~value in object;
+        \\typeof value in object;
+        \\void value in object;
+        \\value instanceof Constructor;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_void = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_unsafe_negation.id));
+}
+
+test "can disable no-unsafe-negation" {
+    const source =
+        \\!value in object;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unsafe_negation = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_unsafe_negation.id));
+}
+
 test "reports semantic rules" {
     const source =
         \\const unused = missing;
