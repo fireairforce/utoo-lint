@@ -439,6 +439,60 @@ test "can disable no-proto" {
     try std.testing.expect(!hasRule(result, rules.no_proto.id));
 }
 
+test "reports no-void for void unary expressions" {
+    const source =
+        \\void 0;
+        \\function f() {
+        \\  return void 0;
+        \\}
+        \\const value = void(0);
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), countRule(result, rules.no_void.id));
+}
+
+test "does not report no-void for delete or property names" {
+    const source =
+        \\delete object.value;
+        \\object.void();
+        \\object.void = value;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_void.id));
+}
+
+test "can disable no-void" {
+    const source =
+        \\void 0;
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_void = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_void.id));
+}
+
 test "reports semantic rules" {
     const source =
         \\const unused = missing;

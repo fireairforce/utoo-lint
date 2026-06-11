@@ -18,6 +18,7 @@ pub const no_proto = @import("no_proto.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_var = @import("no_var.zig");
+pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
 
 pub fn runBasic(
@@ -124,6 +125,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.eqeqeq) {
             try eqeqeq.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_unary_expression(
+        self: *BasicVisitor,
+        expression: ast.UnaryExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_void) {
+            try no_void.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }
