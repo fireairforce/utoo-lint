@@ -195,6 +195,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_negated_condition.zig");
+}
+
+comptime {
     _ = @import("rules/no_new.zig");
 }
 
