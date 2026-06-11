@@ -20,6 +20,7 @@ pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_new_wrappers = @import("no_new_wrappers.zig");
 pub const no_proto = @import("no_proto.zig");
+pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
@@ -233,6 +234,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_proto) {
             try no_proto.check(self.allocator, self.diagnostics, ctx.tree, member, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_array_expression(
+        self: *BasicVisitor,
+        expression: ast.ArrayExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_sparse_arrays) {
+            try no_sparse_arrays.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }

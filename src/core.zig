@@ -30,6 +30,7 @@ pub const Options = struct {
     no_new_symbol: bool = true,
     no_new_wrappers: bool = true,
     no_proto: bool = true,
+    no_sparse_arrays: bool = true,
     no_unsafe_negation: bool = true,
     no_void: bool = true,
     no_with: bool = true,
