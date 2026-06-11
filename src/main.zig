@@ -120,6 +120,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_new = false;
         } else if (std.mem.eql(u8, arg, "--no-nested-ternary=off")) {
             options.no_nested_ternary = false;
+        } else if (std.mem.eql(u8, arg, "--no-new-native-nonconstructor=off")) {
+            options.no_new_native_nonconstructor = false;
         } else if (std.mem.eql(u8, arg, "--no-new-func=off")) {
             options.no_new_func = false;
         } else if (std.mem.eql(u8, arg, "--no-obj-calls=off")) {
@@ -378,6 +380,7 @@ fn printHelp() void {
         \\  --no-multi-str=off        Disable no-multi-str
         \\  --no-new=off              Disable no-new
         \\  --no-nested-ternary=off   Disable no-nested-ternary
+        \\  --no-new-native-nonconstructor=off Disable no-new-native-nonconstructor
         \\  --no-new-func=off         Disable no-new-func
         \\  --no-obj-calls=off        Disable no-obj-calls
         \\  --no-new-object=off       Disable no-new-object

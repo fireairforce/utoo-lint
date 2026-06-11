@@ -56,6 +56,7 @@ pub const no_loss_of_precision = @import("no_loss_of_precision.zig");
 pub const no_multi_str = @import("no_multi_str.zig");
 pub const no_new = @import("no_new.zig");
 pub const no_nested_ternary = @import("no_nested_ternary.zig");
+pub const no_new_native_nonconstructor = @import("no_new_native_nonconstructor.zig");
 pub const no_new_func = @import("no_new_func.zig");
 pub const no_obj_calls = @import("no_obj_calls.zig");
 pub const no_new_object = @import("no_new_object.zig");
@@ -170,6 +171,10 @@ pub fn runSemantic(
 
     if (options.no_new_func) {
         try no_new_func.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_new_native_nonconstructor) {
+        try no_new_native_nonconstructor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_obj_calls) {
