@@ -9,6 +9,7 @@ It uses [`yuku`](https://github.com/yuku-toolchain/yuku) (GitHub: https://github
 
 This repo is a working scaffold, not a production linter yet. The first rules are:
 
+- `default-case`
 - `no-alert`
 - `no-array-constructor`
 - `no-caller`

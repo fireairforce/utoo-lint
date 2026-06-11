@@ -22,6 +22,8 @@ pub fn main(init: std.process.Init) !void {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
             printHelp();
             return;
+        } else if (std.mem.eql(u8, arg, "--default-case=off")) {
+            options.default_case = false;
         } else if (std.mem.eql(u8, arg, "--no-array-constructor=off")) {
             options.no_array_constructor = false;
         } else if (std.mem.eql(u8, arg, "--no-alert=off")) {
@@ -257,6 +259,7 @@ fn printHelp() void {
         \\  utoo-lint [options] [file-or-directory ...]
         \\
         \\Options:
+        \\  --default-case=off        Disable default-case
         \\  --no-array-constructor=off Disable no-array-constructor
         \\  --no-alert=off            Disable no-alert
         \\  --no-caller=off           Disable no-caller
