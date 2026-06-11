@@ -19,6 +19,7 @@ pub const Severity = enum {
 pub const Options = struct {
     no_console: bool = true,
     no_debugger: bool = true,
+    no_for_in: bool = true,
     no_with: bool = true,
     no_var: bool = true,
     eqeqeq: bool = true,

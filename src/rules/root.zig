@@ -9,6 +9,7 @@ const Allocator = std.mem.Allocator;
 pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
+pub const no_for_in = @import("no_for_in.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_var = @import("no_var.zig");
@@ -58,6 +59,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_debugger) {
             try no_debugger.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_for_in_statement(
+        self: *BasicVisitor,
+        _: ast.ForInStatement,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_for_in) {
+            try no_for_in.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
         return .proceed;
     }

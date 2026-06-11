@@ -106,6 +106,9 @@ test "reports structural rules" {
         \\  console.log(value);
         \\  debugger;
         \\}
+        \\for (const key in value) {
+        \\  console.log(key);
+        \\}
         \\with (point) {
         \\  x = 1;
         \\}
@@ -122,7 +125,26 @@ test "reports structural rules" {
     try std.testing.expect(hasRule(result, rules.eqeqeq.id));
     try std.testing.expect(hasRule(result, rules.no_console.id));
     try std.testing.expect(hasRule(result, rules.no_debugger.id));
+    try std.testing.expect(hasRule(result, rules.no_for_in.id));
     try std.testing.expect(hasRule(result, rules.no_with.id));
+}
+
+test "can disable no-for-in" {
+    const source =
+        \\for (const key in object) {
+        \\  console.log(key);
+        \\}
+    ;
+
+    var result = try lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_for_in = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!hasRule(result, rules.no_for_in.id));
 }
 
 test "can disable no-with" {
