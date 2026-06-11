@@ -11,6 +11,7 @@ pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_comma_operator = @import("no_comma_operator.zig");
 pub const no_console = @import("no_console.zig");
 pub const no_debugger = @import("no_debugger.zig");
+pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
@@ -89,6 +90,42 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_for_in) {
             try no_for_in.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_block_statement(
+        self: *BasicVisitor,
+        block: ast.BlockStatement,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_empty_block_statements) {
+            try no_empty_block_statements.checkBlockStatement(self.allocator, self.diagnostics, ctx.tree, block, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_function_body(
+        self: *BasicVisitor,
+        body: ast.FunctionBody,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_empty_block_statements) {
+            try no_empty_block_statements.checkFunctionBody(self.allocator, self.diagnostics, ctx.tree, body, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_static_block(
+        self: *BasicVisitor,
+        block: ast.StaticBlock,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_empty_block_statements) {
+            try no_empty_block_statements.checkStaticBlock(self.allocator, self.diagnostics, ctx.tree, block, index);
         }
         return .proceed;
     }

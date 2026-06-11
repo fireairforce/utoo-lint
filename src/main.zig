@@ -30,6 +30,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_comma_operator = false;
         } else if (std.mem.eql(u8, arg, "--no-debugger=off")) {
             options.no_debugger = false;
+        } else if (std.mem.eql(u8, arg, "--no-empty-block-statements=off")) {
+            options.no_empty_block_statements = false;
         } else if (std.mem.eql(u8, arg, "--no-for-in=off")) {
             options.no_for_in = false;
         } else if (std.mem.eql(u8, arg, "--no-global-is-finite=off")) {
@@ -187,6 +189,7 @@ fn printHelp() void {
         \\  --no-comma-operator=off   Disable no-comma-operator
         \\  --no-console=off          Disable no-console
         \\  --no-debugger=off         Disable no-debugger
+        \\  --no-empty-block-statements=off Disable no-empty-block-statements
         \\  --no-for-in=off           Disable no-for-in
         \\  --no-global-is-finite=off Disable no-global-is-finite
         \\  --no-global-is-nan=off    Disable no-global-is-nan
