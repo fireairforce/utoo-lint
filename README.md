@@ -59,6 +59,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-multi-str`
 - `no-new`
 - `no-nested-ternary`
+- `no-negated-condition`
 - `no-new-native-nonconstructor`
 - `no-obj-calls`
 - `no-new-func`

@@ -57,6 +57,7 @@ pub const no_loss_of_precision = @import("no_loss_of_precision.zig");
 pub const no_multi_str = @import("no_multi_str.zig");
 pub const no_new = @import("no_new.zig");
 pub const no_nested_ternary = @import("no_nested_ternary.zig");
+pub const no_negated_condition = @import("no_negated_condition.zig");
 pub const no_new_native_nonconstructor = @import("no_new_native_nonconstructor.zig");
 pub const no_new_func = @import("no_new_func.zig");
 pub const no_new_require = @import("no_new_require.zig");
@@ -281,6 +282,9 @@ const BasicVisitor = struct {
         if (self.options.no_lonely_if) {
             try no_lonely_if.check(self.allocator, self.diagnostics, ctx.tree, statement);
         }
+        if (self.options.no_negated_condition) {
+            try no_negated_condition.checkIfStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
         return .proceed;
     }
 
@@ -346,6 +350,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_ternary) {
             try no_ternary.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        if (self.options.no_negated_condition) {
+            try no_negated_condition.checkConditionalExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }
