@@ -159,6 +159,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_return_assign.zig");
+}
+
+comptime {
     _ = @import("rules/no_self_compare.zig");
 }
 
