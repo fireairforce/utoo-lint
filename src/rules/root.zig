@@ -23,6 +23,7 @@ pub const no_new_object = @import("no_new_object.zig");
 pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_new_wrappers = @import("no_new_wrappers.zig");
 pub const no_proto = @import("no_proto.zig");
+pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_undef = @import("no_undef.zig");
@@ -260,6 +261,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_sparse_arrays) {
             try no_sparse_arrays.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_regexp_literal(
+        self: *BasicVisitor,
+        literal: ast.RegExpLiteral,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_regex_spaces) {
+            try no_regex_spaces.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         return .proceed;
     }

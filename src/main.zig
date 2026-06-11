@@ -54,6 +54,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_new_wrappers = false;
         } else if (std.mem.eql(u8, arg, "--no-proto=off")) {
             options.no_proto = false;
+        } else if (std.mem.eql(u8, arg, "--no-regex-spaces=off")) {
+            options.no_regex_spaces = false;
         } else if (std.mem.eql(u8, arg, "--no-sparse-arrays=off")) {
             options.no_sparse_arrays = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-negation=off")) {
@@ -219,6 +221,7 @@ fn printHelp() void {
         \\  --no-new-symbol=off       Disable no-new-symbol
         \\  --no-new-wrappers=off     Disable no-new-wrappers
         \\  --no-proto=off            Disable no-proto
+        \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-sparse-arrays=off    Disable no-sparse-arrays
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation
         \\  --no-void=off             Disable no-void
