@@ -14,6 +14,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `default-case`
 - `default-case-last`
 - `eol-last`
+- `for-direction`
 - `guard-for-in`
 - `linebreak-style`
 - `new-parens`

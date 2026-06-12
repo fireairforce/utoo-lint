@@ -11,6 +11,7 @@ pub const dot_notation = @import("dot_notation.zig");
 pub const default_case = @import("default_case.zig");
 pub const default_case_last = @import("default_case_last.zig");
 pub const eol_last = @import("eol_last.zig");
+pub const for_direction = @import("for_direction.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const new_parens = @import("new_parens.zig");
@@ -445,7 +446,7 @@ const BasicVisitor = struct {
     pub fn enter_for_statement(
         self: *BasicVisitor,
         statement: ast.ForStatement,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.curly) {
@@ -456,6 +457,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_constant_condition and statement.@"test" != .null) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
+        if (self.options.for_direction) {
+            try for_direction.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
         return .proceed;
     }
