@@ -284,6 +284,8 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_regex_literals = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
+        } else if (std.mem.eql(u8, arg, "--valid-typeof=off")) {
+            options.valid_typeof = false;
         } else if (std.mem.eql(u8, arg, "--semantic-errors=off")) {
             options.parser_semantic_errors = false;
         } else if (std.mem.eql(u8, arg, "--yoda=off")) {
