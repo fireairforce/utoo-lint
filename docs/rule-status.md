@@ -170,3 +170,4 @@ Each rule links to the corresponding ESLint rule reference.
 | --- | --- |
 | [`@typescript-eslint/ban-ts-comment`](https://typescript-eslint.io/rules/ban-ts-comment/) | Implemented for fishlint's `allow-with-description` configuration |
 | [`@typescript-eslint/ban-tslint-comment`](https://typescript-eslint.io/rules/ban-tslint-comment/) | Implemented |
+| [`@typescript-eslint/prefer-as-const`](https://typescript-eslint.io/rules/prefer-as-const/) | Implemented |
