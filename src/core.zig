@@ -149,6 +149,7 @@ pub const Options = struct {
     prefer_regex_literals: bool = true,
     radix: bool = true,
     parser_semantic_errors: bool = true,
+    valid_typeof: bool = true,
     yoda: bool = true,
 };
 

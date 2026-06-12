@@ -137,6 +137,7 @@ pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const radix = @import("radix.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
+pub const valid_typeof = @import("valid_typeof.zig");
 pub const yoda = @import("yoda.zig");
 
 pub fn runBasic(
@@ -844,6 +845,9 @@ const BasicVisitor = struct {
         }
         if (self.options.use_isnan) {
             try use_isnan.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.valid_typeof) {
+            try valid_typeof.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_useless_concat) {
             try no_useless_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);

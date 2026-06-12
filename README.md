@@ -140,6 +140,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `prefer-regex-literals`
 - `radix`
 - `use-isnan`
+- `valid-typeof`
 - `yoda`
 - `parse` diagnostics from Yuku, including semantic early errors by default
 

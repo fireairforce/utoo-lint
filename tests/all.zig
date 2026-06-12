@@ -523,5 +523,9 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/valid_typeof.zig");
+}
+
+comptime {
     _ = @import("rules/yoda.zig");
 }
