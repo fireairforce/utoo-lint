@@ -395,6 +395,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_extra_non_null_assertion = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-inferrable-types=off")) {
             options.typescript_eslint_no_inferrable_types = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-misused-new=off")) {
+            options.typescript_eslint_no_misused_new = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-non-null-asserted-optional-chain=off")) {
             options.typescript_eslint_no_non_null_asserted_optional_chain = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-require-imports=off")) {
