@@ -275,6 +275,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_multi_assign.zig");
+}
+
+comptime {
     _ = @import("rules/no_multi_str.zig");
 }
 

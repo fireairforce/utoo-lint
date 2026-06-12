@@ -158,6 +158,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_loss_of_precision = false;
         } else if (std.mem.eql(u8, arg, "--no-multi-str=off")) {
             options.no_multi_str = false;
+        } else if (std.mem.eql(u8, arg, "--no-multi-assign=off")) {
+            options.no_multi_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-multi-spaces=off")) {
             options.no_multi_spaces = false;
         } else if (std.mem.eql(u8, arg, "--no-mixed-spaces-and-tabs=off")) {

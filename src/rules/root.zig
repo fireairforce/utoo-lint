@@ -75,6 +75,7 @@ pub const no_lone_blocks = @import("no_lone_blocks.zig");
 pub const no_lonely_if = @import("no_lonely_if.zig");
 pub const no_loss_of_precision = @import("no_loss_of_precision.zig");
 pub const no_mixed_spaces_and_tabs = @import("no_mixed_spaces_and_tabs.zig");
+pub const no_multi_assign = @import("no_multi_assign.zig");
 pub const no_multi_spaces = @import("no_multi_spaces.zig");
 pub const no_multi_str = @import("no_multi_str.zig");
 pub const no_multiple_empty_lines = @import("no_multiple_empty_lines.zig");
@@ -821,6 +822,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_bitwise) {
             try no_bitwise.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.no_multi_assign) {
+            try no_multi_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_self_assign) {
             try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
