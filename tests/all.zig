@@ -655,6 +655,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_empty_interface.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_require_imports.zig");
 }
 
