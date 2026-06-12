@@ -45,6 +45,7 @@ pub const no_else_return = @import("no_else_return.zig");
 pub const no_eq_null = @import("no_eq_null.zig");
 pub const no_eval = @import("no_eval.zig");
 pub const no_ex_assign = @import("no_ex_assign.zig");
+pub const no_extend_native = @import("no_extend_native.zig");
 pub const no_extra_bind = @import("no_extra_bind.zig");
 pub const no_extra_label = @import("no_extra_label.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
@@ -204,6 +205,10 @@ pub fn runSemantic(
 
     if (options.no_ex_assign) {
         try no_ex_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_extend_native) {
+        try no_extend_native.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_alert) {

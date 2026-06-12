@@ -98,6 +98,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_eval = false;
         } else if (std.mem.eql(u8, arg, "--no-ex-assign=off")) {
             options.no_ex_assign = false;
+        } else if (std.mem.eql(u8, arg, "--no-extend-native=off")) {
+            options.no_extend_native = false;
         } else if (std.mem.eql(u8, arg, "--no-extra-bind=off")) {
             options.no_extra_bind = false;
         } else if (std.mem.eql(u8, arg, "--no-extra-label=off")) {
@@ -431,6 +433,7 @@ fn printHelp() void {
         \\  --no-eq-null=off        Disable no-eq-null
         \\  --no-eval=off           Disable no-eval
         \\  --no-ex-assign=off      Disable no-ex-assign
+        \\  --no-extend-native=off  Disable no-extend-native
         \\  --no-extra-bind=off     Disable no-extra-bind
         \\  --no-extra-label=off    Disable no-extra-label
         \\  --no-extra-semi=off      Disable no-extra-semi

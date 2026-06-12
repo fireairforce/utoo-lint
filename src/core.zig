@@ -55,6 +55,7 @@ pub const Options = struct {
     no_eq_null: bool = true,
     no_eval: bool = true,
     no_ex_assign: bool = true,
+    no_extend_native: bool = true,
     no_extra_bind: bool = true,
     no_extra_label: bool = true,
     no_extra_semi: bool = true,
