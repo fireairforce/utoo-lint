@@ -155,6 +155,7 @@ pub const Options = struct {
     no_with: bool = true,
     no_var: bool = true,
     object_shorthand: bool = true,
+    one_var: bool = true,
     operator_assignment: bool = true,
     eqeqeq: bool = true,
     use_isnan: bool = true,

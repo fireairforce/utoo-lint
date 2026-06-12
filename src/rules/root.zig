@@ -146,6 +146,7 @@ pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
 pub const object_shorthand = @import("object_shorthand.zig");
+pub const one_var = @import("one_var.zig");
 pub const operator_assignment = @import("operator_assignment.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
 pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
@@ -806,6 +807,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkVariableDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration);
+        }
+        if (self.options.one_var) {
+            try one_var.check(self.allocator, self.diagnostics, ctx.tree, declaration, index, ctx);
         }
         return .proceed;
     }

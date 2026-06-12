@@ -559,6 +559,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/one_var.zig");
+}
+
+comptime {
     _ = @import("rules/operator_assignment.zig");
 }
 
