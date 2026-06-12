@@ -64,6 +64,7 @@ pub const Options = struct {
     no_func_assign: bool = true,
     no_global_is_finite: bool = true,
     no_global_is_nan: bool = true,
+    no_implicit_coercion: bool = true,
     no_implied_eval: bool = true,
     no_import_assign: bool = true,
     no_irregular_whitespace: bool = true,
