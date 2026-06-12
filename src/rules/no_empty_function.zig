@@ -27,7 +27,7 @@ pub fn check(
     );
 }
 
-fn hasCommentInsideBraces(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+pub fn hasCommentInsideBraces(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     const span = tree.span(index);
     const start: usize = @intCast(span.start);
     const end: usize = @intCast(span.end);

@@ -186,6 +186,7 @@ pub const Options = struct {
     typescript_eslint_ban_ts_comment: bool = true,
     typescript_eslint_ban_tslint_comment: bool = true,
     typescript_eslint_no_confusing_non_null_assertion: bool = true,
+    typescript_eslint_no_empty_function: bool = true,
     typescript_eslint_no_empty_interface: bool = true,
     typescript_eslint_no_extra_non_null_assertion: bool = true,
     typescript_eslint_no_inferrable_types: bool = true,
