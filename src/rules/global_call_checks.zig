@@ -1,0 +1,267 @@
+const std = @import("std");
+const parser = @import("parser");
+const core = @import("../core.zig");
+const no_alert = @import("no_alert.zig");
+const no_eval = @import("no_eval.zig");
+const no_implied_eval = @import("no_implied_eval.zig");
+
+const ast = parser.ast;
+const traverser = parser.traverser;
+const Allocator = std.mem.Allocator;
+
+pub fn run(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    check_no_eval: bool,
+    check_no_alert: bool,
+    check_no_implied_eval: bool,
+) Allocator.Error!void {
+    if (!check_no_eval and !check_no_alert and !check_no_implied_eval) return;
+
+    var visitor = Visitor{
+        .allocator = allocator,
+        .diagnostics = diagnostics,
+        .symbol_table = symbol_table,
+        .check_no_eval = check_no_eval,
+        .check_no_alert = check_no_alert,
+        .check_no_implied_eval = check_no_implied_eval,
+    };
+
+    try traverser.basic.traverse(Visitor, tree, &visitor);
+}
+
+const Visitor = struct {
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    symbol_table: traverser.semantic.SymbolTable,
+    check_no_eval: bool,
+    check_no_alert: bool,
+    check_no_implied_eval: bool,
+
+    pub fn enter_call_expression(
+        self: *Visitor,
+        call: ast.CallExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.check_no_eval and isEvalCall(ctx.tree, self.symbol_table, call.callee)) {
+            try core.addDiagnostic(
+                self.allocator,
+                self.diagnostics,
+                .warning,
+                no_eval.id,
+                "eval can be harmful.",
+                ctx.tree.span(index),
+            );
+        }
+
+        if (self.check_no_alert) {
+            if (alertCalleeName(ctx.tree, self.symbol_table, call.callee)) |name| {
+                try core.addDiagnosticFmt(
+                    self.allocator,
+                    self.diagnostics,
+                    .warning,
+                    no_alert.id,
+                    ctx.tree.span(index),
+                    "Unexpected {s}.",
+                    .{name},
+                );
+            }
+        }
+
+        if (self.check_no_implied_eval and
+            hasStringFirstArgument(ctx.tree, call.arguments) and
+            isImpliedEvalCallee(ctx.tree, self.symbol_table, call.callee))
+        {
+            try core.addDiagnostic(
+                self.allocator,
+                self.diagnostics,
+                .warning,
+                no_implied_eval.id,
+                "Implied eval can be harmful. Pass a function instead of a string.",
+                ctx.tree.span(index),
+            );
+        }
+
+        return .proceed;
+    }
+};
+
+fn isEvalCall(
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    callee: ast.NodeIndex,
+) bool {
+    const unwrapped = unwrapTransparent(tree, callee);
+
+    if (identifierReferenceName(tree, unwrapped)) |name| {
+        return std.mem.eql(u8, name, "eval");
+    }
+
+    switch (tree.data(unwrapped)) {
+        .sequence_expression => |sequence| {
+            const expressions = tree.extra(sequence.expressions);
+            if (expressions.len == 0) return false;
+            const last = unwrapTransparent(tree, expressions[expressions.len - 1]);
+            const name = identifierReferenceName(tree, last) orelse return false;
+            return std.mem.eql(u8, name, "eval");
+        },
+        .member_expression => |member| return isGlobalEvalMember(tree, symbol_table, member),
+        else => return false,
+    }
+}
+
+fn isGlobalEvalMember(
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    member: ast.MemberExpression,
+) bool {
+    const property_name = propertyName(tree, member) orelse return false;
+    if (!std.mem.eql(u8, property_name, "eval")) return false;
+
+    const object = unwrapTransparent(tree, member.object);
+    const object_name = identifierReferenceName(tree, object) orelse return false;
+    return isEvalGlobalObjectName(object_name) and isUnresolvedReference(symbol_table, object);
+}
+
+fn alertCalleeName(
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    callee: ast.NodeIndex,
+) ?[]const u8 {
+    const unwrapped = unwrapTransparent(tree, callee);
+
+    if (identifierReferenceName(tree, unwrapped)) |name| {
+        if (isAlertName(name) and isUnresolvedReference(symbol_table, unwrapped)) {
+            return name;
+        }
+        return null;
+    }
+
+    const member = switch (tree.data(unwrapped)) {
+        .member_expression => |member| member,
+        else => return null,
+    };
+
+    const object = unwrapTransparent(tree, member.object);
+    const object_name = identifierReferenceName(tree, object) orelse return null;
+    if (!isAlertGlobalObjectName(object_name) or !isUnresolvedReference(symbol_table, object)) {
+        return null;
+    }
+
+    const property_name = propertyName(tree, member) orelse return null;
+    if (isAlertName(property_name)) return property_name;
+
+    return null;
+}
+
+fn hasStringFirstArgument(tree: *const ast.Tree, arguments: ast.IndexRange) bool {
+    if (arguments.len == 0) return false;
+
+    const first = unwrapTransparent(tree, tree.extra(arguments)[0]);
+    return switch (tree.data(first)) {
+        .string_literal => true,
+        .template_literal => |template| template.expressions.len == 0,
+        else => false,
+    };
+}
+
+fn isImpliedEvalCallee(
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    callee: ast.NodeIndex,
+) bool {
+    const unwrapped = unwrapTransparent(tree, callee);
+
+    if (identifierReferenceName(tree, unwrapped)) |name| {
+        return isImpliedEvalName(name) and isUnresolvedReference(symbol_table, unwrapped);
+    }
+
+    const member = switch (tree.data(unwrapped)) {
+        .member_expression => |member| member,
+        else => return false,
+    };
+
+    const property_name = propertyName(tree, member) orelse return false;
+    if (!isImpliedEvalName(property_name)) return false;
+
+    const object = unwrapTransparent(tree, member.object);
+    const object_name = identifierReferenceName(tree, object) orelse return false;
+    return isEvalGlobalObjectName(object_name) and isUnresolvedReference(symbol_table, object);
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+
+    return current;
+}
+
+fn identifierReferenceName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    if (index == .null) return null;
+
+    return switch (tree.data(index)) {
+        .identifier_reference => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
+    if (member.property == .null) return null;
+
+    return if (member.computed)
+        switch (tree.data(member.property)) {
+            .string_literal => |literal| tree.string(literal.value),
+            else => null,
+        }
+    else switch (tree.data(member.property)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn isUnresolvedReference(
+    symbol_table: traverser.semantic.SymbolTable,
+    node: ast.NodeIndex,
+) bool {
+    var iter = symbol_table.iterReferences();
+    while (iter.next()) |entry| {
+        if (entry.reference.node == node) {
+            return symbol_table.referenceSymbol(entry.id) == .none;
+        }
+    }
+
+    return false;
+}
+
+fn isAlertName(name: []const u8) bool {
+    return std.mem.eql(u8, name, "alert") or
+        std.mem.eql(u8, name, "confirm") or
+        std.mem.eql(u8, name, "prompt");
+}
+
+fn isImpliedEvalName(name: []const u8) bool {
+    return std.mem.eql(u8, name, "setTimeout") or
+        std.mem.eql(u8, name, "setInterval") or
+        std.mem.eql(u8, name, "execScript");
+}
+
+fn isAlertGlobalObjectName(name: []const u8) bool {
+    return std.mem.eql(u8, name, "window") or
+        std.mem.eql(u8, name, "globalThis");
+}
+
+fn isEvalGlobalObjectName(name: []const u8) bool {
+    return std.mem.eql(u8, name, "window") or
+        std.mem.eql(u8, name, "globalThis") or
+        std.mem.eql(u8, name, "global");
+}

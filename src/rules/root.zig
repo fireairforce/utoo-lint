@@ -6,6 +6,7 @@ const ast = parser.ast;
 const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
+const global_call_checks = @import("global_call_checks.zig");
 const global_is_checks = @import("global_is_checks.zig");
 const native_object_checks = @import("native_object_checks.zig");
 const object_constructor_checks = @import("object_constructor_checks.zig");
@@ -290,16 +291,20 @@ pub fn runSemantic(
         try no_extra_boolean_cast.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_eval) {
-        try no_eval.run(allocator, diagnostics, tree, semantic_result.symbol_table);
-    }
-
     if (options.no_extend_native) {
         try no_extend_native.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_alert) {
-        try no_alert.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    if (options.no_eval or options.no_alert or options.no_implied_eval) {
+        try global_call_checks.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.no_eval,
+            options.no_alert,
+            options.no_implied_eval,
+        );
     }
 
     if (options.no_redeclare) {
@@ -327,10 +332,6 @@ pub fn runSemantic(
             options.no_global_is_finite,
             options.no_global_is_nan,
         );
-    }
-
-    if (options.no_implied_eval) {
-        try no_implied_eval.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_label_var) {
