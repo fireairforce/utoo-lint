@@ -123,6 +123,7 @@ pub const no_tabs = @import("no_tabs.zig");
 pub const no_ternary = @import("no_ternary.zig");
 pub const no_template_curly_in_string = @import("no_template_curly_in_string.zig");
 pub const no_throw_literal = @import("no_throw_literal.zig");
+pub const no_this_before_super = @import("no_this_before_super.zig");
 pub const no_trailing_spaces = @import("no_trailing_spaces.zig");
 pub const no_unreachable = @import("no_unreachable.zig");
 pub const no_undef_init = @import("no_undef_init.zig");
@@ -401,6 +402,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.constructor_super) {
             try constructor_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
+        }
+        if (self.options.no_this_before_super) {
+            try no_this_before_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, class.id, false);

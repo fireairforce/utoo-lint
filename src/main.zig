@@ -283,6 +283,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_template_curly_in_string = false;
         } else if (std.mem.eql(u8, arg, "--no-throw-literal=off")) {
             options.no_throw_literal = false;
+        } else if (std.mem.eql(u8, arg, "--no-this-before-super=off")) {
+            options.no_this_before_super = false;
         } else if (std.mem.eql(u8, arg, "--no-tabs=off")) {
             options.no_tabs = false;
         } else if (std.mem.eql(u8, arg, "--no-trailing-spaces=off")) {
@@ -713,6 +715,7 @@ fn printHelp() void {
         \\  --no-ternary=off          Disable no-ternary
         \\  --no-template-curly-in-string=off Disable no-template-curly-in-string
         \\  --no-throw-literal=off    Disable no-throw-literal
+        \\  --no-this-before-super=off Disable no-this-before-super
         \\  --no-tabs=off             Disable no-tabs
         \\  --no-trailing-spaces=off  Disable no-trailing-spaces
         \\  --no-unreachable=off      Disable no-unreachable

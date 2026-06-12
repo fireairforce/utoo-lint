@@ -463,6 +463,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_this_before_super.zig");
+}
+
+comptime {
     _ = @import("rules/no_trailing_spaces.zig");
 }
 
