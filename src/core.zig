@@ -127,6 +127,7 @@ pub const Options = struct {
     no_useless_computed_key: bool = true,
     no_useless_call: bool = true,
     no_useless_concat: bool = true,
+    no_useless_constructor: bool = true,
     no_useless_catch: bool = true,
     no_useless_rename: bool = true,
     no_warning_comments: bool = true,

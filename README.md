@@ -119,6 +119,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-useless-computed-key`
 - `no-useless-call`
 - `no-useless-concat`
+- `no-useless-constructor`
 - `no-useless-catch`
 - `no-useless-rename`
 - `no-warning-comments`

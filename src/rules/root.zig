@@ -115,6 +115,7 @@ pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_useless_computed_key = @import("no_useless_computed_key.zig");
 pub const no_useless_call = @import("no_useless_call.zig");
 pub const no_useless_concat = @import("no_useless_concat.zig");
+pub const no_useless_constructor = @import("no_useless_constructor.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_useless_catch = @import("no_useless_catch.zig");
 pub const no_useless_rename = @import("no_useless_rename.zig");
@@ -326,6 +327,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, class.id, false);
+        }
+        if (self.options.no_useless_constructor) {
+            try no_useless_constructor.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
         return .proceed;
     }
