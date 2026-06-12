@@ -11,6 +11,13 @@ pub const id = "no-use-before-define";
 const SymbolId = traverser.semantic.SymbolId;
 const DeclSymbolMap = std.AutoHashMap(ast.NodeIndex, SymbolId);
 
+pub const Options = struct {
+    rule_id: []const u8 = id,
+    severity: core.Severity = .warning,
+    check_functions: bool = true,
+    check_classes: bool = true,
+};
+
 const InitRange = struct {
     symbol_id: SymbolId,
     span: ast.Span,
@@ -22,12 +29,22 @@ pub fn run(
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, symbol_table, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
+) Allocator.Error!void {
     var decl_symbols = DeclSymbolMap.init(allocator);
     defer decl_symbols.deinit();
 
     var symbol_iter = symbol_table.iterSymbols();
     while (symbol_iter.next()) |entry| {
-        if (!isLintableSymbol(entry.symbol.flags)) continue;
+        if (!isLintableSymbol(entry.symbol.flags, options)) continue;
         for (symbol_table.symbolDecls(entry.id)) |decl| {
             try decl_symbols.put(decl, entry.id);
         }
@@ -53,7 +70,7 @@ pub fn run(
         if (symbol_id == .none) continue;
 
         const symbol = symbol_table.getSymbol(symbol_id);
-        if (!isLintableSymbol(symbol.flags)) continue;
+        if (!isLintableSymbol(symbol.flags, options)) continue;
 
         const decls = symbol_table.symbolDecls(symbol_id);
         if (decls.len == 0) continue;
@@ -67,8 +84,8 @@ pub fn run(
         try core.addDiagnosticFmt(
             allocator,
             diagnostics,
-            .warning,
-            id,
+            options.severity,
+            options.rule_id,
             reference_span,
             "'{s}' was used before it was defined.",
             .{tree.string(reference.name)},
@@ -166,8 +183,10 @@ fn spanInside(span: ast.Span, container: ast.Span) bool {
     return span.start >= container.start and span.end <= container.end;
 }
 
-fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags) bool {
+fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bool {
     if (flags.ambient) return false;
     if (flags.type_import or flags.interface or flags.type_alias or flags.type_parameter) return false;
+    if (!options.check_functions and flags.function) return false;
+    if (!options.check_classes and flags.class) return false;
     return flags.inValueSpace() or flags.import;
 }

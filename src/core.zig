@@ -199,6 +199,7 @@ pub const Options = struct {
     typescript_eslint_no_this_alias: bool = true,
     typescript_eslint_no_unnecessary_type_constraint: bool = true,
     typescript_eslint_no_useless_constructor: bool = true,
+    typescript_eslint_no_use_before_define: bool = true,
     typescript_eslint_no_var_requires: bool = true,
     typescript_eslint_prefer_as_const: bool = true,
     typescript_eslint_prefer_namespace_keyword: bool = true,

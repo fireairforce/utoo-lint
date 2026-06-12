@@ -417,6 +417,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_unnecessary_type_constraint = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-useless-constructor=off")) {
             options.typescript_eslint_no_useless_constructor = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-use-before-define=off")) {
+            options.typescript_eslint_no_use_before_define = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-var-requires=off")) {
             options.typescript_eslint_no_var_requires = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-prefer-as-const=off")) {
