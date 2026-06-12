@@ -74,6 +74,7 @@ pub const no_mixed_spaces_and_tabs = @import("no_mixed_spaces_and_tabs.zig");
 pub const no_multi_spaces = @import("no_multi_spaces.zig");
 pub const no_multi_str = @import("no_multi_str.zig");
 pub const no_multiple_empty_lines = @import("no_multiple_empty_lines.zig");
+pub const no_nonoctal_decimal_escape = @import("no_nonoctal_decimal_escape.zig");
 pub const no_new = @import("no_new.zig");
 pub const no_nested_ternary = @import("no_nested_ternary.zig");
 pub const no_negated_condition = @import("no_negated_condition.zig");
@@ -707,6 +708,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_multi_str) {
             try no_multi_str.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        if (self.options.no_nonoctal_decimal_escape) {
+            try no_nonoctal_decimal_escape.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
         if (self.options.no_octal_escape) {
             try no_octal_escape.check(self.allocator, self.diagnostics, ctx.tree, index);

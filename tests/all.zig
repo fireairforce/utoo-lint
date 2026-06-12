@@ -271,6 +271,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_nonoctal_decimal_escape.zig");
+}
+
+comptime {
     _ = @import("rules/no_negated_condition.zig");
 }
 
