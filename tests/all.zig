@@ -215,6 +215,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_label_var.zig");
+}
+
+comptime {
     _ = @import("rules/no_labels.zig");
 }
 

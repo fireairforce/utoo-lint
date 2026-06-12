@@ -62,6 +62,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-inline-comments`
 - `no-irregular-whitespace`
 - `no-iterator`
+- `no-label-var`
 - `no-labels`
 - `no-lone-blocks`
 - `no-lonely-if`
