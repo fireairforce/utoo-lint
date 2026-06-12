@@ -1,4 +1,8 @@
 comptime {
+    _ = @import("rules/array_callback_return.zig");
+}
+
+comptime {
     _ = @import("rules/constructor_super.zig");
 }
 

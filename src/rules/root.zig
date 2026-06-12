@@ -7,6 +7,7 @@ const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 pub const curly = @import("curly.zig");
+pub const array_callback_return = @import("array_callback_return.zig");
 pub const constructor_super = @import("constructor_super.zig");
 pub const dot_notation = @import("dot_notation.zig");
 pub const default_case = @import("default_case.zig");
@@ -1009,6 +1010,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.array_callback_return) {
+            try array_callback_return.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
         if (self.options.no_console) {
             try no_console.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
