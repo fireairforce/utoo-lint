@@ -381,6 +381,10 @@ pub fn main(init: std.process.Init) !void {
             options.spaced_comment = false;
         } else if (std.mem.eql(u8, arg, "--symbol-description=off")) {
             options.symbol_description = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-ban-ts-comment=off")) {
+            options.typescript_eslint_ban_ts_comment = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-ban-tslint-comment=off")) {
+            options.typescript_eslint_ban_tslint_comment = false;
         } else if (std.mem.eql(u8, arg, "--valid-typeof=off")) {
             options.valid_typeof = false;
         } else if (std.mem.eql(u8, arg, "--semantic-errors=off")) {
@@ -783,6 +787,8 @@ fn printHelp() void {
         \\  --radix=off               Disable radix
         \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield
+        \\  --typescript-eslint-ban-ts-comment=off Disable @typescript-eslint/ban-ts-comment
+        \\  --typescript-eslint-ban-tslint-comment=off Disable @typescript-eslint/ban-tslint-comment
         \\  --semantic-errors=off     Disable parser semantic errors
         \\  --yoda=off                Disable yoda
         \\

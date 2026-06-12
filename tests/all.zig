@@ -647,6 +647,14 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_ban_ts_comment.zig");
+}
+
+comptime {
+    _ = @import("rules/typescript_eslint_ban_tslint_comment.zig");
+}
+
+comptime {
     _ = @import("rules/unicode_bom.zig");
 }
 

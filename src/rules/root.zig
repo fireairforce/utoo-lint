@@ -169,6 +169,8 @@ const reassignment_rules = @import("reassignment_rules.zig");
 pub const require_yield = @import("require_yield.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
+pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_comment.zig");
+pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_tslint_comment.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
 pub const valid_typeof = @import("valid_typeof.zig");
@@ -215,6 +217,12 @@ pub fn runBasic(
     }
     if (options.spaced_comment) {
         try spaced_comment.run(allocator, diagnostics, tree);
+    }
+    if (options.typescript_eslint_ban_ts_comment) {
+        try typescript_eslint_ban_ts_comment.run(allocator, diagnostics, tree);
+    }
+    if (options.typescript_eslint_ban_tslint_comment) {
+        try typescript_eslint_ban_tslint_comment.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{
