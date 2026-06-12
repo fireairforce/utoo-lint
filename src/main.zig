@@ -347,6 +347,8 @@ pub fn main(init: std.process.Init) !void {
             options.use_isnan = false;
         } else if (std.mem.eql(u8, arg, "--no-unused-vars=off")) {
             options.no_unused_vars = false;
+        } else if (std.mem.eql(u8, arg, "--no-use-before-define=off")) {
+            options.no_use_before_define = false;
         } else if (std.mem.eql(u8, arg, "--no-undef=off")) {
             options.no_undef = false;
         } else if (std.mem.eql(u8, arg, "--prefer-exponentiation-operator=off")) {
@@ -759,6 +761,7 @@ fn printHelp() void {
         \\  --eqeqeq=off              Disable eqeqeq
         \\  --use-isnan=off           Disable use-isnan
         \\  --no-unused-vars=off      Disable no-unused-vars
+        \\  --no-use-before-define=off Disable no-use-before-define
         \\  --no-undef=off            Disable no-undef
         \\  --prefer-exponentiation-operator=off Disable prefer-exponentiation-operator
         \\  --prefer-promise-reject-errors=off Disable prefer-promise-reject-errors

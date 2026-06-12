@@ -551,6 +551,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_use_before_define.zig");
+}
+
+comptime {
     _ = @import("rules/no_undef.zig");
 }
 
