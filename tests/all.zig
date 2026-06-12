@@ -47,6 +47,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_bitwise.zig");
+}
+
+comptime {
     _ = @import("rules/no_buffer_constructor.zig");
 }
 
