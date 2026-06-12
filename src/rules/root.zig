@@ -44,6 +44,7 @@ pub const no_empty_static_block = @import("no_empty_static_block.zig");
 pub const no_else_return = @import("no_else_return.zig");
 pub const no_eval = @import("no_eval.zig");
 pub const no_ex_assign = @import("no_ex_assign.zig");
+pub const no_extra_bind = @import("no_extra_bind.zig");
 pub const no_extra_label = @import("no_extra_label.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_extra_semi = @import("no_extra_semi.zig");
@@ -813,6 +814,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_process_exit) {
             try no_process_exit.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        if (self.options.no_extra_bind) {
+            try no_extra_bind.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
         return .proceed;
     }
