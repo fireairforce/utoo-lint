@@ -143,6 +143,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-undef`
 - `prefer-exponentiation-operator`
 - `prefer-regex-literals`
+- `prefer-rest-params`
 - `prefer-spread`
 - `prefer-template`
 - `radix`

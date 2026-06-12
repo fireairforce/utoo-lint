@@ -531,6 +531,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_rest_params.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_spread.zig");
 }
 
