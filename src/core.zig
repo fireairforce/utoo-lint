@@ -105,6 +105,7 @@ pub const Options = struct {
     no_regex_spaces: bool = true,
     no_return_await: bool = true,
     no_return_assign: bool = true,
+    no_useless_return: bool = true,
     no_script_url: bool = true,
     no_self_assign: bool = true,
     no_self_compare: bool = true,

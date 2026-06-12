@@ -355,6 +355,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_useless_return.zig");
+}
+
+comptime {
     _ = @import("rules/no_script_url.zig");
 }
 

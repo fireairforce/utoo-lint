@@ -97,6 +97,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-regex-spaces`
 - `no-return-await`
 - `no-return-assign`
+- `no-useless-return`
 - `no-script-url`
 - `no-self-assign`
 - `no-self-compare`
