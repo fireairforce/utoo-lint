@@ -8,6 +8,7 @@ const Allocator = std.mem.Allocator;
 
 const global_is_checks = @import("global_is_checks.zig");
 const object_constructor_checks = @import("object_constructor_checks.zig");
+const promise_checks = @import("promise_checks.zig");
 const symbol_checks = @import("symbol_checks.zig");
 
 pub const curly = @import("curly.zig");
@@ -265,9 +266,10 @@ pub fn runSemantic(
         try block_scoped_var.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_async_promise_executor) {
-        try no_async_promise_executor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
-    }
+    const promise_check_options =
+        options.no_async_promise_executor or
+        options.no_promise_executor_return or
+        options.prefer_promise_reject_errors;
 
     if (options.no_array_constructor) {
         try no_array_constructor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
@@ -386,8 +388,16 @@ pub fn runSemantic(
         try no_new_wrappers.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_promise_executor_return) {
-        try no_promise_executor_return.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    if (promise_check_options) {
+        try promise_checks.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.no_async_promise_executor,
+            options.no_promise_executor_return,
+            options.prefer_promise_reject_errors,
+        );
     }
 
     if (options.prefer_exponentiation_operator) {
@@ -396,10 +406,6 @@ pub fn runSemantic(
 
     if (options.prefer_regex_literals) {
         try prefer_regex_literals.run(allocator, diagnostics, tree, semantic_result.symbol_table);
-    }
-
-    if (options.prefer_promise_reject_errors) {
-        try prefer_promise_reject_errors.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.radix) {
