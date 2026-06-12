@@ -44,6 +44,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-empty-pattern`
 - `no-empty-static-block`
 - `no-else-return`
+- `no-eq-null`
 - `no-eval`
 - `no-ex-assign`
 - `no-extra-bind`

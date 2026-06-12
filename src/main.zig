@@ -92,6 +92,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_empty_static_block = false;
         } else if (std.mem.eql(u8, arg, "--no-else-return=off")) {
             options.no_else_return = false;
+        } else if (std.mem.eql(u8, arg, "--no-eq-null=off")) {
+            options.no_eq_null = false;
         } else if (std.mem.eql(u8, arg, "--no-eval=off")) {
             options.no_eval = false;
         } else if (std.mem.eql(u8, arg, "--no-ex-assign=off")) {
@@ -420,6 +422,7 @@ fn printHelp() void {
         \\  --no-empty-pattern=off  Disable no-empty-pattern
         \\  --no-empty-static-block=off Disable no-empty-static-block
         \\  --no-else-return=off    Disable no-else-return
+        \\  --no-eq-null=off        Disable no-eq-null
         \\  --no-eval=off           Disable no-eval
         \\  --no-ex-assign=off      Disable no-ex-assign
         \\  --no-extra-bind=off     Disable no-extra-bind
