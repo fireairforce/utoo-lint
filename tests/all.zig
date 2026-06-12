@@ -655,6 +655,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_ban_types.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_ban_ts_comment.zig");
 }
 
