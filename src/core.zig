@@ -181,6 +181,7 @@ pub const Options = struct {
     require_yield: bool = true,
     spaced_comment: bool = true,
     symbol_description: bool = true,
+    typescript_eslint_adjacent_overload_signatures: bool = true,
     typescript_eslint_ban_ts_comment: bool = true,
     typescript_eslint_ban_tslint_comment: bool = true,
     typescript_eslint_no_confusing_non_null_assertion: bool = true,

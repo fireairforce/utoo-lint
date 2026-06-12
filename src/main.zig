@@ -381,6 +381,8 @@ pub fn main(init: std.process.Init) !void {
             options.spaced_comment = false;
         } else if (std.mem.eql(u8, arg, "--symbol-description=off")) {
             options.symbol_description = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-adjacent-overload-signatures=off")) {
+            options.typescript_eslint_adjacent_overload_signatures = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-ban-ts-comment=off")) {
             options.typescript_eslint_ban_ts_comment = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-ban-tslint-comment=off")) {
@@ -805,6 +807,7 @@ fn printHelp() void {
         \\  --radix=off               Disable radix
         \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield
+        \\  --typescript-eslint-adjacent-overload-signatures=off Disable @typescript-eslint/adjacent-overload-signatures
         \\  --typescript-eslint-ban-ts-comment=off Disable @typescript-eslint/ban-ts-comment
         \\  --typescript-eslint-ban-tslint-comment=off Disable @typescript-eslint/ban-tslint-comment
         \\  --typescript-eslint-no-confusing-non-null-assertion=off Disable @typescript-eslint/no-confusing-non-null-assertion
