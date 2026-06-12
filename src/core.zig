@@ -52,6 +52,7 @@ pub const Options = struct {
     no_empty_pattern: bool = true,
     no_empty_static_block: bool = true,
     no_else_return: bool = true,
+    no_eq_null: bool = true,
     no_eval: bool = true,
     no_ex_assign: bool = true,
     no_extra_bind: bool = true,

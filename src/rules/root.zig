@@ -42,6 +42,7 @@ pub const no_empty_function = @import("no_empty_function.zig");
 pub const no_empty_pattern = @import("no_empty_pattern.zig");
 pub const no_empty_static_block = @import("no_empty_static_block.zig");
 pub const no_else_return = @import("no_else_return.zig");
+pub const no_eq_null = @import("no_eq_null.zig");
 pub const no_eval = @import("no_eval.zig");
 pub const no_ex_assign = @import("no_ex_assign.zig");
 pub const no_extra_bind = @import("no_extra_bind.zig");
@@ -738,6 +739,9 @@ const BasicVisitor = struct {
         }
         if (self.options.eqeqeq) {
             try eqeqeq.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.no_eq_null) {
+            try no_eq_null.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_self_compare) {
             try no_self_compare.check(self.allocator, self.diagnostics, ctx.tree, expression, index);

@@ -147,6 +147,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_eq_null.zig");
+}
+
+comptime {
     _ = @import("rules/no_ex_assign.zig");
 }
 
