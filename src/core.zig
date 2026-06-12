@@ -152,6 +152,7 @@ pub const Options = struct {
     no_undef: bool = true,
     prefer_exponentiation_operator: bool = true,
     prefer_regex_literals: bool = true,
+    prefer_spread: bool = true,
     prefer_template: bool = true,
     radix: bool = true,
     require_yield: bool = true,
