@@ -30,6 +30,10 @@ pub fn run(
     var reference_lookup = ReferenceLookup.init(allocator);
     defer reference_lookup.deinit();
 
+    const candidate_symbols = try allocator.alloc(bool, symbol_table.symbols.len);
+    defer allocator.free(candidate_symbols);
+    @memset(candidate_symbols, false);
+
     var candidates = std.AutoHashMap(SymbolId, Candidate).init(allocator);
     defer candidates.deinit();
 
@@ -37,6 +41,7 @@ pub fn run(
     while (symbol_iter.next()) |entry| {
         const symbol = entry.symbol;
         if (!symbol.flags.block_scoped_var or symbol.flags.const_var) continue;
+        candidate_symbols[@intFromEnum(entry.id)] = true;
         for (symbol_table.symbolDecls(entry.id)) |decl| {
             try decl_symbols.put(decl, entry.id);
         }
@@ -44,7 +49,13 @@ pub fn run(
 
     var ref_iter = symbol_table.iterReferences();
     while (ref_iter.next()) |entry| {
-        try reference_lookup.put(entry.reference.node, symbol_table.referenceSymbol(entry.id));
+        const symbol_id = symbol_table.referenceSymbol(entry.id);
+        if (symbol_id == .none) continue;
+
+        const symbol_index = @intFromEnum(symbol_id);
+        if (symbol_index >= candidate_symbols.len or !candidate_symbols[symbol_index]) continue;
+
+        try reference_lookup.put(entry.reference.node, symbol_id);
     }
 
     var visitor = Visitor{
