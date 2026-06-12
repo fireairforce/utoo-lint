@@ -145,6 +145,7 @@ pub const Options = struct {
     no_void: bool = true,
     no_with: bool = true,
     no_var: bool = true,
+    operator_assignment: bool = true,
     eqeqeq: bool = true,
     use_isnan: bool = true,
     no_unused_vars: bool = true,
