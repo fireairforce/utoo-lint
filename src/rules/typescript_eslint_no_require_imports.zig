@@ -16,6 +16,8 @@ pub fn run(
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    if (std.mem.indexOf(u8, tree.source, "require") == null) return;
+
     var reference_lookup = try buildReferenceLookup(allocator, symbol_table);
     defer reference_lookup.deinit();
 
