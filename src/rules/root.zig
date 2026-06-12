@@ -135,6 +135,7 @@ pub const no_with = @import("no_with.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const radix = @import("radix.zig");
+pub const symbol_description = @import("symbol_description.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
 pub const valid_typeof = @import("valid_typeof.zig");
@@ -306,6 +307,10 @@ pub fn runSemantic(
 
     if (options.radix) {
         try radix.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.symbol_description) {
+        try symbol_description.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_unused_vars) {
