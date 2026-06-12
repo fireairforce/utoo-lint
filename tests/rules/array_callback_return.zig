@@ -1,0 +1,95 @@
+const std = @import("std");
+const lint = @import("utoo_lint");
+const helpers = @import("../helpers.zig");
+
+test "reports array-callback-return when callbacks can fall through" {
+    const source =
+        \\items.map((item) => {
+        \\  if (item) {
+        \\    return item * 2;
+        \\  }
+        \\});
+        \\items.filter(function(item) {
+        \\  return void item;
+        \\});
+        \\Array.from(items, function(item) {
+        \\  item.toString();
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .no_useless_return = false,
+        .no_void = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.array_callback_return.id));
+}
+
+test "does not report array-callback-return for callbacks that return on all paths" {
+    const source =
+        \\items.map((item) => item * 2);
+        \\items.filter(function(item) {
+        \\  if (item) {
+        \\    return item;
+        \\  }
+        \\  return;
+        \\});
+        \\items.some((item) => {
+        \\  if (item) {
+        \\    return true;
+        \\  }
+        \\  throw error;
+        \\});
+        \\Array.from(items, (item) => item.id);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .no_useless_return = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.array_callback_return.id));
+}
+
+test "ignores forEach callbacks and non-function callback references" {
+    const source =
+        \\items.forEach((item) => {
+        \\  item.toString();
+        \\});
+        \\items.map(callback);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.array_callback_return.id));
+}
+
+test "can disable array-callback-return" {
+    const source =
+        \\items.map((item) => {
+        \\  item.toString();
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .array_callback_return = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.array_callback_return.id));
+}
