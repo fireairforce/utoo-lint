@@ -43,6 +43,7 @@ pub const Options = struct {
     no_dupe_else_if: bool = true,
     no_duplicate_case: bool = true,
     no_dupe_args: bool = true,
+    no_dupe_class_members: bool = true,
     no_dupe_keys: bool = true,
     no_delete_var: bool = true,
     no_div_regex: bool = true,

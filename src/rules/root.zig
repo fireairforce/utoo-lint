@@ -33,6 +33,7 @@ pub const no_debugger = @import("no_debugger.zig");
 pub const no_dupe_else_if = @import("no_dupe_else_if.zig");
 pub const no_duplicate_case = @import("no_duplicate_case.zig");
 pub const no_dupe_args = @import("no_dupe_args.zig");
+pub const no_dupe_class_members = @import("no_dupe_class_members.zig");
 pub const no_dupe_keys = @import("no_dupe_keys.zig");
 pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_div_regex = @import("no_div_regex.zig");
@@ -950,6 +951,18 @@ const BasicVisitor = struct {
         }
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_class_body(
+        self: *BasicVisitor,
+        body: ast.ClassBody,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_dupe_class_members) {
+            try no_dupe_class_members.check(self.allocator, self.diagnostics, ctx.tree, body);
         }
         return .proceed;
     }
