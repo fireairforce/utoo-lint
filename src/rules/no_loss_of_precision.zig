@@ -17,7 +17,7 @@ pub fn check(
     index: ast.NodeIndex,
 ) Allocator.Error!void {
     const raw = tree.string(literal.raw);
-    if (!losesPrecision(raw, literal.kind)) return;
+    if (!numericLiteralLosesPrecision(raw, literal.kind)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -29,7 +29,7 @@ pub fn check(
     );
 }
 
-fn losesPrecision(raw: []const u8, kind: ast.NumericLiteral.Kind) bool {
+pub fn numericLiteralLosesPrecision(raw: []const u8, kind: ast.NumericLiteral.Kind) bool {
     var buffer: [256]u8 = undefined;
     const clean = stripSeparators(raw, &buffer) orelse return false;
     if (clean.len == 0) return false;
