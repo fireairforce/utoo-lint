@@ -141,6 +141,7 @@ pub const Options = struct {
     no_useless_constructor: bool = true,
     no_useless_catch: bool = true,
     no_useless_rename: bool = true,
+    no_unused_expressions: bool = true,
     no_warning_comments: bool = true,
     no_void: bool = true,
     no_with: bool = true,

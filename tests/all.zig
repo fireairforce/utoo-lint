@@ -495,6 +495,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_unused_expressions.zig");
+}
+
+comptime {
     _ = @import("rules/no_unused_vars.zig");
 }
 
