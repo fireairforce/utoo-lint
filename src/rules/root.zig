@@ -129,6 +129,7 @@ pub const no_useless_concat = @import("no_useless_concat.zig");
 pub const no_useless_constructor = @import("no_useless_constructor.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_useless_catch = @import("no_useless_catch.zig");
+pub const no_useless_escape = @import("no_useless_escape.zig");
 pub const no_useless_rename = @import("no_useless_rename.zig");
 pub const no_unused_expressions = @import("no_unused_expressions.zig");
 pub const no_unused_labels = @import("no_unused_labels.zig");
@@ -808,6 +809,9 @@ const BasicVisitor = struct {
         if (self.options.no_template_curly_in_string) {
             try no_template_curly_in_string.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
+        if (self.options.no_useless_escape) {
+            try no_useless_escape.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, index);
+        }
         return .proceed;
     }
 
@@ -819,6 +823,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_script_url) {
             try no_script_url.checkTemplateLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.no_useless_escape) {
+            try no_useless_escape.checkTemplateLiteral(self.allocator, self.diagnostics, ctx.tree, literal);
         }
         return .proceed;
     }
@@ -1232,6 +1239,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_regex_spaces) {
             try no_regex_spaces.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.no_useless_escape) {
+            try no_useless_escape.checkRegExpLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         return .proceed;
     }
