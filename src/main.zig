@@ -57,6 +57,8 @@ pub fn main(init: std.process.Init) !void {
             options.constructor_super = false;
         } else if (std.mem.eql(u8, arg, "--array-callback-return=off")) {
             options.array_callback_return = false;
+        } else if (std.mem.eql(u8, arg, "--block-scoped-var=off")) {
+            options.block_scoped_var = false;
         } else if (std.mem.eql(u8, arg, "--curly=off")) {
             options.curly = false;
         } else if (std.mem.eql(u8, arg, "--dot-notation=off")) {
@@ -611,6 +613,7 @@ fn printHelp() void {
         \\Options:
         \\  --threads=N              Number of worker threads to use
         \\  --array-callback-return=off Disable array-callback-return
+        \\  --block-scoped-var=off   Disable block-scoped-var
         \\  --constructor-super=off  Disable constructor-super
         \\  --curly=off              Disable curly
         \\  --dot-notation=off       Disable dot-notation

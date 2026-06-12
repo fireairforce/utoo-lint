@@ -18,6 +18,7 @@ pub const Severity = enum {
 
 pub const Options = struct {
     array_callback_return: bool = true,
+    block_scoped_var: bool = true,
     constructor_super: bool = true,
     curly: bool = true,
     dot_notation: bool = true,
