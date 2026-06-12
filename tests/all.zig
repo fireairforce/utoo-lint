@@ -363,6 +363,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_param_reassign.zig");
+}
+
+comptime {
     _ = @import("rules/no_path_concat.zig");
 }
 

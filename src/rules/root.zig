@@ -97,6 +97,7 @@ pub const no_new_wrappers = @import("no_new_wrappers.zig");
 pub const no_octal = @import("no_octal.zig");
 pub const no_octal_escape = @import("no_octal_escape.zig");
 pub const no_object_constructor = @import("no_object_constructor.zig");
+pub const no_param_reassign = @import("no_param_reassign.zig");
 pub const no_path_concat = @import("no_path_concat.zig");
 pub const no_plusplus = @import("no_plusplus.zig");
 pub const no_promise_executor_return = @import("no_promise_executor_return.zig");
@@ -370,6 +371,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_dupe_args) {
             try no_dupe_args.check(self.allocator, self.diagnostics, ctx.tree, function);
+        }
+        if (self.options.no_param_reassign) {
+            try no_param_reassign.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
         }
         if (self.options.no_inner_declarations) {
             try no_inner_declarations.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, ctx);
@@ -867,6 +871,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkFormalParameters(self.allocator, self.diagnostics, ctx.tree, expression.params);
+        }
+        if (self.options.no_param_reassign) {
+            try no_param_reassign.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression);
         }
         return .proceed;
     }
