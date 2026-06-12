@@ -136,6 +136,7 @@ pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
+pub const prefer_template = @import("prefer_template.zig");
 pub const radix = @import("radix.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
@@ -867,6 +868,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_useless_concat) {
             try no_useless_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.prefer_template) {
+            try prefer_template.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_implicit_coercion) {
             try no_implicit_coercion.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
