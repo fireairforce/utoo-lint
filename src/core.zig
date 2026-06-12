@@ -88,6 +88,7 @@ pub const Options = struct {
     no_new_wrappers: bool = true,
     no_octal: bool = true,
     no_octal_escape: bool = true,
+    no_object_constructor: bool = true,
     no_path_concat: bool = true,
     no_plusplus: bool = true,
     no_promise_executor_return: bool = true,

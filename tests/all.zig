@@ -287,6 +287,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_object_constructor.zig");
+}
+
+comptime {
     _ = @import("rules/no_path_concat.zig");
 }
 
