@@ -202,6 +202,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_octal_escape = false;
         } else if (std.mem.eql(u8, arg, "--no-object-constructor=off")) {
             options.no_object_constructor = false;
+        } else if (std.mem.eql(u8, arg, "--no-param-reassign=off")) {
+            options.no_param_reassign = false;
         } else if (std.mem.eql(u8, arg, "--no-path-concat=off")) {
             options.no_path_concat = false;
         } else if (std.mem.eql(u8, arg, "--no-plusplus=off")) {
@@ -543,6 +545,7 @@ fn printHelp() void {
         \\  --no-octal=off            Disable no-octal
         \\  --no-octal-escape=off     Disable no-octal-escape
         \\  --no-object-constructor=off Disable no-object-constructor
+        \\  --no-param-reassign=off   Disable no-param-reassign
         \\  --no-path-concat=off      Disable no-path-concat
         \\  --no-plusplus=off         Disable no-plusplus
         \\  --no-promise-executor-return=off Disable no-promise-executor-return
