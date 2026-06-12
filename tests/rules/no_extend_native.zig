@@ -15,6 +15,7 @@ test "reports no-extend-native for native prototype assignments" {
         .no_empty_function = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_empty_function = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -38,6 +39,7 @@ test "reports no-extend-native for Object defineProperty calls" {
         .no_empty_function = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_empty_function = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -64,6 +66,7 @@ test "does not report no-extend-native for shadowed constructors or ordinary obj
         .no_empty_function = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_empty_function = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -84,6 +87,7 @@ test "can disable no-extend-native" {
         .no_extend_native = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_empty_function = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

@@ -173,6 +173,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/ban-tslint-comment`](https://typescript-eslint.io/rules/ban-tslint-comment/) | Implemented |
 | [`@typescript-eslint/no-array-constructor`](https://typescript-eslint.io/rules/no-array-constructor/) | Implemented |
 | [`@typescript-eslint/no-confusing-non-null-assertion`](https://typescript-eslint.io/rules/no-confusing-non-null-assertion/) | Implemented |
+| [`@typescript-eslint/no-empty-function`](https://typescript-eslint.io/rules/no-empty-function/) | Implemented |
 | [`@typescript-eslint/no-empty-interface`](https://typescript-eslint.io/rules/no-empty-interface/) | Implemented |
 | [`@typescript-eslint/no-extra-non-null-assertion`](https://typescript-eslint.io/rules/no-extra-non-null-assertion/) | Implemented |
 | [`@typescript-eslint/no-inferrable-types`](https://typescript-eslint.io/rules/no-inferrable-types/) | Implemented |

@@ -15,6 +15,7 @@ test "reports no-empty-function for empty function bodies" {
         .no_empty_block_statements = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_empty_function = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -39,6 +40,7 @@ test "does not report no-empty-function for non-empty or commented bodies" {
         .no_empty_block_statements = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_empty_function = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -57,6 +59,7 @@ test "can disable no-empty-function" {
         .no_empty_block_statements = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_empty_function = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

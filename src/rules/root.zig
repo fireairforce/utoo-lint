@@ -179,6 +179,7 @@ pub const typescript_eslint_no_array_constructor = @import("typescript_eslint_no
 pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_comment.zig");
 pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_tslint_comment.zig");
 pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescript_eslint_no_confusing_non_null_assertion.zig");
+pub const typescript_eslint_no_empty_function = @import("typescript_eslint_no_empty_function.zig");
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
 pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_eslint_no_extra_non_null_assertion.zig");
 pub const typescript_eslint_no_inferrable_types = @import("typescript_eslint_no_inferrable_types.zig");
@@ -995,8 +996,11 @@ const BasicVisitor = struct {
         if (self.options.no_empty_block_statements) {
             try no_empty_block_statements.checkFunctionBody(self.allocator, self.diagnostics, ctx.tree, body, index);
         }
-        if (self.options.no_empty_function) {
+        if (self.options.no_empty_function and !self.options.typescript_eslint_no_empty_function) {
             try no_empty_function.check(self.allocator, self.diagnostics, ctx.tree, body, index);
+        }
+        if (self.options.typescript_eslint_no_empty_function) {
+            try typescript_eslint_no_empty_function.checkFunctionBody(self.allocator, self.diagnostics, ctx.tree, body, index, ctx);
         }
         if (self.options.getter_return) {
             try getter_return.check(self.allocator, self.diagnostics, ctx.tree, body, index, ctx);
