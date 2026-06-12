@@ -145,6 +145,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `prefer-regex-literals`
 - `prefer-template`
 - `radix`
+- `require-yield`
 - `spaced-comment`
 - `symbol-description`
 - `use-isnan`

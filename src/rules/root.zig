@@ -141,6 +141,7 @@ pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operat
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_template = @import("prefer_template.zig");
 pub const radix = @import("radix.zig");
+pub const require_yield = @import("require_yield.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
@@ -352,7 +353,7 @@ const BasicVisitor = struct {
     pub fn enter_function(
         self: *BasicVisitor,
         function: ast.Function,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_dupe_args) {
@@ -360,6 +361,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
+        }
+        if (self.options.require_yield) {
+            try require_yield.check(self.allocator, self.diagnostics, ctx.tree, function, index);
         }
         return .proceed;
     }

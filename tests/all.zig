@@ -539,6 +539,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/require_yield.zig");
+}
+
+comptime {
     _ = @import("rules/spaced_comment.zig");
 }
 
