@@ -7,6 +7,7 @@ const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 const global_is_checks = @import("global_is_checks.zig");
+const object_constructor_checks = @import("object_constructor_checks.zig");
 
 pub const curly = @import("curly.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
@@ -346,12 +347,15 @@ pub fn runSemantic(
         try no_obj_calls.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_new_object) {
-        try no_new_object.run(allocator, diagnostics, tree, semantic_result.symbol_table);
-    }
-
-    if (options.no_object_constructor) {
-        try no_object_constructor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    if (options.no_new_object or options.no_object_constructor) {
+        try object_constructor_checks.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.no_new_object,
+            options.no_object_constructor,
+        );
     }
 
     if (options.typescript_eslint_no_require_imports) {
