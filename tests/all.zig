@@ -491,6 +491,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_useless_escape.zig");
+}
+
+comptime {
     _ = @import("rules/no_useless_rename.zig");
 }
 
