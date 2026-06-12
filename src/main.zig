@@ -278,6 +278,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_with = false;
         } else if (std.mem.eql(u8, arg, "--no-var=off")) {
             options.no_var = false;
+        } else if (std.mem.eql(u8, arg, "--operator-assignment=off")) {
+            options.operator_assignment = false;
         } else if (std.mem.eql(u8, arg, "--eqeqeq=off")) {
             options.eqeqeq = false;
         } else if (std.mem.eql(u8, arg, "--use-isnan=off")) {
@@ -561,6 +563,7 @@ fn printHelp() void {
         \\  --no-void=off             Disable no-void
         \\  --no-with=off             Disable no-with
         \\  --no-var=off              Disable no-var
+        \\  --operator-assignment=off Disable operator-assignment
         \\  --eqeqeq=off              Disable eqeqeq
         \\  --use-isnan=off           Disable use-isnan
         \\  --no-unused-vars=off      Disable no-unused-vars

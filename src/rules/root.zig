@@ -136,6 +136,7 @@ pub const no_warning_comments = @import("no_warning_comments.zig");
 pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
+pub const operator_assignment = @import("operator_assignment.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_template = @import("prefer_template.zig");
@@ -838,6 +839,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_multi_assign) {
             try no_multi_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.operator_assignment) {
+            try operator_assignment.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_self_assign) {
             try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);

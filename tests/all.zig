@@ -519,6 +519,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/operator_assignment.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_exponentiation_operator.zig");
 }
 
