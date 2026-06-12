@@ -182,6 +182,7 @@ pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescrip
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
 pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_eslint_no_extra_non_null_assertion.zig");
 pub const typescript_eslint_no_inferrable_types = @import("typescript_eslint_no_inferrable_types.zig");
+pub const typescript_eslint_no_loss_of_precision = @import("typescript_eslint_no_loss_of_precision.zig");
 pub const typescript_eslint_no_misused_new = @import("typescript_eslint_no_misused_new.zig");
 pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
@@ -1107,8 +1108,11 @@ const BasicVisitor = struct {
         if (self.options.no_floating_decimal) {
             try no_floating_decimal.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
-        if (self.options.no_loss_of_precision) {
+        if (self.options.no_loss_of_precision and !self.options.typescript_eslint_no_loss_of_precision) {
             try no_loss_of_precision.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.typescript_eslint_no_loss_of_precision) {
+            try typescript_eslint_no_loss_of_precision.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         return .proceed;
     }

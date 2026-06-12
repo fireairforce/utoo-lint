@@ -14,6 +14,7 @@ test "reports no-loss-of-precision for decimal literals with lost digits" {
         .no_floating_decimal = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_loss_of_precision = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -31,6 +32,7 @@ test "reports no-loss-of-precision for non-decimal literals with lost bits" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_loss_of_precision = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -53,6 +55,7 @@ test "does not report no-loss-of-precision for safe or documented literals" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_loss_of_precision = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -69,6 +72,7 @@ test "can disable no-loss-of-precision" {
         .no_loss_of_precision = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_loss_of_precision = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

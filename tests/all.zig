@@ -679,6 +679,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_loss_of_precision.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_misused_new.zig");
 }
 
