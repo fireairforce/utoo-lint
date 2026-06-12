@@ -515,6 +515,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/symbol_description.zig");
+}
+
+comptime {
     _ = @import("rules/unicode_bom.zig");
 }
 
