@@ -54,6 +54,7 @@ pub const Options = struct {
     no_else_return: bool = true,
     no_eval: bool = true,
     no_ex_assign: bool = true,
+    no_extra_label: bool = true,
     no_extra_semi: bool = true,
     no_extra_boolean_cast: bool = true,
     no_floating_decimal: bool = true,
