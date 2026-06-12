@@ -171,6 +171,7 @@ pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_comment.zig");
 pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_tslint_comment.zig");
+pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescript_eslint_no_confusing_non_null_assertion.zig");
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
 pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
@@ -1014,6 +1015,9 @@ const BasicVisitor = struct {
         if (self.options.no_implicit_coercion) {
             try no_implicit_coercion.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
+        if (self.options.typescript_eslint_no_confusing_non_null_assertion) {
+            try typescript_eslint_no_confusing_non_null_assertion.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
         return .proceed;
     }
 
@@ -1061,6 +1065,9 @@ const BasicVisitor = struct {
         }
         if (self.options.yoda) {
             try yoda.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.typescript_eslint_no_confusing_non_null_assertion) {
+            try typescript_eslint_no_confusing_non_null_assertion.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }

@@ -655,6 +655,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_confusing_non_null_assertion.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_empty_interface.zig");
 }
 

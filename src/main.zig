@@ -385,6 +385,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_ban_ts_comment = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-ban-tslint-comment=off")) {
             options.typescript_eslint_ban_tslint_comment = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-confusing-non-null-assertion=off")) {
+            options.typescript_eslint_no_confusing_non_null_assertion = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-empty-interface=off")) {
             options.typescript_eslint_no_empty_interface = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-non-null-asserted-optional-chain=off")) {
@@ -797,6 +799,7 @@ fn printHelp() void {
         \\  --require-yield=off       Disable require-yield
         \\  --typescript-eslint-ban-ts-comment=off Disable @typescript-eslint/ban-ts-comment
         \\  --typescript-eslint-ban-tslint-comment=off Disable @typescript-eslint/ban-tslint-comment
+        \\  --typescript-eslint-no-confusing-non-null-assertion=off Disable @typescript-eslint/no-confusing-non-null-assertion
         \\  --typescript-eslint-no-empty-interface=off Disable @typescript-eslint/no-empty-interface
         \\  --typescript-eslint-no-non-null-asserted-optional-chain=off Disable @typescript-eslint/no-non-null-asserted-optional-chain
         \\  --typescript-eslint-no-require-imports=off Disable @typescript-eslint/no-require-imports
