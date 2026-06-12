@@ -76,6 +76,27 @@ test "does not report prefer-rest-params when arguments is shadowed in scripts" 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.prefer_rest_params.id));
 }
 
+test "does not report prefer-rest-params when arguments declaration follows usage" {
+    const source =
+        \\function local() {
+        \\  const first = arguments;
+        \\  var arguments = value;
+        \\  return first;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.cjs", .{
+        .no_shadow_restricted_names = false,
+        .no_var = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.prefer_rest_params.id));
+}
+
 test "can disable prefer-rest-params" {
     const source =
         \\function first() {

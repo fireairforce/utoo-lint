@@ -7,6 +7,12 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "prefer-rest-params";
 
+const ArgumentsScan = enum {
+    none,
+    used,
+    declared,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -18,8 +24,7 @@ pub fn check(
     if (hasRestParameter(tree, function.params)) return;
     if (bindingNamed(tree, function.id, "arguments")) return;
     if (paramsContainBinding(tree, function.params, "arguments")) return;
-    if (bodyDeclaresArguments(tree, function.body)) return;
-    if (!bodyUsesArguments(tree, function.body)) return;
+    if (scanBodyArguments(tree, function.body) != .used) return;
 
     try core.addDiagnostic(
         allocator,
@@ -58,8 +63,8 @@ fn formalParameters(tree: *const ast.Tree, params_index: ast.NodeIndex) ?ast.For
     };
 }
 
-fn bodyDeclaresArguments(tree: *const ast.Tree, index: ast.NodeIndex) bool {
-    if (index == .null) return false;
+fn scanBodyArguments(tree: *const ast.Tree, index: ast.NodeIndex) ArgumentsScan {
+    if (index == .null) return .none;
 
     return switch (tree.data(index)) {
         .variable_declaration => |declaration| {
@@ -68,60 +73,43 @@ fn bodyDeclaresArguments(tree: *const ast.Tree, index: ast.NodeIndex) bool {
                     .variable_declarator => |declarator| declarator,
                     else => continue,
                 };
-                if (bindingNamed(tree, declarator.id, "arguments")) return true;
+                if (bindingNamed(tree, declarator.id, "arguments")) return .declared;
             }
-            return false;
+            return .none;
         },
-        .function => |function| function.type == .function_declaration and bindingNamed(tree, function.id, "arguments"),
-        .arrow_function_expression => false,
-        inline else => |node| nodeDeclaresArguments(tree, node),
-    };
-}
-
-fn nodeDeclaresArguments(tree: *const ast.Tree, node: anytype) bool {
-    const T = @TypeOf(node);
-    if (@typeInfo(T) != .@"struct") return false;
-
-    inline for (@typeInfo(T).@"struct".fields) |field| {
-        if (field.type == ast.NodeIndex) {
-            if (bodyDeclaresArguments(tree, @field(node, field.name))) return true;
-        } else if (field.type == ast.IndexRange) {
-            for (tree.extra(@field(node, field.name))) |child| {
-                if (bodyDeclaresArguments(tree, child)) return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-fn bodyUsesArguments(tree: *const ast.Tree, index: ast.NodeIndex) bool {
-    if (index == .null) return false;
-
-    return switch (tree.data(index)) {
-        .identifier_reference => |identifier| std.mem.eql(u8, tree.string(identifier.name), "arguments"),
-        .function,
+        .function => |function| if (function.type == .function_declaration and bindingNamed(tree, function.id, "arguments")) .declared else .none,
+        .identifier_reference => |identifier| if (std.mem.eql(u8, tree.string(identifier.name), "arguments")) .used else .none,
         .arrow_function_expression,
-        => false,
-        inline else => |node| nodeUsesArguments(tree, node),
+        => .none,
+        inline else => |node| scanNodeArguments(tree, node),
     };
 }
 
-fn nodeUsesArguments(tree: *const ast.Tree, node: anytype) bool {
+fn scanNodeArguments(tree: *const ast.Tree, node: anytype) ArgumentsScan {
     const T = @TypeOf(node);
-    if (@typeInfo(T) != .@"struct") return false;
+    if (@typeInfo(T) != .@"struct") return .none;
+
+    var result: ArgumentsScan = .none;
 
     inline for (@typeInfo(T).@"struct".fields) |field| {
         if (field.type == ast.NodeIndex) {
-            if (bodyUsesArguments(tree, @field(node, field.name))) return true;
+            switch (scanBodyArguments(tree, @field(node, field.name))) {
+                .declared => return .declared,
+                .used => result = .used,
+                .none => {},
+            }
         } else if (field.type == ast.IndexRange) {
             for (tree.extra(@field(node, field.name))) |child| {
-                if (bodyUsesArguments(tree, child)) return true;
+                switch (scanBodyArguments(tree, child)) {
+                    .declared => return .declared,
+                    .used => result = .used,
+                    .none => {},
+                }
             }
         }
     }
 
-    return false;
+    return result;
 }
 
 fn bindingNamed(tree: *const ast.Tree, index: ast.NodeIndex, name: []const u8) bool {
