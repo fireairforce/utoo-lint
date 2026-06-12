@@ -19,6 +19,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/new_parens.zig");
+}
+
+comptime {
     _ = @import("rules/eqeqeq.zig");
 }
 
