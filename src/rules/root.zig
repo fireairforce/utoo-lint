@@ -6,6 +6,7 @@ const ast = parser.ast;
 const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
+pub const curly = @import("curly.zig");
 pub const default_case = @import("default_case.zig");
 pub const default_case_last = @import("default_case_last.zig");
 pub const eol_last = @import("eol_last.zig");
@@ -357,6 +358,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.curly) {
+            try curly.checkIfStatement(self.allocator, self.diagnostics, ctx.tree, statement);
+        }
         if (self.options.no_cond_assign) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
@@ -384,6 +388,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.curly) {
+            try curly.checkBody(self.allocator, self.diagnostics, ctx.tree, statement.body);
+        }
         if (self.options.no_cond_assign) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
@@ -399,6 +406,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.curly) {
+            try curly.checkBody(self.allocator, self.diagnostics, ctx.tree, statement.body);
+        }
         if (self.options.no_cond_assign) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
@@ -414,6 +424,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.curly) {
+            try curly.checkBody(self.allocator, self.diagnostics, ctx.tree, statement.body);
+        }
         if (self.options.no_cond_assign and statement.@"test" != .null) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
@@ -603,11 +616,26 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.curly) {
+            try curly.checkBody(self.allocator, self.diagnostics, ctx.tree, statement.body);
+        }
         if (self.options.guard_for_in) {
             try guard_for_in.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
         if (self.options.no_for_in) {
             try no_for_in.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_for_of_statement(
+        self: *BasicVisitor,
+        statement: ast.ForOfStatement,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.curly) {
+            try curly.checkBody(self.allocator, self.diagnostics, ctx.tree, statement.body);
         }
         return .proceed;
     }
