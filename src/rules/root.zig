@@ -113,6 +113,7 @@ pub const no_useless_concat = @import("no_useless_concat.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_useless_catch = @import("no_useless_catch.zig");
 pub const no_useless_rename = @import("no_useless_rename.zig");
+pub const no_unused_labels = @import("no_unused_labels.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_warning_comments = @import("no_warning_comments.zig");
 pub const no_var = @import("no_var.zig");
@@ -545,6 +546,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_extra_label) {
             try no_extra_label.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
+        if (self.options.no_unused_labels) {
+            try no_unused_labels.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
         if (self.options.no_labels) {
             try no_labels.check(self.allocator, self.diagnostics, ctx.tree, index);
