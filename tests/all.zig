@@ -419,6 +419,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_redeclare.zig");
+}
+
+comptime {
     _ = @import("rules/no_regex_spaces.zig");
 }
 

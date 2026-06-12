@@ -261,6 +261,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_process_exit = false;
         } else if (std.mem.eql(u8, arg, "--no-prototype-builtins=off")) {
             options.no_prototype_builtins = false;
+        } else if (std.mem.eql(u8, arg, "--no-redeclare=off")) {
+            options.no_redeclare = false;
         } else if (std.mem.eql(u8, arg, "--no-regex-spaces=off")) {
             options.no_regex_spaces = false;
         } else if (std.mem.eql(u8, arg, "--no-return-await=off")) {
@@ -714,6 +716,7 @@ fn printHelp() void {
         \\  --no-process-env=off      Disable no-process-env
         \\  --no-process-exit=off     Disable no-process-exit
         \\  --no-prototype-builtins=off Disable no-prototype-builtins
+        \\  --no-redeclare=off        Disable no-redeclare
         \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-return-await=off     Disable no-return-await
         \\  --no-return-assign=off    Disable no-return-assign
