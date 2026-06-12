@@ -167,6 +167,7 @@ pub const Options = struct {
     no_unused_vars: bool = true,
     no_use_before_define: bool = true,
     no_undef: bool = true,
+    prefer_const: bool = true,
     prefer_exponentiation_operator: bool = true,
     prefer_promise_reject_errors: bool = true,
     prefer_destructuring: bool = true,
