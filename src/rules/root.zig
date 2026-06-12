@@ -8,6 +8,7 @@ const Allocator = std.mem.Allocator;
 
 const global_is_checks = @import("global_is_checks.zig");
 const object_constructor_checks = @import("object_constructor_checks.zig");
+const symbol_checks = @import("symbol_checks.zig");
 
 pub const curly = @import("curly.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
@@ -365,8 +366,15 @@ pub fn runSemantic(
         try typescript_eslint_no_require_imports.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_new_symbol) {
-        try no_new_symbol.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    if (options.no_new_symbol or options.symbol_description) {
+        try symbol_checks.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.no_new_symbol,
+            options.symbol_description,
+        );
     }
 
     if (options.no_new_wrappers) {
@@ -395,10 +403,6 @@ pub fn runSemantic(
 
     if (options.require_atomic_updates) {
         try require_atomic_updates.run(allocator, diagnostics, tree, semantic_result.symbol_table);
-    }
-
-    if (options.symbol_description) {
-        try symbol_description.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_unused_vars) {
