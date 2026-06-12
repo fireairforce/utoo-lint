@@ -271,6 +271,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_invalid_regexp.zig");
+}
+
+comptime {
     _ = @import("rules/no_irregular_whitespace.zig");
 }
 

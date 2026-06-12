@@ -1,0 +1,59 @@
+const std = @import("std");
+const lint = @import("utoo_lint");
+const helpers = @import("../helpers.zig");
+
+test "reports no-invalid-regexp for invalid RegExp constructor arguments" {
+    const source =
+        \\RegExp("(", "g");
+        \\new RegExp("[abc", "i");
+        \\RegExp("abc", "zz");
+        \\RegExp("abc", "gg");
+        \\RegExp("abc", "uv");
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .prefer_regex_literals = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_invalid_regexp.id));
+}
+
+test "does not report no-invalid-regexp for valid or non-static RegExp calls" {
+    const source =
+        \\RegExp("abc", "gi");
+        \\new RegExp("[abc]", "u");
+        \\RegExp(pattern, flags);
+        \\function local(RegExp) {
+        \\  RegExp("(", "z");
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .prefer_regex_literals = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_invalid_regexp.id));
+}
+
+test "can disable no-invalid-regexp" {
+    const source =
+        \\RegExp("(", "g");
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_invalid_regexp = false,
+        .prefer_regex_literals = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_invalid_regexp.id));
+}
