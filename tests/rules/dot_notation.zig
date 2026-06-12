@@ -13,6 +13,7 @@ test "reports dot-notation for computed string properties that can use dot acces
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .eol_last = false,
         .no_undef = false,
+        .no_unused_expressions = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
     });
