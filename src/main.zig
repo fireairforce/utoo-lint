@@ -397,6 +397,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_require_imports = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-this-alias=off")) {
             options.typescript_eslint_no_this_alias = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-unnecessary-type-constraint=off")) {
+            options.typescript_eslint_no_unnecessary_type_constraint = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-prefer-as-const=off")) {
             options.typescript_eslint_prefer_as_const = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-prefer-namespace-keyword=off")) {
@@ -811,6 +813,7 @@ fn printHelp() void {
         \\  --typescript-eslint-no-non-null-asserted-optional-chain=off Disable @typescript-eslint/no-non-null-asserted-optional-chain
         \\  --typescript-eslint-no-require-imports=off Disable @typescript-eslint/no-require-imports
         \\  --typescript-eslint-no-this-alias=off Disable @typescript-eslint/no-this-alias
+        \\  --typescript-eslint-no-unnecessary-type-constraint=off Disable @typescript-eslint/no-unnecessary-type-constraint
         \\  --typescript-eslint-prefer-as-const=off Disable @typescript-eslint/prefer-as-const
         \\  --typescript-eslint-prefer-namespace-keyword=off Disable @typescript-eslint/prefer-namespace-keyword
         \\  --semantic-errors=off     Disable parser semantic errors

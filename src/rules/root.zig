@@ -179,6 +179,7 @@ pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_es
 pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
+pub const typescript_eslint_no_unnecessary_type_constraint = @import("typescript_eslint_no_unnecessary_type_constraint.zig");
 pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
 pub const typescript_eslint_prefer_namespace_keyword = @import("typescript_eslint_prefer_namespace_keyword.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
@@ -681,6 +682,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_no_extra_non_null_assertion) {
             try typescript_eslint_no_extra_non_null_assertion.checkNonNullExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_type_parameter(
+        self: *BasicVisitor,
+        parameter: ast.TSTypeParameter,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_no_unnecessary_type_constraint) {
+            try typescript_eslint_no_unnecessary_type_constraint.check(self.allocator, self.diagnostics, ctx.tree, parameter, index);
         }
         return .proceed;
     }
