@@ -34,6 +34,8 @@ pub fn main(init: std.process.Init) !void {
             options.eol_last = false;
         } else if (std.mem.eql(u8, arg, "--for-direction=off")) {
             options.for_direction = false;
+        } else if (std.mem.eql(u8, arg, "--getter-return=off")) {
+            options.getter_return = false;
         } else if (std.mem.eql(u8, arg, "--guard-for-in=off")) {
             options.guard_for_in = false;
         } else if (std.mem.eql(u8, arg, "--linebreak-style=off")) {
@@ -439,6 +441,7 @@ fn printHelp() void {
         \\  --default-case-last=off   Disable default-case-last
         \\  --eol-last=off            Disable eol-last
         \\  --for-direction=off       Disable for-direction
+        \\  --getter-return=off       Disable getter-return
         \\  --guard-for-in=off        Disable guard-for-in
         \\  --linebreak-style=off     Disable linebreak-style
         \\  --new-parens=off          Disable new-parens

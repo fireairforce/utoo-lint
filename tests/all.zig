@@ -23,6 +23,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/getter_return.zig");
+}
+
+comptime {
     _ = @import("rules/guard_for_in.zig");
 }
 
