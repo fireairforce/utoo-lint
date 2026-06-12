@@ -60,6 +60,7 @@ pub const no_import_assign = @import("no_import_assign.zig");
 pub const no_inline_comments = @import("no_inline_comments.zig");
 pub const no_irregular_whitespace = @import("no_irregular_whitespace.zig");
 pub const no_iterator = @import("no_iterator.zig");
+pub const no_label_var = @import("no_label_var.zig");
 pub const no_labels = @import("no_labels.zig");
 pub const no_lone_blocks = @import("no_lone_blocks.zig");
 pub const no_lonely_if = @import("no_lonely_if.zig");
@@ -231,6 +232,10 @@ pub fn runSemantic(
 
     if (options.no_implied_eval) {
         try no_implied_eval.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_label_var) {
+        try no_label_var.run(allocator, diagnostics, tree, semantic_result);
     }
 
     if (options.no_import_assign) {
