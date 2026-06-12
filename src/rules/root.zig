@@ -156,6 +156,7 @@ pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
 pub const prefer_template = @import("prefer_template.zig");
 pub const radix = @import("radix.zig");
+const reassignment_rules = @import("reassignment_rules.zig");
 pub const require_yield = @import("require_yield.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
@@ -243,10 +244,6 @@ pub fn runSemantic(
         try no_eval.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_ex_assign) {
-        try no_ex_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
-    }
-
     if (options.no_extend_native) {
         try no_extend_native.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
@@ -255,16 +252,8 @@ pub fn runSemantic(
         try no_alert.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_class_assign) {
-        try no_class_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
-    }
-
-    if (options.no_const_assign) {
-        try no_const_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
-    }
-
-    if (options.no_func_assign) {
-        try no_func_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    if (reassignment_rules.shouldRun(options)) {
+        try reassignment_rules.run(allocator, diagnostics, tree, semantic_result.symbol_table, options);
     }
 
     if (options.no_global_assign) {
@@ -285,10 +274,6 @@ pub fn runSemantic(
 
     if (options.no_label_var) {
         try no_label_var.run(allocator, diagnostics, tree, semantic_result);
-    }
-
-    if (options.no_import_assign) {
-        try no_import_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_new_func) {
