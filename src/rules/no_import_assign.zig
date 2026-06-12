@@ -141,6 +141,7 @@ fn buildReferenceLookup(
 ) Allocator.Error!ReferenceLookup {
     var lookup = ReferenceLookup.init(allocator);
     errdefer lookup.deinit();
+    try lookup.ensureTotalCapacity(@intCast(symbol_table.references.len));
 
     var iter = symbol_table.iterReferences();
     while (iter.next()) |entry| {
