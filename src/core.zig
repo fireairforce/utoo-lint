@@ -177,6 +177,7 @@ pub const Options = struct {
     prefer_spread: bool = true,
     prefer_template: bool = true,
     radix: bool = true,
+    require_atomic_updates: bool = true,
     require_yield: bool = true,
     spaced_comment: bool = true,
     symbol_description: bool = true,

@@ -164,6 +164,7 @@ pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
 pub const prefer_template = @import("prefer_template.zig");
 pub const radix = @import("radix.zig");
+pub const require_atomic_updates = @import("require_atomic_updates.zig");
 const reassignment_rules = @import("reassignment_rules.zig");
 pub const require_yield = @import("require_yield.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
@@ -354,6 +355,10 @@ pub fn runSemantic(
 
     if (options.radix) {
         try radix.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.require_atomic_updates) {
+        try require_atomic_updates.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.symbol_description) {
