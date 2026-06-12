@@ -179,6 +179,7 @@ pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescrip
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
 pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_eslint_no_extra_non_null_assertion.zig");
 pub const typescript_eslint_no_inferrable_types = @import("typescript_eslint_no_inferrable_types.zig");
+pub const typescript_eslint_no_misused_new = @import("typescript_eslint_no_misused_new.zig");
 pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
@@ -482,6 +483,9 @@ const BasicVisitor = struct {
         if (self.options.no_useless_constructor) {
             try no_useless_constructor.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
+        if (self.options.typescript_eslint_no_misused_new) {
+            try typescript_eslint_no_misused_new.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
+        }
         return .proceed;
     }
 
@@ -695,6 +699,9 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_no_empty_interface) {
             try typescript_eslint_no_empty_interface.check(self.allocator, self.diagnostics, ctx.tree, interface_declaration);
         }
+        if (self.options.typescript_eslint_no_misused_new) {
+            try typescript_eslint_no_misused_new.checkInterfaceDeclaration(self.allocator, self.diagnostics, ctx.tree, interface_declaration);
+        }
         return .proceed;
     }
 
@@ -718,6 +725,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
             try typescript_eslint_adjacent_overload_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, type_literal.members);
+        }
+        if (self.options.typescript_eslint_no_misused_new) {
+            try typescript_eslint_no_misused_new.checkTypeLiteral(self.allocator, self.diagnostics, ctx.tree, type_literal);
         }
         return .proceed;
     }
