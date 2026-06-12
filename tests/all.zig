@@ -151,6 +151,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_extra_bind.zig");
+}
+
+comptime {
     _ = @import("rules/no_extra_label.zig");
 }
 
