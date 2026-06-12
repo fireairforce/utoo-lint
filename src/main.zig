@@ -32,6 +32,8 @@ pub fn main(init: std.process.Init) !void {
             options.guard_for_in = false;
         } else if (std.mem.eql(u8, arg, "--linebreak-style=off")) {
             options.linebreak_style = false;
+        } else if (std.mem.eql(u8, arg, "--new-parens=off")) {
+            options.new_parens = false;
         } else if (std.mem.eql(u8, arg, "--no-async-promise-executor=off")) {
             options.no_async_promise_executor = false;
         } else if (std.mem.eql(u8, arg, "--no-array-constructor=off")) {
@@ -414,6 +416,7 @@ fn printHelp() void {
         \\  --eol-last=off            Disable eol-last
         \\  --guard-for-in=off        Disable guard-for-in
         \\  --linebreak-style=off     Disable linebreak-style
+        \\  --new-parens=off          Disable new-parens
         \\  --no-async-promise-executor=off Disable no-async-promise-executor
         \\  --no-array-constructor=off Disable no-array-constructor
         \\  --no-await-in-loop=off    Disable no-await-in-loop

@@ -22,6 +22,7 @@ pub const Options = struct {
     eol_last: bool = true,
     guard_for_in: bool = true,
     linebreak_style: bool = true,
+    new_parens: bool = true,
     no_async_promise_executor: bool = true,
     no_array_constructor: bool = true,
     no_await_in_loop: bool = true,

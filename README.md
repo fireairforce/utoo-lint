@@ -14,6 +14,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `eol-last`
 - `guard-for-in`
 - `linebreak-style`
+- `new-parens`
 - `no-async-promise-executor`
 - `no-alert`
 - `no-array-constructor`
