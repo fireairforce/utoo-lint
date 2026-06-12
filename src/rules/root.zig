@@ -12,6 +12,7 @@ pub const default_case = @import("default_case.zig");
 pub const default_case_last = @import("default_case_last.zig");
 pub const eol_last = @import("eol_last.zig");
 pub const for_direction = @import("for_direction.zig");
+pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const new_parens = @import("new_parens.zig");
@@ -702,6 +703,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_empty_function) {
             try no_empty_function.check(self.allocator, self.diagnostics, ctx.tree, body, index);
+        }
+        if (self.options.getter_return) {
+            try getter_return.check(self.allocator, self.diagnostics, ctx.tree, body, index, ctx);
         }
         if (self.options.no_unreachable) {
             try no_unreachable.checkRange(self.allocator, self.diagnostics, ctx.tree, body.body);
