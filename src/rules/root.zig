@@ -171,6 +171,7 @@ pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_comment.zig");
 pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_tslint_comment.zig");
+pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
@@ -640,6 +641,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_prefer_as_const) {
             try typescript_eslint_prefer_as_const.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_interface_declaration(
+        self: *BasicVisitor,
+        interface_declaration: ast.TSInterfaceDeclaration,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_no_empty_interface) {
+            try typescript_eslint_no_empty_interface.check(self.allocator, self.diagnostics, ctx.tree, interface_declaration);
         }
         return .proceed;
     }
