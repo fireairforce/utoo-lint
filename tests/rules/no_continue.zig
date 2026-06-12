@@ -12,6 +12,7 @@ test "reports no-continue for continue statements" {
         "}\n";
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
         .no_plusplus = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
@@ -32,6 +33,7 @@ test "does not report no-continue for break statements" {
         "}\n";
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
         .no_plusplus = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,

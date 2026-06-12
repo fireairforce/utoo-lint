@@ -22,6 +22,8 @@ pub fn main(init: std.process.Init) !void {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
             printHelp();
             return;
+        } else if (std.mem.eql(u8, arg, "--curly=off")) {
+            options.curly = false;
         } else if (std.mem.eql(u8, arg, "--default-case=off")) {
             options.default_case = false;
         } else if (std.mem.eql(u8, arg, "--default-case-last=off")) {
@@ -411,6 +413,7 @@ fn printHelp() void {
         \\  utoo-lint [options] [file-or-directory ...]
         \\
         \\Options:
+        \\  --curly=off              Disable curly
         \\  --default-case=off        Disable default-case
         \\  --default-case-last=off   Disable default-case-last
         \\  --eol-last=off            Disable eol-last

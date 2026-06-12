@@ -10,6 +10,7 @@ test "reports no-eq-null for loose null comparisons" {
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
         .eol_last = false,
         .eqeqeq = false,
         .no_undef = false,
@@ -30,6 +31,7 @@ test "does not report no-eq-null for strict null comparisons or non-null loose c
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
         .eol_last = false,
         .eqeqeq = false,
         .no_undef = false,
@@ -44,6 +46,7 @@ test "can disable no-eq-null" {
     const source = "if (value == null) call(value);";
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
         .eol_last = false,
         .eqeqeq = false,
         .no_eq_null = false,
