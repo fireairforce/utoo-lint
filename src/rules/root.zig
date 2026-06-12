@@ -136,6 +136,7 @@ pub const no_warning_comments = @import("no_warning_comments.zig");
 pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
+pub const object_shorthand = @import("object_shorthand.zig");
 pub const operator_assignment = @import("operator_assignment.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
@@ -1063,6 +1064,18 @@ const BasicVisitor = struct {
         }
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_object_property(
+        self: *BasicVisitor,
+        property: ast.ObjectProperty,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.object_shorthand) {
+            try object_shorthand.check(self.allocator, self.diagnostics, ctx.tree, property, index);
         }
         return .proceed;
     }

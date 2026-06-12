@@ -137,6 +137,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-void`
 - `no-with`
 - `no-var`
+- `object-shorthand`
 - `operator-assignment`
 - `eqeqeq`
 - `no-unused-vars`

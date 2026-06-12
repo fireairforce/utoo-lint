@@ -519,6 +519,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/object_shorthand.zig");
+}
+
+comptime {
     _ = @import("rules/operator_assignment.zig");
 }
 
