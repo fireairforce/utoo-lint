@@ -145,6 +145,7 @@ pub const no_useless_rename = @import("no_useless_rename.zig");
 pub const no_unused_expressions = @import("no_unused_expressions.zig");
 pub const no_unused_labels = @import("no_unused_labels.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
+pub const no_use_before_define = @import("no_use_before_define.zig");
 pub const no_warning_comments = @import("no_warning_comments.zig");
 pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
@@ -350,6 +351,10 @@ pub fn runSemantic(
 
     if (options.no_unused_vars) {
         try no_unused_vars.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_use_before_define) {
+        try no_use_before_define.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_undef) {
