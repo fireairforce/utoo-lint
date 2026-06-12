@@ -15,6 +15,7 @@ test "reports no-array-constructor for disallowed Array constructor usage" {
         .no_console = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_array_constructor = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -36,6 +37,7 @@ test "does not report no-array-constructor for single non-spread argument or sha
         .no_console = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_array_constructor = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -52,6 +54,7 @@ test "can disable no-array-constructor" {
         .no_array_constructor = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_array_constructor = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

@@ -383,6 +383,8 @@ pub fn main(init: std.process.Init) !void {
             options.symbol_description = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-adjacent-overload-signatures=off")) {
             options.typescript_eslint_adjacent_overload_signatures = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-array-constructor=off")) {
+            options.typescript_eslint_no_array_constructor = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-ban-ts-comment=off")) {
             options.typescript_eslint_ban_ts_comment = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-ban-tslint-comment=off")) {

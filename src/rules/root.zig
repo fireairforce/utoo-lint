@@ -175,6 +175,7 @@ pub const require_yield = @import("require_yield.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_adjacent_overload_signatures = @import("typescript_eslint_adjacent_overload_signatures.zig");
+pub const typescript_eslint_no_array_constructor = @import("typescript_eslint_no_array_constructor.zig");
 pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_comment.zig");
 pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_tslint_comment.zig");
 pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescript_eslint_no_confusing_non_null_assertion.zig");
@@ -271,7 +272,7 @@ pub fn runSemantic(
         options.no_promise_executor_return or
         options.prefer_promise_reject_errors;
 
-    if (options.no_array_constructor) {
+    if (options.no_array_constructor and !options.typescript_eslint_no_array_constructor) {
         try no_array_constructor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
@@ -1292,6 +1293,9 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_no_extra_non_null_assertion) {
             try typescript_eslint_no_extra_non_null_assertion.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
         }
+        if (self.options.typescript_eslint_no_array_constructor) {
+            try typescript_eslint_no_array_constructor.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
         return .proceed;
     }
 
@@ -1314,6 +1318,9 @@ const BasicVisitor = struct {
         }
         if (self.options.new_parens) {
             try new_parens.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.typescript_eslint_no_array_constructor) {
+            try typescript_eslint_no_array_constructor.checkNewExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }
