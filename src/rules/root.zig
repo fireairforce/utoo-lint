@@ -78,6 +78,7 @@ pub const no_new_symbol = @import("no_new_symbol.zig");
 pub const no_new_wrappers = @import("no_new_wrappers.zig");
 pub const no_octal = @import("no_octal.zig");
 pub const no_octal_escape = @import("no_octal_escape.zig");
+pub const no_object_constructor = @import("no_object_constructor.zig");
 pub const no_path_concat = @import("no_path_concat.zig");
 pub const no_plusplus = @import("no_plusplus.zig");
 pub const no_promise_executor_return = @import("no_promise_executor_return.zig");
@@ -247,6 +248,10 @@ pub fn runSemantic(
 
     if (options.no_new_object) {
         try no_new_object.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_object_constructor) {
+        try no_object_constructor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_new_symbol) {
