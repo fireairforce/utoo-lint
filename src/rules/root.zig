@@ -139,6 +139,7 @@ pub const no_with = @import("no_with.zig");
 pub const operator_assignment = @import("operator_assignment.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
+pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
 pub const prefer_template = @import("prefer_template.zig");
 pub const radix = @import("radix.zig");
@@ -365,6 +366,9 @@ const BasicVisitor = struct {
         }
         if (self.options.require_yield) {
             try require_yield.check(self.allocator, self.diagnostics, ctx.tree, function, index);
+        }
+        if (self.options.prefer_rest_params) {
+            try prefer_rest_params.check(self.allocator, self.diagnostics, ctx.tree, function, index);
         }
         return .proceed;
     }
