@@ -37,6 +37,7 @@ pub const no_dupe_class_members = @import("no_dupe_class_members.zig");
 pub const no_dupe_keys = @import("no_dupe_keys.zig");
 pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_div_regex = @import("no_div_regex.zig");
+pub const no_empty = @import("no_empty.zig");
 pub const no_empty_block_statements = @import("no_empty_block_statements.zig");
 pub const no_empty_character_class = @import("no_empty_character_class.zig");
 pub const no_empty_function = @import("no_empty_function.zig");
@@ -606,6 +607,9 @@ const BasicVisitor = struct {
             if (ctx.path.parent()) |parent| {
                 try no_lone_blocks.check(self.allocator, self.diagnostics, ctx.tree, block, index, parent);
             }
+        }
+        if (self.options.no_empty) {
+            try no_empty.checkBlockStatement(self.allocator, self.diagnostics, ctx.tree, block, index);
         }
         if (self.options.no_empty_block_statements) {
             try no_empty_block_statements.checkBlockStatement(self.allocator, self.diagnostics, ctx.tree, block, index);
