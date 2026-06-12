@@ -139,6 +139,7 @@ pub const no_with = @import("no_with.zig");
 pub const object_shorthand = @import("object_shorthand.zig");
 pub const operator_assignment = @import("operator_assignment.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
+pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
@@ -317,6 +318,10 @@ pub fn runSemantic(
 
     if (options.prefer_regex_literals) {
         try prefer_regex_literals.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.prefer_promise_reject_errors) {
+        try prefer_promise_reject_errors.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.radix) {

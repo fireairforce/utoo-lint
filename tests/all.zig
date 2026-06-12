@@ -531,6 +531,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_promise_reject_errors.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_regex_literals.zig");
 }
 
