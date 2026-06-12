@@ -296,6 +296,8 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_template = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
+        } else if (std.mem.eql(u8, arg, "--require-yield=off")) {
+            options.require_yield = false;
         } else if (std.mem.eql(u8, arg, "--spaced-comment=off")) {
             options.spaced_comment = false;
         } else if (std.mem.eql(u8, arg, "--symbol-description=off")) {
@@ -571,6 +573,7 @@ fn printHelp() void {
         \\  --prefer-exponentiation-operator=off Disable prefer-exponentiation-operator
         \\  --prefer-regex-literals=off Disable prefer-regex-literals
         \\  --radix=off               Disable radix
+        \\  --require-yield=off       Disable require-yield
         \\  --semantic-errors=off     Disable parser semantic errors
         \\  --yoda=off                Disable yoda
         \\
