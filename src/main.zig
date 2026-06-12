@@ -7,6 +7,25 @@ const Stats = struct {
     files: usize = 0,
     diagnostics: usize = 0,
     errors: usize = 0,
+
+    fn add(self: *Stats, other: Stats) void {
+        self.files += other.files;
+        self.diagnostics += other.diagnostics;
+        self.errors += other.errors;
+    }
+};
+
+const WorkQueue = struct {
+    io: std.Io,
+    files: []const []const u8,
+    options: lint.Options,
+    next_index: std.atomic.Value(usize) = .init(0),
+    print_mutex: std.Io.Mutex = .init,
+};
+
+const WorkerResult = struct {
+    stats: Stats = .{},
+    err: ?anyerror = null,
 };
 
 pub fn main(init: std.process.Init) !void {
@@ -15,6 +34,7 @@ pub fn main(init: std.process.Init) !void {
     const args = try init.minimal.args.toSlice(init.arena.allocator());
 
     var options = lint.Options{};
+    var thread_count_override: ?usize = null;
     var targets: std.ArrayList([]const u8) = .empty;
     defer targets.deinit(allocator);
 
@@ -22,6 +42,17 @@ pub fn main(init: std.process.Init) !void {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
             printHelp();
             return;
+        } else if (std.mem.startsWith(u8, arg, "--threads=")) {
+            const value = arg["--threads=".len..];
+            const parsed = std.fmt.parseInt(usize, value, 10) catch {
+                std.debug.print("utoo-lint: invalid --threads value: {s}\n", .{value});
+                std.process.exit(2);
+            };
+            if (parsed == 0) {
+                std.debug.print("utoo-lint: --threads must be greater than 0\n", .{});
+                std.process.exit(2);
+            }
+            thread_count_override = parsed;
         } else if (std.mem.eql(u8, arg, "--curly=off")) {
             options.curly = false;
         } else if (std.mem.eql(u8, arg, "--dot-notation=off")) {
@@ -337,10 +368,20 @@ pub fn main(init: std.process.Init) !void {
         try targets.append(allocator, ".");
     }
 
+    var files: std.ArrayList([]const u8) = .empty;
+    defer {
+        for (files.items) |file| {
+            allocator.free(file);
+        }
+        files.deinit(allocator);
+    }
+
     var stats = Stats{};
     for (targets.items) |target| {
-        try lintPath(allocator, io, target, options, &stats);
+        try collectLintablePaths(allocator, io, target, &files, &stats);
     }
+
+    try lintFiles(allocator, io, files.items, options, thread_count_override, &stats);
 
     std.debug.print("{d} file(s) checked, {d} diagnostic(s)\n", .{
         stats.files,
@@ -352,11 +393,11 @@ pub fn main(init: std.process.Init) !void {
     }
 }
 
-fn lintPath(
+fn collectLintablePaths(
     allocator: std.mem.Allocator,
     io: std.Io,
     path: []const u8,
-    options: lint.Options,
+    files: *std.ArrayList([]const u8),
     stats: *Stats,
 ) !void {
     const cwd = std.Io.Dir.cwd();
@@ -370,19 +411,19 @@ fn lintPath(
     switch (stat.kind) {
         .file => {
             if (lint.isLintablePath(path)) {
-                try lintFile(allocator, io, path, options, stats);
+                try files.append(allocator, try allocator.dupe(u8, path));
             }
         },
-        .directory => try lintDirectory(allocator, io, path, options, stats),
+        .directory => try collectLintableDirectory(allocator, io, path, files, stats),
         else => {},
     }
 }
 
-fn lintDirectory(
+fn collectLintableDirectory(
     allocator: std.mem.Allocator,
     io: std.Io,
     path: []const u8,
-    options: lint.Options,
+    files: *std.ArrayList([]const u8),
     stats: *Stats,
 ) !void {
     var dir = try std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true });
@@ -398,12 +439,93 @@ fn lintDirectory(
         switch (entry.kind) {
             .file => {
                 if (lint.isLintablePath(child_path)) {
-                    try lintFile(allocator, io, child_path, options, stats);
+                    try files.append(allocator, try allocator.dupe(u8, child_path));
                 }
             },
-            .directory => try lintDirectory(allocator, io, child_path, options, stats),
+            .directory => try collectLintableDirectory(allocator, io, child_path, files, stats),
             else => {},
         }
+    }
+}
+
+fn lintFiles(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    files: []const []const u8,
+    options: lint.Options,
+    thread_count_override: ?usize,
+    stats: *Stats,
+) !void {
+    if (files.len == 0) return;
+
+    const worker_count = @min(files.len, thread_count_override orelse (std.Thread.getCpuCount() catch 1));
+    if (worker_count <= 1) {
+        for (files) |file| {
+            try lintFile(std.heap.smp_allocator, io, file, options, stats, null);
+        }
+        return;
+    }
+
+    var queue = WorkQueue{
+        .io = io,
+        .files = files,
+        .options = options,
+    };
+
+    const threads = try allocator.alloc(std.Thread, worker_count);
+    defer allocator.free(threads);
+
+    const results = try allocator.alloc(WorkerResult, worker_count);
+    defer allocator.free(results);
+    for (results) |*result| {
+        result.* = .{};
+    }
+
+    var spawned: usize = 0;
+    errdefer {
+        for (threads[0..spawned]) |thread| {
+            thread.join();
+        }
+    }
+
+    for (threads, 0..) |*thread, index| {
+        thread.* = try std.Thread.spawn(.{}, lintWorker, .{ &queue, &results[index] });
+        spawned += 1;
+    }
+
+    for (threads) |thread| {
+        thread.join();
+    }
+
+    var worker_err: ?anyerror = null;
+    for (results) |result| {
+        stats.add(result.stats);
+        if (worker_err == null) {
+            worker_err = result.err;
+        }
+    }
+
+    if (worker_err) |err| {
+        return err;
+    }
+}
+
+fn lintWorker(queue: *WorkQueue, result: *WorkerResult) void {
+    while (true) {
+        const index = queue.next_index.fetchAdd(1, .monotonic);
+        if (index >= queue.files.len) return;
+
+        lintFile(
+            std.heap.smp_allocator,
+            queue.io,
+            queue.files[index],
+            queue.options,
+            &result.stats,
+            &queue.print_mutex,
+        ) catch |err| {
+            result.err = err;
+            return;
+        };
     }
 }
 
@@ -413,9 +535,10 @@ fn lintFile(
     path: []const u8,
     options: lint.Options,
     stats: *Stats,
+    print_mutex: ?*std.Io.Mutex,
 ) !void {
     const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_file_size)) catch |err| {
-        std.debug.print("{s}: unable to read file: {s}\n", .{ path, @errorName(err) });
+        printLocked(io, print_mutex, "{s}: unable to read file: {s}\n", .{ path, @errorName(err) });
         stats.errors += 1;
         stats.diagnostics += 1;
         return;
@@ -429,7 +552,7 @@ fn lintFile(
 
     for (result.diagnostics) |diagnostic| {
         const position = lint.offsetToLineColumn(source, diagnostic.span.start);
-        std.debug.print("{s}:{d}:{d}: {s}: {s} [{s}]\n", .{
+        printLocked(io, print_mutex, "{s}:{d}:{d}: {s}: {s} [{s}]\n", .{
             path,
             position.line,
             position.column,
@@ -443,6 +566,19 @@ fn lintFile(
             stats.errors += 1;
         }
     }
+}
+
+fn printLocked(
+    io: std.Io,
+    mutex: ?*std.Io.Mutex,
+    comptime fmt: []const u8,
+    args: anytype,
+) void {
+    if (mutex) |m| {
+        m.lockUncancelable(io);
+        defer m.unlock(io);
+    }
+    std.debug.print(fmt, args);
 }
 
 fn shouldSkipDirectoryEntry(name: []const u8) bool {
@@ -459,6 +595,7 @@ fn printHelp() void {
         \\  utoo-lint [options] [file-or-directory ...]
         \\
         \\Options:
+        \\  --threads=N              Number of worker threads to use
         \\  --curly=off              Disable curly
         \\  --dot-notation=off       Disable dot-notation
         \\  --default-case=off        Disable default-case
