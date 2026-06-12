@@ -345,6 +345,8 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_exponentiation_operator = false;
         } else if (std.mem.eql(u8, arg, "--prefer-promise-reject-errors=off")) {
             options.prefer_promise_reject_errors = false;
+        } else if (std.mem.eql(u8, arg, "--prefer-destructuring=off")) {
+            options.prefer_destructuring = false;
         } else if (std.mem.eql(u8, arg, "--prefer-regex-literals=off")) {
             options.prefer_regex_literals = false;
         } else if (std.mem.eql(u8, arg, "--prefer-rest-params=off")) {
@@ -748,6 +750,7 @@ fn printHelp() void {
         \\  --no-undef=off            Disable no-undef
         \\  --prefer-exponentiation-operator=off Disable prefer-exponentiation-operator
         \\  --prefer-promise-reject-errors=off Disable prefer-promise-reject-errors
+        \\  --prefer-destructuring=off Disable prefer-destructuring
         \\  --prefer-regex-literals=off Disable prefer-regex-literals
         \\  --prefer-rest-params=off  Disable prefer-rest-params
         \\  --prefer-spread=off       Disable prefer-spread
