@@ -503,6 +503,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_exponentiation_operator.zig");
+}
+
+comptime {
     _ = @import("rules/radix.zig");
 }
 

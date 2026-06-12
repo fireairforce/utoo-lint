@@ -132,6 +132,7 @@ pub const no_warning_comments = @import("no_warning_comments.zig");
 pub const no_var = @import("no_var.zig");
 pub const no_void = @import("no_void.zig");
 pub const no_with = @import("no_with.zig");
+pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
 pub const radix = @import("radix.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
@@ -291,6 +292,10 @@ pub fn runSemantic(
 
     if (options.no_promise_executor_return) {
         try no_promise_executor_return.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.prefer_exponentiation_operator) {
+        try prefer_exponentiation_operator.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.radix) {
