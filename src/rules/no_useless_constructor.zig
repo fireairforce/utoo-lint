@@ -36,7 +36,7 @@ pub fn checkClass(
     }
 }
 
-fn isUselessConstructor(tree: *const ast.Tree, class: ast.Class, method: ast.MethodDefinition) bool {
+pub fn isUselessConstructor(tree: *const ast.Tree, class: ast.Class, method: ast.MethodDefinition) bool {
     if (method.kind != .constructor) return false;
     if (method.static) return false;
     if (method.decorators.len != 0) return false;

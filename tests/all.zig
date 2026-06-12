@@ -703,6 +703,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_useless_constructor.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_var_requires.zig");
 }
 

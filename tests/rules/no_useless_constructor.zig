@@ -17,6 +17,7 @@ test "reports no-useless-constructor for empty constructors without superclasses
         .no_empty_function = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_useless_constructor = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -48,6 +49,7 @@ test "reports no-useless-constructor for pass-through super calls" {
         .eol_last = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_useless_constructor = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -78,6 +80,7 @@ test "does not report no-useless-constructor for useful constructors" {
         .eol_last = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_useless_constructor = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -98,6 +101,7 @@ test "can disable no-useless-constructor" {
         .no_undef = false,
         .no_unused_vars = false,
         .no_useless_constructor = false,
+        .typescript_eslint_no_useless_constructor = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
