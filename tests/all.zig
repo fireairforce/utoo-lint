@@ -19,6 +19,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/for_direction.zig");
+}
+
+comptime {
     _ = @import("rules/guard_for_in.zig");
 }
 

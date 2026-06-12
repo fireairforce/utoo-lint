@@ -22,6 +22,7 @@ pub const Options = struct {
     default_case: bool = true,
     default_case_last: bool = true,
     eol_last: bool = true,
+    for_direction: bool = true,
     guard_for_in: bool = true,
     linebreak_style: bool = true,
     new_parens: bool = true,
