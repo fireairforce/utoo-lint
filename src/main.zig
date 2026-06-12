@@ -82,6 +82,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_delete_var = false;
         } else if (std.mem.eql(u8, arg, "--no-div-regex=off")) {
             options.no_div_regex = false;
+        } else if (std.mem.eql(u8, arg, "--no-empty=off")) {
+            options.no_empty = false;
         } else if (std.mem.eql(u8, arg, "--no-empty-block-statements=off")) {
             options.no_empty_block_statements = false;
         } else if (std.mem.eql(u8, arg, "--no-empty-character-class=off")) {
@@ -433,6 +435,7 @@ fn printHelp() void {
         \\  --no-dupe-keys=off        Disable no-dupe-keys
         \\  --no-delete-var=off       Disable no-delete-var
         \\  --no-div-regex=off        Disable no-div-regex
+        \\  --no-empty=off            Disable no-empty
         \\  --no-empty-block-statements=off Disable no-empty-block-statements
         \\  --no-empty-character-class=off Disable no-empty-character-class
         \\  --no-empty-function=off Disable no-empty-function

@@ -39,6 +39,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-delete-var`
 - `no-div-regex`
 - `no-duplicate-case`
+- `no-empty`
 - `no-empty-block-statements`
 - `no-empty-character-class`
 - `no-empty-function`

@@ -123,6 +123,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_empty.zig");
+}
+
+comptime {
     _ = @import("rules/no_empty_block_statements.zig");
 }
 
