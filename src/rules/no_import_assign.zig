@@ -8,16 +8,22 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-import-assign";
 
+const ReferenceLookup = std.AutoHashMap(ast.NodeIndex, traverser.semantic.SymbolId);
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    var reference_lookup = try buildReferenceLookup(allocator, symbol_table);
+    defer reference_lookup.deinit();
+
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
         .symbol_table = symbol_table,
+        .reference_lookup = &reference_lookup,
     };
     defer visitor.namespace_import_names.deinit(allocator);
 
@@ -28,6 +34,7 @@ const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     symbol_table: traverser.semantic.SymbolTable,
+    reference_lookup: *const ReferenceLookup,
     namespace_import_names: std.StringHashMapUnmanaged(void) = .empty,
 
     pub fn enter_import_namespace_specifier(
@@ -71,7 +78,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (isObjectAssignCall(ctx.tree, self.symbol_table, call.callee) and call.arguments.len > 0) {
+        if (isObjectAssignCall(ctx.tree, self.reference_lookup, call.callee) and call.arguments.len > 0) {
             const first = ctx.tree.extra(call.arguments)[0];
             if (self.namespaceSymbolFromExpression(ctx.tree, first) != .none) {
                 try self.addDiagnostic(ctx.tree, index);
@@ -113,7 +120,7 @@ const Visitor = struct {
     fn symbolFromIdentifierExpression(self: *Visitor, tree: *const ast.Tree, expression: ast.NodeIndex) traverser.semantic.SymbolId {
         const identifier = unwrapTransparent(tree, expression);
         if (!isIdentifierReference(tree, identifier)) return .none;
-        return symbolForReferenceNode(self.symbol_table, identifier);
+        return self.reference_lookup.get(identifier) orelse .none;
     }
 
     fn addDiagnostic(self: *Visitor, tree: *const ast.Tree, index: ast.NodeIndex) Allocator.Error!void {
@@ -127,6 +134,21 @@ const Visitor = struct {
         );
     }
 };
+
+fn buildReferenceLookup(
+    allocator: Allocator,
+    symbol_table: traverser.semantic.SymbolTable,
+) Allocator.Error!ReferenceLookup {
+    var lookup = ReferenceLookup.init(allocator);
+    errdefer lookup.deinit();
+
+    var iter = symbol_table.iterReferences();
+    while (iter.next()) |entry| {
+        try lookup.put(entry.reference.node, symbol_table.referenceSymbol(entry.id));
+    }
+
+    return lookup;
+}
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
     var current = index;
@@ -160,23 +182,9 @@ fn isIdentifierReference(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     };
 }
 
-fn symbolForReferenceNode(
-    symbol_table: traverser.semantic.SymbolTable,
-    node: ast.NodeIndex,
-) traverser.semantic.SymbolId {
-    var iter = symbol_table.iterReferences();
-    while (iter.next()) |entry| {
-        if (entry.reference.node == node) {
-            return symbol_table.referenceSymbol(entry.id);
-        }
-    }
-
-    return .none;
-}
-
 fn isObjectAssignCall(
     tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
+    reference_lookup: *const ReferenceLookup,
     callee: ast.NodeIndex,
 ) bool {
     const member = switch (tree.data(unwrapTransparent(tree, callee))) {
@@ -189,7 +197,7 @@ fn isObjectAssignCall(
 
     const object = unwrapTransparent(tree, member.object);
     const object_name = identifierReferenceName(tree, object) orelse return false;
-    return std.mem.eql(u8, object_name, "Object") and isUnresolvedReference(symbol_table, object);
+    return std.mem.eql(u8, object_name, "Object") and isUnresolvedReference(reference_lookup, object);
 }
 
 fn identifierReferenceName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
@@ -216,15 +224,8 @@ fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8
 }
 
 fn isUnresolvedReference(
-    symbol_table: traverser.semantic.SymbolTable,
+    reference_lookup: *const ReferenceLookup,
     node: ast.NodeIndex,
 ) bool {
-    var iter = symbol_table.iterReferences();
-    while (iter.next()) |entry| {
-        if (entry.reference.node == node) {
-            return symbol_table.referenceSymbol(entry.id) == .none;
-        }
-    }
-
-    return false;
+    return (reference_lookup.get(node) orelse return false) == .none;
 }
