@@ -459,6 +459,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_loop_func.zig");
+}
+
+comptime {
     _ = @import("rules/no_sequences.zig");
 }
 

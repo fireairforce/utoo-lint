@@ -203,6 +203,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_lone_blocks = false;
         } else if (std.mem.eql(u8, arg, "--no-lonely-if=off")) {
             options.no_lonely_if = false;
+        } else if (std.mem.eql(u8, arg, "--no-loop-func=off")) {
+            options.no_loop_func = false;
         } else if (std.mem.eql(u8, arg, "--no-loss-of-precision=off")) {
             options.no_loss_of_precision = false;
         } else if (std.mem.eql(u8, arg, "--no-multi-str=off")) {
@@ -694,6 +696,7 @@ fn printHelp() void {
         \\  --no-labels=off           Disable no-labels
         \\  --no-lone-blocks=off      Disable no-lone-blocks
         \\  --no-lonely-if=off        Disable no-lonely-if
+        \\  --no-loop-func=off        Disable no-loop-func
         \\  --no-loss-of-precision=off Disable no-loss-of-precision
         \\  --no-multi-str=off        Disable no-multi-str
         \\  --no-multi-spaces=off     Disable no-multi-spaces

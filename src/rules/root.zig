@@ -82,6 +82,7 @@ pub const no_label_var = @import("no_label_var.zig");
 pub const no_labels = @import("no_labels.zig");
 pub const no_lone_blocks = @import("no_lone_blocks.zig");
 pub const no_lonely_if = @import("no_lonely_if.zig");
+pub const no_loop_func = @import("no_loop_func.zig");
 pub const no_loss_of_precision = @import("no_loss_of_precision.zig");
 pub const no_mixed_spaces_and_tabs = @import("no_mixed_spaces_and_tabs.zig");
 pub const no_misleading_character_class = @import("no_misleading_character_class.zig");
@@ -301,6 +302,10 @@ pub fn runSemantic(
 
     if (options.no_misleading_character_class) {
         try no_misleading_character_class.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_loop_func) {
+        try no_loop_func.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_new_func) {
