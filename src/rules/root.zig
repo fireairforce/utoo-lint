@@ -148,6 +148,7 @@ pub const no_with = @import("no_with.zig");
 pub const object_shorthand = @import("object_shorthand.zig");
 pub const one_var = @import("one_var.zig");
 pub const operator_assignment = @import("operator_assignment.zig");
+pub const prefer_destructuring = @import("prefer_destructuring.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
 pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
@@ -810,6 +811,9 @@ const BasicVisitor = struct {
         }
         if (self.options.one_var) {
             try one_var.check(self.allocator, self.diagnostics, ctx.tree, declaration, index, ctx);
+        }
+        if (self.options.prefer_destructuring) {
+            try prefer_destructuring.checkVariableDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration);
         }
         return .proceed;
     }

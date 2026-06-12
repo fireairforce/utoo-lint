@@ -567,6 +567,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_destructuring.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_exponentiation_operator.zig");
 }
 
