@@ -42,6 +42,7 @@ pub fn run(
         .init_ranges = &init_ranges,
     };
     try traverser.basic.traverse(InitVisitor, tree, &visitor);
+    std.mem.sort(InitRange, init_ranges.items, {}, lessThanInitRange);
 
     var reference_iter = symbol_table.iterReferences();
     while (reference_iter.next()) |entry| {
@@ -131,10 +132,34 @@ const InitVisitor = struct {
 };
 
 fn isInInitializer(symbol_id: SymbolId, reference_span: ast.Span, init_ranges: []const InitRange) bool {
-    for (init_ranges) |range| {
-        if (range.symbol_id == symbol_id and spanInside(reference_span, range.span)) return true;
+    const start = lowerBoundInitRange(init_ranges, symbol_id);
+
+    for (init_ranges[start..]) |range| {
+        if (range.symbol_id != symbol_id) break;
+        if (spanInside(reference_span, range.span)) return true;
     }
     return false;
+}
+
+fn lessThanInitRange(_: void, lhs: InitRange, rhs: InitRange) bool {
+    return @intFromEnum(lhs.symbol_id) < @intFromEnum(rhs.symbol_id);
+}
+
+fn lowerBoundInitRange(init_ranges: []const InitRange, symbol_id: SymbolId) usize {
+    const needle = @intFromEnum(symbol_id);
+    var low: usize = 0;
+    var high: usize = init_ranges.len;
+
+    while (low < high) {
+        const middle = low + (high - low) / 2;
+        if (@intFromEnum(init_ranges[middle].symbol_id) < needle) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+
+    return low;
 }
 
 fn spanInside(span: ast.Span, container: ast.Span) bool {
