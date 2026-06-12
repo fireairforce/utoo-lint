@@ -163,3 +163,10 @@ Each rule links to the corresponding ESLint rule reference.
 ## Parser diagnostics
 
 `parser-semantic-errors` reports parse diagnostics from Yuku, including semantic early errors by default. It is not an ESLint rule and therefore does not have a corresponding ESLint rule page.
+
+## TypeScript ESLint rules
+
+| Rule | Status |
+| --- | --- |
+| [`@typescript-eslint/ban-ts-comment`](https://typescript-eslint.io/rules/ban-ts-comment/) | Implemented for fishlint's `allow-with-description` configuration |
+| [`@typescript-eslint/ban-tslint-comment`](https://typescript-eslint.io/rules/ban-tslint-comment/) | Implemented |
