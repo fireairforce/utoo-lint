@@ -8,6 +8,7 @@ const Allocator = std.mem.Allocator;
 
 pub const curly = @import("curly.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
+pub const block_scoped_var = @import("block_scoped_var.zig");
 pub const constructor_super = @import("constructor_super.zig");
 pub const dot_notation = @import("dot_notation.zig");
 pub const default_case = @import("default_case.zig");
@@ -226,6 +227,10 @@ pub fn runSemantic(
     semantic_result: traverser.semantic.Result,
     options: core.Options,
 ) Allocator.Error!void {
+    if (options.block_scoped_var) {
+        try block_scoped_var.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
     if (options.no_async_promise_executor) {
         try no_async_promise_executor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }

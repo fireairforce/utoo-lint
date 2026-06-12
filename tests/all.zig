@@ -3,6 +3,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/block_scoped_var.zig");
+}
+
+comptime {
     _ = @import("rules/constructor_super.zig");
 }
 
