@@ -353,6 +353,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_use_before_define = false;
         } else if (std.mem.eql(u8, arg, "--no-undef=off")) {
             options.no_undef = false;
+        } else if (std.mem.eql(u8, arg, "--prefer-const=off")) {
+            options.prefer_const = false;
         } else if (std.mem.eql(u8, arg, "--prefer-exponentiation-operator=off")) {
             options.prefer_exponentiation_operator = false;
         } else if (std.mem.eql(u8, arg, "--prefer-promise-reject-errors=off")) {
@@ -766,6 +768,7 @@ fn printHelp() void {
         \\  --no-unused-vars=off      Disable no-unused-vars
         \\  --no-use-before-define=off Disable no-use-before-define
         \\  --no-undef=off            Disable no-undef
+        \\  --prefer-const=off        Disable prefer-const
         \\  --prefer-exponentiation-operator=off Disable prefer-exponentiation-operator
         \\  --prefer-promise-reject-errors=off Disable prefer-promise-reject-errors
         \\  --prefer-destructuring=off Disable prefer-destructuring

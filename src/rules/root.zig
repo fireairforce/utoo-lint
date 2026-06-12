@@ -154,6 +154,7 @@ pub const no_with = @import("no_with.zig");
 pub const object_shorthand = @import("object_shorthand.zig");
 pub const one_var = @import("one_var.zig");
 pub const operator_assignment = @import("operator_assignment.zig");
+pub const prefer_const = @import("prefer_const.zig");
 pub const prefer_destructuring = @import("prefer_destructuring.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
 pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
@@ -364,6 +365,10 @@ pub fn runSemantic(
 
     if (options.no_undef) {
         try no_undef.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.prefer_const) {
+        try prefer_const.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 }
 

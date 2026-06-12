@@ -591,6 +591,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_const.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_destructuring.zig");
 }
 
