@@ -136,6 +136,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `eqeqeq`
 - `no-unused-vars`
 - `no-undef`
+- `prefer-exponentiation-operator`
 - `radix`
 - `use-isnan`
 - `yoda`
