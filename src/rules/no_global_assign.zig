@@ -103,53 +103,33 @@ const Visitor = struct {
 };
 
 fn isReadonlyGlobal(name: []const u8) bool {
-    const readonly_globals = [_][]const u8{
-        "Array",
-        "ArrayBuffer",
-        "BigInt",
-        "BigInt64Array",
-        "BigUint64Array",
-        "Boolean",
-        "DataView",
-        "Date",
-        "Error",
-        "EvalError",
-        "Float32Array",
-        "Float64Array",
-        "Function",
-        "Infinity",
-        "Int8Array",
-        "Int16Array",
-        "Int32Array",
-        "Intl",
-        "JSON",
-        "Map",
-        "Math",
-        "NaN",
-        "Number",
-        "Object",
-        "Promise",
-        "RangeError",
-        "ReferenceError",
-        "Reflect",
-        "RegExp",
-        "Set",
-        "String",
-        "Symbol",
-        "SyntaxError",
-        "TypeError",
-        "Uint8Array",
-        "Uint8ClampedArray",
-        "Uint16Array",
-        "Uint32Array",
-        "URIError",
-        "WeakMap",
-        "WeakSet",
-        "undefined",
-    };
+    if (name.len == 0) return false;
 
-    for (readonly_globals) |global| {
-        if (std.mem.eql(u8, name, global)) return true;
+    return switch (name[0]) {
+        'A' => isOneOf(name, .{ "Array", "ArrayBuffer" }),
+        'B' => isOneOf(name, .{ "BigInt", "BigInt64Array", "BigUint64Array", "Boolean" }),
+        'D' => isOneOf(name, .{ "DataView", "Date" }),
+        'E' => isOneOf(name, .{ "Error", "EvalError" }),
+        'F' => isOneOf(name, .{ "Float32Array", "Float64Array", "Function" }),
+        'I' => isOneOf(name, .{ "Infinity", "Int8Array", "Int16Array", "Int32Array", "Intl" }),
+        'J' => std.mem.eql(u8, name, "JSON"),
+        'M' => isOneOf(name, .{ "Map", "Math" }),
+        'N' => isOneOf(name, .{ "NaN", "Number" }),
+        'O' => std.mem.eql(u8, name, "Object"),
+        'P' => std.mem.eql(u8, name, "Promise"),
+        'R' => isOneOf(name, .{ "RangeError", "ReferenceError", "Reflect", "RegExp" }),
+        'S' => isOneOf(name, .{ "Set", "String", "Symbol", "SyntaxError" }),
+        'T' => std.mem.eql(u8, name, "TypeError"),
+        'U' => isOneOf(name, .{ "Uint8Array", "Uint8ClampedArray", "Uint16Array", "Uint32Array", "URIError" }),
+        'W' => isOneOf(name, .{ "WeakMap", "WeakSet" }),
+        'u' => std.mem.eql(u8, name, "undefined"),
+        else => false,
+    };
+}
+
+fn isOneOf(name: []const u8, comptime values: anytype) bool {
+    inline for (values) |value| {
+        if (std.mem.eql(u8, name, value)) return true;
     }
     return false;
 }
