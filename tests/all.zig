@@ -151,6 +151,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_extra_label.zig");
+}
+
+comptime {
     _ = @import("rules/no_extra_boolean_cast.zig");
 }
 

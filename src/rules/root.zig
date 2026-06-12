@@ -44,6 +44,7 @@ pub const no_empty_static_block = @import("no_empty_static_block.zig");
 pub const no_else_return = @import("no_else_return.zig");
 pub const no_eval = @import("no_eval.zig");
 pub const no_ex_assign = @import("no_ex_assign.zig");
+pub const no_extra_label = @import("no_extra_label.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_extra_semi = @import("no_extra_semi.zig");
 pub const no_floating_decimal = @import("no_floating_decimal.zig");
@@ -531,10 +532,13 @@ const BasicVisitor = struct {
 
     pub fn enter_labeled_statement(
         self: *BasicVisitor,
-        _: ast.LabeledStatement,
+        statement: ast.LabeledStatement,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_extra_label) {
+            try no_extra_label.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
         if (self.options.no_labels) {
             try no_labels.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
