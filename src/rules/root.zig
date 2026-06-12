@@ -35,6 +35,7 @@ pub const no_duplicate_case = @import("no_duplicate_case.zig");
 pub const no_dupe_args = @import("no_dupe_args.zig");
 pub const no_dupe_class_members = @import("no_dupe_class_members.zig");
 pub const no_dupe_keys = @import("no_dupe_keys.zig");
+pub const no_duplicate_imports = @import("no_duplicate_imports.zig");
 pub const no_delete_var = @import("no_delete_var.zig");
 pub const no_div_regex = @import("no_div_regex.zig");
 pub const no_empty = @import("no_empty.zig");
@@ -305,6 +306,18 @@ const BasicVisitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     options: core.Options,
+
+    pub fn enter_program(
+        self: *BasicVisitor,
+        program: ast.Program,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_duplicate_imports) {
+            try no_duplicate_imports.check(self.allocator, self.diagnostics, ctx.tree, program);
+        }
+        return .proceed;
+    }
 
     pub fn enter_function(
         self: *BasicVisitor,

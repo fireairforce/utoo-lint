@@ -123,6 +123,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_duplicate_imports.zig");
+}
+
+comptime {
     _ = @import("rules/no_empty.zig");
 }
 

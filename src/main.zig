@@ -72,6 +72,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_dupe_else_if = false;
         } else if (std.mem.eql(u8, arg, "--no-duplicate-case=off")) {
             options.no_duplicate_case = false;
+        } else if (std.mem.eql(u8, arg, "--no-duplicate-imports=off")) {
+            options.no_duplicate_imports = false;
         } else if (std.mem.eql(u8, arg, "--no-dupe-args=off")) {
             options.no_dupe_args = false;
         } else if (std.mem.eql(u8, arg, "--no-dupe-class-members=off")) {
@@ -430,6 +432,7 @@ fn printHelp() void {
         \\  --no-debugger=off         Disable no-debugger
         \\  --no-dupe-else-if=off     Disable no-dupe-else-if
         \\  --no-duplicate-case=off   Disable no-duplicate-case
+        \\  --no-duplicate-imports=off Disable no-duplicate-imports
         \\  --no-dupe-args=off        Disable no-dupe-args
         \\  --no-dupe-class-members=off Disable no-dupe-class-members
         \\  --no-dupe-keys=off        Disable no-dupe-keys
