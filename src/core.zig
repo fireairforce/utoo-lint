@@ -130,6 +130,7 @@ pub const Options = struct {
     no_self_assign: bool = true,
     no_self_compare: bool = true,
     no_setter_return: bool = true,
+    no_shadow: bool = true,
     no_shadow_restricted_names: bool = true,
     no_sequences: bool = true,
     no_sparse_arrays: bool = true,
