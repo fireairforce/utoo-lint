@@ -1,9 +1,10 @@
 const parser = @import("parser");
 const core = @import("../core.zig");
+const std = @import("std");
 
 const ast = parser.ast;
 const traverser = parser.traverser;
-const Allocator = @import("std").mem.Allocator;
+const Allocator = std.mem.Allocator;
 
 pub const id = "@typescript-eslint/no-non-null-asserted-optional-chain";
 
@@ -12,6 +13,9 @@ pub fn run(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
 ) Allocator.Error!void {
+    if (std.mem.indexOf(u8, tree.source, "?.") == null) return;
+    if (std.mem.indexOf(u8, tree.source, "!") == null) return;
+
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
