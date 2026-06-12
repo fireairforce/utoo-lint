@@ -151,6 +151,7 @@ pub const Options = struct {
     prefer_regex_literals: bool = true,
     prefer_template: bool = true,
     radix: bool = true,
+    spaced_comment: bool = true,
     symbol_description: bool = true,
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,

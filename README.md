@@ -142,6 +142,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `prefer-regex-literals`
 - `prefer-template`
 - `radix`
+- `spaced-comment`
 - `symbol-description`
 - `use-isnan`
 - `valid-typeof`

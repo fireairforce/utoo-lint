@@ -527,6 +527,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/spaced_comment.zig");
+}
+
+comptime {
     _ = @import("rules/symbol_description.zig");
 }
 
