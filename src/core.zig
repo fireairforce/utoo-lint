@@ -92,6 +92,7 @@ pub const Options = struct {
     no_labels: bool = true,
     no_lone_blocks: bool = true,
     no_lonely_if: bool = true,
+    no_loop_func: bool = true,
     no_loss_of_precision: bool = true,
     no_multi_str: bool = true,
     no_multi_assign: bool = true,

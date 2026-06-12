@@ -27,7 +27,7 @@ pub fn lintSource(
     });
     defer tree.deinit();
 
-    const needs_semantic = options.parser_semantic_errors or options.block_scoped_var or options.no_array_constructor or options.no_alert or options.no_extra_boolean_cast or options.no_global_is_finite or options.no_global_is_nan or options.no_invalid_regexp or options.no_misleading_character_class or options.no_new_func or options.no_new_object or options.no_new_symbol or options.no_new_wrappers or options.no_redeclare or options.no_shadow or options.no_unused_vars or options.no_use_before_define or options.no_undef or options.prefer_const or options.prefer_exponentiation_operator or options.prefer_regex_literals or options.radix or options.symbol_description;
+    const needs_semantic = options.parser_semantic_errors or options.block_scoped_var or options.no_array_constructor or options.no_alert or options.no_extra_boolean_cast or options.no_global_is_finite or options.no_global_is_nan or options.no_invalid_regexp or options.no_loop_func or options.no_misleading_character_class or options.no_new_func or options.no_new_object or options.no_new_symbol or options.no_new_wrappers or options.no_redeclare or options.no_shadow or options.no_unused_vars or options.no_use_before_define or options.no_undef or options.prefer_const or options.prefer_exponentiation_operator or options.prefer_regex_literals or options.radix or options.symbol_description;
 
     if (needs_semantic) {
         var semantic_result = try parser.semantic.analyze(&tree);
