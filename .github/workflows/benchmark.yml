@@ -1,0 +1,65 @@
+name: Benchmarks
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/benchmark.yml"
+      - "benchmarks/**"
+      - "build.zig"
+      - "build.zig.zon"
+      - "src/**"
+      - "vendor/yuku/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/benchmark.yml"
+      - "benchmarks/**"
+      - "build.zig"
+      - "build.zig.zon"
+      - "src/**"
+      - "vendor/yuku/**"
+
+jobs:
+  codspeed:
+    name: CodSpeed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: benchmarks/package-lock.json
+
+      - name: Install benchmark dependencies
+        working-directory: benchmarks
+        run: npm ci
+
+      - name: Build utoo-lint
+        run: zig build -Doptimize=ReleaseFast -j1
+
+      - name: Generate benchmark corpus
+        working-directory: benchmarks
+        run: npm run generate -- --files=1000 --statements=30 --out=fixtures/codspeed
+
+      - name: Run CodSpeed benchmarks
+        uses: CodSpeedHQ/action@v4
+        with:
+          mode: walltime
+          working-directory: benchmarks
+          run: npm run codspeed -- --target=fixtures/codspeed
+          token: ${{ secrets.CODSPEED_TOKEN }}
