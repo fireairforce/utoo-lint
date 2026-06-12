@@ -397,6 +397,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_this_alias = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-prefer-as-const=off")) {
             options.typescript_eslint_prefer_as_const = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-prefer-namespace-keyword=off")) {
+            options.typescript_eslint_prefer_namespace_keyword = false;
         } else if (std.mem.eql(u8, arg, "--valid-typeof=off")) {
             options.valid_typeof = false;
         } else if (std.mem.eql(u8, arg, "--semantic-errors=off")) {
@@ -807,6 +809,7 @@ fn printHelp() void {
         \\  --typescript-eslint-no-require-imports=off Disable @typescript-eslint/no-require-imports
         \\  --typescript-eslint-no-this-alias=off Disable @typescript-eslint/no-this-alias
         \\  --typescript-eslint-prefer-as-const=off Disable @typescript-eslint/prefer-as-const
+        \\  --typescript-eslint-prefer-namespace-keyword=off Disable @typescript-eslint/prefer-namespace-keyword
         \\  --semantic-errors=off     Disable parser semantic errors
         \\  --yoda=off                Disable yoda
         \\

@@ -177,6 +177,7 @@ pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("types
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
 pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
+pub const typescript_eslint_prefer_namespace_keyword = @import("typescript_eslint_prefer_namespace_keyword.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
 pub const valid_typeof = @import("valid_typeof.zig");
@@ -662,6 +663,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_no_empty_interface) {
             try typescript_eslint_no_empty_interface.check(self.allocator, self.diagnostics, ctx.tree, interface_declaration);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_module_declaration(
+        self: *BasicVisitor,
+        declaration: ast.TSModuleDeclaration,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_prefer_namespace_keyword) {
+            try typescript_eslint_prefer_namespace_keyword.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
         }
         return .proceed;
     }

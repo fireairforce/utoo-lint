@@ -679,6 +679,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_prefer_namespace_keyword.zig");
+}
+
+comptime {
     _ = @import("rules/unicode_bom.zig");
 }
 
