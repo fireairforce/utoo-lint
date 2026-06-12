@@ -7,17 +7,26 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-multi-spaces";
 
+const IgnoredSpan = struct {
+    start: u32,
+    end: u32,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
 ) Allocator.Error!void {
     const source = tree.source;
+    const ignored_spans = try collectIgnoredSpans(allocator, tree);
+    defer allocator.free(ignored_spans);
+
     var line_start: usize = 0;
+    var ignored_index: usize = 0;
 
     while (line_start <= source.len) {
         const line_end = findLineEnd(source, line_start);
-        try checkLine(allocator, diagnostics, tree, line_start, line_end);
+        try checkLine(allocator, diagnostics, tree, line_start, line_end, ignored_spans, &ignored_index);
 
         if (line_end >= source.len) break;
 
@@ -34,6 +43,8 @@ fn checkLine(
     tree: *const ast.Tree,
     line_start: usize,
     line_end: usize,
+    ignored_spans: []const IgnoredSpan,
+    ignored_index: *usize,
 ) Allocator.Error!void {
     const source = tree.source;
     var index = line_start;
@@ -41,7 +52,19 @@ fn checkLine(
     while (index < line_end and (source[index] == ' ' or source[index] == '\t')) : (index += 1) {}
 
     while (index < line_end) {
-        if (source[index] != ' ' or isInsideIgnoredSpan(tree, @intCast(index))) {
+        while (ignored_index.* < ignored_spans.len and ignored_spans[ignored_index.*].end <= index) {
+            ignored_index.* += 1;
+        }
+
+        if (ignored_index.* < ignored_spans.len) {
+            const span = ignored_spans[ignored_index.*];
+            if (span.start <= index and index < span.end) {
+                index = @min(line_end, @as(usize, @intCast(span.end)));
+                continue;
+            }
+        }
+
+        if (source[index] != ' ') {
             index += 1;
             continue;
         }
@@ -62,9 +85,12 @@ fn checkLine(
     }
 }
 
-fn isInsideIgnoredSpan(tree: *const ast.Tree, offset: u32) bool {
+fn collectIgnoredSpans(allocator: Allocator, tree: *const ast.Tree) Allocator.Error![]IgnoredSpan {
+    var ignored_spans: std.ArrayList(IgnoredSpan) = .empty;
+    errdefer ignored_spans.deinit(allocator);
+
     for (tree.comments) |comment| {
-        if (comment.start <= offset and offset < comment.end) return true;
+        try ignored_spans.append(allocator, .{ .start = comment.start, .end = comment.end });
     }
 
     const data = tree.nodes.items(.data);
@@ -72,13 +98,19 @@ fn isInsideIgnoredSpan(tree: *const ast.Tree, offset: u32) bool {
     for (data, spans) |node, span| {
         switch (node) {
             .string_literal, .template_element, .regexp_literal => {
-                if (span.start <= offset and offset < span.end) return true;
+                try ignored_spans.append(allocator, .{ .start = span.start, .end = span.end });
             },
             else => {},
         }
     }
 
-    return false;
+    const items = try ignored_spans.toOwnedSlice(allocator);
+    std.mem.sort(IgnoredSpan, items, {}, ignoredSpanLessThan);
+    return items;
+}
+
+fn ignoredSpanLessThan(_: void, lhs: IgnoredSpan, rhs: IgnoredSpan) bool {
+    return lhs.start < rhs.start or (lhs.start == rhs.start and lhs.end < rhs.end);
 }
 
 fn findLineEnd(source: []const u8, start: usize) usize {
