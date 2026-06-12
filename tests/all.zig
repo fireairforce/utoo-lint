@@ -187,6 +187,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_global_assign.zig");
+}
+
+comptime {
     _ = @import("rules/no_global_is_finite.zig");
 }
 

@@ -53,6 +53,7 @@ pub const no_extra_semi = @import("no_extra_semi.zig");
 pub const no_floating_decimal = @import("no_floating_decimal.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_func_assign = @import("no_func_assign.zig");
+pub const no_global_assign = @import("no_global_assign.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
 pub const no_implicit_coercion = @import("no_implicit_coercion.zig");
@@ -225,6 +226,10 @@ pub fn runSemantic(
 
     if (options.no_func_assign) {
         try no_func_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_global_assign) {
+        try no_global_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_global_is_finite) {
