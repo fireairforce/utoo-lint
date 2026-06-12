@@ -47,6 +47,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-eq-null`
 - `no-eval`
 - `no-ex-assign`
+- `no-extend-native`
 - `no-extra-bind`
 - `no-extra-label`
 - `no-extra-semi`
