@@ -1,4 +1,8 @@
 comptime {
+    _ = @import("rules/constructor_super.zig");
+}
+
+comptime {
     _ = @import("rules/curly.zig");
 }
 

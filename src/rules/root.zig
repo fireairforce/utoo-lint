@@ -7,6 +7,7 @@ const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 pub const curly = @import("curly.zig");
+pub const constructor_super = @import("constructor_super.zig");
 pub const dot_notation = @import("dot_notation.zig");
 pub const default_case = @import("default_case.zig");
 pub const default_case_last = @import("default_case_last.zig");
@@ -397,6 +398,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.constructor_super) {
+            try constructor_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
+        }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, class.id, false);
         }
