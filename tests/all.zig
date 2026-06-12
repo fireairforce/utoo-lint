@@ -111,6 +111,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_dupe_class_members.zig");
+}
+
+comptime {
     _ = @import("rules/no_dupe_else_if.zig");
 }
 
