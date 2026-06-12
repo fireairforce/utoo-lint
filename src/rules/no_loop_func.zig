@@ -23,6 +23,10 @@ pub fn run(
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    var candidate_visitor = CandidateVisitor{};
+    try traverser.basic.traverse(CandidateVisitor, tree, &candidate_visitor);
+    if (!candidate_visitor.found) return;
+
     var reference_lookup = ReferenceLookup.init(allocator);
     defer reference_lookup.deinit();
 
@@ -65,6 +69,68 @@ pub fn run(
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
 }
+
+const CandidateVisitor = struct {
+    loop_depth: usize = 0,
+    found: bool = false,
+
+    pub fn enter_while_statement(self: *CandidateVisitor, _: ast.WhileStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) traverser.Action {
+        self.loop_depth += 1;
+        return .proceed;
+    }
+
+    pub fn exit_while_statement(self: *CandidateVisitor, _: ast.WhileStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) void {
+        self.loop_depth -= 1;
+    }
+
+    pub fn enter_do_while_statement(self: *CandidateVisitor, _: ast.DoWhileStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) traverser.Action {
+        self.loop_depth += 1;
+        return .proceed;
+    }
+
+    pub fn exit_do_while_statement(self: *CandidateVisitor, _: ast.DoWhileStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) void {
+        self.loop_depth -= 1;
+    }
+
+    pub fn enter_for_statement(self: *CandidateVisitor, _: ast.ForStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) traverser.Action {
+        self.loop_depth += 1;
+        return .proceed;
+    }
+
+    pub fn exit_for_statement(self: *CandidateVisitor, _: ast.ForStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) void {
+        self.loop_depth -= 1;
+    }
+
+    pub fn enter_for_in_statement(self: *CandidateVisitor, _: ast.ForInStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) traverser.Action {
+        self.loop_depth += 1;
+        return .proceed;
+    }
+
+    pub fn exit_for_in_statement(self: *CandidateVisitor, _: ast.ForInStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) void {
+        self.loop_depth -= 1;
+    }
+
+    pub fn enter_for_of_statement(self: *CandidateVisitor, _: ast.ForOfStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) traverser.Action {
+        self.loop_depth += 1;
+        return .proceed;
+    }
+
+    pub fn exit_for_of_statement(self: *CandidateVisitor, _: ast.ForOfStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) void {
+        self.loop_depth -= 1;
+    }
+
+    pub fn enter_function(self: *CandidateVisitor, _: ast.Function, _: ast.NodeIndex, _: *traverser.basic.Ctx) traverser.Action {
+        if (self.loop_depth == 0) return .proceed;
+        self.found = true;
+        return .stop;
+    }
+
+    pub fn enter_arrow_function_expression(self: *CandidateVisitor, _: ast.ArrowFunctionExpression, _: ast.NodeIndex, _: *traverser.basic.Ctx) traverser.Action {
+        if (self.loop_depth == 0) return .proceed;
+        self.found = true;
+        return .stop;
+    }
+};
 
 const WriteVisitor = struct {
     allocator: Allocator,
