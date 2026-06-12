@@ -181,6 +181,7 @@ pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_
 pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescript_eslint_no_confusing_non_null_assertion.zig");
 pub const typescript_eslint_no_empty_function = @import("typescript_eslint_no_empty_function.zig");
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
+pub const typescript_eslint_no_extra_semi = @import("typescript_eslint_no_extra_semi.zig");
 pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_eslint_no_extra_non_null_assertion.zig");
 pub const typescript_eslint_no_inferrable_types = @import("typescript_eslint_no_inferrable_types.zig");
 pub const typescript_eslint_no_loss_of_precision = @import("typescript_eslint_no_loss_of_precision.zig");
@@ -640,8 +641,11 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.options.no_extra_semi) {
+        if (self.options.no_extra_semi and !self.options.typescript_eslint_no_extra_semi) {
             try no_extra_semi.check(self.allocator, self.diagnostics, ctx.tree, index, ctx);
+        }
+        if (self.options.typescript_eslint_no_extra_semi) {
+            try typescript_eslint_no_extra_semi.check(self.allocator, self.diagnostics, ctx.tree, index, ctx);
         }
         return .proceed;
     }

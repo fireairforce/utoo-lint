@@ -188,6 +188,7 @@ pub const Options = struct {
     typescript_eslint_no_confusing_non_null_assertion: bool = true,
     typescript_eslint_no_empty_function: bool = true,
     typescript_eslint_no_empty_interface: bool = true,
+    typescript_eslint_no_extra_semi: bool = true,
     typescript_eslint_no_extra_non_null_assertion: bool = true,
     typescript_eslint_no_inferrable_types: bool = true,
     typescript_eslint_no_loss_of_precision: bool = true,

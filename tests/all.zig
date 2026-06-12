@@ -675,6 +675,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_extra_semi.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_extra_non_null_assertion.zig");
 }
 

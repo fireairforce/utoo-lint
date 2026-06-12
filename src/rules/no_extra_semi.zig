@@ -26,7 +26,7 @@ pub fn check(
     );
 }
 
-fn isStatementBody(tree: *const ast.Tree, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) bool {
+pub fn isStatementBody(tree: *const ast.Tree, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) bool {
     const parent = ctx.path.ancestor(1) orelse return false;
 
     return switch (tree.data(parent)) {
