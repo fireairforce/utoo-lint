@@ -96,6 +96,7 @@ pub const Options = struct {
     no_multi_assign: bool = true,
     no_multi_spaces: bool = true,
     no_mixed_spaces_and_tabs: bool = true,
+    no_misleading_character_class: bool = true,
     no_multiple_empty_lines: bool = true,
     no_nonoctal_decimal_escape: bool = true,
     no_new: bool = true,
