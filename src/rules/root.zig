@@ -172,6 +172,7 @@ pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_comment.zig");
 pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_tslint_comment.zig");
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
+pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
@@ -226,6 +227,9 @@ pub fn runBasic(
     }
     if (options.typescript_eslint_ban_tslint_comment) {
         try typescript_eslint_ban_tslint_comment.run(allocator, diagnostics, tree);
+    }
+    if (options.typescript_eslint_no_non_null_asserted_optional_chain) {
+        try typescript_eslint_no_non_null_asserted_optional_chain.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{

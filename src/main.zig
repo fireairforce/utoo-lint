@@ -387,6 +387,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_ban_tslint_comment = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-empty-interface=off")) {
             options.typescript_eslint_no_empty_interface = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-non-null-asserted-optional-chain=off")) {
+            options.typescript_eslint_no_non_null_asserted_optional_chain = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-require-imports=off")) {
             options.typescript_eslint_no_require_imports = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-prefer-as-const=off")) {
@@ -796,6 +798,7 @@ fn printHelp() void {
         \\  --typescript-eslint-ban-ts-comment=off Disable @typescript-eslint/ban-ts-comment
         \\  --typescript-eslint-ban-tslint-comment=off Disable @typescript-eslint/ban-tslint-comment
         \\  --typescript-eslint-no-empty-interface=off Disable @typescript-eslint/no-empty-interface
+        \\  --typescript-eslint-no-non-null-asserted-optional-chain=off Disable @typescript-eslint/no-non-null-asserted-optional-chain
         \\  --typescript-eslint-no-require-imports=off Disable @typescript-eslint/no-require-imports
         \\  --typescript-eslint-prefer-as-const=off Disable @typescript-eslint/prefer-as-const
         \\  --semantic-errors=off     Disable parser semantic errors
