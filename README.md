@@ -32,6 +32,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-comma-operator`
 - `no-continue`
 - `no-debugger`
+- `no-duplicate-imports`
 - `no-dupe-args`
 - `no-dupe-class-members`
 - `no-dupe-else-if`
