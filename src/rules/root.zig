@@ -54,6 +54,7 @@ pub const no_for_in = @import("no_for_in.zig");
 pub const no_func_assign = @import("no_func_assign.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
+pub const no_implicit_coercion = @import("no_implicit_coercion.zig");
 pub const no_implied_eval = @import("no_implied_eval.zig");
 pub const no_import_assign = @import("no_import_assign.zig");
 pub const no_inline_comments = @import("no_inline_comments.zig");
@@ -729,6 +730,9 @@ const BasicVisitor = struct {
         if (self.options.no_self_assign) {
             try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
+        if (self.options.no_implicit_coercion) {
+            try no_implicit_coercion.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
         return .proceed;
     }
 
@@ -759,6 +763,9 @@ const BasicVisitor = struct {
         if (self.options.no_useless_concat) {
             try no_useless_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
+        if (self.options.no_implicit_coercion) {
+            try no_implicit_coercion.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
         if (self.options.no_path_concat) {
             try no_path_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
@@ -779,6 +786,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_void) {
             try no_void.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.no_implicit_coercion) {
+            try no_implicit_coercion.checkUnaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }

@@ -191,6 +191,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_implicit_coercion.zig");
+}
+
+comptime {
     _ = @import("rules/no_implied_eval.zig");
 }
 

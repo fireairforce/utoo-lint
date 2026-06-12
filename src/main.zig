@@ -116,6 +116,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_global_is_finite = false;
         } else if (std.mem.eql(u8, arg, "--no-global-is-nan=off")) {
             options.no_global_is_nan = false;
+        } else if (std.mem.eql(u8, arg, "--no-implicit-coercion=off")) {
+            options.no_implicit_coercion = false;
         } else if (std.mem.eql(u8, arg, "--no-implied-eval=off")) {
             options.no_implied_eval = false;
         } else if (std.mem.eql(u8, arg, "--no-import-assign=off")) {
@@ -436,6 +438,7 @@ fn printHelp() void {
         \\  --no-func-assign=off      Disable no-func-assign
         \\  --no-global-is-finite=off Disable no-global-is-finite
         \\  --no-global-is-nan=off    Disable no-global-is-nan
+        \\  --no-implicit-coercion=off Disable no-implicit-coercion
         \\  --no-implied-eval=off      Disable no-implied-eval
         \\  --no-import-assign=off     Disable no-import-assign
         \\  --no-irregular-whitespace=off Disable no-irregular-whitespace
