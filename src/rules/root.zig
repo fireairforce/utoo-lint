@@ -175,6 +175,7 @@ pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescrip
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
 pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
+pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
 pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
@@ -647,6 +648,9 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_prefer_as_const) {
             try typescript_eslint_prefer_as_const.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
         }
+        if (self.options.typescript_eslint_no_this_alias) {
+            try typescript_eslint_no_this_alias.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
+        }
         return .proceed;
     }
 
@@ -1017,6 +1021,9 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_confusing_non_null_assertion) {
             try typescript_eslint_no_confusing_non_null_assertion.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.typescript_eslint_no_this_alias) {
+            try typescript_eslint_no_this_alias.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
         return .proceed;
     }

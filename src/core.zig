@@ -187,6 +187,7 @@ pub const Options = struct {
     typescript_eslint_no_empty_interface: bool = true,
     typescript_eslint_no_non_null_asserted_optional_chain: bool = true,
     typescript_eslint_no_require_imports: bool = true,
+    typescript_eslint_no_this_alias: bool = true,
     typescript_eslint_prefer_as_const: bool = true,
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
