@@ -60,6 +60,7 @@ pub const no_extra_label = @import("no_extra_label.zig");
 pub const no_extra_boolean_cast = @import("no_extra_boolean_cast.zig");
 pub const no_extra_semi = @import("no_extra_semi.zig");
 pub const no_floating_decimal = @import("no_floating_decimal.zig");
+pub const no_fallthrough = @import("no_fallthrough.zig");
 pub const no_for_in = @import("no_for_in.zig");
 pub const no_func_assign = @import("no_func_assign.zig");
 pub const no_global_assign = @import("no_global_assign.zig");
@@ -561,6 +562,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_duplicate_case) {
             try no_duplicate_case.check(self.allocator, self.diagnostics, ctx.tree, statement);
+        }
+        if (self.options.no_fallthrough) {
+            try no_fallthrough.check(self.allocator, self.diagnostics, ctx.tree, statement);
         }
         return .proceed;
     }
