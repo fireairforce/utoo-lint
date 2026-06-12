@@ -185,6 +185,7 @@ pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("types
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
 pub const typescript_eslint_no_unnecessary_type_constraint = @import("typescript_eslint_no_unnecessary_type_constraint.zig");
+pub const typescript_eslint_no_var_requires = @import("typescript_eslint_no_var_requires.zig");
 pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
 pub const typescript_eslint_prefer_namespace_keyword = @import("typescript_eslint_prefer_namespace_keyword.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
@@ -364,6 +365,10 @@ pub fn runSemantic(
 
     if (options.typescript_eslint_no_require_imports) {
         try typescript_eslint_no_require_imports.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.typescript_eslint_no_var_requires) {
+        try typescript_eslint_no_var_requires.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_new_symbol or options.symbol_description) {
