@@ -307,6 +307,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_misleading_character_class.zig");
+}
+
+comptime {
     _ = @import("rules/no_multi_assign.zig");
 }
 

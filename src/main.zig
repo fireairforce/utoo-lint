@@ -211,6 +211,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_multi_spaces = false;
         } else if (std.mem.eql(u8, arg, "--no-mixed-spaces-and-tabs=off")) {
             options.no_mixed_spaces_and_tabs = false;
+        } else if (std.mem.eql(u8, arg, "--no-misleading-character-class=off")) {
+            options.no_misleading_character_class = false;
         } else if (std.mem.eql(u8, arg, "--no-multiple-empty-lines=off")) {
             options.no_multiple_empty_lines = false;
         } else if (std.mem.eql(u8, arg, "--no-nonoctal-decimal-escape=off")) {
@@ -685,6 +687,7 @@ fn printHelp() void {
         \\  --no-multi-str=off        Disable no-multi-str
         \\  --no-multi-spaces=off     Disable no-multi-spaces
         \\  --no-mixed-spaces-and-tabs=off Disable no-mixed-spaces-and-tabs
+        \\  --no-misleading-character-class=off Disable no-misleading-character-class
         \\  --no-multiple-empty-lines=off Disable no-multiple-empty-lines
         \\  --no-nonoctal-decimal-escape=off Disable no-nonoctal-decimal-escape
         \\  --no-new=off              Disable no-new

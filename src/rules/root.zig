@@ -83,6 +83,7 @@ pub const no_lone_blocks = @import("no_lone_blocks.zig");
 pub const no_lonely_if = @import("no_lonely_if.zig");
 pub const no_loss_of_precision = @import("no_loss_of_precision.zig");
 pub const no_mixed_spaces_and_tabs = @import("no_mixed_spaces_and_tabs.zig");
+pub const no_misleading_character_class = @import("no_misleading_character_class.zig");
 pub const no_multi_assign = @import("no_multi_assign.zig");
 pub const no_multi_spaces = @import("no_multi_spaces.zig");
 pub const no_multi_str = @import("no_multi_str.zig");
@@ -279,6 +280,10 @@ pub fn runSemantic(
 
     if (options.no_invalid_regexp) {
         try no_invalid_regexp.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_misleading_character_class) {
+        try no_misleading_character_class.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_new_func) {
@@ -1268,6 +1273,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_div_regex) {
             try no_div_regex.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.no_misleading_character_class) {
+            try no_misleading_character_class.checkRegExpLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         if (self.options.no_regex_spaces) {
             try no_regex_spaces.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
