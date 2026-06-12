@@ -24,6 +24,8 @@ pub fn main(init: std.process.Init) !void {
             return;
         } else if (std.mem.eql(u8, arg, "--curly=off")) {
             options.curly = false;
+        } else if (std.mem.eql(u8, arg, "--dot-notation=off")) {
+            options.dot_notation = false;
         } else if (std.mem.eql(u8, arg, "--default-case=off")) {
             options.default_case = false;
         } else if (std.mem.eql(u8, arg, "--default-case-last=off")) {
@@ -414,6 +416,7 @@ fn printHelp() void {
         \\
         \\Options:
         \\  --curly=off              Disable curly
+        \\  --dot-notation=off       Disable dot-notation
         \\  --default-case=off        Disable default-case
         \\  --default-case-last=off   Disable default-case-last
         \\  --eol-last=off            Disable eol-last
