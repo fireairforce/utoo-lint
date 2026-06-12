@@ -21,6 +21,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-alert`
 - `no-array-constructor`
 - `no-await-in-loop`
+- `no-bitwise`
 - `no-buffer-constructor`
 - `no-caller`
 - `no-case-declarations`

@@ -29,6 +29,7 @@ pub const Options = struct {
     no_array_constructor: bool = true,
     no_await_in_loop: bool = true,
     no_alert: bool = true,
+    no_bitwise: bool = true,
     no_buffer_constructor: bool = true,
     no_caller: bool = true,
     no_case_declarations: bool = true,

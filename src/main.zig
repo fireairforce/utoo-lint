@@ -46,6 +46,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_await_in_loop = false;
         } else if (std.mem.eql(u8, arg, "--no-alert=off")) {
             options.no_alert = false;
+        } else if (std.mem.eql(u8, arg, "--no-bitwise=off")) {
+            options.no_bitwise = false;
         } else if (std.mem.eql(u8, arg, "--no-buffer-constructor=off")) {
             options.no_buffer_constructor = false;
         } else if (std.mem.eql(u8, arg, "--no-caller=off")) {

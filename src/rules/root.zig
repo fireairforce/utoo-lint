@@ -19,6 +19,7 @@ pub const no_alert = @import("no_alert.zig");
 pub const eqeqeq = @import("eqeqeq.zig");
 pub const no_array_constructor = @import("no_array_constructor.zig");
 pub const no_await_in_loop = @import("no_await_in_loop.zig");
+pub const no_bitwise = @import("no_bitwise.zig");
 pub const no_buffer_constructor = @import("no_buffer_constructor.zig");
 pub const no_caller = @import("no_caller.zig");
 pub const no_case_declarations = @import("no_case_declarations.zig");
@@ -818,6 +819,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_bitwise) {
+            try no_bitwise.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
         if (self.options.no_self_assign) {
             try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
@@ -833,6 +837,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_bitwise) {
+            try no_bitwise.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
         if (self.options.no_compare_neg_zero) {
             try no_compare_neg_zero.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
@@ -875,6 +882,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_bitwise) {
+            try no_bitwise.checkUnaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
         if (self.options.no_delete_var) {
             try no_delete_var.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
