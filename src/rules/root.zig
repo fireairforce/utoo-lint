@@ -111,6 +111,7 @@ pub const no_proto = @import("no_proto.zig");
 pub const no_process_env = @import("no_process_env.zig");
 pub const no_process_exit = @import("no_process_exit.zig");
 pub const no_prototype_builtins = @import("no_prototype_builtins.zig");
+pub const no_redeclare = @import("no_redeclare.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_return_await = @import("no_return_await.zig");
 pub const no_return_assign = @import("no_return_assign.zig");
@@ -257,6 +258,10 @@ pub fn runSemantic(
 
     if (options.no_alert) {
         try no_alert.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_redeclare) {
+        try no_redeclare.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (reassignment_rules.shouldRun(options)) {

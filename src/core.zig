@@ -121,6 +121,7 @@ pub const Options = struct {
     no_process_env: bool = true,
     no_process_exit: bool = true,
     no_prototype_builtins: bool = true,
+    no_redeclare: bool = true,
     no_regex_spaces: bool = true,
     no_return_await: bool = true,
     no_return_assign: bool = true,
