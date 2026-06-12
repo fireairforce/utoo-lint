@@ -148,6 +148,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_irregular_whitespace = false;
         } else if (std.mem.eql(u8, arg, "--no-inline-comments=off")) {
             options.no_inline_comments = false;
+        } else if (std.mem.eql(u8, arg, "--no-inner-declarations=off")) {
+            options.no_inner_declarations = false;
         } else if (std.mem.eql(u8, arg, "--no-iterator=off")) {
             options.no_iterator = false;
         } else if (std.mem.eql(u8, arg, "--no-label-var=off")) {
@@ -513,6 +515,7 @@ fn printHelp() void {
         \\  --no-import-assign=off     Disable no-import-assign
         \\  --no-irregular-whitespace=off Disable no-irregular-whitespace
         \\  --no-inline-comments=off   Disable no-inline-comments
+        \\  --no-inner-declarations=off Disable no-inner-declarations
         \\  --no-iterator=off          Disable no-iterator
         \\  --no-label-var=off         Disable no-label-var
         \\  --no-labels=off           Disable no-labels
