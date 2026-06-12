@@ -173,6 +173,7 @@ pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_c
 pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_tslint_comment.zig");
 pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescript_eslint_no_confusing_non_null_assertion.zig");
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
+pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_eslint_no_extra_non_null_assertion.zig");
 pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
@@ -663,6 +664,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_no_empty_interface) {
             try typescript_eslint_no_empty_interface.check(self.allocator, self.diagnostics, ctx.tree, interface_declaration);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_non_null_expression(
+        self: *BasicVisitor,
+        expression: ast.TSNonNullExpression,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_no_extra_non_null_assertion) {
+            try typescript_eslint_no_extra_non_null_assertion.checkNonNullExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
         return .proceed;
     }
@@ -1170,6 +1183,9 @@ const BasicVisitor = struct {
         if (self.options.prefer_spread) {
             try prefer_spread.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
+        if (self.options.typescript_eslint_no_extra_non_null_assertion) {
+            try typescript_eslint_no_extra_non_null_assertion.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
+        }
         return .proceed;
     }
 
@@ -1228,6 +1244,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_process_env) {
             try no_process_env.check(self.allocator, self.diagnostics, ctx.tree, member, index);
+        }
+        if (self.options.typescript_eslint_no_extra_non_null_assertion) {
+            try typescript_eslint_no_extra_non_null_assertion.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member);
         }
         return .proceed;
     }
