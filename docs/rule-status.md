@@ -77,6 +77,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-labels`](https://eslint.org/docs/latest/rules/no-labels) | Implemented |
 | [`no-lone-blocks`](https://eslint.org/docs/latest/rules/no-lone-blocks) | Implemented |
 | [`no-lonely-if`](https://eslint.org/docs/latest/rules/no-lonely-if) | Implemented |
+| [`no-loop-func`](https://eslint.org/docs/latest/rules/no-loop-func) | Implemented |
 | [`no-loss-of-precision`](https://eslint.org/docs/latest/rules/no-loss-of-precision) | Implemented |
 | [`no-mixed-spaces-and-tabs`](https://eslint.org/docs/latest/rules/no-mixed-spaces-and-tabs) | Implemented |
 | [`no-multi-assign`](https://eslint.org/docs/latest/rules/no-multi-assign) | Implemented |
@@ -150,6 +151,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`prefer-spread`](https://eslint.org/docs/latest/rules/prefer-spread) | Implemented |
 | [`prefer-template`](https://eslint.org/docs/latest/rules/prefer-template) | Implemented |
 | [`radix`](https://eslint.org/docs/latest/rules/radix) | Implemented |
+| [`require-atomic-updates`](https://eslint.org/docs/latest/rules/require-atomic-updates) | Implemented |
 | [`require-yield`](https://eslint.org/docs/latest/rules/require-yield) | Implemented |
 | [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Implemented |
 | [`symbol-description`](https://eslint.org/docs/latest/rules/symbol-description) | Implemented |

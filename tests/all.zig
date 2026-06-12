@@ -631,6 +631,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/require_atomic_updates.zig");
+}
+
+comptime {
     _ = @import("rules/require_yield.zig");
 }
 

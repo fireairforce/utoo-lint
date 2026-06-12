@@ -373,6 +373,8 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_template = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
+        } else if (std.mem.eql(u8, arg, "--require-atomic-updates=off")) {
+            options.require_atomic_updates = false;
         } else if (std.mem.eql(u8, arg, "--require-yield=off")) {
             options.require_yield = false;
         } else if (std.mem.eql(u8, arg, "--spaced-comment=off")) {
@@ -779,6 +781,7 @@ fn printHelp() void {
         \\  --prefer-rest-params=off  Disable prefer-rest-params
         \\  --prefer-spread=off       Disable prefer-spread
         \\  --radix=off               Disable radix
+        \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield
         \\  --semantic-errors=off     Disable parser semantic errors
         \\  --yoda=off                Disable yoda
