@@ -69,6 +69,7 @@ pub const no_implicit_coercion = @import("no_implicit_coercion.zig");
 pub const no_implied_eval = @import("no_implied_eval.zig");
 pub const no_import_assign = @import("no_import_assign.zig");
 pub const no_inline_comments = @import("no_inline_comments.zig");
+pub const no_inner_declarations = @import("no_inner_declarations.zig");
 pub const no_irregular_whitespace = @import("no_irregular_whitespace.zig");
 pub const no_iterator = @import("no_iterator.zig");
 pub const no_label_var = @import("no_label_var.zig");
@@ -368,6 +369,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_dupe_args) {
             try no_dupe_args.check(self.allocator, self.diagnostics, ctx.tree, function);
+        }
+        if (self.options.no_inner_declarations) {
+            try no_inner_declarations.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, ctx);
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);

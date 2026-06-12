@@ -80,6 +80,7 @@ pub const Options = struct {
     no_import_assign: bool = true,
     no_irregular_whitespace: bool = true,
     no_inline_comments: bool = true,
+    no_inner_declarations: bool = true,
     no_iterator: bool = true,
     no_label_var: bool = true,
     no_labels: bool = true,

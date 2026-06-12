@@ -251,6 +251,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_inner_declarations.zig");
+}
+
+comptime {
     _ = @import("rules/no_irregular_whitespace.zig");
 }
 
