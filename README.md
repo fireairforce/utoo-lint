@@ -76,6 +76,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-multi-spaces`
 - `no-multi-str`
 - `no-multiple-empty-lines`
+- `no-nonoctal-decimal-escape`
 - `no-new`
 - `no-nested-ternary`
 - `no-negated-condition`
