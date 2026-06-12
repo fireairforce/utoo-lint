@@ -7,6 +7,7 @@ const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 const global_is_checks = @import("global_is_checks.zig");
+const native_object_checks = @import("native_object_checks.zig");
 const object_constructor_checks = @import("object_constructor_checks.zig");
 const promise_checks = @import("promise_checks.zig");
 const symbol_checks = @import("symbol_checks.zig");
@@ -350,12 +351,15 @@ pub fn runSemantic(
         try no_new_func.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_new_native_nonconstructor) {
-        try no_new_native_nonconstructor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
-    }
-
-    if (options.no_obj_calls) {
-        try no_obj_calls.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    if (options.no_new_native_nonconstructor or options.no_obj_calls) {
+        try native_object_checks.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.no_new_native_nonconstructor,
+            options.no_obj_calls,
+        );
     }
 
     if (options.no_new_object or options.no_object_constructor) {
