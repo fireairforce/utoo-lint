@@ -188,6 +188,7 @@ pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("types
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
 pub const typescript_eslint_no_unnecessary_type_constraint = @import("typescript_eslint_no_unnecessary_type_constraint.zig");
+pub const typescript_eslint_no_useless_constructor = @import("typescript_eslint_no_useless_constructor.zig");
 pub const typescript_eslint_no_var_requires = @import("typescript_eslint_no_var_requires.zig");
 pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
 pub const typescript_eslint_prefer_namespace_keyword = @import("typescript_eslint_prefer_namespace_keyword.zig");
@@ -497,8 +498,11 @@ const BasicVisitor = struct {
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, class.id, false);
         }
-        if (self.options.no_useless_constructor) {
+        if (self.options.no_useless_constructor and !self.options.typescript_eslint_no_useless_constructor) {
             try no_useless_constructor.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
+        }
+        if (self.options.typescript_eslint_no_useless_constructor) {
+            try typescript_eslint_no_useless_constructor.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
         if (self.options.typescript_eslint_no_misused_new) {
             try typescript_eslint_no_misused_new.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
