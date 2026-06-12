@@ -393,6 +393,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_non_null_asserted_optional_chain = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-require-imports=off")) {
             options.typescript_eslint_no_require_imports = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-this-alias=off")) {
+            options.typescript_eslint_no_this_alias = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-prefer-as-const=off")) {
             options.typescript_eslint_prefer_as_const = false;
         } else if (std.mem.eql(u8, arg, "--valid-typeof=off")) {
@@ -803,6 +805,7 @@ fn printHelp() void {
         \\  --typescript-eslint-no-empty-interface=off Disable @typescript-eslint/no-empty-interface
         \\  --typescript-eslint-no-non-null-asserted-optional-chain=off Disable @typescript-eslint/no-non-null-asserted-optional-chain
         \\  --typescript-eslint-no-require-imports=off Disable @typescript-eslint/no-require-imports
+        \\  --typescript-eslint-no-this-alias=off Disable @typescript-eslint/no-this-alias
         \\  --typescript-eslint-prefer-as-const=off Disable @typescript-eslint/prefer-as-const
         \\  --semantic-errors=off     Disable parser semantic errors
         \\  --yoda=off                Disable yoda
