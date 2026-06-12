@@ -12,6 +12,7 @@ test "reports no-extra-semi for unnecessary empty statements" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_extra_semi = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -32,6 +33,7 @@ test "does not report no-extra-semi for empty statement bodies" {
         .no_constant_condition = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_extra_semi = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -48,6 +50,7 @@ test "can disable no-extra-semi" {
         .no_extra_semi = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_extra_semi = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
