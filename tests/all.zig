@@ -647,6 +647,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_adjacent_overload_signatures.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_ban_ts_comment.zig");
 }
 
