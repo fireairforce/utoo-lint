@@ -171,6 +171,7 @@ pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_comment.zig");
 pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_tslint_comment.zig");
+pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
 pub const valid_typeof = @import("valid_typeof.zig");
@@ -598,6 +599,42 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_unused_expressions) {
             try no_unused_expressions.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_as_expression(
+        self: *BasicVisitor,
+        expression: ast.TSAsExpression,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_prefer_as_const) {
+            try typescript_eslint_prefer_as_const.checkAsExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_type_assertion(
+        self: *BasicVisitor,
+        assertion: ast.TSTypeAssertion,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_prefer_as_const) {
+            try typescript_eslint_prefer_as_const.checkTypeAssertion(self.allocator, self.diagnostics, ctx.tree, assertion);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_variable_declarator(
+        self: *BasicVisitor,
+        declarator: ast.VariableDeclarator,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_prefer_as_const) {
+            try typescript_eslint_prefer_as_const.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
         }
         return .proceed;
     }
@@ -1235,6 +1272,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, index);
+        }
+        if (self.options.typescript_eslint_prefer_as_const) {
+            try typescript_eslint_prefer_as_const.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
         }
         return .proceed;
     }

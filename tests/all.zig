@@ -655,6 +655,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_prefer_as_const.zig");
+}
+
+comptime {
     _ = @import("rules/unicode_bom.zig");
 }
 

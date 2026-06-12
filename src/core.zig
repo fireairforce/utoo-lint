@@ -183,6 +183,7 @@ pub const Options = struct {
     symbol_description: bool = true,
     typescript_eslint_ban_ts_comment: bool = true,
     typescript_eslint_ban_tslint_comment: bool = true,
+    typescript_eslint_prefer_as_const: bool = true,
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
     yoda: bool = true,
