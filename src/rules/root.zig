@@ -15,6 +15,7 @@ pub const for_direction = @import("for_direction.zig");
 pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
+pub const new_cap = @import("new_cap.zig");
 pub const new_parens = @import("new_parens.zig");
 pub const no_async_promise_executor = @import("no_async_promise_executor.zig");
 pub const no_alert = @import("no_alert.zig");
@@ -1016,6 +1017,9 @@ const BasicVisitor = struct {
         if (self.options.no_process_exit) {
             try no_process_exit.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
+        if (self.options.new_cap) {
+            try new_cap.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
         if (self.options.no_extra_bind) {
             try no_extra_bind.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
@@ -1038,6 +1042,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_new_require) {
             try no_new_require.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.new_cap) {
+            try new_cap.checkNewExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.new_parens) {
             try new_parens.check(self.allocator, self.diagnostics, ctx.tree, expression, index);

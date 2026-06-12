@@ -35,6 +35,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/new_cap.zig");
+}
+
+comptime {
     _ = @import("rules/new_parens.zig");
 }
 
