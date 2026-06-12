@@ -108,6 +108,7 @@ This repo is a working scaffold, not a production linter yet. The first rules ar
 - `no-undef-init`
 - `unicode-bom`
 - `no-unneeded-ternary`
+- `no-unused-labels`
 - `no-unsafe-finally`
 - `no-unsafe-negation`
 - `no-useless-computed-key`

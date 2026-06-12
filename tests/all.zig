@@ -395,6 +395,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_unused_labels.zig");
+}
+
+comptime {
     _ = @import("rules/no_unsafe_finally.zig");
 }
 

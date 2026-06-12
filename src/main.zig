@@ -220,6 +220,8 @@ pub fn main(init: std.process.Init) !void {
             options.unicode_bom = false;
         } else if (std.mem.eql(u8, arg, "--no-unneeded-ternary=off")) {
             options.no_unneeded_ternary = false;
+        } else if (std.mem.eql(u8, arg, "--no-unused-labels=off")) {
+            options.no_unused_labels = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-finally=off")) {
             options.no_unsafe_finally = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-negation=off")) {
@@ -486,6 +488,7 @@ fn printHelp() void {
         \\  --no-undef-init=off       Disable no-undef-init
         \\  --unicode-bom=off         Disable unicode-bom
         \\  --no-unneeded-ternary=off Disable no-unneeded-ternary
+        \\  --no-unused-labels=off   Disable no-unused-labels
         \\  --no-unsafe-finally=off   Disable no-unsafe-finally
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation
         \\  --no-useless-computed-key=off Disable no-useless-computed-key

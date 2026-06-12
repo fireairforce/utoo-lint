@@ -116,6 +116,7 @@ pub const Options = struct {
     no_undef_init: bool = true,
     unicode_bom: bool = true,
     no_unneeded_ternary: bool = true,
+    no_unused_labels: bool = true,
     no_unsafe_finally: bool = true,
     no_unsafe_negation: bool = true,
     no_useless_computed_key: bool = true,
