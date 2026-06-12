@@ -6,6 +6,8 @@ const ast = parser.ast;
 const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
+const global_is_checks = @import("global_is_checks.zig");
+
 pub const curly = @import("curly.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
 pub const block_scoped_var = @import("block_scoped_var.zig");
@@ -298,12 +300,15 @@ pub fn runSemantic(
         try no_global_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_global_is_finite) {
-        try no_global_is_finite.run(allocator, diagnostics, tree, semantic_result.symbol_table);
-    }
-
-    if (options.no_global_is_nan) {
-        try no_global_is_nan.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    if (options.no_global_is_finite or options.no_global_is_nan) {
+        try global_is_checks.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.no_global_is_finite,
+            options.no_global_is_nan,
+        );
     }
 
     if (options.no_implied_eval) {
