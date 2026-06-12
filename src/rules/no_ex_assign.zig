@@ -8,16 +8,22 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-ex-assign";
 
+const ReferenceLookup = std.AutoHashMap(ast.NodeIndex, traverser.semantic.SymbolId);
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    var reference_lookup = try buildReferenceLookup(allocator, symbol_table);
+    defer reference_lookup.deinit();
+
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
         .symbol_table = symbol_table,
+        .reference_lookup = &reference_lookup,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -27,6 +33,7 @@ const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     symbol_table: traverser.semantic.SymbolTable,
+    reference_lookup: *const ReferenceLookup,
 
     pub fn enter_assignment_expression(
         self: *Visitor,
@@ -57,7 +64,7 @@ const Visitor = struct {
         const identifier = unwrapTransparent(tree, target);
         if (!isIdentifierReference(tree, identifier)) return;
 
-        const symbol_id = symbolForReferenceNode(self.symbol_table, identifier);
+        const symbol_id = self.reference_lookup.get(identifier) orelse return;
         if (symbol_id == .none) return;
 
         const symbol = self.symbol_table.getSymbol(symbol_id);
@@ -73,6 +80,21 @@ const Visitor = struct {
         );
     }
 };
+
+fn buildReferenceLookup(
+    allocator: Allocator,
+    symbol_table: traverser.semantic.SymbolTable,
+) Allocator.Error!ReferenceLookup {
+    var lookup = ReferenceLookup.init(allocator);
+    errdefer lookup.deinit();
+
+    var iter = symbol_table.iterReferences();
+    while (iter.next()) |entry| {
+        try lookup.put(entry.reference.node, symbol_table.referenceSymbol(entry.id));
+    }
+
+    return lookup;
+}
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
     var current = index;
@@ -95,18 +117,4 @@ fn isIdentifierReference(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .identifier_reference => true,
         else => false,
     };
-}
-
-fn symbolForReferenceNode(
-    symbol_table: traverser.semantic.SymbolTable,
-    node: ast.NodeIndex,
-) traverser.semantic.SymbolId {
-    var iter = symbol_table.iterReferences();
-    while (iter.next()) |entry| {
-        if (entry.reference.node == node) {
-            return symbol_table.referenceSymbol(entry.id);
-        }
-    }
-
-    return .none;
 }
