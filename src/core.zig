@@ -85,6 +85,7 @@ pub const Options = struct {
     no_lonely_if: bool = true,
     no_loss_of_precision: bool = true,
     no_multi_str: bool = true,
+    no_multi_assign: bool = true,
     no_multi_spaces: bool = true,
     no_mixed_spaces_and_tabs: bool = true,
     no_multiple_empty_lines: bool = true,
