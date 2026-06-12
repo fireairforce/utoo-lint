@@ -507,6 +507,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_regex_literals.zig");
+}
+
+comptime {
     _ = @import("rules/radix.zig");
 }
 

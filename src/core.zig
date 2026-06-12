@@ -146,6 +146,7 @@ pub const Options = struct {
     no_unused_vars: bool = true,
     no_undef: bool = true,
     prefer_exponentiation_operator: bool = true,
+    prefer_regex_literals: bool = true,
     radix: bool = true,
     parser_semantic_errors: bool = true,
     yoda: bool = true,
