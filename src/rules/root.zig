@@ -120,6 +120,7 @@ pub const no_script_url = @import("no_script_url.zig");
 pub const no_self_assign = @import("no_self_assign.zig");
 pub const no_self_compare = @import("no_self_compare.zig");
 pub const no_setter_return = @import("no_setter_return.zig");
+pub const no_shadow = @import("no_shadow.zig");
 pub const no_shadow_restricted_names = @import("no_shadow_restricted_names.zig");
 pub const no_sequences = @import("no_sequences.zig");
 pub const no_sparse_arrays = @import("no_sparse_arrays.zig");
@@ -263,6 +264,10 @@ pub fn runSemantic(
 
     if (options.no_redeclare) {
         try no_redeclare.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_shadow) {
+        try no_shadow.run(allocator, diagnostics, tree, semantic_result.scope_tree, semantic_result.symbol_table);
     }
 
     if (reassignment_rules.shouldRun(options)) {

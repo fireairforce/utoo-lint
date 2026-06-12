@@ -455,6 +455,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_shadow.zig");
+}
+
+comptime {
     _ = @import("rules/no_sequences.zig");
 }
 
