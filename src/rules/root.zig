@@ -138,6 +138,7 @@ pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operat
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_template = @import("prefer_template.zig");
 pub const radix = @import("radix.zig");
+pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
@@ -182,6 +183,9 @@ pub fn runBasic(
     }
     if (options.no_multi_spaces) {
         try no_multi_spaces.run(allocator, diagnostics, tree);
+    }
+    if (options.spaced_comment) {
+        try spaced_comment.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{

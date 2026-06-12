@@ -290,6 +290,8 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_template = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
+        } else if (std.mem.eql(u8, arg, "--spaced-comment=off")) {
+            options.spaced_comment = false;
         } else if (std.mem.eql(u8, arg, "--symbol-description=off")) {
             options.symbol_description = false;
         } else if (std.mem.eql(u8, arg, "--valid-typeof=off")) {
