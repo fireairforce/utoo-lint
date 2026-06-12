@@ -286,6 +286,8 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_exponentiation_operator = false;
         } else if (std.mem.eql(u8, arg, "--prefer-regex-literals=off")) {
             options.prefer_regex_literals = false;
+        } else if (std.mem.eql(u8, arg, "--prefer-template=off")) {
+            options.prefer_template = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
         } else if (std.mem.eql(u8, arg, "--symbol-description=off")) {

@@ -519,6 +519,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_template.zig");
+}
+
+comptime {
     _ = @import("rules/radix.zig");
 }
 
