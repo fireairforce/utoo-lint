@@ -663,6 +663,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_extra_non_null_assertion.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_non_null_asserted_optional_chain.zig");
 }
 
