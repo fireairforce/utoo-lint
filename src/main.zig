@@ -183,6 +183,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_implied_eval = false;
         } else if (std.mem.eql(u8, arg, "--no-import-assign=off")) {
             options.no_import_assign = false;
+        } else if (std.mem.eql(u8, arg, "--no-invalid-regexp=off")) {
+            options.no_invalid_regexp = false;
         } else if (std.mem.eql(u8, arg, "--no-irregular-whitespace=off")) {
             options.no_irregular_whitespace = false;
         } else if (std.mem.eql(u8, arg, "--no-inline-comments=off")) {
@@ -670,6 +672,7 @@ fn printHelp() void {
         \\  --no-implicit-coercion=off Disable no-implicit-coercion
         \\  --no-implied-eval=off      Disable no-implied-eval
         \\  --no-import-assign=off     Disable no-import-assign
+        \\  --no-invalid-regexp=off    Disable no-invalid-regexp
         \\  --no-irregular-whitespace=off Disable no-irregular-whitespace
         \\  --no-inline-comments=off   Disable no-inline-comments
         \\  --no-inner-declarations=off Disable no-inner-declarations

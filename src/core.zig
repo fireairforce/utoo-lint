@@ -82,6 +82,7 @@ pub const Options = struct {
     no_implicit_coercion: bool = true,
     no_implied_eval: bool = true,
     no_import_assign: bool = true,
+    no_invalid_regexp: bool = true,
     no_irregular_whitespace: bool = true,
     no_inline_comments: bool = true,
     no_inner_declarations: bool = true,

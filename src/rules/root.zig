@@ -74,6 +74,7 @@ pub const no_implied_eval = @import("no_implied_eval.zig");
 pub const no_import_assign = @import("no_import_assign.zig");
 pub const no_inline_comments = @import("no_inline_comments.zig");
 pub const no_inner_declarations = @import("no_inner_declarations.zig");
+pub const no_invalid_regexp = @import("no_invalid_regexp.zig");
 pub const no_irregular_whitespace = @import("no_irregular_whitespace.zig");
 pub const no_iterator = @import("no_iterator.zig");
 pub const no_label_var = @import("no_label_var.zig");
@@ -274,6 +275,10 @@ pub fn runSemantic(
 
     if (options.no_label_var) {
         try no_label_var.run(allocator, diagnostics, tree, semantic_result);
+    }
+
+    if (options.no_invalid_regexp) {
+        try no_invalid_regexp.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_new_func) {
