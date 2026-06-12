@@ -439,6 +439,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_useless_constructor.zig");
+}
+
+comptime {
     _ = @import("rules/no_useless_catch.zig");
 }
 
