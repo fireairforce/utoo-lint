@@ -132,6 +132,7 @@ pub const Options = struct {
     no_ternary: bool = true,
     no_template_curly_in_string: bool = true,
     no_throw_literal: bool = true,
+    no_this_before_super: bool = true,
     no_tabs: bool = true,
     no_trailing_spaces: bool = true,
     no_unreachable: bool = true,
