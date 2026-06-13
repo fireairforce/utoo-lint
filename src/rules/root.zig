@@ -179,6 +179,7 @@ pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_adjacent_overload_signatures = @import("typescript_eslint_adjacent_overload_signatures.zig");
 pub const typescript_eslint_array_type = @import("typescript_eslint_array_type.zig");
 pub const typescript_eslint_class_literal_property_style = @import("typescript_eslint_class_literal_property_style.zig");
+pub const typescript_eslint_consistent_type_assertions = @import("typescript_eslint_consistent_type_assertions.zig");
 pub const typescript_eslint_consistent_type_definitions = @import("typescript_eslint_consistent_type_definitions.zig");
 pub const typescript_eslint_dot_notation = @import("typescript_eslint_dot_notation.zig");
 pub const typescript_eslint_no_array_constructor = @import("typescript_eslint_no_array_constructor.zig");
@@ -698,9 +699,12 @@ const BasicVisitor = struct {
     pub fn enter_ts_as_expression(
         self: *BasicVisitor,
         expression: ast.TSAsExpression,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_consistent_type_assertions) {
+            try typescript_eslint_consistent_type_assertions.checkAsExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
         if (self.options.typescript_eslint_prefer_as_const) {
             try typescript_eslint_prefer_as_const.checkAsExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
@@ -710,9 +714,12 @@ const BasicVisitor = struct {
     pub fn enter_ts_type_assertion(
         self: *BasicVisitor,
         assertion: ast.TSTypeAssertion,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_consistent_type_assertions) {
+            try typescript_eslint_consistent_type_assertions.checkTypeAssertion(self.allocator, self.diagnostics, ctx.tree, assertion, index);
+        }
         if (self.options.typescript_eslint_prefer_as_const) {
             try typescript_eslint_prefer_as_const.checkTypeAssertion(self.allocator, self.diagnostics, ctx.tree, assertion);
         }
