@@ -184,6 +184,7 @@ pub const typescript_eslint_no_array_constructor = @import("typescript_eslint_no
 pub const typescript_eslint_ban_types = @import("typescript_eslint_ban_types.zig");
 pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_comment.zig");
 pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_tslint_comment.zig");
+pub const typescript_eslint_explicit_member_accessibility = @import("typescript_eslint_explicit_member_accessibility.zig");
 pub const typescript_eslint_method_signature_style = @import("typescript_eslint_method_signature_style.zig");
 pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescript_eslint_no_confusing_non_null_assertion.zig");
 pub const typescript_eslint_no_dupe_class_members = @import("typescript_eslint_no_dupe_class_members.zig");
@@ -1551,6 +1552,9 @@ const BasicVisitor = struct {
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
         }
+        if (self.options.typescript_eslint_explicit_member_accessibility) {
+            try typescript_eslint_explicit_member_accessibility.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
+        }
         return .proceed;
     }
 
@@ -1562,6 +1566,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, index);
+        }
+        if (self.options.typescript_eslint_explicit_member_accessibility) {
+            try typescript_eslint_explicit_member_accessibility.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, index);
         }
         if (self.options.typescript_eslint_prefer_as_const) {
             try typescript_eslint_prefer_as_const.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);

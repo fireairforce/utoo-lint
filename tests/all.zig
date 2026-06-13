@@ -663,6 +663,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_explicit_member_accessibility.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_method_signature_style.zig");
 }
 
