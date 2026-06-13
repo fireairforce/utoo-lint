@@ -237,6 +237,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_implied_eval = false;
         } else if (std.mem.eql(u8, arg, "--no-import-assign=off")) {
             options.no_import_assign = false;
+        } else if (std.mem.eql(u8, arg, "--alipay-ant-disallow-typos=off")) {
+            options.alipay_ant_disallow_typos = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-no-import-src=off")) {
             options.alipay_ant_no_import_src = false;
         } else if (std.mem.eql(u8, arg, "--import-first=off")) {
@@ -1197,6 +1199,7 @@ fn printHelp() void {
         \\  --no-implicit-coercion=off Disable no-implicit-coercion
         \\  --no-implied-eval=off      Disable no-implied-eval
         \\  --no-import-assign=off     Disable no-import-assign
+        \\  --alipay-ant-disallow-typos=off Disable @alipay/ant/disallow-typos
         \\  --alipay-ant-no-import-src=off Disable @alipay/ant/no-import-src
         \\  --import-first=off         Disable import/first
         \\  --import-newline-after-import=off Disable import/newline-after-import
