@@ -208,3 +208,4 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-var-requires`](https://typescript-eslint.io/rules/no-var-requires/) | Implemented |
 | [`@typescript-eslint/prefer-as-const`](https://typescript-eslint.io/rules/prefer-as-const/) | Implemented |
 | [`@typescript-eslint/prefer-namespace-keyword`](https://typescript-eslint.io/rules/prefer-namespace-keyword/) | Implemented |
+| [`@typescript-eslint/restrict-plus-operands`](https://typescript-eslint.io/rules/restrict-plus-operands/) | Implemented for primitive literals and explicit primitive annotations |

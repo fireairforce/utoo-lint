@@ -807,6 +807,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_restrict_plus_operands.zig");
+}
+
+comptime {
     _ = @import("rules/unicode_bom.zig");
 }
 

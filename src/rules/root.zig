@@ -216,6 +216,7 @@ pub const typescript_eslint_no_use_before_define = @import("typescript_eslint_no
 pub const typescript_eslint_no_var_requires = @import("typescript_eslint_no_var_requires.zig");
 pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
 pub const typescript_eslint_prefer_namespace_keyword = @import("typescript_eslint_prefer_namespace_keyword.zig");
+pub const typescript_eslint_restrict_plus_operands = @import("typescript_eslint_restrict_plus_operands.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
 pub const valid_typeof = @import("valid_typeof.zig");
@@ -1332,6 +1333,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_bitwise) {
             try no_bitwise.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.typescript_eslint_restrict_plus_operands) {
+            try typescript_eslint_restrict_plus_operands.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_compare_neg_zero) {
             try no_compare_neg_zero.check(self.allocator, self.diagnostics, ctx.tree, expression, index);

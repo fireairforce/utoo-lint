@@ -221,6 +221,7 @@ pub const Options = struct {
     typescript_eslint_no_var_requires: bool = true,
     typescript_eslint_prefer_as_const: bool = true,
     typescript_eslint_prefer_namespace_keyword: bool = true,
+    typescript_eslint_restrict_plus_operands: bool = true,
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
     yoda: bool = true,
