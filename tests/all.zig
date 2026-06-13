@@ -55,6 +55,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/alipay_ant_jsx_handler_names.zig");
+}
+
+comptime {
     _ = @import("rules/alipay_ant_no_spread_params.zig");
 }
 

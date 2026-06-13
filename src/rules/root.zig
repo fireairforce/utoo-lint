@@ -26,6 +26,7 @@ pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
 pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_exhaustive_deps = @import("alipay_ant_exhaustive_deps.zig");
+pub const alipay_ant_jsx_handler_names = @import("alipay_ant_jsx_handler_names.zig");
 pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
 pub const alipay_ant_no_phantom_dependencies = @import("alipay_ant_no_phantom_dependencies.zig");
 pub const alipay_ant_no_spread_params = @import("alipay_ant_no_spread_params.zig");
@@ -2127,6 +2128,9 @@ const BasicVisitor = struct {
         }
         if (self.options.jsx_a11y_aria_proptypes) {
             try jsx_a11y_aria_proptypes.check(self.allocator, self.diagnostics, ctx.tree, attribute, index);
+        }
+        if (self.options.alipay_ant_jsx_handler_names) {
+            try alipay_ant_jsx_handler_names.check(self.allocator, self.diagnostics, ctx.tree, attribute, index);
         }
         if (self.options.react_no_danger) {
             try react_no_danger.check(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1));
