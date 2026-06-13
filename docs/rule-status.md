@@ -175,6 +175,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/ban-types`](https://typescript-eslint.io/rules/ban-types/) | Implemented for fishlint's `types: { '{}': false, object: false }, extendDefaults: true` configuration |
 | [`@typescript-eslint/consistent-type-definitions`](https://typescript-eslint.io/rules/consistent-type-definitions/) | Implemented for fishlint's `interface` configuration |
 | [`@typescript-eslint/dot-notation`](https://typescript-eslint.io/rules/dot-notation/) | Implemented |
+| [`@typescript-eslint/explicit-member-accessibility`](https://typescript-eslint.io/rules/explicit-member-accessibility/) | Implemented for fishlint's `no-public` configuration |
 | [`@typescript-eslint/method-signature-style`](https://typescript-eslint.io/rules/method-signature-style/) | Implemented for fishlint's `property` configuration |
 | [`@typescript-eslint/no-array-constructor`](https://typescript-eslint.io/rules/no-array-constructor/) | Implemented |
 | [`@typescript-eslint/no-confusing-non-null-assertion`](https://typescript-eslint.io/rules/no-confusing-non-null-assertion/) | Implemented |

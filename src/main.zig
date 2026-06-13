@@ -397,6 +397,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_ban_ts_comment = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-ban-tslint-comment=off")) {
             options.typescript_eslint_ban_tslint_comment = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-explicit-member-accessibility=off")) {
+            options.typescript_eslint_explicit_member_accessibility = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-method-signature-style=off")) {
             options.typescript_eslint_method_signature_style = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-confusing-non-null-assertion=off")) {
@@ -851,6 +853,7 @@ fn printHelp() void {
         \\  --typescript-eslint-dot-notation=off Disable @typescript-eslint/dot-notation
         \\  --typescript-eslint-ban-ts-comment=off Disable @typescript-eslint/ban-ts-comment
         \\  --typescript-eslint-ban-tslint-comment=off Disable @typescript-eslint/ban-tslint-comment
+        \\  --typescript-eslint-explicit-member-accessibility=off Disable @typescript-eslint/explicit-member-accessibility
         \\  --typescript-eslint-method-signature-style=off Disable @typescript-eslint/method-signature-style
         \\  --typescript-eslint-no-confusing-non-null-assertion=off Disable @typescript-eslint/no-confusing-non-null-assertion
         \\  --typescript-eslint-no-dupe-class-members=off Disable @typescript-eslint/no-dupe-class-members

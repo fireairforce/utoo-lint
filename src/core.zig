@@ -191,6 +191,7 @@ pub const Options = struct {
     typescript_eslint_ban_types: bool = true,
     typescript_eslint_ban_ts_comment: bool = true,
     typescript_eslint_ban_tslint_comment: bool = true,
+    typescript_eslint_explicit_member_accessibility: bool = true,
     typescript_eslint_method_signature_style: bool = true,
     typescript_eslint_no_confusing_non_null_assertion: bool = true,
     typescript_eslint_no_empty_function: bool = true,
