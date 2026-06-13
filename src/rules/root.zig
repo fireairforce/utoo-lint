@@ -34,6 +34,7 @@ pub const alipay_ant_no_phantom_dependencies = @import("alipay_ant_no_phantom_de
 pub const alipay_ant_no_too_large_file = @import("alipay_ant_no_too_large_file.zig");
 pub const alipay_ant_prefer_elseif_end_with_else = @import("alipay_ant_prefer_elseif_end_with_else.zig");
 pub const alipay_ant_prefer_click_with_debounce = @import("alipay_ant_prefer_click_with_debounce.zig");
+pub const alipay_ant_prefer_import_as_required = @import("alipay_ant_prefer_import_as_required.zig");
 pub const alipay_ant_no_spread_params = @import("alipay_ant_no_spread_params.zig");
 pub const alipay_ant_prefer_import_from_stdlib = @import("alipay_ant_prefer_import_from_stdlib.zig");
 pub const alipay_spmlint_use_labeled_spm = @import("alipay_spmlint_use_labeled_spm.zig");
@@ -990,6 +991,18 @@ const BasicVisitor = struct {
         }
         if (self.options.alipay_ant_prefer_elseif_end_with_else) {
             try alipay_ant_prefer_elseif_end_with_else.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_import_declaration(
+        self: *BasicVisitor,
+        declaration: ast.ImportDeclaration,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.alipay_ant_prefer_import_as_required) {
+            try alipay_ant_prefer_import_as_required.checkImportDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, index);
         }
         return .proceed;
     }

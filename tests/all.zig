@@ -83,6 +83,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/alipay_ant_prefer_import_as_required.zig");
+}
+
+comptime {
     _ = @import("rules/alipay_ant_prefer_click_with_debounce.zig");
 }
 
