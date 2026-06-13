@@ -1,0 +1,24 @@
+const parser = @import("parser");
+const core = @import("../core.zig");
+const no_unused_vars = @import("no_unused_vars.zig");
+
+const traverser = parser.traverser;
+const Allocator = @import("std").mem.Allocator;
+
+pub const id = "@typescript-eslint/no-unused-vars";
+
+pub fn run(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const parser.ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+) Allocator.Error!void {
+    try no_unused_vars.runWithOptions(allocator, diagnostics, tree, symbol_table, .{
+        .rule_id = id,
+        .severity = .@"error",
+        .check_parameters = true,
+        .args_after_used = true,
+        .ignore_rest_siblings = true,
+        .check_type_parameters = true,
+    });
+}

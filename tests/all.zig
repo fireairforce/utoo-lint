@@ -719,6 +719,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_unused_vars.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_use_before_define.zig");
 }
 
