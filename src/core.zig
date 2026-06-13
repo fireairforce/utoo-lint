@@ -189,6 +189,7 @@ pub const Options = struct {
     react_jsx_no_comment_textnodes: bool = true,
     react_jsx_pascal_case: bool = true,
     react_no_danger: bool = true,
+    react_no_find_dom_node: bool = true,
     radix: bool = true,
     require_atomic_updates: bool = true,
     require_yield: bool = true,
