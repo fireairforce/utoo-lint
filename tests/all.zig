@@ -699,6 +699,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_prefer_es6_class.zig");
+}
+
+comptime {
     _ = @import("rules/react_style_prop_object.zig");
 }
 
