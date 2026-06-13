@@ -715,6 +715,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_display_name.zig");
+}
+
+comptime {
     _ = @import("rules/react_jsx_filename_extension.zig");
 }
 

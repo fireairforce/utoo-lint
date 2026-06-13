@@ -198,6 +198,7 @@ pub const Options = struct {
     prefer_rest_params: bool = true,
     prefer_spread: bool = true,
     prefer_template: bool = true,
+    react_display_name: bool = true,
     react_jsx_boolean_value: bool = true,
     react_jsx_filename_extension: bool = true,
     react_jsx_no_duplicate_props: bool = true,

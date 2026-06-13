@@ -190,6 +190,7 @@ pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
 pub const prefer_template = @import("prefer_template.zig");
 pub const react_button_has_type = @import("react_button_has_type.zig");
+pub const react_display_name = @import("react_display_name.zig");
 pub const react_jsx_boolean_value = @import("react_jsx_boolean_value.zig");
 pub const react_jsx_filename_extension = @import("react_jsx_filename_extension.zig");
 pub const react_jsx_no_duplicate_props = @import("react_jsx_no_duplicate_props.zig");
@@ -351,6 +352,7 @@ pub fn runBasic(
     defer visitor.react_no_access_state_in_setstate_state.deinit(allocator);
     defer visitor.react_no_typos_state.deinit(allocator);
     defer visitor.react_no_unused_state_state.deinit(allocator);
+    defer visitor.react_display_name_state.deinit(allocator);
     defer visitor.react_forbid_prop_types_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
@@ -585,6 +587,7 @@ const BasicVisitor = struct {
     file_path: []const u8,
     options: core.Options,
     react_button_has_type_state: react_button_has_type.State = .{},
+    react_display_name_state: react_display_name.State = .{},
     react_require_render_return_state: react_require_render_return.State = .{},
     react_no_danger_with_children_bindings: react_no_danger_with_children.ObjectBindings = .{},
     react_no_access_state_in_setstate_state: react_no_access_state_in_setstate.State = .{},
@@ -666,6 +669,17 @@ const BasicVisitor = struct {
         return .proceed;
     }
 
+    pub fn exit_program(
+        self: *BasicVisitor,
+        _: ast.Program,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) void {
+        if (self.options.react_display_name) {
+            react_display_name.finish(self.allocator, self.diagnostics, ctx.tree, &self.react_display_name_state) catch {};
+        }
+    }
+
     pub fn enter_function(
         self: *BasicVisitor,
         function: ast.Function,
@@ -693,6 +707,9 @@ const BasicVisitor = struct {
         if (self.options.react_jsx_no_bind) {
             try react_jsx_no_bind.checkFunctionDeclaration(self.allocator, ctx.tree, function, &self.react_jsx_no_bind_state);
         }
+        if (self.options.react_display_name) {
+            try react_display_name.checkFunction(self.allocator, ctx.tree, function, index, ctx.path.parent(), &self.react_display_name_state);
+        }
         return .proceed;
     }
 
@@ -707,6 +724,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_require_render_return) {
             try react_require_render_return.checkClass(self.allocator, self.diagnostics, ctx.tree, class, self.react_require_render_return_state);
+        }
+        if (self.options.react_display_name) {
+            try react_display_name.checkClass(self.allocator, ctx.tree, class, index, ctx.path.parent(), &self.react_display_name_state);
         }
         if (self.options.react_no_multi_comp) {
             try react_no_multi_comp.checkClass(self.allocator, self.diagnostics, ctx.tree, class, index, &self.react_no_multi_comp_state);
@@ -1538,7 +1558,7 @@ const BasicVisitor = struct {
     pub fn enter_arrow_function_expression(
         self: *BasicVisitor,
         expression: ast.ArrowFunctionExpression,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_return_assign and expression.expression) {
@@ -1549,6 +1569,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_param_reassign) {
             try no_param_reassign.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
+        if (self.options.react_display_name) {
+            try react_display_name.checkArrowFunction(self.allocator, ctx.tree, index, ctx.path.parent(), &self.react_display_name_state);
         }
         return .proceed;
     }
@@ -1744,6 +1767,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_unused_state) {
             try react_no_unused_state.checkCallExpression(self.allocator, ctx.tree, call, &self.react_no_unused_state_state);
         }
+        if (self.options.react_display_name) {
+            try react_display_name.checkCallExpression(self.allocator, ctx.tree, call, index, ctx.path.parent(), &self.react_display_name_state);
+        }
         if (self.options.react_button_has_type) {
             try react_button_has_type.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_button_has_type_state);
         }
@@ -1880,6 +1906,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_unused_state) {
             try react_no_unused_state.checkMemberExpression(self.allocator, ctx.tree, member, index, ctx, &self.react_no_unused_state_state);
+        }
+        if (self.options.react_display_name) {
+            try react_display_name.checkMemberExpression(self.allocator, ctx.tree, member, &self.react_display_name_state);
         }
         if (self.options.typescript_eslint_no_extra_non_null_assertion) {
             try typescript_eslint_no_extra_non_null_assertion.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member);
