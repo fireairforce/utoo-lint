@@ -31,6 +31,8 @@ test "allows jsx-a11y/scope on th and custom components" {
         \\const three = <Custom scope="row" />;
         \\const four = <foo scope="row" />;
         \\const five = <td />;
+        \\const six = <Div scope="row" />;
+        \\const seven = <TD scope="row" />;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", .{
