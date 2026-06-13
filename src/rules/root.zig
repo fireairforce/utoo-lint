@@ -187,6 +187,7 @@ pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
 pub const react_no_unescaped_entities = @import("react_no_unescaped_entities.zig");
+pub const react_style_prop_object = @import("react_style_prop_object.zig");
 pub const react_void_dom_elements_no_children = @import("react_void_dom_elements_no_children.zig");
 pub const radix = @import("radix.zig");
 pub const require_atomic_updates = @import("require_atomic_updates.zig");
@@ -514,6 +515,7 @@ const BasicVisitor = struct {
     options: core.Options,
     react_no_danger_with_children_bindings: react_no_danger_with_children.ObjectBindings = .{},
     react_no_children_prop_bindings: react_no_children_prop.ReactBindings = .{},
+    react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
 
     pub fn enter_program(
@@ -539,6 +541,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_void_dom_elements_no_children) {
             self.react_void_dom_elements_no_children_bindings = react_void_dom_elements_no_children.bindingsFromProgram(ctx.tree, program);
+        }
+        if (self.options.react_style_prop_object) {
+            self.react_style_prop_object_bindings = react_style_prop_object.bindingsFromProgram(ctx.tree, program);
         }
         if (self.options.no_duplicate_imports and !self.options.import_no_duplicates) {
             try no_duplicate_imports.check(self.allocator, self.diagnostics, ctx.tree, program);
@@ -821,6 +826,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_danger_with_children) {
             react_no_danger_with_children.checkVariableDeclarator(ctx.tree, declarator, &self.react_no_danger_with_children_bindings);
+        }
+        if (self.options.react_style_prop_object) {
+            react_style_prop_object.checkVariableDeclarator(ctx.tree, declarator, &self.react_style_prop_object_bindings);
         }
         if (self.options.react_void_dom_elements_no_children) {
             react_void_dom_elements_no_children.checkVariableDeclarator(ctx.tree, declarator, &self.react_void_dom_elements_no_children_bindings);
@@ -1517,6 +1525,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_danger_with_children) {
             try react_no_danger_with_children.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, &self.react_no_danger_with_children_bindings);
         }
+        if (self.options.react_style_prop_object) {
+            try react_style_prop_object.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, &self.react_style_prop_object_bindings);
+        }
         if (self.options.react_void_dom_elements_no_children) {
             try react_void_dom_elements_no_children.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_void_dom_elements_no_children_bindings);
         }
@@ -1629,6 +1640,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_jsx_boolean_value) {
             try react_jsx_boolean_value.check(self.allocator, self.diagnostics, ctx.tree, attribute, index);
+        }
+        if (self.options.react_style_prop_object) {
+            try react_style_prop_object.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1), &self.react_style_prop_object_bindings);
         }
         if (self.options.react_no_children_prop) {
             try react_no_children_prop.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index);

@@ -196,6 +196,7 @@ pub const Options = struct {
     react_no_is_mounted: bool = true,
     react_no_render_return_value: bool = true,
     react_no_unescaped_entities: bool = true,
+    react_style_prop_object: bool = true,
     react_void_dom_elements_no_children: bool = true,
     radix: bool = true,
     require_atomic_updates: bool = true,

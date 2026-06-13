@@ -699,6 +699,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_style_prop_object.zig");
+}
+
+comptime {
     _ = @import("rules/react_void_dom_elements_no_children.zig");
 }
 
