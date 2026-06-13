@@ -23,6 +23,16 @@ pub fn run(
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    try runWithId(allocator, diagnostics, tree, symbol_table, id);
+}
+
+pub fn runWithId(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    rule_id: []const u8,
+) Allocator.Error!void {
     var candidate_visitor = CandidateVisitor{};
     try traverser.basic.traverse(CandidateVisitor, tree, &candidate_visitor);
     if (!candidate_visitor.found) return;
@@ -63,6 +73,7 @@ pub fn run(
         .symbol_table = symbol_table,
         .reference_lookup = &reference_lookup,
         .writes = writes.items,
+        .rule_id = rule_id,
     };
     defer visitor.loop_stack.deinit(allocator);
     defer visitor.function_loop_depth_stack.deinit(allocator);
@@ -273,6 +284,7 @@ const Visitor = struct {
     symbol_table: traverser.semantic.SymbolTable,
     reference_lookup: *const ReferenceLookup,
     writes: []const Write,
+    rule_id: []const u8,
     loop_stack: std.ArrayList(ast.Span) = .empty,
     function_loop_depth_stack: std.ArrayList(usize) = .empty,
 
@@ -378,7 +390,7 @@ const Visitor = struct {
             self.allocator,
             self.diagnostics,
             .warning,
-            id,
+            self.rule_id,
             tree.span(index),
             "Function declared in a loop contains unsafe references to variable(s) {s}.",
             .{joined},

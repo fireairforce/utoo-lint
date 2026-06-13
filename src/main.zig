@@ -485,6 +485,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_invalid_void_type = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-loss-of-precision=off")) {
             options.typescript_eslint_no_loss_of_precision = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-loop-func=off")) {
+            options.typescript_eslint_no_loop_func = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-misused-new=off")) {
             options.typescript_eslint_no_misused_new = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-namespace=off")) {
@@ -976,6 +978,7 @@ fn printHelp() void {
         \\  --typescript-eslint-no-non-null-asserted-optional-chain=off Disable @typescript-eslint/no-non-null-asserted-optional-chain
         \\  --typescript-eslint-no-redeclare=off Disable @typescript-eslint/no-redeclare
         \\  --typescript-eslint-no-require-imports=off Disable @typescript-eslint/no-require-imports
+        \\  --typescript-eslint-no-loop-func=off Disable @typescript-eslint/no-loop-func
         \\  --typescript-eslint-no-shadow=off Disable @typescript-eslint/no-shadow
         \\  --typescript-eslint-no-this-alias=off Disable @typescript-eslint/no-this-alias
         \\  --typescript-eslint-triple-slash-reference=off Disable @typescript-eslint/triple-slash-reference

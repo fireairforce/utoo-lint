@@ -228,6 +228,7 @@ pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_es
 pub const typescript_eslint_no_inferrable_types = @import("typescript_eslint_no_inferrable_types.zig");
 pub const typescript_eslint_no_invalid_void_type = @import("typescript_eslint_no_invalid_void_type.zig");
 pub const typescript_eslint_no_loss_of_precision = @import("typescript_eslint_no_loss_of_precision.zig");
+pub const typescript_eslint_no_loop_func = @import("typescript_eslint_no_loop_func.zig");
 pub const typescript_eslint_no_misused_new = @import("typescript_eslint_no_misused_new.zig");
 pub const typescript_eslint_no_namespace = @import("typescript_eslint_no_namespace.zig");
 pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
@@ -416,8 +417,12 @@ pub fn runSemantic(
         try no_misleading_character_class.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_loop_func) {
+    const use_typescript_no_loop_func = options.typescript_eslint_no_loop_func and tree.isTs();
+    if (options.no_loop_func and !use_typescript_no_loop_func) {
         try no_loop_func.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+    if (use_typescript_no_loop_func) {
+        try typescript_eslint_no_loop_func.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_new_func) {

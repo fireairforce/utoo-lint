@@ -234,6 +234,7 @@ pub const Options = struct {
     typescript_eslint_no_inferrable_types: bool = true,
     typescript_eslint_no_invalid_void_type: bool = true,
     typescript_eslint_no_loss_of_precision: bool = true,
+    typescript_eslint_no_loop_func: bool = true,
     typescript_eslint_no_misused_new: bool = true,
     typescript_eslint_no_non_null_asserted_optional_chain: bool = true,
     typescript_eslint_no_namespace: bool = true,
