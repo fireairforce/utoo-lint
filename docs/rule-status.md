@@ -5,6 +5,9 @@ Each rule links to the corresponding ESLint rule reference.
 
 | Rule | Status |
 | --- | --- |
+| [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for fishlint's `allowImplicit: true, checkForEach: false, allowVoid: false` configuration |
+| [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
+| [`constructor-super`](https://eslint.org/docs/latest/rules/constructor-super) | Implemented |
 | [`curly`](https://eslint.org/docs/latest/rules/curly) | Implemented |
 | [`default-case`](https://eslint.org/docs/latest/rules/default-case) | Implemented |
 | [`default-case-last`](https://eslint.org/docs/latest/rules/default-case-last) | Implemented |
@@ -71,6 +74,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-import-assign`](https://eslint.org/docs/latest/rules/no-import-assign) | Implemented |
 | [`no-inline-comments`](https://eslint.org/docs/latest/rules/no-inline-comments) | Implemented |
 | [`no-inner-declarations`](https://eslint.org/docs/latest/rules/no-inner-declarations) | Implemented |
+| [`no-invalid-regexp`](https://eslint.org/docs/latest/rules/no-invalid-regexp) | Implemented |
 | [`no-irregular-whitespace`](https://eslint.org/docs/latest/rules/no-irregular-whitespace) | Implemented |
 | [`no-iterator`](https://eslint.org/docs/latest/rules/no-iterator) | Implemented |
 | [`no-label-var`](https://eslint.org/docs/latest/rules/no-label-var) | Implemented |
@@ -80,6 +84,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-loop-func`](https://eslint.org/docs/latest/rules/no-loop-func) | Implemented |
 | [`no-loss-of-precision`](https://eslint.org/docs/latest/rules/no-loss-of-precision) | Implemented |
 | [`no-mixed-spaces-and-tabs`](https://eslint.org/docs/latest/rules/no-mixed-spaces-and-tabs) | Implemented |
+| [`no-misleading-character-class`](https://eslint.org/docs/latest/rules/no-misleading-character-class) | Implemented |
 | [`no-multi-assign`](https://eslint.org/docs/latest/rules/no-multi-assign) | Implemented |
 | [`no-multi-spaces`](https://eslint.org/docs/latest/rules/no-multi-spaces) | Implemented |
 | [`no-multi-str`](https://eslint.org/docs/latest/rules/no-multi-str) | Implemented |
@@ -119,6 +124,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-tabs`](https://eslint.org/docs/latest/rules/no-tabs) | Implemented |
 | [`no-template-curly-in-string`](https://eslint.org/docs/latest/rules/no-template-curly-in-string) | Implemented |
 | [`no-ternary`](https://eslint.org/docs/latest/rules/no-ternary) | Implemented |
+| [`no-this-before-super`](https://eslint.org/docs/latest/rules/no-this-before-super) | Implemented |
 | [`no-throw-literal`](https://eslint.org/docs/latest/rules/no-throw-literal) | Implemented |
 | [`no-trailing-spaces`](https://eslint.org/docs/latest/rules/no-trailing-spaces) | Implemented |
 | [`no-undef`](https://eslint.org/docs/latest/rules/no-undef) | Implemented |
@@ -143,7 +149,10 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-warning-comments`](https://eslint.org/docs/latest/rules/no-warning-comments) | Implemented |
 | [`no-with`](https://eslint.org/docs/latest/rules/no-with) | Implemented |
 | [`object-shorthand`](https://eslint.org/docs/latest/rules/object-shorthand) | Implemented |
+| [`one-var`](https://eslint.org/docs/latest/rules/one-var) | Implemented for fishlint's `never` configuration |
 | [`operator-assignment`](https://eslint.org/docs/latest/rules/operator-assignment) | Implemented |
+| [`prefer-const`](https://eslint.org/docs/latest/rules/prefer-const) | Implemented for fishlint's `destructuring: any, ignoreReadBeforeAssign: true` configuration |
+| [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Implemented for fishlint's object variable declarator configuration |
 | [`prefer-exponentiation-operator`](https://eslint.org/docs/latest/rules/prefer-exponentiation-operator) | Implemented |
 | [`prefer-promise-reject-errors`](https://eslint.org/docs/latest/rules/prefer-promise-reject-errors) | Implemented |
 | [`prefer-regex-literals`](https://eslint.org/docs/latest/rules/prefer-regex-literals) | Implemented |
