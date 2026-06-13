@@ -190,6 +190,7 @@ pub const react_no_string_refs = @import("react_no_string_refs.zig");
 pub const react_no_unescaped_entities = @import("react_no_unescaped_entities.zig");
 pub const react_prefer_es6_class = @import("react_prefer_es6_class.zig");
 pub const react_style_prop_object = @import("react_style_prop_object.zig");
+pub const react_self_closing_comp = @import("react_self_closing_comp.zig");
 pub const react_void_dom_elements_no_children = @import("react_void_dom_elements_no_children.zig");
 pub const radix = @import("radix.zig");
 pub const require_atomic_updates = @import("require_atomic_updates.zig");
@@ -1687,6 +1688,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_jsx_pascal_case) {
             try react_jsx_pascal_case.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
+        }
+        if (self.options.react_self_closing_comp) {
+            try react_self_closing_comp.check(self.allocator, self.diagnostics, ctx.tree, opening, index, ctx.path.ancestor(1));
         }
         return .proceed;
     }

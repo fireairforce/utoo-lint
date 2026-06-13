@@ -409,6 +409,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_no_unescaped_entities = false;
         } else if (std.mem.eql(u8, arg, "--react-prefer-es6-class=off")) {
             options.react_prefer_es6_class = false;
+        } else if (std.mem.eql(u8, arg, "--react-self-closing-comp=off")) {
+            options.react_self_closing_comp = false;
         } else if (std.mem.eql(u8, arg, "--react-style-prop-object=off")) {
             options.react_style_prop_object = false;
         } else if (std.mem.eql(u8, arg, "--react-void-dom-elements-no-children=off")) {
@@ -923,6 +925,7 @@ fn printHelp() void {
         \\  --react-no-string-refs=off Disable react/no-string-refs
         \\  --react-no-unescaped-entities=off Disable react/no-unescaped-entities
         \\  --react-prefer-es6-class=off Disable react/prefer-es6-class
+        \\  --react-self-closing-comp=off Disable react/self-closing-comp
         \\  --react-style-prop-object=off Disable react/style-prop-object
         \\  --react-void-dom-elements-no-children=off Disable react/void-dom-elements-no-children
         \\  --radix=off               Disable radix

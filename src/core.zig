@@ -198,6 +198,7 @@ pub const Options = struct {
     react_no_string_refs: bool = true,
     react_no_unescaped_entities: bool = true,
     react_prefer_es6_class: bool = true,
+    react_self_closing_comp: bool = true,
     react_style_prop_object: bool = true,
     react_void_dom_elements_no_children: bool = true,
     radix: bool = true,
