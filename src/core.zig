@@ -185,6 +185,7 @@ pub const Options = struct {
     spaced_comment: bool = true,
     symbol_description: bool = true,
     typescript_eslint_adjacent_overload_signatures: bool = true,
+    typescript_eslint_consistent_type_definitions: bool = true,
     typescript_eslint_no_array_constructor: bool = true,
     typescript_eslint_ban_types: bool = true,
     typescript_eslint_ban_ts_comment: bool = true,
