@@ -19,6 +19,7 @@ pub const Options = struct {
     ignore_rest_siblings: bool = false,
     check_type_parameters: bool = false,
     react_jsx_uses_react: bool = false,
+    react_jsx_uses_vars: bool = true,
 };
 
 const JSXReactUsage = struct {
@@ -84,7 +85,7 @@ pub fn runWithOptions(
     defer parameters.deinit(allocator);
 
     if (options.check_parameters and options.args_after_used) {
-        try collectParameters(allocator, tree, symbol_table, &parameters);
+        try collectParameters(allocator, tree, symbol_table, options, &parameters);
         std.mem.sort(Parameter, parameters.items, {}, lessThanParameter);
     }
 
@@ -111,7 +112,7 @@ pub fn runWithOptions(
             if (!options.check_parameters) continue;
             if (options.args_after_used and !shouldCheckParameter(entry.id, symbol.scope, parameters.items)) continue;
         }
-        if (symbol_table.isReferenced(entry.id)) continue;
+        if (isReferenced(tree, symbol_table, entry.id, options)) continue;
 
         const name = tree.string(symbol.name);
         if (std.mem.startsWith(u8, name, "_")) continue;
@@ -142,10 +143,26 @@ fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bo
         (options.check_type_parameters and flags.type_parameter);
 }
 
+fn isReferenced(
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    symbol_id: SymbolId,
+    options: Options,
+) bool {
+    if (options.react_jsx_uses_vars) return symbol_table.isReferenced(symbol_id);
+
+    var iter = symbol_table.symbolUses(symbol_id);
+    while (iter.next()) |use_node| {
+        if (tree.data(use_node) != .jsx_identifier) return true;
+    }
+    return false;
+}
+
 fn collectParameters(
     allocator: Allocator,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
     parameters: *std.ArrayList(Parameter),
 ) Allocator.Error!void {
     var iter = symbol_table.iterSymbols();
@@ -160,7 +177,7 @@ fn collectParameters(
             .symbol_id = entry.id,
             .scope = symbol.scope,
             .start = tree.span(decls[0]).start,
-            .used = symbol_table.isReferenced(entry.id),
+            .used = isReferenced(tree, symbol_table, entry.id, options),
         });
     }
 }

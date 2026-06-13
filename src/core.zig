@@ -191,6 +191,7 @@ pub const Options = struct {
     react_jsx_no_undef: bool = true,
     react_jsx_pascal_case: bool = true,
     react_jsx_uses_react: bool = true,
+    react_jsx_uses_vars: bool = true,
     react_no_danger: bool = true,
     react_no_danger_with_children: bool = true,
     react_no_array_index_key: bool = true,

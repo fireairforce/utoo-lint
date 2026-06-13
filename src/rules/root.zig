@@ -182,6 +182,7 @@ pub const react_jsx_no_target_blank = @import("react_jsx_no_target_blank.zig");
 pub const react_jsx_no_undef = @import("react_jsx_no_undef.zig");
 pub const react_jsx_pascal_case = @import("react_jsx_pascal_case.zig");
 pub const react_jsx_uses_react = @import("react_jsx_uses_react.zig");
+pub const react_jsx_uses_vars = @import("react_jsx_uses_vars.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
 pub const react_no_danger_with_children = @import("react_no_danger_with_children.zig");
 pub const react_no_children_prop = @import("react_no_children_prop.zig");
@@ -493,11 +494,19 @@ pub fn runSemantic(
     if (options.no_unused_vars and !options.typescript_eslint_no_unused_vars) {
         try no_unused_vars.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
             .react_jsx_uses_react = options.react_jsx_uses_react,
+            .react_jsx_uses_vars = options.react_jsx_uses_vars,
         });
     }
 
     if (options.typescript_eslint_no_unused_vars) {
-        try typescript_eslint_no_unused_vars.run(allocator, diagnostics, tree, semantic_result.symbol_table, options.react_jsx_uses_react);
+        try typescript_eslint_no_unused_vars.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.react_jsx_uses_react,
+            options.react_jsx_uses_vars,
+        );
     }
 
     if (options.no_use_before_define and !options.typescript_eslint_no_use_before_define) {
