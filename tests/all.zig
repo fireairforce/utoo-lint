@@ -735,6 +735,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_multi_comp.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_string_refs.zig");
 }
 
