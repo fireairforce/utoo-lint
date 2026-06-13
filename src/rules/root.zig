@@ -193,6 +193,7 @@ pub const react_no_array_index_key = @import("react_no_array_index_key.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
+pub const react_require_render_return = @import("react_require_render_return.zig");
 pub const react_no_string_refs = @import("react_no_string_refs.zig");
 pub const react_no_unescaped_entities = @import("react_no_unescaped_entities.zig");
 pub const react_prefer_es6_class = @import("react_prefer_es6_class.zig");
@@ -315,6 +316,7 @@ pub fn runBasic(
     };
     defer visitor.react_no_array_index_key_state.deinit(allocator);
     defer visitor.react_jsx_no_bind_state.deinit(allocator);
+    defer visitor.react_require_render_return_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -540,6 +542,7 @@ const BasicVisitor = struct {
     file_path: []const u8,
     options: core.Options,
     react_button_has_type_state: react_button_has_type.State = .{},
+    react_require_render_return_state: react_require_render_return.State = .{},
     react_no_danger_with_children_bindings: react_no_danger_with_children.ObjectBindings = .{},
     react_no_children_prop_bindings: react_no_children_prop.ReactBindings = .{},
     react_no_array_index_key_state: react_no_array_index_key.State = .{},
@@ -571,6 +574,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_button_has_type) {
             react_button_has_type.collectProgram(ctx.tree, program, &self.react_button_has_type_state);
+        }
+        if (self.options.react_require_render_return) {
+            try react_require_render_return.collectProgram(self.allocator, ctx.tree, program, &self.react_require_render_return_state);
         }
         if (self.options.react_no_array_index_key) {
             try react_no_array_index_key.collectProgram(self.allocator, ctx.tree, program, &self.react_no_array_index_key_state);
@@ -634,6 +640,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.constructor_super) {
             try constructor_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
+        }
+        if (self.options.react_require_render_return) {
+            try react_require_render_return.checkClass(self.allocator, self.diagnostics, ctx.tree, class, self.react_require_render_return_state);
         }
         if (self.options.no_this_before_super) {
             try no_this_before_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
@@ -1584,6 +1593,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_button_has_type) {
             try react_button_has_type.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_button_has_type_state);
+        }
+        if (self.options.react_require_render_return) {
+            try react_require_render_return.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_require_render_return_state);
         }
         if (self.options.react_no_children_prop) {
             try react_no_children_prop.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_no_children_prop_bindings);
