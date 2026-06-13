@@ -136,6 +136,7 @@ fn hasSemanticRules(options: Options) bool {
         options.alipay_ant_no_phantom_dependencies or
         options.import_default or
         options.import_named or
+        options.import_no_named_as_default or
         options.no_invalid_regexp or
         options.no_label_var or
         options.no_loop_func or

@@ -95,6 +95,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/import_no_named_as_default.zig");
+}
+
+comptime {
     _ = @import("rules/import_no_self_import.zig");
 }
 
