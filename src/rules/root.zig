@@ -177,6 +177,7 @@ pub const require_yield = @import("require_yield.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_adjacent_overload_signatures = @import("typescript_eslint_adjacent_overload_signatures.zig");
+pub const typescript_eslint_consistent_type_definitions = @import("typescript_eslint_consistent_type_definitions.zig");
 pub const typescript_eslint_dot_notation = @import("typescript_eslint_dot_notation.zig");
 pub const typescript_eslint_no_array_constructor = @import("typescript_eslint_no_array_constructor.zig");
 pub const typescript_eslint_ban_types = @import("typescript_eslint_ban_types.zig");
@@ -750,6 +751,18 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_misused_new) {
             try typescript_eslint_no_misused_new.checkInterfaceDeclaration(self.allocator, self.diagnostics, ctx.tree, interface_declaration);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_type_alias_declaration(
+        self: *BasicVisitor,
+        declaration: ast.TSTypeAliasDeclaration,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_consistent_type_definitions) {
+            try typescript_eslint_consistent_type_definitions.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
         }
         return .proceed;
     }
