@@ -187,6 +187,7 @@ pub const Options = struct {
     react_jsx_boolean_value: bool = true,
     react_jsx_no_duplicate_props: bool = true,
     react_jsx_no_comment_textnodes: bool = true,
+    react_jsx_no_target_blank: bool = true,
     react_jsx_pascal_case: bool = true,
     react_no_danger: bool = true,
     react_no_find_dom_node: bool = true,
