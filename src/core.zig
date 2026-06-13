@@ -199,6 +199,7 @@ pub const Options = struct {
     prefer_spread: bool = true,
     prefer_template: bool = true,
     react_jsx_boolean_value: bool = true,
+    react_jsx_filename_extension: bool = true,
     react_jsx_no_duplicate_props: bool = true,
     react_jsx_no_comment_textnodes: bool = true,
     react_jsx_no_bind: bool = true,

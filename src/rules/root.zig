@@ -191,6 +191,7 @@ pub const prefer_spread = @import("prefer_spread.zig");
 pub const prefer_template = @import("prefer_template.zig");
 pub const react_button_has_type = @import("react_button_has_type.zig");
 pub const react_jsx_boolean_value = @import("react_jsx_boolean_value.zig");
+pub const react_jsx_filename_extension = @import("react_jsx_filename_extension.zig");
 pub const react_jsx_no_duplicate_props = @import("react_jsx_no_duplicate_props.zig");
 pub const react_jsx_no_comment_textnodes = @import("react_jsx_no_comment_textnodes.zig");
 pub const react_jsx_no_bind = @import("react_jsx_no_bind.zig");
@@ -588,6 +589,7 @@ const BasicVisitor = struct {
     react_forbid_prop_types_state: react_forbid_prop_types.State = .{},
     react_no_children_prop_bindings: react_no_children_prop.ReactBindings = .{},
     react_no_array_index_key_state: react_no_array_index_key.State = .{},
+    react_jsx_filename_extension_state: react_jsx_filename_extension.State = .{},
     react_jsx_no_bind_state: react_jsx_no_bind.State = .{},
     react_jsx_key_state: react_jsx_key.State = .{},
     react_no_multi_comp_state: react_no_multi_comp.State = .{},
@@ -1919,6 +1921,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_children_prop) {
             try react_no_children_prop.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
         }
+        if (self.options.react_jsx_filename_extension) {
+            try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state);
+        }
         if (self.options.react_button_has_type) {
             try react_button_has_type.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
         }
@@ -1933,6 +1938,18 @@ const BasicVisitor = struct {
         }
         if (self.options.react_void_dom_elements_no_children) {
             try react_void_dom_elements_no_children.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_jsx_fragment(
+        self: *BasicVisitor,
+        _: ast.JSXFragment,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.react_jsx_filename_extension) {
+            try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state);
         }
         return .proceed;
     }

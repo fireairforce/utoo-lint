@@ -26,10 +26,7 @@ pub fn lintSource(
         effective_options.typescript_eslint_no_namespace = false;
     }
 
-    var tree = try parser.parse(allocator, source, .{
-        .source_type = ast.SourceType.fromPath(path),
-        .lang = ast.Lang.fromPath(path),
-    });
+    var tree = try parseSource(allocator, source, path);
     defer tree.deinit();
 
     const needs_semantic = hasSemanticRules(effective_options);
@@ -48,6 +45,46 @@ pub fn lintSource(
     return .{
         .diagnostics = try diagnostics.toOwnedSlice(allocator),
     };
+}
+
+fn parseSource(allocator: Allocator, source: []const u8, path: []const u8) Allocator.Error!ast.Tree {
+    var tree = try parser.parse(allocator, source, .{
+        .source_type = ast.SourceType.fromPath(path),
+        .lang = ast.Lang.fromPath(path),
+    });
+
+    const fallback_lang = jsxFallbackLang(path) orelse return tree;
+    if (!tree.hasErrors()) return tree;
+
+    var fallback_tree = try parser.parse(allocator, source, .{
+        .source_type = ast.SourceType.fromPath(path),
+        .lang = fallback_lang,
+    });
+    if (fallback_tree.hasErrors()) {
+        fallback_tree.deinit();
+        return tree;
+    }
+
+    tree.deinit();
+    return fallback_tree;
+}
+
+fn jsxFallbackLang(path: []const u8) ?ast.Lang {
+    if (std.mem.endsWith(u8, path, ".js") or
+        std.mem.endsWith(u8, path, ".mjs") or
+        std.mem.endsWith(u8, path, ".cjs"))
+    {
+        return .jsx;
+    }
+
+    if (std.mem.endsWith(u8, path, ".ts") or
+        std.mem.endsWith(u8, path, ".mts") or
+        std.mem.endsWith(u8, path, ".cts"))
+    {
+        return .tsx;
+    }
+
+    return null;
 }
 
 pub fn isLintablePath(path: []const u8) bool {
