@@ -196,6 +196,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-this-alias`](https://typescript-eslint.io/rules/no-this-alias/) | Implemented for fishlint's `allowedNames: ['self']` configuration |
 | [`@typescript-eslint/triple-slash-reference`](https://typescript-eslint.io/rules/triple-slash-reference/) | Implemented for fishlint's `path: never, types: always, lib: always` configuration |
 | [`@typescript-eslint/typedef`](https://typescript-eslint.io/rules/typedef/) | Implemented for fishlint's `propertyDeclaration: true` configuration |
+| [`@typescript-eslint/unified-signatures`](https://typescript-eslint.io/rules/unified-signatures/) | Implemented |
 | [`@typescript-eslint/no-unnecessary-type-constraint`](https://typescript-eslint.io/rules/no-unnecessary-type-constraint/) | Implemented |
 | [`@typescript-eslint/no-useless-constructor`](https://typescript-eslint.io/rules/no-useless-constructor/) | Implemented |
 | [`@typescript-eslint/no-unused-expressions`](https://typescript-eslint.io/rules/no-unused-expressions/) | Implemented for fishlint's `allowShortCircuit: true, allowTernary: true, allowTaggedTemplates: true` configuration |
