@@ -169,6 +169,15 @@ Each rule links to the corresponding ESLint rule reference.
 | [`valid-typeof`](https://eslint.org/docs/latest/rules/valid-typeof) | Implemented |
 | [`yoda`](https://eslint.org/docs/latest/rules/yoda) | Implemented |
 
+## Import plugin rules
+
+| Rule | Status |
+| --- | --- |
+| [`import/first`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/first.md) | Implemented |
+| [`import/newline-after-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/newline-after-import.md) | Implemented for fishlint's default `count: 1` behavior |
+| [`import/no-amd`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-amd.md) | Implemented |
+| [`import/no-duplicates`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-duplicates.md) | Implemented |
+
 ## Parser diagnostics
 
 `parser-semantic-errors` reports parse diagnostics from Yuku, including semantic early errors by default. It is not an ESLint rule and therefore does not have a corresponding ESLint rule page.
