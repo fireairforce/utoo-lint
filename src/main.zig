@@ -397,6 +397,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_no_is_mounted = false;
         } else if (std.mem.eql(u8, arg, "--react-no-render-return-value=off")) {
             options.react_no_render_return_value = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-unescaped-entities=off")) {
+            options.react_no_unescaped_entities = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
         } else if (std.mem.eql(u8, arg, "--require-atomic-updates=off")) {
@@ -901,6 +903,7 @@ fn printHelp() void {
         \\  --react-no-find-dom-node=off Disable react/no-find-dom-node
         \\  --react-no-is-mounted=off Disable react/no-is-mounted
         \\  --react-no-render-return-value=off Disable react/no-render-return-value
+        \\  --react-no-unescaped-entities=off Disable react/no-unescaped-entities
         \\  --radix=off               Disable radix
         \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield
