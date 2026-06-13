@@ -179,6 +179,15 @@ Each rule links to the corresponding ESLint rule reference.
 | [`import/no-duplicates`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-duplicates.md) | Implemented |
 | [`import/no-self-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-self-import.md) | Implemented for relative imports resolved with fishlint's configured extensions |
 
+## JSX a11y rules
+
+| Rule | Status |
+| --- | --- |
+| [`jsx-a11y/aria-props`](https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/main/docs/rules/aria-props.md) | Implemented |
+| [`jsx-a11y/iframe-has-title`](https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/main/docs/rules/iframe-has-title.md) | Implemented |
+| [`jsx-a11y/img-redundant-alt`](https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/main/docs/rules/img-redundant-alt.md) | Implemented |
+| [`jsx-a11y/no-access-key`](https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/main/docs/rules/no-access-key.md) | Implemented |
+
 ## Parser diagnostics
 
 `parser-semantic-errors` reports parse diagnostics from Yuku, including semantic early errors by default. It is not an ESLint rule and therefore does not have a corresponding ESLint rule page.

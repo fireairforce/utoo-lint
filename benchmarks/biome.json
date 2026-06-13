@@ -1,12 +1,33 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
+  "vcs": {
+    "enabled": false,
+    "useIgnoreFile": false
+  },
   "files": {
-    "includes": ["fixtures/src/**/*.ts"]
+    "includes": ["fixtures/**/*.ts"],
+    "maxSize": 67108864
   },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": false,
+      "correctness": {
+        "noConstAssign": "error",
+        "noEmptyCharacterClassInRegex": "error",
+        "noEmptyPattern": "error",
+        "noUnsafeFinally": "error",
+        "useIsNan": "error",
+        "useValidTypeof": "error"
+      },
+      "suspicious": {
+        "noDebugger": "error",
+        "noDuplicateCase": "error",
+        "noFallthroughSwitchClause": "error",
+        "noGlobalAssign": "error",
+        "noImportAssign": "error",
+        "noUnsafeNegation": "error"
+      }
     }
   }
 }

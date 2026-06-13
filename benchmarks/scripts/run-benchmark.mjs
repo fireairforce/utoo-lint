@@ -1,8 +1,9 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
+import { benchmarkRuleNames, oxlintRuleArgs, utooRuleArgs } from "./shared-rules.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const runs = positiveInt(args.runs, 8, "runs");
@@ -17,25 +18,25 @@ const benchmarks = [
   {
     name: "utoo-lint",
     command: utooBin,
-    args: [target],
+    args: [...utooRuleArgs(), target],
     requiredPath: utooBin
   },
   {
     name: "oxlint",
     command: bin("oxlint"),
-    args: [target],
+    args: [...oxlintRuleArgs(), "--no-ignore", "--silent", target],
     requiredPath: bin("oxlint")
   },
   {
     name: "biome",
     command: bin("biome"),
-    args: ["lint", "--max-diagnostics=0", target],
+    args: ["lint", "--config-path=biome.json", "--max-diagnostics=0", target],
     requiredPath: bin("biome")
   },
   {
     name: "eslint",
     command: bin("eslint"),
-    args: [target],
+    args: ["--max-warnings=0", "--no-warn-ignored", target],
     requiredPath: bin("eslint"),
     optional: skipEslint
   }
@@ -50,6 +51,7 @@ for (const benchmark of benchmarks) {
 }
 
 const results = [];
+const targetFiles = await countFiles(target);
 
 for (const benchmark of benchmarks) {
   for (let i = 0; i < warmups; i += 1) {
@@ -81,6 +83,8 @@ const printable = results.map((result) => ({
   relative: `${(result.summary.medianMs / fastest).toFixed(2)}x`
 }));
 
+console.log(`Rules: ${benchmarkRuleNames().join(", ")}`);
+console.log(`Target: ${target} (${targetFiles} file(s))`);
 console.table(printable);
 
 await mkdir("results", { recursive: true });
@@ -93,6 +97,8 @@ await writeFile(
       platform: process.platform,
       arch: process.arch,
       target,
+      targetFiles,
+      rules: benchmarkRuleNames(),
       results
     },
     null,
@@ -160,6 +166,27 @@ function formatMs(value) {
 function bin(name) {
   const suffix = process.platform === "win32" ? ".cmd" : "";
   return join(localBin, `${name}${suffix}`);
+}
+
+async function countFiles(path) {
+  const pathStat = await stat(path);
+  if (pathStat.isFile()) {
+    return 1;
+  }
+  if (!pathStat.isDirectory()) {
+    return 0;
+  }
+
+  let count = 0;
+  for (const entry of await readdir(path, { withFileTypes: true })) {
+    const child = join(path, entry.name);
+    if (entry.isDirectory()) {
+      count += await countFiles(child);
+    } else if (entry.isFile() && /\.(?:[cm]?[jt]sx?)$/.test(entry.name)) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 function parseArgs(argv) {

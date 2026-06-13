@@ -1,22 +1,19 @@
-import js from "@eslint/js";
 import tseslint from "typescript-eslint";
+import { eslintRuleConfig } from "./scripts/shared-rules.mjs";
 
 export default [
   {
     ignores: ["node_modules/**", "results/**"]
   },
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
   {
-    files: ["fixtures/src/**/*.ts"],
+    files: ["fixtures/**/*.ts"],
     languageOptions: {
+      parser: tseslint.parser,
       parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module"
       }
     },
-    rules: {
-      "no-undef": "off"
-    }
+    rules: eslintRuleConfig("error")
   }
 ];
