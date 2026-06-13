@@ -505,6 +505,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_no_render_return_value = false;
         } else if (std.mem.eql(u8, arg, "--react-no-will-update-set-state=off")) {
             options.react_no_will_update_set_state = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-this-in-sfc=off")) {
+            options.react_no_this_in_sfc = false;
         } else if (std.mem.eql(u8, arg, "--react-no-string-refs=off")) {
             options.react_no_string_refs = false;
         } else if (std.mem.eql(u8, arg, "--react-no-unescaped-entities=off")) {
@@ -1301,6 +1303,7 @@ fn printHelp() void {
         \\  --react-no-redundant-should-component-update=off Disable react/no-redundant-should-component-update
         \\  --react-no-render-return-value=off Disable react/no-render-return-value
         \\  --react-no-will-update-set-state=off Disable react/no-will-update-set-state
+        \\  --react-no-this-in-sfc=off Disable react/no-this-in-sfc
         \\  --react-no-string-refs=off Disable react/no-string-refs
         \\  --react-no-unescaped-entities=off Disable react/no-unescaped-entities
         \\  --react-prefer-es6-class=off Disable react/prefer-es6-class
