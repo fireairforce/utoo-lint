@@ -6,6 +6,7 @@
   "scripts": {
     "generate": "node scripts/generate-corpus.mjs",
     "bench": "node scripts/run-benchmark.mjs",
+    "chart": "node scripts/render-chart.mjs",
     "codspeed": "node scripts/run-codspeed.mjs"
   },
   "devDependencies": {
