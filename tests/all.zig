@@ -907,6 +907,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_loop_func.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_unused_vars.zig");
 }
 
