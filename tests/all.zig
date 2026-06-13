@@ -747,6 +747,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_typos.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_redundant_should_component_update.zig");
 }
 

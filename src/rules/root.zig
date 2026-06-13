@@ -212,6 +212,7 @@ pub const react_no_multi_comp = @import("react_no_multi_comp.zig");
 pub const react_no_redundant_should_component_update = @import("react_no_redundant_should_component_update.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
 pub const react_no_this_in_sfc = @import("react_no_this_in_sfc.zig");
+pub const react_no_typos = @import("react_no_typos.zig");
 pub const react_no_will_update_set_state = @import("react_no_will_update_set_state.zig");
 pub const react_require_render_return = @import("react_require_render_return.zig");
 pub const react_no_string_refs = @import("react_no_string_refs.zig");
@@ -342,6 +343,7 @@ pub fn runBasic(
     defer visitor.react_jsx_no_bind_state.deinit(allocator);
     defer visitor.react_require_render_return_state.deinit(allocator);
     defer visitor.react_no_access_state_in_setstate_state.deinit(allocator);
+    defer visitor.react_no_typos_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -579,6 +581,7 @@ const BasicVisitor = struct {
     react_jsx_no_bind_state: react_jsx_no_bind.State = .{},
     react_jsx_key_state: react_jsx_key.State = .{},
     react_no_multi_comp_state: react_no_multi_comp.State = .{},
+    react_no_typos_state: react_no_typos.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
 
@@ -605,6 +608,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_deprecated) {
             try react_no_deprecated.checkProgram(self.allocator, self.diagnostics, ctx.tree, program);
+        }
+        if (self.options.react_no_typos) {
+            try react_no_typos.collectProgram(self.allocator, self.diagnostics, ctx.tree, program, &self.react_no_typos_state);
         }
         if (self.options.react_no_children_prop) {
             self.react_no_children_prop_bindings = react_no_children_prop.bindingsFromProgram(ctx.tree, program);
@@ -1533,6 +1539,9 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_no_this_alias) {
             try typescript_eslint_no_this_alias.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
+        if (self.options.react_no_typos) {
+            try react_no_typos.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_no_typos_state);
+        }
         return .proceed;
     }
 
@@ -1987,6 +1996,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_deprecated) {
             try react_no_deprecated.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, index, expression, ctx.path.ancestor(1));
         }
+        if (self.options.react_no_typos) {
+            try react_no_typos.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx.path.ancestor(1), self.react_no_typos_state);
+        }
         return .proceed;
     }
 
@@ -2056,6 +2068,9 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_class_literal_property_style) {
             try typescript_eslint_class_literal_property_style.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
         }
+        if (self.options.react_no_typos) {
+            try react_no_typos.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index, ctx);
+        }
         return .proceed;
     }
 
@@ -2076,6 +2091,9 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_inferrable_types) {
             try typescript_eslint_no_inferrable_types.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
+        }
+        if (self.options.react_no_typos) {
+            try react_no_typos.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, ctx, self.react_no_typos_state);
         }
         return .proceed;
     }
