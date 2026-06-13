@@ -209,6 +209,7 @@ pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const react_no_multi_comp = @import("react_no_multi_comp.zig");
 pub const react_no_redundant_should_component_update = @import("react_no_redundant_should_component_update.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
+pub const react_no_this_in_sfc = @import("react_no_this_in_sfc.zig");
 pub const react_no_will_update_set_state = @import("react_no_will_update_set_state.zig");
 pub const react_require_render_return = @import("react_require_render_return.zig");
 pub const react_no_string_refs = @import("react_no_string_refs.zig");
@@ -1743,6 +1744,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_process_env) {
             try no_process_env.check(self.allocator, self.diagnostics, ctx.tree, member, index);
+        }
+        if (self.options.react_no_this_in_sfc) {
+            try react_no_this_in_sfc.check(self.allocator, self.diagnostics, ctx.tree, member, index, ctx);
         }
         if (self.options.typescript_eslint_no_extra_non_null_assertion) {
             try typescript_eslint_no_extra_non_null_assertion.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member);

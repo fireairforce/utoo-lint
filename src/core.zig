@@ -220,6 +220,7 @@ pub const Options = struct {
     react_no_redundant_should_component_update: bool = true,
     react_no_render_return_value: bool = true,
     react_no_will_update_set_state: bool = true,
+    react_no_this_in_sfc: bool = true,
     react_no_string_refs: bool = true,
     react_no_unescaped_entities: bool = true,
     react_prefer_es6_class: bool = true,
