@@ -19,10 +19,17 @@ npx utoo-lint --rules=no-debugger,no-unused-vars,@typescript-eslint/no-unused-va
 
 ## Add a Config File
 
-Create `utoo.json` in the project root:
+Create `utoo.json` in the project root, or copy the packaged frontend template:
+
+```bash
+cp node_modules/@utoo/lint/configs/frontend.json utoo.json
+```
+
+Minimal config:
 
 ```json
 {
+  "$schema": "https://raw.githubusercontent.com/fireairforce/utoo-lint/main/npm/utoo-lint/schema.json",
   "rules": {
     "no-debugger": "error",
     "no-console": "off",

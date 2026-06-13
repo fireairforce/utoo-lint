@@ -25,6 +25,16 @@ console.log(run(["--help"]).stdout);
 `UTOO_LINT_BIN=/path/to/utoo-lint` to force the JS API and CLI wrapper to use a
 specific native binary during local development.
 
+Use the packaged frontend config in an app:
+
+```bash
+cp node_modules/@utoo/lint/configs/frontend.json utoo.json
+npx utoo-lint src
+```
+
+The package also ships `schema.json`, which the frontend config references through
+its `$schema` field for editor validation.
+
 Build and stage the local native package:
 
 ```bash
