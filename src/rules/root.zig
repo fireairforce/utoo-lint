@@ -181,6 +181,7 @@ pub const react_jsx_no_comment_textnodes = @import("react_jsx_no_comment_textnod
 pub const react_jsx_no_target_blank = @import("react_jsx_no_target_blank.zig");
 pub const react_jsx_pascal_case = @import("react_jsx_pascal_case.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
+pub const react_no_danger_with_children = @import("react_no_danger_with_children.zig");
 pub const react_no_children_prop = @import("react_no_children_prop.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
@@ -511,6 +512,7 @@ const BasicVisitor = struct {
     diagnostics: *core.DiagnosticList,
     file_path: []const u8,
     options: core.Options,
+    react_no_danger_with_children_bindings: react_no_danger_with_children.ObjectBindings = .{},
     react_no_children_prop_bindings: react_no_children_prop.ReactBindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
 
@@ -816,6 +818,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_children_prop) {
             react_no_children_prop.checkVariableDeclarator(ctx.tree, declarator, &self.react_no_children_prop_bindings);
+        }
+        if (self.options.react_no_danger_with_children) {
+            react_no_danger_with_children.checkVariableDeclarator(ctx.tree, declarator, &self.react_no_danger_with_children_bindings);
         }
         if (self.options.react_void_dom_elements_no_children) {
             react_void_dom_elements_no_children.checkVariableDeclarator(ctx.tree, declarator, &self.react_void_dom_elements_no_children_bindings);
@@ -1509,6 +1514,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_children_prop) {
             try react_no_children_prop.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_no_children_prop_bindings);
         }
+        if (self.options.react_no_danger_with_children) {
+            try react_no_danger_with_children.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, &self.react_no_danger_with_children_bindings);
+        }
         if (self.options.react_void_dom_elements_no_children) {
             try react_void_dom_elements_no_children.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_void_dom_elements_no_children_bindings);
         }
@@ -1636,6 +1644,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.react_no_children_prop) {
             try react_no_children_prop.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
+        }
+        if (self.options.react_no_danger_with_children) {
+            try react_no_danger_with_children.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index, &self.react_no_danger_with_children_bindings);
         }
         if (self.options.react_void_dom_elements_no_children) {
             try react_void_dom_elements_no_children.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
