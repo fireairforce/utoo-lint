@@ -193,6 +193,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`react/jsx-pascal-case`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-pascal-case.md) | Implemented for fishlint's `allowAllCaps: true, ignore: []` configuration |
 | [`react/no-danger`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-danger.md) | Implemented |
 | [`react/no-find-dom-node`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-find-dom-node.md) | Implemented |
+| [`react/no-is-mounted`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md) | Implemented |
 
 ## TypeScript ESLint rules
 

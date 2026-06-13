@@ -659,6 +659,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_is_mounted.zig");
+}
+
+comptime {
     _ = @import("rules/react_jsx_boolean_value.zig");
 }
 
