@@ -275,6 +275,8 @@ pub fn main(init: std.process.Init) !void {
             options.import_no_named_as_default = false;
         } else if (std.mem.eql(u8, arg, "--import-no-named-as-default-member=off")) {
             options.import_no_named_as_default_member = false;
+        } else if (std.mem.eql(u8, arg, "--import-no-unresolved=off")) {
+            options.import_no_unresolved = false;
         } else if (std.mem.eql(u8, arg, "--import-no-self-import=off")) {
             options.import_no_self_import = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-alt-text=off")) {
@@ -1250,6 +1252,7 @@ fn printHelp() void {
         \\  --import-no-duplicates=off Disable import/no-duplicates
         \\  --import-no-named-as-default=off Disable import/no-named-as-default
         \\  --import-no-named-as-default-member=off Disable import/no-named-as-default-member
+        \\  --import-no-unresolved=off Disable import/no-unresolved
         \\  --import-no-self-import=off Disable import/no-self-import
         \\  --jsx-a11y-alt-text=off   Disable jsx-a11y/alt-text
         \\  --jsx-a11y-anchor-has-content=off Disable jsx-a11y/anchor-has-content

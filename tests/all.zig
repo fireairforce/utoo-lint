@@ -115,6 +115,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/import_no_unresolved.zig");
+}
+
+comptime {
     _ = @import("rules/import_no_self_import.zig");
 }
 
