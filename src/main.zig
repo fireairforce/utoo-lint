@@ -519,6 +519,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_no_typos = false;
         } else if (std.mem.eql(u8, arg, "--react-no-unknown-property=off")) {
             options.react_no_unknown_property = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-unused-state=off")) {
+            options.react_no_unused_state = false;
         } else if (std.mem.eql(u8, arg, "--react-no-string-refs=off")) {
             options.react_no_string_refs = false;
         } else if (std.mem.eql(u8, arg, "--react-no-unescaped-entities=off")) {
@@ -1332,6 +1334,7 @@ fn printHelp() void {
         \\  --react-no-this-in-sfc=off Disable react/no-this-in-sfc
         \\  --react-no-typos=off Disable react/no-typos
         \\  --react-no-unknown-property=off Disable react/no-unknown-property
+        \\  --react-no-unused-state=off Disable react/no-unused-state
         \\  --react-no-string-refs=off Disable react/no-string-refs
         \\  --react-no-unescaped-entities=off Disable react/no-unescaped-entities
         \\  --react-prefer-es6-class=off Disable react/prefer-es6-class

@@ -227,6 +227,7 @@ pub const Options = struct {
     react_no_this_in_sfc: bool = true,
     react_no_typos: bool = true,
     react_no_unknown_property: bool = true,
+    react_no_unused_state: bool = true,
     react_no_string_refs: bool = true,
     react_no_unescaped_entities: bool = true,
     react_prefer_es6_class: bool = true,

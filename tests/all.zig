@@ -763,6 +763,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_unused_state.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_redundant_should_component_update.zig");
 }
 
