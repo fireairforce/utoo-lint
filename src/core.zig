@@ -94,6 +94,7 @@ pub const Options = struct {
     alipay_spmlint_valid_manual_param: bool = true,
     alipay_spmlint_valid_manual_pv: bool = true,
     import_default: bool = true,
+    import_export: bool = true,
     import_first: bool = true,
     import_named: bool = true,
     import_newline_after_import: bool = true,
@@ -662,6 +663,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.import_default);
     try std.testing.expect(options.setByCliName("import/default", true));
     try std.testing.expect(options.import_default);
+
+    try std.testing.expect(!options.import_export);
+    try std.testing.expect(options.setByCliName("import/export", true));
+    try std.testing.expect(options.import_export);
 
     try std.testing.expect(!options.import_named);
     try std.testing.expect(options.setByCliName("import/named", true));

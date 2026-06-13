@@ -174,6 +174,7 @@ Each rule links to the corresponding ESLint rule reference.
 | Rule | Status |
 | --- | --- |
 | [`import/default`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/default.md) | Implemented for relative imports resolved with fishlint's configured extensions |
+| [`import/export`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/export.md) | Implemented for duplicate local exports and relative `export *` |
 | [`import/first`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/first.md) | Implemented |
 | [`import/named`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/named.md) | Implemented for relative imports resolved with fishlint's configured extensions |
 | [`import/newline-after-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/newline-after-import.md) | Implemented for fishlint's default `count: 1` behavior |
