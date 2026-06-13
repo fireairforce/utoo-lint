@@ -53,6 +53,9 @@ pub fn main(init: std.process.Init) !void {
                 std.process.exit(2);
             }
             thread_count_override = parsed;
+        } else if (std.mem.startsWith(u8, arg, "--rules=")) {
+            options = lint.Options.allDisabled();
+            parseEnabledRules(arg["--rules=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--constructor-super=off")) {
             options.constructor_super = false;
         } else if (std.mem.eql(u8, arg, "--array-callback-return=off")) {
@@ -599,6 +602,26 @@ fn collectLintablePaths(
     }
 }
 
+fn parseEnabledRules(value: []const u8, options: *lint.Options) void {
+    if (value.len == 0) {
+        std.debug.print("utoo-lint: --rules requires a comma-separated rule list\n", .{});
+        std.process.exit(2);
+    }
+
+    var iter = std.mem.splitScalar(u8, value, ',');
+    while (iter.next()) |raw_rule| {
+        const rule = std.mem.trim(u8, raw_rule, " \t\r\n");
+        if (rule.len == 0) {
+            std.debug.print("utoo-lint: --rules contains an empty rule name\n", .{});
+            std.process.exit(2);
+        }
+        if (!options.setByCliName(rule, true)) {
+            std.debug.print("utoo-lint: unknown rule in --rules: {s}\n", .{rule});
+            std.process.exit(2);
+        }
+    }
+}
+
 fn collectLintableDirectory(
     allocator: std.mem.Allocator,
     io: std.Io,
@@ -776,6 +799,7 @@ fn printHelp() void {
         \\
         \\Options:
         \\  --threads=N              Number of worker threads to use
+        \\  --rules=a,b,c            Enable only the comma-separated rule list
         \\  --array-callback-return=off Disable array-callback-return
         \\  --block-scoped-var=off   Disable block-scoped-var
         \\  --constructor-super=off  Disable constructor-super

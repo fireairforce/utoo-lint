@@ -105,6 +105,12 @@ Rule toggles:
 utoo-lint --no-console=off --no-unused-vars=off src
 ```
 
+Run only a focused rule set:
+
+```bash
+utoo-lint --rules=no-debugger,no-unused-vars,@typescript-eslint/no-unused-vars src
+```
+
 ## Architecture
 
 - `src/root.zig` owns parsing, rule execution, and public API exports.

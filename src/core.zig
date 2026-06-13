@@ -260,6 +260,96 @@ pub const Options = struct {
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
     yoda: bool = true,
+
+    pub fn allDisabled() Options {
+        var options = Options{};
+        inline for (@typeInfo(Options).@"struct".fields) |field| {
+            if (field.type == bool) {
+                @field(options, field.name) = false;
+            }
+        }
+        return options;
+    }
+
+    pub fn setByCliName(self: *Options, cli_name: []const u8, value: bool) bool {
+        @setEvalBranchQuota(10000);
+
+        if (std.mem.eql(u8, cli_name, "semantic-errors")) {
+            self.parser_semantic_errors = value;
+            return true;
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "@typescript-eslint/")) {
+            const typescript_rule_name = cli_name["@typescript-eslint/".len..];
+            inline for (@typeInfo(Options).@"struct".fields) |field| {
+                if (field.type == bool) {
+                    if (comptime fieldNameStartsWith(field.name, "typescript_eslint_")) {
+                        if (cliNameMatchesFieldName(field.name["typescript_eslint_".len..], typescript_rule_name)) {
+                            @field(self, field.name) = value;
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "import/")) {
+            return self.setByPrefixedRuleName("import_", cli_name["import/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "jsx-a11y/")) {
+            return self.setByPrefixedRuleName("jsx_a11y_", cli_name["jsx-a11y/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "react/")) {
+            return self.setByPrefixedRuleName("react_", cli_name["react/".len..], value);
+        }
+
+        inline for (@typeInfo(Options).@"struct".fields) |field| {
+            if (field.type == bool and cliNameMatchesFieldName(field.name, cli_name)) {
+                @field(self, field.name) = value;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
+        inline for (@typeInfo(Options).@"struct".fields) |field| {
+            if (field.type == bool) {
+                if (comptime fieldNameStartsWith(field.name, field_prefix)) {
+                    if (cliNameMatchesFieldName(field.name[field_prefix.len..], rule_name)) {
+                        @field(self, field.name) = value;
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    fn cliNameMatchesFieldName(comptime field_name: []const u8, cli_name: []const u8) bool {
+        if (cli_name.len != field_name.len) return false;
+
+        comptime var index: usize = 0;
+        inline while (index < field_name.len) : (index += 1) {
+            const expected = if (field_name[index] == '_') '-' else field_name[index];
+            if (cli_name[index] != expected) return false;
+        }
+        return true;
+    }
+
+    fn fieldNameStartsWith(comptime field_name: []const u8, comptime prefix: []const u8) bool {
+        @setEvalBranchQuota(10_000);
+        if (field_name.len < prefix.len) return false;
+
+        comptime var index: usize = 0;
+        inline while (index < prefix.len) : (index += 1) {
+            if (field_name[index] != prefix[index]) return false;
+        }
+        return true;
+    }
 };
 
 pub const Diagnostic = struct {
@@ -402,4 +492,31 @@ pub fn isKnownGlobal(name: []const u8) bool {
     }
 
     return false;
+}
+
+test "Options can enable rules by CLI name" {
+    var options = Options.allDisabled();
+
+    try std.testing.expect(!options.no_debugger);
+    try std.testing.expect(options.setByCliName("no-debugger", true));
+    try std.testing.expect(options.no_debugger);
+
+    try std.testing.expect(!options.typescript_eslint_no_unused_vars);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-unused-vars", true));
+    try std.testing.expect(options.typescript_eslint_no_unused_vars);
+    try std.testing.expect(!options.no_unused_vars);
+
+    try std.testing.expect(!options.jsx_a11y_aria_props);
+    try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));
+    try std.testing.expect(options.jsx_a11y_aria_props);
+
+    try std.testing.expect(!options.react_jsx_no_target_blank);
+    try std.testing.expect(options.setByCliName("react/jsx-no-target-blank", true));
+    try std.testing.expect(options.react_jsx_no_target_blank);
+
+    try std.testing.expect(!options.import_no_duplicates);
+    try std.testing.expect(options.setByCliName("import/no-duplicates", true));
+    try std.testing.expect(options.import_no_duplicates);
+
+    try std.testing.expect(!options.setByCliName("unknown-rule", true));
 }

@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { Bench } from "tinybench";
 import { withCodSpeed } from "@codspeed/tinybench-plugin";
+import { benchmarkRuleNames, utooRuleArgs } from "./shared-rules.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const target = args.target ?? "fixtures/codspeed";
@@ -30,11 +31,13 @@ bench.add(`utoo-lint/${target}`, () => {
   runUtooLint(target);
 });
 
+console.log(`Rules: ${benchmarkRuleNames().join(", ")}`);
+
 await bench.run();
 console.table(bench.table());
 
 function runUtooLint(targetPath) {
-  const result = spawnSync(utooBin, [targetPath], {
+  const result = spawnSync(utooBin, [...utooRuleArgs(), targetPath], {
     cwd: process.cwd(),
     env: {
       ...process.env,

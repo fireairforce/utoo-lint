@@ -32,7 +32,7 @@ pub fn lintSource(
     });
     defer tree.deinit();
 
-    const needs_semantic = effective_options.parser_semantic_errors or effective_options.block_scoped_var or effective_options.no_array_constructor or effective_options.no_alert or effective_options.no_extra_boolean_cast or effective_options.no_global_is_finite or effective_options.no_global_is_nan or effective_options.no_invalid_regexp or effective_options.no_loop_func or effective_options.typescript_eslint_no_loop_func or effective_options.no_misleading_character_class or effective_options.no_new_func or effective_options.no_new_object or effective_options.no_new_symbol or effective_options.no_new_wrappers or effective_options.no_redeclare or effective_options.typescript_eslint_no_redeclare or effective_options.no_shadow or effective_options.typescript_eslint_no_shadow or effective_options.no_unused_vars or effective_options.no_use_before_define or effective_options.no_undef or effective_options.react_jsx_no_undef or effective_options.prefer_const or effective_options.prefer_exponentiation_operator or effective_options.prefer_regex_literals or effective_options.radix or effective_options.require_atomic_updates or effective_options.symbol_description;
+    const needs_semantic = hasSemanticRules(effective_options);
 
     if (needs_semantic) {
         var semantic_result = try parser.semantic.analyze(&tree);
@@ -65,6 +65,59 @@ fn isDefinitionFile(path: []const u8) bool {
     return std.mem.endsWith(u8, path, ".d.ts") or
         std.mem.endsWith(u8, path, ".d.mts") or
         std.mem.endsWith(u8, path, ".d.cts");
+}
+
+fn hasSemanticRules(options: Options) bool {
+    return options.parser_semantic_errors or
+        options.block_scoped_var or
+        options.no_array_constructor or
+        options.no_alert or
+        options.no_async_promise_executor or
+        options.no_buffer_constructor or
+        options.no_class_assign or
+        options.no_const_assign or
+        options.no_eval or
+        options.no_ex_assign or
+        options.no_extend_native or
+        options.no_extra_boolean_cast or
+        options.no_func_assign or
+        options.no_global_assign or
+        options.no_global_is_finite or
+        options.no_global_is_nan or
+        options.no_implied_eval or
+        options.no_import_assign or
+        options.no_invalid_regexp or
+        options.no_label_var or
+        options.no_loop_func or
+        options.no_misleading_character_class or
+        options.no_new_func or
+        options.no_new_native_nonconstructor or
+        options.no_new_object or
+        options.no_new_symbol or
+        options.no_new_wrappers or
+        options.no_obj_calls or
+        options.no_object_constructor or
+        options.no_promise_executor_return or
+        options.no_redeclare or
+        options.no_shadow or
+        options.no_undef or
+        options.react_jsx_no_undef or
+        options.no_unused_vars or
+        options.no_use_before_define or
+        options.prefer_const or
+        options.prefer_exponentiation_operator or
+        options.prefer_promise_reject_errors or
+        options.prefer_regex_literals or
+        options.radix or
+        options.require_atomic_updates or
+        options.symbol_description or
+        options.typescript_eslint_no_redeclare or
+        options.typescript_eslint_no_require_imports or
+        options.typescript_eslint_no_loop_func or
+        options.typescript_eslint_no_shadow or
+        options.typescript_eslint_no_unused_vars or
+        options.typescript_eslint_no_use_before_define or
+        options.typescript_eslint_no_var_requires;
 }
 
 pub fn offsetToLineColumn(source: []const u8, offset: u32) SourcePosition {
