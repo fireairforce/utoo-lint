@@ -59,6 +59,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/alipay_ant_no_deprecated_variable.zig");
+}
+
+comptime {
     _ = @import("rules/alipay_ant_no_negative_conditionals.zig");
 }
 

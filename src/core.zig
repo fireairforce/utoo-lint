@@ -88,6 +88,7 @@ pub const Options = struct {
     alipay_ant_disallow_typos: bool = true,
     alipay_ant_exhaustive_deps: bool = true,
     alipay_ant_jsx_handler_names: bool = true,
+    alipay_ant_no_deprecated_variable: bool = true,
     alipay_ant_no_negative_conditionals: bool = true,
     alipay_ant_no_import_src: bool = true,
     alipay_ant_no_phantom_dependencies: bool = true,
