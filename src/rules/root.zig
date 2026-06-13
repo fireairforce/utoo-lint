@@ -177,6 +177,7 @@ pub const require_yield = @import("require_yield.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_adjacent_overload_signatures = @import("typescript_eslint_adjacent_overload_signatures.zig");
+pub const typescript_eslint_array_type = @import("typescript_eslint_array_type.zig");
 pub const typescript_eslint_consistent_type_definitions = @import("typescript_eslint_consistent_type_definitions.zig");
 pub const typescript_eslint_dot_notation = @import("typescript_eslint_dot_notation.zig");
 pub const typescript_eslint_no_array_constructor = @import("typescript_eslint_no_array_constructor.zig");
@@ -710,6 +711,18 @@ const BasicVisitor = struct {
         return .proceed;
     }
 
+    pub fn enter_ts_array_type(
+        self: *BasicVisitor,
+        array_type: ast.TSArrayType,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_array_type) {
+            try typescript_eslint_array_type.checkArrayType(self.allocator, self.diagnostics, ctx.tree, array_type, index);
+        }
+        return .proceed;
+    }
+
     pub fn enter_variable_declarator(
         self: *BasicVisitor,
         declarator: ast.VariableDeclarator,
@@ -797,9 +810,12 @@ const BasicVisitor = struct {
     pub fn enter_ts_type_reference(
         self: *BasicVisitor,
         reference: ast.TSTypeReference,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_array_type) {
+            try typescript_eslint_array_type.checkTypeReference(self.allocator, self.diagnostics, ctx.tree, reference, index);
+        }
         if (self.options.typescript_eslint_ban_types) {
             try typescript_eslint_ban_types.checkTypeReference(self.allocator, self.diagnostics, ctx.tree, reference);
         }
