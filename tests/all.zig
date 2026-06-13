@@ -99,6 +99,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/import_no_cycle.zig");
+}
+
+comptime {
     _ = @import("rules/import_no_duplicates.zig");
 }
 
