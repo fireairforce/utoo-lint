@@ -249,6 +249,8 @@ pub fn main(init: std.process.Init) !void {
             options.alipay_ant_no_import_src = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-no-phantom-dependencies=off")) {
             options.alipay_ant_no_phantom_dependencies = false;
+        } else if (std.mem.eql(u8, arg, "--alipay-ant-no-too-large-file=off")) {
+            options.alipay_ant_no_too_large_file = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-prefer-elseif-end-with-else=off")) {
             options.alipay_ant_prefer_elseif_end_with_else = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-prefer-click-with-debounce=off")) {
@@ -1256,6 +1258,7 @@ fn printHelp() void {
         \\  --alipay-ant-no-negative-conditionals=off Disable @alipay/ant/no-negative-conditionals
         \\  --alipay-ant-no-import-src=off Disable @alipay/ant/no-import-src
         \\  --alipay-ant-no-phantom-dependencies=off Disable @alipay/ant/no-phantom-dependencies
+        \\  --alipay-ant-no-too-large-file=off Disable @alipay/ant/no-too-large-file
         \\  --alipay-ant-prefer-elseif-end-with-else=off Disable @alipay/ant/prefer-elseif-end-with-else
         \\  --alipay-ant-prefer-click-with-debounce=off Disable @alipay/ant/prefer-click-with-debounce
         \\  --alipay-ant-no-spread-params=off Disable @alipay/ant/no-spread-params
