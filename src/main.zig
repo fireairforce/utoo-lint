@@ -245,6 +245,8 @@ pub fn main(init: std.process.Init) !void {
             options.alipay_spmlint_use_labeled_spm = false;
         } else if (std.mem.eql(u8, arg, "--alipay-spmlint-valid-manual-click=off")) {
             options.alipay_spmlint_valid_manual_click = false;
+        } else if (std.mem.eql(u8, arg, "--alipay-spmlint-valid-manual-expo=off")) {
+            options.alipay_spmlint_valid_manual_expo = false;
         } else if (std.mem.eql(u8, arg, "--alipay-spmlint-valid-manual-pv=off")) {
             options.alipay_spmlint_valid_manual_pv = false;
         } else if (std.mem.eql(u8, arg, "--import-first=off")) {
@@ -1209,6 +1211,7 @@ fn printHelp() void {
         \\  --alipay-ant-no-import-src=off Disable @alipay/ant/no-import-src
         \\  --alipay-spmlint-use-labeled-spm=off Disable @alipay/spmLint/use-labeled-spm
         \\  --alipay-spmlint-valid-manual-click=off Disable @alipay/spmLint/valid-manual-click
+        \\  --alipay-spmlint-valid-manual-expo=off Disable @alipay/spmLint/valid-manual-expo
         \\  --alipay-spmlint-valid-manual-pv=off Disable @alipay/spmLint/valid-manual-pv
         \\  --import-first=off         Disable import/first
         \\  --import-newline-after-import=off Disable import/newline-after-import

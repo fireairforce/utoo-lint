@@ -59,6 +59,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/alipay_spmlint_valid_manual_expo.zig");
+}
+
+comptime {
     _ = @import("rules/alipay_spmlint_valid_manual_pv.zig");
 }
 

@@ -28,6 +28,7 @@ pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
 pub const alipay_spmlint_use_labeled_spm = @import("alipay_spmlint_use_labeled_spm.zig");
 pub const alipay_spmlint_valid_manual_click = @import("alipay_spmlint_valid_manual_click.zig");
+pub const alipay_spmlint_valid_manual_expo = @import("alipay_spmlint_valid_manual_expo.zig");
 pub const alipay_spmlint_valid_manual_pv = @import("alipay_spmlint_valid_manual_pv.zig");
 pub const import_first = @import("import_first.zig");
 pub const import_newline_after_import = @import("import_newline_after_import.zig");
@@ -1756,6 +1757,9 @@ const BasicVisitor = struct {
         }
         if (self.options.alipay_spmlint_valid_manual_click) {
             try alipay_spmlint_valid_manual_click.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
+        }
+        if (self.options.alipay_spmlint_valid_manual_expo) {
+            try alipay_spmlint_valid_manual_expo.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
         }
         if (self.options.alipay_spmlint_valid_manual_pv) {
             try alipay_spmlint_valid_manual_pv.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
