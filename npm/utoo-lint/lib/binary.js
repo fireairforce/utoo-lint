@@ -7,11 +7,19 @@ const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 
 const packages = {
-  "darwin-arm64": "@utoo/lint-darwin-arm64"
+  "darwin-arm64": "@utoo/lint-darwin-arm64",
+  "darwin-x64": "@utoo/lint-darwin-x64",
+  "linux-arm64": "@utoo/lint-linux-arm64",
+  "linux-x64": "@utoo/lint-linux-x64",
+  "win32-x64": "@utoo/lint-win32-x64"
 };
 
 export function platformPackageName(platform = process.platform, arch = process.arch) {
   return packages[`${platform}-${arch}`] ?? null;
+}
+
+function binaryName(platform) {
+  return platform === "win32" ? "utoo-lint.exe" : "utoo-lint";
 }
 
 export function resolveBinary(options = {}) {
@@ -30,11 +38,12 @@ export function resolveBinary(options = {}) {
   if (!packageName) {
     throw new Error(`utoo-lint: unsupported platform ${platform}-${arch}`);
   }
+  const executable = binaryName(platform);
 
   const candidates = [
-    () => require.resolve(`${packageName}/bin/utoo-lint`),
-    () => join(here, "..", "..", packageName, "bin", "utoo-lint"),
-    () => join(here, "..", "..", "..", "zig-out", "bin", "utoo-lint")
+    () => require.resolve(`${packageName}/bin/${executable}`),
+    () => join(here, "..", "..", packageName, "bin", executable),
+    () => join(here, "..", "..", "..", "zig-out", "bin", executable)
   ];
 
   for (const candidate of candidates) {

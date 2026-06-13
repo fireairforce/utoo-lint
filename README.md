@@ -65,11 +65,15 @@ GitHub Releases publish binary archives for:
 
 Each archive is uploaded with a matching `.sha256` file.
 
-The npm publishing setup currently supports macOS arm64:
+The npm publishing setup supports the same native platforms:
 
 - `npm/utoo-lint` is the public CLI wrapper published as `@utoo/lint`.
-- `npm/@utoo/lint-darwin-arm64` is the native binary package published as `@utoo/lint-darwin-arm64`.
-- `.github/workflows/release.yml` builds all release archives, uploads them to the GitHub Release, and publishes both npm packages.
+- `npm/@utoo/lint-darwin-arm64` is published as `@utoo/lint-darwin-arm64`.
+- `npm/@utoo/lint-darwin-x64` is published as `@utoo/lint-darwin-x64`.
+- `npm/@utoo/lint-linux-arm64` is published as `@utoo/lint-linux-arm64`.
+- `npm/@utoo/lint-linux-x64` is published as `@utoo/lint-linux-x64`.
+- `npm/@utoo/lint-win32-x64` is published as `@utoo/lint-win32-x64`.
+- `.github/workflows/release.yml` builds all release archives, stages all native npm packages from the same binaries, uploads the archives to the GitHub Release, and publishes the native packages before the CLI wrapper.
 
 Required GitHub repository secret:
 
@@ -81,10 +85,15 @@ Create it from npm as an automation token, then add it in GitHub under `Settings
 
 Publish from GitHub:
 
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
+1. Create a new GitHub Release whose tag starts with `v`, for example `v0.1.0`.
+2. Publish the release.
+
+The release workflow builds the binary archives, uploads them to the GitHub Release,
+updates the npm package versions from the release tag, and publishes the npm packages.
+
+For a manual run, open the `Release` workflow in GitHub Actions and set
+`release_tag` to a `v`-prefixed tag. Enable `publish_npm` when the npm packages
+should be published.
 
 After the workflow succeeds:
 

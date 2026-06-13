@@ -1,11 +1,14 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
+      release_tag:
+        description: "Release tag to publish, for example v0.1.0. Leave empty to build only."
+        required: false
+        type: string
       publish_npm:
         description: "Publish packages to npm"
         type: boolean
@@ -17,6 +20,7 @@ permissions:
 
 jobs:
   build-release-assets:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v')
     name: Build ${{ matrix.asset }}
     runs-on: ubuntu-latest
     strategy:
@@ -27,22 +31,27 @@ jobs:
             target: aarch64-macos
             binary: utoo-lint
             archive: tar.gz
+            package_path: npm/@utoo/lint-darwin-arm64
           - asset: utoo-lint-darwin-x64
             target: x86_64-macos
             binary: utoo-lint
             archive: tar.gz
+            package_path: npm/@utoo/lint-darwin-x64
           - asset: utoo-lint-linux-arm64
             target: aarch64-linux-gnu
             binary: utoo-lint
             archive: tar.gz
+            package_path: npm/@utoo/lint-linux-arm64
           - asset: utoo-lint-linux-x64
             target: x86_64-linux-gnu
             binary: utoo-lint
             archive: tar.gz
+            package_path: npm/@utoo/lint-linux-x64
           - asset: utoo-lint-windows-x64
             target: x86_64-windows-gnu
             binary: utoo-lint.exe
             archive: zip
+            package_path: npm/@utoo/lint-win32-x64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,42 +77,60 @@ jobs:
             shasum -a 256 dist/${{ matrix.asset }}.tar.gz > dist/${{ matrix.asset }}.tar.gz.sha256
           fi
 
-      - name: Upload workflow artifact
+      - name: Stage native npm package
+        run: |
+          mkdir -p dist/native/${{ matrix.package_path }}/bin
+          cp ${{ matrix.package_path }}/package.json dist/native/${{ matrix.package_path }}/package.json
+          cp dist/${{ matrix.asset }}/${{ matrix.binary }} dist/native/${{ matrix.package_path }}/bin/${{ matrix.binary }}
+          chmod 755 dist/native/${{ matrix.package_path }}/bin/${{ matrix.binary }}
+
+      - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset }}
+          name: release-${{ matrix.asset }}
           path: |
             dist/${{ matrix.asset }}.*
+          if-no-files-found: error
+
+      - name: Upload native npm package
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.asset }}
+          path: dist/native
           if-no-files-found: error
 
   publish-github-release:
     name: Publish GitHub Release assets
     needs: build-release-assets
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')) || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
     runs-on: ubuntu-latest
     steps:
       - name: Download release assets
         uses: actions/download-artifact@v4
         with:
+          pattern: release-*
           path: dist/release-assets
           merge-multiple: true
 
       - name: Publish GitHub Release assets
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
         run: |
-          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || gh release create "${GITHUB_REF_NAME}" --generate-notes
-          gh release upload "${GITHUB_REF_NAME}" dist/release-assets/* --clobber
+          gh release view "${RELEASE_TAG}" >/dev/null 2>&1 || gh release create "${RELEASE_TAG}" --generate-notes
+          gh release upload "${RELEASE_TAG}" dist/release-assets/* --clobber
 
-  publish-npm-darwin-arm64:
-    name: Publish npm macOS arm64 packages
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_npm)
-    runs-on: macos-15
+  publish-npm:
+    name: Publish npm packages
+    needs: build-release-assets
+    if: (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')) || (github.event_name == 'workflow_dispatch' && inputs.publish_npm && inputs.release_tag != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -111,26 +138,83 @@ jobs:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
 
-      - name: Setup Zig
-        uses: mlugg/setup-zig@v2
+      - name: Download native npm packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: dist/native-packages
+          merge-multiple: true
 
-      - name: Test
-        run: zig build test -Doptimize=ReleaseFast -j1
+      - name: Resolve release version
+        id: release_version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+        run: |
+          set -euo pipefail
 
-      - name: Build npm packages
-        run: ./scripts/package-npm.sh
+          VERSION="${RELEASE_TAG#v}"
+          if [ -z "${VERSION}" ] || [ "${VERSION}" = "${RELEASE_TAG}" ]; then
+            echo "Release tag must start with v, got: ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+
+          NPM_TAG="latest"
+          if [[ "${VERSION}" == *"-"* ]]; then
+            PRERELEASE="${VERSION#*-}"
+            NPM_TAG="${PRERELEASE%%.*}"
+          fi
+
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "npm_tag=${NPM_TAG}" >> "${GITHUB_OUTPUT}"
+
+      - name: Update npm package versions
+        env:
+          VERSION: ${{ steps.release_version.outputs.version }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+
+          const version = process.env.VERSION;
+          const nativeRoot = "dist/native-packages/npm/@utoo";
+          const nativePackagePaths = fs
+            .readdirSync(nativeRoot)
+            .map((name) => path.join(nativeRoot, name, "package.json"));
+          const packagePaths = ["npm/utoo-lint/package.json", ...nativePackagePaths];
+
+          for (const packagePath of packagePaths) {
+            const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+            pkg.version = version;
+            if (pkg.name === "@utoo/lint") {
+              for (const name of Object.keys(pkg.optionalDependencies)) {
+                pkg.optionalDependencies[name] = version;
+              }
+            }
+            fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
+          }
+          NODE
 
       - name: Verify package contents
         run: |
+          for package_dir in dist/native-packages/npm/@utoo/lint-*; do
+            npm pack --dry-run "${package_dir}"
+          done
           npm pack --dry-run ./npm/utoo-lint
-          npm pack --dry-run ./npm/@utoo/lint-darwin-arm64
 
-      - name: Publish native npm package
+      - name: Update npm
+        run: npm install -g npm@11.6.2
+
+      - name: Publish native npm packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish ./npm/@utoo/lint-darwin-arm64 --access public --provenance
+          NPM_TAG: ${{ steps.release_version.outputs.npm_tag }}
+        run: |
+          for package_dir in dist/native-packages/npm/@utoo/lint-*; do
+            npm publish "${package_dir}" --access public --provenance --tag "${NPM_TAG}"
+          done
 
       - name: Publish npm CLI package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish ./npm/utoo-lint --access public --provenance
+          NPM_TAG: ${{ steps.release_version.outputs.npm_tag }}
+        run: npm publish ./npm/utoo-lint --access public --provenance --tag "${NPM_TAG}"
