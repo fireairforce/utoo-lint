@@ -194,6 +194,7 @@ pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_r
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
 pub const typescript_eslint_no_unnecessary_type_constraint = @import("typescript_eslint_no_unnecessary_type_constraint.zig");
 pub const typescript_eslint_no_useless_constructor = @import("typescript_eslint_no_useless_constructor.zig");
+pub const typescript_eslint_no_unused_vars = @import("typescript_eslint_no_unused_vars.zig");
 pub const typescript_eslint_no_use_before_define = @import("typescript_eslint_no_use_before_define.zig");
 pub const typescript_eslint_no_var_requires = @import("typescript_eslint_no_var_requires.zig");
 pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
@@ -428,8 +429,12 @@ pub fn runSemantic(
         try require_atomic_updates.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
-    if (options.no_unused_vars) {
+    if (options.no_unused_vars and !options.typescript_eslint_no_unused_vars) {
         try no_unused_vars.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.typescript_eslint_no_unused_vars) {
+        try typescript_eslint_no_unused_vars.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.no_use_before_define and !options.typescript_eslint_no_use_before_define) {
