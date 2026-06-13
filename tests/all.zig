@@ -735,6 +735,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_triple_slash_reference.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_unnecessary_type_constraint.zig");
 }
 
