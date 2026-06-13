@@ -43,6 +43,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/alipay_ant_no_import_src.zig");
+}
+
+comptime {
     _ = @import("rules/import_first.zig");
 }
 
