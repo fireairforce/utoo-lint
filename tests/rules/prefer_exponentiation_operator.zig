@@ -14,6 +14,7 @@ test "reports prefer-exponentiation-operator for Math.pow calls" {
         .eol_last = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_dot_notation = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

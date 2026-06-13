@@ -177,6 +177,7 @@ pub const require_yield = @import("require_yield.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_adjacent_overload_signatures = @import("typescript_eslint_adjacent_overload_signatures.zig");
+pub const typescript_eslint_dot_notation = @import("typescript_eslint_dot_notation.zig");
 pub const typescript_eslint_no_array_constructor = @import("typescript_eslint_no_array_constructor.zig");
 pub const typescript_eslint_ban_types = @import("typescript_eslint_ban_types.zig");
 pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_comment.zig");
@@ -1387,8 +1388,11 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.options.dot_notation) {
+        if (self.options.dot_notation and !self.options.typescript_eslint_dot_notation) {
             try dot_notation.check(self.allocator, self.diagnostics, ctx.tree, member, index);
+        }
+        if (self.options.typescript_eslint_dot_notation) {
+            try typescript_eslint_dot_notation.check(self.allocator, self.diagnostics, ctx.tree, member, index);
         }
         if (self.options.no_caller) {
             try no_caller.check(self.allocator, self.diagnostics, ctx.tree, member, index);

@@ -12,6 +12,7 @@ test "reports prefer-destructuring for object property variable declarators" {
         .dot_notation = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_dot_notation = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

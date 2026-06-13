@@ -22,6 +22,7 @@ pub const Options = struct {
     constructor_super: bool = true,
     curly: bool = true,
     dot_notation: bool = true,
+    typescript_eslint_dot_notation: bool = true,
     default_case: bool = true,
     default_case_last: bool = true,
     eol_last: bool = true,

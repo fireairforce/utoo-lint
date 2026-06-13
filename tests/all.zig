@@ -651,6 +651,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_dot_notation.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_array_constructor.zig");
 }
 

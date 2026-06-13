@@ -7,12 +7,28 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "dot-notation";
 
+pub const Options = struct {
+    rule_id: []const u8 = id,
+    severity: core.Severity = .warning,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     member: ast.MemberExpression,
     index: ast.NodeIndex,
+) Allocator.Error!void {
+    try checkWithOptions(allocator, diagnostics, tree, member, index, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    member: ast.MemberExpression,
+    index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     if (!member.computed or member.property == .null) return;
 
@@ -25,8 +41,8 @@ pub fn check(
     try core.addDiagnosticFmt(
         allocator,
         diagnostics,
-        .warning,
-        id,
+        options.severity,
+        options.rule_id,
         tree.span(index),
         "['{s}'] is better written in dot notation.",
         .{property_name},
