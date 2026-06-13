@@ -261,6 +261,7 @@ pub const typescript_eslint_typedef = @import("typescript_eslint_typedef.zig");
 pub const typescript_eslint_unified_signatures = @import("typescript_eslint_unified_signatures.zig");
 pub const typescript_eslint_no_unnecessary_type_constraint = @import("typescript_eslint_no_unnecessary_type_constraint.zig");
 pub const typescript_eslint_no_useless_constructor = @import("typescript_eslint_no_useless_constructor.zig");
+pub const typescript_eslint_no_useless_empty_export = @import("typescript_eslint_no_useless_empty_export.zig");
 pub const typescript_eslint_no_unused_expressions = @import("typescript_eslint_no_unused_expressions.zig");
 pub const typescript_eslint_no_unused_vars = @import("typescript_eslint_no_unused_vars.zig");
 pub const typescript_eslint_no_use_before_define = @import("typescript_eslint_no_use_before_define.zig");
@@ -630,6 +631,9 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_unified_signatures) {
             try typescript_eslint_unified_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, program.body);
+        }
+        if (self.options.typescript_eslint_no_useless_empty_export) {
+            try typescript_eslint_no_useless_empty_export.check(self.allocator, self.diagnostics, ctx.tree, program);
         }
         return .proceed;
     }

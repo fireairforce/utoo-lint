@@ -267,6 +267,7 @@ pub const Options = struct {
     typescript_eslint_unified_signatures: bool = true,
     typescript_eslint_no_unnecessary_type_constraint: bool = true,
     typescript_eslint_no_useless_constructor: bool = true,
+    typescript_eslint_no_useless_empty_export: bool = true,
     typescript_eslint_no_unused_vars: bool = true,
     typescript_eslint_no_use_before_define: bool = true,
     typescript_eslint_no_var_requires: bool = true,
@@ -571,6 +572,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_duplicate_enum_values);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-duplicate-enum-values", true));
     try std.testing.expect(options.typescript_eslint_no_duplicate_enum_values);
+
+    try std.testing.expect(!options.typescript_eslint_no_useless_empty_export);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-useless-empty-export", true));
+    try std.testing.expect(options.typescript_eslint_no_useless_empty_export);
 
     try std.testing.expect(!options.jsx_a11y_aria_props);
     try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));
