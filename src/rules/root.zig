@@ -40,6 +40,7 @@ pub const jsx_a11y_img_redundant_alt = @import("jsx_a11y_img_redundant_alt.zig")
 pub const jsx_a11y_no_access_key = @import("jsx_a11y_no_access_key.zig");
 pub const jsx_a11y_no_distracting_elements = @import("jsx_a11y_no_distracting_elements.zig");
 pub const jsx_a11y_role_has_required_aria_props = @import("jsx_a11y_role_has_required_aria_props.zig");
+pub const jsx_a11y_role_supports_aria_props = @import("jsx_a11y_role_supports_aria_props.zig");
 pub const jsx_a11y_scope = @import("jsx_a11y_scope.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const new_cap = @import("new_cap.zig");
@@ -1842,6 +1843,9 @@ const BasicVisitor = struct {
         }
         if (self.options.jsx_a11y_role_has_required_aria_props) {
             try jsx_a11y_role_has_required_aria_props.check(self.allocator, self.diagnostics, ctx.tree, opening);
+        }
+        if (self.options.jsx_a11y_role_supports_aria_props) {
+            try jsx_a11y_role_supports_aria_props.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
         }
         if (self.options.jsx_a11y_scope) {
             try jsx_a11y_scope.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
