@@ -29,6 +29,7 @@ pub const alipay_ant_exhaustive_deps = @import("alipay_ant_exhaustive_deps.zig")
 pub const alipay_ant_jsx_handler_names = @import("alipay_ant_jsx_handler_names.zig");
 pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
 pub const alipay_ant_no_phantom_dependencies = @import("alipay_ant_no_phantom_dependencies.zig");
+pub const alipay_ant_prefer_click_with_debounce = @import("alipay_ant_prefer_click_with_debounce.zig");
 pub const alipay_ant_no_spread_params = @import("alipay_ant_no_spread_params.zig");
 pub const alipay_ant_prefer_import_from_stdlib = @import("alipay_ant_prefer_import_from_stdlib.zig");
 pub const alipay_spmlint_use_labeled_spm = @import("alipay_spmlint_use_labeled_spm.zig");
@@ -419,6 +420,10 @@ pub fn runSemantic(
 
     if (options.alipay_ant_no_spread_params) {
         try alipay_ant_no_spread_params.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.alipay_ant_prefer_click_with_debounce) {
+        try alipay_ant_prefer_click_with_debounce.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.alipay_ant_prefer_import_from_stdlib) {

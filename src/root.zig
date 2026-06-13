@@ -121,6 +121,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_alert or
         options.no_async_promise_executor or
         options.alipay_ant_exhaustive_deps or
+        options.alipay_ant_prefer_click_with_debounce or
         options.no_buffer_constructor or
         options.alipay_ant_no_spread_params or
         options.alipay_ant_prefer_import_from_stdlib or
