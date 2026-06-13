@@ -137,6 +137,7 @@ fn hasSemanticRules(options: Options) bool {
         options.import_default or
         options.import_named or
         options.import_no_named_as_default or
+        options.import_no_named_as_default_member or
         options.no_invalid_regexp or
         options.no_label_var or
         options.no_loop_func or

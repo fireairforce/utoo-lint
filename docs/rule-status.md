@@ -180,6 +180,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`import/no-amd`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-amd.md) | Implemented |
 | [`import/no-duplicates`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-duplicates.md) | Implemented |
 | [`import/no-named-as-default`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-named-as-default.md) | Implemented for relative imports resolved with fishlint's configured extensions |
+| [`import/no-named-as-default-member`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-named-as-default-member.md) | Implemented for relative imports resolved with fishlint's configured extensions |
 | [`import/no-self-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-self-import.md) | Implemented for relative imports resolved with fishlint's configured extensions |
 
 ## JSX a11y rules
