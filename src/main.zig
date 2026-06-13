@@ -489,6 +489,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_no_danger = false;
         } else if (std.mem.eql(u8, arg, "--react-no-danger-with-children=off")) {
             options.react_no_danger_with_children = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-access-state-in-setstate=off")) {
+            options.react_no_access_state_in_setstate = false;
         } else if (std.mem.eql(u8, arg, "--react-no-deprecated=off")) {
             options.react_no_deprecated = false;
         } else if (std.mem.eql(u8, arg, "--react-no-array-index-key=off")) {
@@ -1299,6 +1301,7 @@ fn printHelp() void {
         \\  --react-jsx-uses-vars=off Disable react/jsx-uses-vars
         \\  --react-no-danger=off     Disable react/no-danger
         \\  --react-no-danger-with-children=off Disable react/no-danger-with-children
+        \\  --react-no-access-state-in-setstate=off Disable react/no-access-state-in-setstate
         \\  --react-no-deprecated=off Disable react/no-deprecated
         \\  --react-no-array-index-key=off Disable react/no-array-index-key
         \\  --react-no-children-prop=off Disable react/no-children-prop
