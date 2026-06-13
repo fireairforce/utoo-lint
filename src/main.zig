@@ -195,6 +195,8 @@ pub fn main(init: std.process.Init) !void {
             options.import_no_duplicates = false;
         } else if (std.mem.eql(u8, arg, "--import-no-self-import=off")) {
             options.import_no_self_import = false;
+        } else if (std.mem.eql(u8, arg, "--jsx-a11y-aria-props=off")) {
+            options.jsx_a11y_aria_props = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-iframe-has-title=off")) {
             options.jsx_a11y_iframe_has_title = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-img-redundant-alt=off")) {
@@ -844,6 +846,7 @@ fn printHelp() void {
         \\  --import-no-amd=off        Disable import/no-amd
         \\  --import-no-duplicates=off Disable import/no-duplicates
         \\  --import-no-self-import=off Disable import/no-self-import
+        \\  --jsx-a11y-aria-props=off Disable jsx-a11y/aria-props
         \\  --jsx-a11y-iframe-has-title=off Disable jsx-a11y/iframe-has-title
         \\  --jsx-a11y-img-redundant-alt=off Disable jsx-a11y/img-redundant-alt
         \\  --jsx-a11y-no-access-key=off Disable jsx-a11y/no-access-key
