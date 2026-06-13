@@ -214,6 +214,7 @@ pub const react_no_redundant_should_component_update = @import("react_no_redunda
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
 pub const react_no_this_in_sfc = @import("react_no_this_in_sfc.zig");
 pub const react_no_typos = @import("react_no_typos.zig");
+pub const react_no_unknown_property = @import("react_no_unknown_property.zig");
 pub const react_no_will_update_set_state = @import("react_no_will_update_set_state.zig");
 pub const react_require_render_return = @import("react_require_render_return.zig");
 pub const react_no_string_refs = @import("react_no_string_refs.zig");
@@ -1902,6 +1903,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_jsx_no_bind) {
             try react_jsx_no_bind.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index, self.react_jsx_no_bind_state);
+        }
+        if (self.options.react_no_unknown_property) {
+            try react_no_unknown_property.check(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1));
         }
         return .proceed;
     }
