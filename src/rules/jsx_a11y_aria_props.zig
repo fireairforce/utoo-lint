@@ -7,7 +7,7 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "jsx-a11y/aria-props";
 
-const valid_aria_attributes = [_][]const u8{
+pub const valid_aria_attributes = [_][]const u8{
     "aria-activedescendant",
     "aria-atomic",
     "aria-autocomplete",
@@ -103,7 +103,7 @@ fn attributeName(tree: *const ast.Tree, name_index: ast.NodeIndex) ?[]const u8 {
     };
 }
 
-fn isValidAriaAttribute(name: []const u8) bool {
+pub fn isValidAriaAttribute(name: []const u8) bool {
     for (valid_aria_attributes) |attribute| {
         if (std.mem.eql(u8, name, attribute)) return true;
     }
