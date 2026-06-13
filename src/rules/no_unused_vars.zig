@@ -18,6 +18,43 @@ pub const Options = struct {
     args_after_used: bool = false,
     ignore_rest_siblings: bool = false,
     check_type_parameters: bool = false,
+    react_jsx_uses_react: bool = false,
+};
+
+const JSXReactUsage = struct {
+    pragma: []const u8 = "React",
+    has_jsx: bool = false,
+    has_fragment: bool = false,
+
+    pub fn enter_jsx_opening_element(
+        usage: *JSXReactUsage,
+        _: ast.JSXOpeningElement,
+        _: ast.NodeIndex,
+        _: *traverser.basic.Ctx,
+    ) traverser.Action {
+        usage.has_jsx = true;
+        return .proceed;
+    }
+
+    pub fn enter_jsx_opening_fragment(
+        usage: *JSXReactUsage,
+        _: ast.JSXOpeningFragment,
+        _: ast.NodeIndex,
+        _: *traverser.basic.Ctx,
+    ) traverser.Action {
+        usage.has_jsx = true;
+        return .proceed;
+    }
+
+    pub fn enter_jsx_fragment(
+        usage: *JSXReactUsage,
+        _: ast.JSXFragment,
+        _: ast.NodeIndex,
+        _: *traverser.basic.Ctx,
+    ) traverser.Action {
+        usage.has_fragment = true;
+        return .proceed;
+    }
 };
 
 const Parameter = struct {
@@ -59,6 +96,8 @@ pub fn runWithOptions(
         try traverser.basic.traverse(RestSiblingVisitor, tree, &visitor);
     }
 
+    const jsx_react_usage = if (options.react_jsx_uses_react) collectJSXReactUsage(tree) else JSXReactUsage{};
+
     var iter = symbol_table.iterSymbols();
 
     while (iter.next()) |entry| {
@@ -76,6 +115,7 @@ pub fn runWithOptions(
 
         const name = tree.string(symbol.name);
         if (std.mem.startsWith(u8, name, "_")) continue;
+        if (isUsedByReactJSX(name, jsx_react_usage)) continue;
 
         const decls = symbol_table.symbolDecls(entry.id);
         if (decls.len == 0) continue;
@@ -198,3 +238,57 @@ const RestSiblingVisitor = struct {
         }
     }
 };
+
+fn collectJSXReactUsage(tree: *const ast.Tree) JSXReactUsage {
+    var usage = JSXReactUsage{
+        .pragma = pragmaFromComments(tree) orelse "React",
+    };
+    traverser.basic.traverse(JSXReactUsage, tree, &usage) catch unreachable;
+    return usage;
+}
+
+fn isUsedByReactJSX(name: []const u8, usage: JSXReactUsage) bool {
+    return (usage.has_jsx and std.mem.eql(u8, name, usage.pragma)) or
+        (usage.has_fragment and std.mem.eql(u8, name, "Fragment"));
+}
+
+fn pragmaFromComments(tree: *const ast.Tree) ?[]const u8 {
+    for (tree.comments) |comment| {
+        const value = tree.string(comment.value);
+        const marker_index = std.mem.indexOf(u8, value, "@jsx") orelse continue;
+        var cursor = marker_index + "@jsx".len;
+
+        if (cursor >= value.len or !isWhitespace(value[cursor])) continue;
+        while (cursor < value.len and isWhitespace(value[cursor])) : (cursor += 1) {}
+
+        const start = cursor;
+        while (cursor < value.len and !isWhitespace(value[cursor])) : (cursor += 1) {}
+        var pragma = value[start..cursor];
+        if (std.mem.indexOfScalar(u8, pragma, '.')) |dot_index| {
+            pragma = pragma[0..dot_index];
+        }
+        if (isIdentifier(pragma)) return pragma;
+    }
+    return null;
+}
+
+fn isWhitespace(byte: u8) bool {
+    return byte == ' ' or byte == '\t' or byte == '\n' or byte == '\r';
+}
+
+fn isIdentifier(value: []const u8) bool {
+    if (value.len == 0) return false;
+    if (!isIdentifierStart(value[0])) return false;
+    for (value[1..]) |byte| {
+        if (!isIdentifierContinue(byte)) return false;
+    }
+    return true;
+}
+
+fn isIdentifierStart(byte: u8) bool {
+    return std.ascii.isAlphabetic(byte) or byte == '_' or byte == '$';
+}
+
+fn isIdentifierContinue(byte: u8) bool {
+    return isIdentifierStart(byte) or std.ascii.isDigit(byte);
+}
