@@ -655,6 +655,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_jsx_boolean_value.zig");
+}
+
+comptime {
     _ = @import("rules/require_atomic_updates.zig");
 }
 
