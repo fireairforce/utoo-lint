@@ -214,6 +214,7 @@ pub const Options = struct {
     react_no_danger_with_children: bool = true,
     react_no_access_state_in_setstate: bool = true,
     react_no_deprecated: bool = true,
+    react_forbid_prop_types: bool = true,
     react_no_array_index_key: bool = true,
     react_no_children_prop: bool = true,
     react_no_find_dom_node: bool = true,

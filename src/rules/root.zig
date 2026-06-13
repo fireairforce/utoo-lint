@@ -204,6 +204,7 @@ pub const react_no_danger = @import("react_no_danger.zig");
 pub const react_no_danger_with_children = @import("react_no_danger_with_children.zig");
 pub const react_no_access_state_in_setstate = @import("react_no_access_state_in_setstate.zig");
 pub const react_no_deprecated = @import("react_no_deprecated.zig");
+pub const react_forbid_prop_types = @import("react_forbid_prop_types.zig");
 pub const react_no_children_prop = @import("react_no_children_prop.zig");
 pub const react_no_array_index_key = @import("react_no_array_index_key.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
@@ -346,6 +347,7 @@ pub fn runBasic(
     defer visitor.react_require_render_return_state.deinit(allocator);
     defer visitor.react_no_access_state_in_setstate_state.deinit(allocator);
     defer visitor.react_no_typos_state.deinit(allocator);
+    defer visitor.react_forbid_prop_types_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -582,6 +584,7 @@ const BasicVisitor = struct {
     react_require_render_return_state: react_require_render_return.State = .{},
     react_no_danger_with_children_bindings: react_no_danger_with_children.ObjectBindings = .{},
     react_no_access_state_in_setstate_state: react_no_access_state_in_setstate.State = .{},
+    react_forbid_prop_types_state: react_forbid_prop_types.State = .{},
     react_no_children_prop_bindings: react_no_children_prop.ReactBindings = .{},
     react_no_array_index_key_state: react_no_array_index_key.State = .{},
     react_jsx_no_bind_state: react_jsx_no_bind.State = .{},
@@ -617,6 +620,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_typos) {
             try react_no_typos.collectProgram(self.allocator, self.diagnostics, ctx.tree, program, &self.react_no_typos_state);
+        }
+        if (self.options.react_forbid_prop_types) {
+            try react_forbid_prop_types.collectProgram(self.allocator, ctx.tree, program, &self.react_forbid_prop_types_state);
         }
         if (self.options.react_no_children_prop) {
             self.react_no_children_prop_bindings = react_no_children_prop.bindingsFromProgram(ctx.tree, program);
@@ -963,6 +969,9 @@ const BasicVisitor = struct {
                 ctx,
                 &self.react_no_access_state_in_setstate_state,
             );
+        }
+        if (self.options.react_forbid_prop_types) {
+            try react_forbid_prop_types.collectVariableDeclarator(self.allocator, ctx.tree, declarator, &self.react_forbid_prop_types_state);
         }
         return .proceed;
     }
@@ -1551,6 +1560,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_typos) {
             try react_no_typos.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_no_typos_state);
         }
+        if (self.options.react_forbid_prop_types) {
+            try react_forbid_prop_types.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state);
+        }
         return .proceed;
     }
 
@@ -2008,6 +2020,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_typos) {
             try react_no_typos.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx.path.ancestor(1), self.react_no_typos_state);
         }
+        if (self.options.react_forbid_prop_types) {
+            try react_forbid_prop_types.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state);
+        }
         return .proceed;
     }
 
@@ -2080,6 +2095,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_typos) {
             try react_no_typos.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index, ctx);
         }
+        if (self.options.react_forbid_prop_types) {
+            try react_forbid_prop_types.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, self.react_forbid_prop_types_state);
+        }
         return .proceed;
     }
 
@@ -2103,6 +2121,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_typos) {
             try react_no_typos.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, ctx, self.react_no_typos_state);
+        }
+        if (self.options.react_forbid_prop_types) {
+            try react_forbid_prop_types.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, self.react_forbid_prop_types_state);
         }
         return .proceed;
     }
