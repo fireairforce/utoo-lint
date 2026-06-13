@@ -715,6 +715,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_button_has_type.zig");
+}
+
+comptime {
     _ = @import("rules/react_jsx_pascal_case.zig");
 }
 

@@ -175,6 +175,7 @@ pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
 pub const prefer_template = @import("prefer_template.zig");
+pub const react_button_has_type = @import("react_button_has_type.zig");
 pub const react_jsx_boolean_value = @import("react_jsx_boolean_value.zig");
 pub const react_jsx_no_duplicate_props = @import("react_jsx_no_duplicate_props.zig");
 pub const react_jsx_no_comment_textnodes = @import("react_jsx_no_comment_textnodes.zig");
@@ -538,6 +539,7 @@ const BasicVisitor = struct {
     diagnostics: *core.DiagnosticList,
     file_path: []const u8,
     options: core.Options,
+    react_button_has_type_state: react_button_has_type.State = .{},
     react_no_danger_with_children_bindings: react_no_danger_with_children.ObjectBindings = .{},
     react_no_children_prop_bindings: react_no_children_prop.ReactBindings = .{},
     react_no_array_index_key_state: react_no_array_index_key.State = .{},
@@ -566,6 +568,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_children_prop) {
             self.react_no_children_prop_bindings = react_no_children_prop.bindingsFromProgram(ctx.tree, program);
+        }
+        if (self.options.react_button_has_type) {
+            react_button_has_type.collectProgram(ctx.tree, program, &self.react_button_has_type_state);
         }
         if (self.options.react_no_array_index_key) {
             try react_no_array_index_key.collectProgram(self.allocator, ctx.tree, program, &self.react_no_array_index_key_state);
@@ -1577,6 +1582,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_render_return_value) {
             try react_no_render_return_value.check(self.allocator, self.diagnostics, ctx.tree, call, ctx);
         }
+        if (self.options.react_button_has_type) {
+            try react_button_has_type.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_button_has_type_state);
+        }
         if (self.options.react_no_children_prop) {
             try react_no_children_prop.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_no_children_prop_bindings);
         }
@@ -1748,6 +1756,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.react_no_children_prop) {
             try react_no_children_prop.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
+        }
+        if (self.options.react_button_has_type) {
+            try react_button_has_type.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
         }
         if (self.options.react_no_danger_with_children) {
             try react_no_danger_with_children.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index, &self.react_no_danger_with_children_bindings);
