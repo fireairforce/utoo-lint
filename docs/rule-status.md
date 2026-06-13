@@ -217,6 +217,12 @@ Each rule links to the corresponding ESLint rule reference.
 | [`react/no-unused-prop-types`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-unused-prop-types.md) | Implemented for fishlint's `customValidators: [], skipShapeProps: true` configuration |
 | [`react/prop-types`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/prop-types.md) | Implemented for fishlint's `ignore: [], customValidators: [], skipUndeclared: false` configuration |
 
+## React Hooks rules
+
+| Rule | Status |
+| --- | --- |
+| [`react-hooks/rules-of-hooks`](https://legacy.reactjs.org/docs/hooks-rules.html) | Implemented for top-level, ordinary function, class method, callback, conditional branch, and loop checks |
+
 ## TypeScript ESLint rules
 
 | Rule | Status |

@@ -244,6 +244,7 @@ pub const react_prefer_es6_class = @import("react_prefer_es6_class.zig");
 pub const react_style_prop_object = @import("react_style_prop_object.zig");
 pub const react_self_closing_comp = @import("react_self_closing_comp.zig");
 pub const react_void_dom_elements_no_children = @import("react_void_dom_elements_no_children.zig");
+pub const react_hooks_rules_of_hooks = @import("react_hooks_rules_of_hooks.zig");
 pub const radix = @import("radix.zig");
 pub const require_atomic_updates = @import("require_atomic_updates.zig");
 const reassignment_rules = @import("reassignment_rules.zig");
@@ -356,6 +357,9 @@ pub fn runBasic(
     }
     if (options.typescript_eslint_no_non_null_asserted_optional_chain) {
         try typescript_eslint_no_non_null_asserted_optional_chain.run(allocator, diagnostics, tree);
+    }
+    if (options.react_hooks_rules_of_hooks) {
+        try react_hooks_rules_of_hooks.run(allocator, diagnostics, tree);
     }
     if (options.react_prop_types) {
         try react_prop_types.run(allocator, diagnostics, tree);

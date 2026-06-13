@@ -919,6 +919,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_hooks_rules_of_hooks.zig");
+}
+
+comptime {
     _ = @import("rules/require_atomic_updates.zig");
 }
 
