@@ -823,6 +823,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_unused_prop_types.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_unused_state.zig");
 }
 
