@@ -663,6 +663,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_jsx_no_comment_textnodes.zig");
+}
+
+comptime {
     _ = @import("rules/require_atomic_updates.zig");
 }
 
