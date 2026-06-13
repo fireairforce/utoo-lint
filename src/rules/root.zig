@@ -30,6 +30,7 @@ pub const alipay_ant_jsx_handler_names = @import("alipay_ant_jsx_handler_names.z
 pub const alipay_ant_no_negative_conditionals = @import("alipay_ant_no_negative_conditionals.zig");
 pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
 pub const alipay_ant_no_phantom_dependencies = @import("alipay_ant_no_phantom_dependencies.zig");
+pub const alipay_ant_prefer_elseif_end_with_else = @import("alipay_ant_prefer_elseif_end_with_else.zig");
 pub const alipay_ant_prefer_click_with_debounce = @import("alipay_ant_prefer_click_with_debounce.zig");
 pub const alipay_ant_no_spread_params = @import("alipay_ant_no_spread_params.zig");
 pub const alipay_ant_prefer_import_from_stdlib = @import("alipay_ant_prefer_import_from_stdlib.zig");
@@ -981,6 +982,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_negated_condition) {
             try no_negated_condition.checkIfStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
+        if (self.options.alipay_ant_prefer_elseif_end_with_else) {
+            try alipay_ant_prefer_elseif_end_with_else.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }
         return .proceed;
     }
