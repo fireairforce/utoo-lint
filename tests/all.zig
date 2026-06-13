@@ -67,6 +67,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/jsx_a11y_aria_proptypes.zig");
+}
+
+comptime {
     _ = @import("rules/jsx_a11y_aria_role.zig");
 }
 

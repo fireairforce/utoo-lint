@@ -30,6 +30,7 @@ pub const import_no_amd = @import("import_no_amd.zig");
 pub const import_no_duplicates = @import("import_no_duplicates.zig");
 pub const import_no_self_import = @import("import_no_self_import.zig");
 pub const jsx_a11y_aria_props = @import("jsx_a11y_aria_props.zig");
+pub const jsx_a11y_aria_proptypes = @import("jsx_a11y_aria_proptypes.zig");
 pub const jsx_a11y_aria_role = @import("jsx_a11y_aria_role.zig");
 pub const jsx_a11y_aria_unsupported_elements = @import("jsx_a11y_aria_unsupported_elements.zig");
 pub const jsx_a11y_iframe_has_title = @import("jsx_a11y_iframe_has_title.zig");
@@ -1751,6 +1752,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.jsx_a11y_aria_props) {
             try jsx_a11y_aria_props.check(self.allocator, self.diagnostics, ctx.tree, attribute, index);
+        }
+        if (self.options.jsx_a11y_aria_proptypes) {
+            try jsx_a11y_aria_proptypes.check(self.allocator, self.diagnostics, ctx.tree, attribute, index);
         }
         if (self.options.react_no_danger) {
             try react_no_danger.check(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1));
