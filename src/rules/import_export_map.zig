@@ -19,7 +19,41 @@ const max_source_size = 1024 * 1024;
 const max_reexport_depth = 8;
 
 pub const ExportMap = struct {
+    allocator: Allocator,
     has_default: bool = false,
+    named: std.StringHashMap(void),
+
+    pub fn init(allocator: Allocator) ExportMap {
+        return .{
+            .allocator = allocator,
+            .named = std.StringHashMap(void).init(allocator),
+        };
+    }
+
+    pub fn deinit(self: *ExportMap) void {
+        var iter = self.named.iterator();
+        while (iter.next()) |entry| {
+            self.allocator.free(entry.key_ptr.*);
+        }
+        self.named.deinit();
+        self.* = undefined;
+    }
+
+    pub fn addNamed(self: *ExportMap, name: []const u8) Allocator.Error!void {
+        if (std.mem.eql(u8, name, "default")) {
+            self.has_default = true;
+            return;
+        }
+        if (self.named.contains(name)) return;
+        const owned = try self.allocator.dupe(u8, name);
+        errdefer self.allocator.free(owned);
+        try self.named.put(owned, {});
+    }
+
+    pub fn hasNamed(self: *const ExportMap, name: []const u8) bool {
+        if (std.mem.eql(u8, name, "default")) return self.has_default;
+        return self.named.contains(name);
+    }
 };
 
 pub fn resolveRelativeModule(
@@ -107,12 +141,14 @@ fn readExportMapInner(
         else => return null,
     };
 
-    var map = ExportMap{};
+    var map = ExportMap.init(allocator);
+    errdefer map.deinit();
     for (tree.extra(program.body)) |statement_index| {
         switch (tree.data(statement_index)) {
             .export_default_declaration => map.has_default = true,
             .export_named_declaration => |declaration| {
                 if (declaration.export_kind == .type) continue;
+                try collectNamedDeclarationExports(allocator, &tree, declaration, &map, path, io, visited, depth);
                 if (hasDefaultSpecifier(&tree, declaration)) {
                     if (exportNamedSource(&tree, declaration)) |reexport_source| {
                         if (try reexportHasDefault(allocator, io, path, reexport_source, visited, depth)) {
@@ -127,11 +163,11 @@ fn readExportMapInner(
                 if (declaration.export_kind == .type) continue;
                 if (declaration.exported != .null) {
                     if (moduleExportName(&tree, declaration.exported)) |name| {
-                        if (std.mem.eql(u8, name, "default")) {
-                            map.has_default = true;
-                        }
+                        try map.addNamed(name);
                     }
+                    continue;
                 }
+                try collectExportAll(allocator, io, path, &tree, declaration, &map, visited, depth);
             },
             else => {},
         }
@@ -151,8 +187,151 @@ fn reexportHasDefault(
     const resolved = try resolveRelativeModule(allocator, io, path, source) orelse return false;
     defer allocator.free(resolved);
 
-    const map = try readExportMapInner(allocator, io, resolved, visited, depth + 1) orelse return false;
+    var map = try readExportMapInner(allocator, io, resolved, visited, depth + 1) orelse return false;
+    defer map.deinit();
     return map.has_default;
+}
+
+fn reexportHasNamed(
+    allocator: Allocator,
+    io: std.Io,
+    path: []const u8,
+    source: []const u8,
+    name: []const u8,
+    visited: *std.StringHashMap(void),
+    depth: usize,
+) Allocator.Error!bool {
+    const resolved = try resolveRelativeModule(allocator, io, path, source) orelse return false;
+    defer allocator.free(resolved);
+
+    var map = try readExportMapInner(allocator, io, resolved, visited, depth + 1) orelse return false;
+    defer map.deinit();
+    return map.hasNamed(name);
+}
+
+fn collectExportAll(
+    allocator: Allocator,
+    io: std.Io,
+    path: []const u8,
+    tree: *const ast.Tree,
+    declaration: ast.ExportAllDeclaration,
+    map: *ExportMap,
+    visited: *std.StringHashMap(void),
+    depth: usize,
+) Allocator.Error!void {
+    const source = exportAllSource(tree, declaration) orelse return;
+    const resolved = try resolveRelativeModule(allocator, io, path, source) orelse return;
+    defer allocator.free(resolved);
+
+    var remote = try readExportMapInner(allocator, io, resolved, visited, depth + 1) orelse return;
+    defer remote.deinit();
+
+    var iter = remote.named.iterator();
+    while (iter.next()) |entry| {
+        try map.addNamed(entry.key_ptr.*);
+    }
+}
+
+fn collectNamedDeclarationExports(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    declaration: ast.ExportNamedDeclaration,
+    map: *ExportMap,
+    path: []const u8,
+    io: std.Io,
+    visited: *std.StringHashMap(void),
+    depth: usize,
+) Allocator.Error!void {
+    if (exportNamedSource(tree, declaration)) |source| {
+        for (tree.extra(declaration.specifiers)) |specifier_index| {
+            const specifier = switch (tree.data(specifier_index)) {
+                .export_specifier => |specifier| specifier,
+                else => continue,
+            };
+            if (specifier.export_kind == .type) continue;
+            const local = moduleExportName(tree, specifier.local) orelse continue;
+            const exported = moduleExportName(tree, specifier.exported) orelse continue;
+            if (try reexportHasNamed(allocator, io, path, source, local, visited, depth)) {
+                try map.addNamed(exported);
+            }
+        }
+        return;
+    }
+
+    for (tree.extra(declaration.specifiers)) |specifier_index| {
+        const specifier = switch (tree.data(specifier_index)) {
+            .export_specifier => |specifier| specifier,
+            else => continue,
+        };
+        if (specifier.export_kind == .type) continue;
+        const exported = moduleExportName(tree, specifier.exported) orelse continue;
+        try map.addNamed(exported);
+    }
+
+    if (declaration.declaration == .null) return;
+    try collectDeclarationNames(allocator, tree, declaration.declaration, map);
+}
+
+fn collectDeclarationNames(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    declaration_index: ast.NodeIndex,
+    map: *ExportMap,
+) Allocator.Error!void {
+    switch (tree.data(declaration_index)) {
+        .variable_declaration => |declaration| {
+            for (tree.extra(declaration.declarators)) |declarator_index| {
+                const declarator = switch (tree.data(declarator_index)) {
+                    .variable_declarator => |declarator| declarator,
+                    else => continue,
+                };
+                try collectBindingNames(allocator, tree, declarator.id, map);
+            }
+        },
+        .function => |function| {
+            const name = bindingIdentifierName(tree, function.id) orelse return;
+            try map.addNamed(name);
+        },
+        .class => |class| {
+            const name = bindingIdentifierName(tree, class.id) orelse return;
+            try map.addNamed(name);
+        },
+        .ts_type_alias_declaration => |declaration| try map.addNamed(bindingIdentifierName(tree, declaration.id) orelse return),
+        .ts_interface_declaration => |declaration| try map.addNamed(bindingIdentifierName(tree, declaration.id) orelse return),
+        .ts_enum_declaration => |declaration| try map.addNamed(bindingIdentifierName(tree, declaration.id) orelse return),
+        else => {},
+    }
+}
+
+fn collectBindingNames(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    map: *ExportMap,
+) Allocator.Error!void {
+    if (index == .null) return;
+    switch (tree.data(index)) {
+        .binding_identifier => |identifier| try map.addNamed(tree.string(identifier.name)),
+        .assignment_pattern => |pattern| try collectBindingNames(allocator, tree, pattern.left, map),
+        .binding_rest_element => |element| try collectBindingNames(allocator, tree, element.argument, map),
+        .array_pattern => |pattern| {
+            for (tree.extra(pattern.elements)) |element| {
+                try collectBindingNames(allocator, tree, element, map);
+            }
+            try collectBindingNames(allocator, tree, pattern.rest, map);
+        },
+        .object_pattern => |pattern| {
+            for (tree.extra(pattern.properties)) |property_index| {
+                const property = switch (tree.data(property_index)) {
+                    .binding_property => |property| property,
+                    else => continue,
+                };
+                try collectBindingNames(allocator, tree, property.value, map);
+            }
+            try collectBindingNames(allocator, tree, pattern.rest, map);
+        },
+        else => {},
+    }
 }
 
 fn hasDefaultSpecifier(tree: *const ast.Tree, declaration: ast.ExportNamedDeclaration) bool {
@@ -176,11 +355,27 @@ fn exportNamedSource(tree: *const ast.Tree, declaration: ast.ExportNamedDeclarat
     };
 }
 
+fn exportAllSource(tree: *const ast.Tree, declaration: ast.ExportAllDeclaration) ?[]const u8 {
+    if (declaration.source == .null) return null;
+    return switch (tree.data(declaration.source)) {
+        .string_literal => |literal| tree.string(literal.value),
+        else => null,
+    };
+}
+
 fn moduleExportName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
     if (index == .null) return null;
     return switch (tree.data(index)) {
         .identifier_name => |identifier| tree.string(identifier.name),
         .string_literal => |literal| tree.string(literal.value),
+        else => null,
+    };
+}
+
+fn bindingIdentifierName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    if (index == .null) return null;
+    return switch (tree.data(index)) {
+        .binding_identifier => |identifier| tree.string(identifier.name),
         else => null,
     };
 }
