@@ -38,11 +38,11 @@ pub fn lintSource(
         var semantic_result = try parser.semantic.analyze(&tree);
         try semantic_result.symbol_table.resolveAll(semantic_result.scope_tree);
         try appendParserDiagnostics(allocator, &diagnostics, &tree);
-        try rules.runBasic(allocator, &diagnostics, &tree, effective_options);
+        try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);
         try rules.runSemantic(allocator, &diagnostics, &tree, semantic_result, effective_options);
     } else {
         try appendParserDiagnostics(allocator, &diagnostics, &tree);
-        try rules.runBasic(allocator, &diagnostics, &tree, effective_options);
+        try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);
     }
 
     return .{

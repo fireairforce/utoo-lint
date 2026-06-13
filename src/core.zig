@@ -89,6 +89,7 @@ pub const Options = struct {
     import_newline_after_import: bool = true,
     import_no_amd: bool = true,
     import_no_duplicates: bool = true,
+    import_no_self_import: bool = true,
     no_invalid_regexp: bool = true,
     no_irregular_whitespace: bool = true,
     no_inline_comments: bool = true,
