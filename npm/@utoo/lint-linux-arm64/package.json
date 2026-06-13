@@ -1,0 +1,27 @@
+{
+  "name": "@utoo/lint-linux-arm64",
+  "version": "0.1.0",
+  "description": "Native binary for utoo-lint on Linux arm64",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fireairforce/utoo-lint.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fireairforce/utoo-lint/issues"
+  },
+  "homepage": "https://github.com/fireairforce/utoo-lint#readme",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "bin/utoo-lint"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}
