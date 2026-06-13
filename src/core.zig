@@ -316,6 +316,48 @@ pub const Options = struct {
         return false;
     }
 
+    pub fn setByRuleConfigValue(self: *Options, cli_name: []const u8, value: std.json.Value) RuleConfigError!void {
+        const enabled = try ruleConfigValueToBool(value);
+        if (!self.setByCliName(cli_name, enabled)) return error.UnknownRule;
+    }
+
+    pub const RuleConfigError = error{
+        EmptyRuleConfigArray,
+        UnknownRule,
+        UnsupportedRuleConfigValue,
+    };
+
+    fn ruleConfigValueToBool(value: std.json.Value) RuleConfigError!bool {
+        return switch (value) {
+            .bool => |enabled| enabled,
+            .integer => |severity| switch (severity) {
+                0 => false,
+                1, 2 => true,
+                else => error.UnsupportedRuleConfigValue,
+            },
+            .string => |severity| ruleSeverityStringToBool(severity) orelse error.UnsupportedRuleConfigValue,
+            .array => |items| {
+                if (items.items.len == 0) return error.EmptyRuleConfigArray;
+                return ruleConfigValueToBool(items.items[0]);
+            },
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn ruleSeverityStringToBool(severity: []const u8) ?bool {
+        if (std.ascii.eqlIgnoreCase(severity, "off") or std.mem.eql(u8, severity, "0")) return false;
+        if (std.ascii.eqlIgnoreCase(severity, "warn") or
+            std.ascii.eqlIgnoreCase(severity, "warning") or
+            std.ascii.eqlIgnoreCase(severity, "error") or
+            std.ascii.eqlIgnoreCase(severity, "on") or
+            std.mem.eql(u8, severity, "1") or
+            std.mem.eql(u8, severity, "2"))
+        {
+            return true;
+        }
+        return null;
+    }
+
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
         inline for (@typeInfo(Options).@"struct".fields) |field| {
             if (field.type == bool) {
@@ -520,4 +562,29 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.import_no_duplicates);
 
     try std.testing.expect(!options.setByCliName("unknown-rule", true));
+}
+
+test "Options can apply ESLint-style rule config values" {
+    var options = Options{};
+
+    try options.setByRuleConfigValue("no-debugger", .{ .string = "off" });
+    try std.testing.expect(!options.no_debugger);
+
+    try options.setByRuleConfigValue("no-debugger", .{ .integer = 2 });
+    try std.testing.expect(options.no_debugger);
+
+    var array = std.json.Array.init(std.testing.allocator);
+    defer array.deinit();
+    try array.append(.{ .string = "warn" });
+    try options.setByRuleConfigValue("jsx-a11y/aria-props", .{ .array = array });
+    try std.testing.expect(options.jsx_a11y_aria_props);
+
+    try std.testing.expectError(
+        Options.RuleConfigError.UnsupportedRuleConfigValue,
+        options.setByRuleConfigValue("no-debugger", .{ .string = "sometimes" }),
+    );
+    try std.testing.expectError(
+        Options.RuleConfigError.UnknownRule,
+        options.setByRuleConfigValue("unknown-rule", .{ .string = "off" }),
+    );
 }
