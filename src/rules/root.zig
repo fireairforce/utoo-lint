@@ -181,6 +181,7 @@ pub const react_jsx_no_comment_textnodes = @import("react_jsx_no_comment_textnod
 pub const react_jsx_pascal_case = @import("react_jsx_pascal_case.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
+pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const radix = @import("radix.zig");
 pub const require_atomic_updates = @import("require_atomic_updates.zig");
 const reassignment_rules = @import("reassignment_rules.zig");
@@ -1479,6 +1480,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_find_dom_node) {
             try react_no_find_dom_node.check(self.allocator, self.diagnostics, ctx.tree, call);
+        }
+        if (self.options.react_no_is_mounted) {
+            try react_no_is_mounted.check(self.allocator, self.diagnostics, ctx.tree, call, ctx);
         }
         if (self.options.new_cap) {
             try new_cap.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
