@@ -178,6 +178,7 @@ pub const prefer_template = @import("prefer_template.zig");
 pub const react_jsx_boolean_value = @import("react_jsx_boolean_value.zig");
 pub const react_jsx_no_duplicate_props = @import("react_jsx_no_duplicate_props.zig");
 pub const react_jsx_no_comment_textnodes = @import("react_jsx_no_comment_textnodes.zig");
+pub const react_jsx_no_bind = @import("react_jsx_no_bind.zig");
 pub const react_jsx_no_target_blank = @import("react_jsx_no_target_blank.zig");
 pub const react_jsx_no_undef = @import("react_jsx_no_undef.zig");
 pub const react_jsx_pascal_case = @import("react_jsx_pascal_case.zig");
@@ -311,6 +312,7 @@ pub fn runBasic(
         .options = options,
     };
     defer visitor.react_no_array_index_key_state.deinit(allocator);
+    defer visitor.react_jsx_no_bind_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -538,6 +540,7 @@ const BasicVisitor = struct {
     react_no_danger_with_children_bindings: react_no_danger_with_children.ObjectBindings = .{},
     react_no_children_prop_bindings: react_no_children_prop.ReactBindings = .{},
     react_no_array_index_key_state: react_no_array_index_key.State = .{},
+    react_jsx_no_bind_state: react_jsx_no_bind.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
 
@@ -606,6 +609,9 @@ const BasicVisitor = struct {
         }
         if (self.options.prefer_rest_params) {
             try prefer_rest_params.check(self.allocator, self.diagnostics, ctx.tree, function, index);
+        }
+        if (self.options.react_jsx_no_bind) {
+            try react_jsx_no_bind.checkFunctionDeclaration(self.allocator, ctx.tree, function, &self.react_jsx_no_bind_state);
         }
         return .proceed;
     }
@@ -858,6 +864,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_void_dom_elements_no_children) {
             react_void_dom_elements_no_children.checkVariableDeclarator(ctx.tree, declarator, &self.react_void_dom_elements_no_children_bindings);
+        }
+        if (self.options.react_jsx_no_bind) {
+            try react_jsx_no_bind.checkVariableDeclarator(self.allocator, ctx.tree, declarator, ctx.path.ancestor(1), &self.react_jsx_no_bind_state);
         }
         return .proceed;
     }
@@ -1221,7 +1230,16 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
             try typescript_eslint_adjacent_overload_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, block.body);
         }
+        if (self.options.react_jsx_no_bind) {
+            try react_jsx_no_bind.enterBlock(self.allocator, &self.react_jsx_no_bind_state);
+        }
         return .proceed;
+    }
+
+    pub fn exit_block_statement(self: *BasicVisitor, _: ast.BlockStatement, _: ast.NodeIndex, _: *traverser.basic.Ctx) void {
+        if (self.options.react_jsx_no_bind) {
+            react_jsx_no_bind.exitBlock(self.allocator, &self.react_jsx_no_bind_state);
+        }
     }
 
     pub fn enter_function_body(
@@ -1230,6 +1248,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.react_jsx_no_bind) {
+            try react_jsx_no_bind.enterBlock(self.allocator, &self.react_jsx_no_bind_state);
+        }
         if (self.options.no_empty_block_statements) {
             try no_empty_block_statements.checkFunctionBody(self.allocator, self.diagnostics, ctx.tree, body, index);
         }
@@ -1246,6 +1267,12 @@ const BasicVisitor = struct {
             try no_unreachable.checkRange(self.allocator, self.diagnostics, ctx.tree, body.body);
         }
         return .proceed;
+    }
+
+    pub fn exit_function_body(self: *BasicVisitor, _: ast.FunctionBody, _: ast.NodeIndex, _: *traverser.basic.Ctx) void {
+        if (self.options.react_jsx_no_bind) {
+            react_jsx_no_bind.exitBlock(self.allocator, &self.react_jsx_no_bind_state);
+        }
     }
 
     pub fn enter_static_block(
@@ -1692,6 +1719,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_array_index_key) {
             try react_no_array_index_key.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, self.react_no_array_index_key_state);
+        }
+        if (self.options.react_jsx_no_bind) {
+            try react_jsx_no_bind.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index, self.react_jsx_no_bind_state);
         }
         return .proceed;
     }
