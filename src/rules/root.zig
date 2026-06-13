@@ -39,6 +39,7 @@ pub const alipay_ant_prefer_click_with_debounce = @import("alipay_ant_prefer_cli
 pub const alipay_ant_prefer_import_as_required = @import("alipay_ant_prefer_import_as_required.zig");
 pub const alipay_ant_no_spread_params = @import("alipay_ant_no_spread_params.zig");
 pub const alipay_ant_prefer_resource_from_huamei = @import("alipay_ant_prefer_resource_from_huamei.zig");
+pub const alipay_ant_prefer_render_img_with_promo_mobile = @import("alipay_ant_prefer_render_img_with_promo_mobile.zig");
 pub const alipay_ant_prefer_import_from_stdlib = @import("alipay_ant_prefer_import_from_stdlib.zig");
 pub const alipay_spmlint_use_labeled_spm = @import("alipay_spmlint_use_labeled_spm.zig");
 pub const alipay_spmlint_valid_manual_click = @import("alipay_spmlint_valid_manual_click.zig");
@@ -2276,6 +2277,9 @@ const BasicVisitor = struct {
         }
         if (self.options.jsx_a11y_img_redundant_alt) {
             try jsx_a11y_img_redundant_alt.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
+        }
+        if (self.options.alipay_ant_prefer_render_img_with_promo_mobile) {
+            try alipay_ant_prefer_render_img_with_promo_mobile.check(self.allocator, self.diagnostics, ctx.tree, opening);
         }
         if (self.options.jsx_a11y_no_distracting_elements) {
             try jsx_a11y_no_distracting_elements.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
