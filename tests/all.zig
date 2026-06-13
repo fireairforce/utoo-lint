@@ -679,6 +679,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_jsx_no_target_blank.zig");
+}
+
+comptime {
     _ = @import("rules/react_jsx_no_comment_textnodes.zig");
 }
 
