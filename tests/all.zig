@@ -715,6 +715,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_jsx_filename_extension.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_access_state_in_setstate.zig");
 }
 
