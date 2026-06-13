@@ -971,6 +971,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_unsafe_declaration_merging.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_triple_slash_reference.zig");
 }
 

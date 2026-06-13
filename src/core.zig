@@ -264,6 +264,7 @@ pub const Options = struct {
     typescript_eslint_no_require_imports: bool = true,
     typescript_eslint_no_shadow: bool = true,
     typescript_eslint_no_this_alias: bool = true,
+    typescript_eslint_no_unsafe_declaration_merging: bool = true,
     typescript_eslint_triple_slash_reference: bool = true,
     typescript_eslint_typedef: bool = true,
     typescript_eslint_unified_signatures: bool = true,
@@ -588,6 +589,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unnecessary_parameter_property_assignment);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unnecessary-parameter-property-assignment", true));
     try std.testing.expect(options.typescript_eslint_no_unnecessary_parameter_property_assignment);
+
+    try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
+    try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
 
     try std.testing.expect(!options.jsx_a11y_aria_props);
     try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));

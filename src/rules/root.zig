@@ -258,6 +258,7 @@ pub const typescript_eslint_no_redeclare = @import("typescript_eslint_no_redecla
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_no_shadow = @import("typescript_eslint_no_shadow.zig");
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
+pub const typescript_eslint_no_unsafe_declaration_merging = @import("typescript_eslint_no_unsafe_declaration_merging.zig");
 pub const typescript_eslint_triple_slash_reference = @import("typescript_eslint_triple_slash_reference.zig");
 pub const typescript_eslint_typedef = @import("typescript_eslint_typedef.zig");
 pub const typescript_eslint_unified_signatures = @import("typescript_eslint_unified_signatures.zig");
@@ -401,6 +402,10 @@ pub fn runSemantic(
 
     if (use_typescript_no_redeclare) {
         try typescript_eslint_no_redeclare.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.typescript_eslint_no_unsafe_declaration_merging and tree.isTs()) {
+        try typescript_eslint_no_unsafe_declaration_merging.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     const use_typescript_no_shadow = options.typescript_eslint_no_shadow and tree.isTs();

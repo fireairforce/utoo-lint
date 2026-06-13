@@ -115,6 +115,7 @@ fn hasSemanticRules(options: Options) bool {
         options.typescript_eslint_no_require_imports or
         options.typescript_eslint_no_loop_func or
         options.typescript_eslint_no_shadow or
+        options.typescript_eslint_no_unsafe_declaration_merging or
         options.typescript_eslint_no_unused_vars or
         options.typescript_eslint_no_use_before_define or
         options.typescript_eslint_no_var_requires;
