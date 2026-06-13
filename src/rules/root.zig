@@ -38,6 +38,7 @@ pub const alipay_ant_prefer_catch_unsafe_func_call = @import("alipay_ant_prefer_
 pub const alipay_ant_prefer_click_with_debounce = @import("alipay_ant_prefer_click_with_debounce.zig");
 pub const alipay_ant_prefer_import_as_required = @import("alipay_ant_prefer_import_as_required.zig");
 pub const alipay_ant_no_spread_params = @import("alipay_ant_no_spread_params.zig");
+pub const alipay_ant_prefer_resource_from_huamei = @import("alipay_ant_prefer_resource_from_huamei.zig");
 pub const alipay_ant_prefer_import_from_stdlib = @import("alipay_ant_prefer_import_from_stdlib.zig");
 pub const alipay_spmlint_use_labeled_spm = @import("alipay_spmlint_use_labeled_spm.zig");
 pub const alipay_spmlint_valid_manual_click = @import("alipay_spmlint_valid_manual_click.zig");
@@ -1725,6 +1726,9 @@ const BasicVisitor = struct {
         }
         if (self.options.alipay_ant_disallow_typos) {
             try alipay_ant_disallow_typos.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.alipay_ant_prefer_resource_from_huamei) {
+            try alipay_ant_prefer_resource_from_huamei.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         if (self.options.no_useless_escape) {
             try no_useless_escape.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, index);

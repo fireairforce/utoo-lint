@@ -95,6 +95,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/alipay_ant_prefer_resource_from_huamei.zig");
+}
+
+comptime {
     _ = @import("rules/alipay_ant_prefer_click_with_debounce.zig");
 }
 
