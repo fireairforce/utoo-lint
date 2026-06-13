@@ -739,6 +739,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_will_update_set_state.zig");
+}
+
+comptime {
     _ = @import("rules/react_jsx_boolean_value.zig");
 }
 
