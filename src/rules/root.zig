@@ -179,6 +179,7 @@ pub const react_jsx_boolean_value = @import("react_jsx_boolean_value.zig");
 pub const react_jsx_no_duplicate_props = @import("react_jsx_no_duplicate_props.zig");
 pub const react_jsx_no_comment_textnodes = @import("react_jsx_no_comment_textnodes.zig");
 pub const react_jsx_no_bind = @import("react_jsx_no_bind.zig");
+pub const react_jsx_key = @import("react_jsx_key.zig");
 pub const react_jsx_no_target_blank = @import("react_jsx_no_target_blank.zig");
 pub const react_jsx_no_undef = @import("react_jsx_no_undef.zig");
 pub const react_jsx_pascal_case = @import("react_jsx_pascal_case.zig");
@@ -541,6 +542,7 @@ const BasicVisitor = struct {
     react_no_children_prop_bindings: react_no_children_prop.ReactBindings = .{},
     react_no_array_index_key_state: react_no_array_index_key.State = .{},
     react_jsx_no_bind_state: react_jsx_no_bind.State = .{},
+    react_jsx_key_state: react_jsx_key.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
 
@@ -567,6 +569,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_array_index_key) {
             try react_no_array_index_key.collectProgram(self.allocator, ctx.tree, program, &self.react_no_array_index_key_state);
+        }
+        if (self.options.react_jsx_key) {
+            react_jsx_key.collectProgram(ctx.tree, &self.react_jsx_key_state);
         }
         if (self.options.react_void_dom_elements_no_children) {
             self.react_void_dom_elements_no_children_bindings = react_void_dom_elements_no_children.bindingsFromProgram(ctx.tree, program);
@@ -1587,6 +1592,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_array_index_key) {
             try react_no_array_index_key.enterCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, &self.react_no_array_index_key_state);
         }
+        if (self.options.react_jsx_key) {
+            try react_jsx_key.enterCallExpression(self.allocator, self.diagnostics, ctx.tree, call, &self.react_jsx_key_state);
+        }
         if (self.options.new_cap) {
             try new_cap.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
@@ -1613,6 +1621,9 @@ const BasicVisitor = struct {
     ) void {
         if (self.options.react_no_array_index_key) {
             react_no_array_index_key.exitCallExpression(ctx.tree, call, &self.react_no_array_index_key_state);
+        }
+        if (self.options.react_jsx_key) {
+            react_jsx_key.exitCallExpression(ctx.tree, call, &self.react_jsx_key_state);
         }
     }
 
@@ -1692,6 +1703,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_sparse_arrays) {
             try no_sparse_arrays.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.react_jsx_key and self.react_jsx_key_state.children_to_array_depth == 0) {
+            try react_jsx_key.checkArrayExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
         return .proceed;
     }
