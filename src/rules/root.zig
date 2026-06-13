@@ -26,6 +26,7 @@ pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
 pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
+pub const alipay_spmlint_use_labeled_spm = @import("alipay_spmlint_use_labeled_spm.zig");
 pub const import_first = @import("import_first.zig");
 pub const import_newline_after_import = @import("import_newline_after_import.zig");
 pub const import_no_amd = @import("import_no_amd.zig");
@@ -1747,6 +1748,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_process_exit) {
             try no_process_exit.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        if (self.options.alipay_spmlint_use_labeled_spm) {
+            try alipay_spmlint_use_labeled_spm.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
         if (self.options.react_no_find_dom_node) {
             try react_no_find_dom_node.check(self.allocator, self.diagnostics, ctx.tree, call);

@@ -87,6 +87,7 @@ pub const Options = struct {
     no_import_assign: bool = true,
     alipay_ant_disallow_typos: bool = true,
     alipay_ant_no_import_src: bool = true,
+    alipay_spmlint_use_labeled_spm: bool = true,
     import_first: bool = true,
     import_newline_after_import: bool = true,
     import_no_amd: bool = true,
@@ -328,6 +329,10 @@ pub const Options = struct {
 
         if (std.mem.startsWith(u8, cli_name, "@alipay/ant/")) {
             return self.setByPrefixedRuleName("alipay_ant_", cli_name["@alipay/ant/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "@alipay/spmLint/")) {
+            return self.setByPrefixedRuleName("alipay_spmlint_", cli_name["@alipay/spmLint/".len..], value);
         }
 
         if (std.mem.startsWith(u8, cli_name, "jsx-a11y/")) {
@@ -619,6 +624,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.alipay_ant_disallow_typos);
     try std.testing.expect(options.setByCliName("@alipay/ant/disallow-typos", true));
     try std.testing.expect(options.alipay_ant_disallow_typos);
+
+    try std.testing.expect(!options.alipay_spmlint_use_labeled_spm);
+    try std.testing.expect(options.setByCliName("@alipay/spmLint/use-labeled-spm", true));
+    try std.testing.expect(options.alipay_spmlint_use_labeled_spm);
 
     try std.testing.expect(!options.setByCliName("unknown-rule", true));
 }
