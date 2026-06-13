@@ -2,6 +2,7 @@ const std = @import("std");
 const lint = @import("utoo_lint");
 
 const max_file_size = 64 * 1024 * 1024;
+const max_config_file_size = 1024 * 1024;
 
 const Stats = struct {
     files: usize = 0,
@@ -33,7 +34,21 @@ pub fn main(init: std.process.Init) !void {
     const allocator = init.gpa;
     const args = try init.minimal.args.toSlice(init.arena.allocator());
 
+    if (hasHelpArg(args[1..])) {
+        printHelp();
+        return;
+    }
+
     var options = lint.Options{};
+    const config = parseConfigArgs(args[1..]);
+    if (config.enabled) {
+        if (config.path) |path| {
+            try loadConfigFile(allocator, io, path, true, &options);
+        } else if (findDefaultConfig(io)) |path| {
+            try loadConfigFile(allocator, io, path, false, &options);
+        }
+    }
+
     var thread_count_override: ?usize = null;
     var targets: std.ArrayList([]const u8) = .empty;
     defer targets.deinit(allocator);
@@ -42,6 +57,10 @@ pub fn main(init: std.process.Init) !void {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
             printHelp();
             return;
+        } else if (std.mem.eql(u8, arg, "--no-config")) {
+            continue;
+        } else if (std.mem.startsWith(u8, arg, "--config=")) {
+            continue;
         } else if (std.mem.startsWith(u8, arg, "--threads=")) {
             const value = arg["--threads=".len..];
             const parsed = std.fmt.parseInt(usize, value, 10) catch {
@@ -576,6 +595,101 @@ pub fn main(init: std.process.Init) !void {
     }
 }
 
+fn hasHelpArg(args: []const []const u8) bool {
+    for (args) |arg| {
+        if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) return true;
+    }
+    return false;
+}
+
+const ConfigArgs = struct {
+    enabled: bool = true,
+    path: ?[]const u8 = null,
+};
+
+fn parseConfigArgs(args: []const []const u8) ConfigArgs {
+    var config = ConfigArgs{};
+    for (args) |arg| {
+        if (std.mem.eql(u8, arg, "--no-config")) {
+            config.enabled = false;
+            config.path = null;
+        } else if (std.mem.startsWith(u8, arg, "--config=")) {
+            config.enabled = true;
+            config.path = arg["--config=".len..];
+            if (config.path.?.len == 0) {
+                std.debug.print("utoo-lint: --config requires a path\n", .{});
+                std.process.exit(2);
+            }
+        }
+    }
+    return config;
+}
+
+fn findDefaultConfig(io: std.Io) ?[]const u8 {
+    const cwd = std.Io.Dir.cwd();
+    const candidates = [_][]const u8{
+        "utoo.json",
+        "utoo-lint.json",
+    };
+
+    for (candidates) |path| {
+        const stat = cwd.statFile(io, path, .{}) catch continue;
+        if (stat.kind == .file) return path;
+    }
+    return null;
+}
+
+fn loadConfigFile(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    path: []const u8,
+    explicit: bool,
+    options: *lint.Options,
+) !void {
+    const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_config_file_size)) catch |err| {
+        if (explicit) {
+            std.debug.print("utoo-lint: unable to read config {s}: {s}\n", .{ path, @errorName(err) });
+            std.process.exit(2);
+        }
+        return;
+    };
+    defer allocator.free(source);
+
+    var parsed = std.json.parseFromSlice(std.json.Value, allocator, source, .{}) catch |err| {
+        std.debug.print("utoo-lint: invalid config {s}: {s}\n", .{ path, @errorName(err) });
+        std.process.exit(2);
+    };
+    defer parsed.deinit();
+
+    const root = switch (parsed.value) {
+        .object => |object| object,
+        else => {
+            std.debug.print("utoo-lint: config {s} must be a JSON object\n", .{path});
+            std.process.exit(2);
+        },
+    };
+
+    const rules_value = root.get("rules") orelse return;
+    const rules = switch (rules_value) {
+        .object => |object| object,
+        else => {
+            std.debug.print("utoo-lint: config {s} field \"rules\" must be an object\n", .{path});
+            std.process.exit(2);
+        },
+    };
+
+    var iter = rules.iterator();
+    while (iter.next()) |entry| {
+        options.setByRuleConfigValue(entry.key_ptr.*, entry.value_ptr.*) catch |err| {
+            std.debug.print(
+                "utoo-lint: invalid config {s} rule {s}: {s}\n",
+                .{ path, entry.key_ptr.*, @errorName(err) },
+            );
+            std.process.exit(2);
+        };
+    }
+}
+
 fn collectLintablePaths(
     allocator: std.mem.Allocator,
     io: std.Io,
@@ -798,6 +912,8 @@ fn printHelp() void {
         \\  utoo-lint [options] [file-or-directory ...]
         \\
         \\Options:
+        \\  --config=PATH            Read configuration from PATH
+        \\  --no-config              Do not read utoo.json or utoo-lint.json
         \\  --threads=N              Number of worker threads to use
         \\  --rules=a,b,c            Enable only the comma-separated rule list
         \\  --array-callback-return=off Disable array-callback-return

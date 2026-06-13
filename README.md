@@ -10,6 +10,7 @@ It uses [`yuku`](https://github.com/yuku-toolchain/yuku) (GitHub: https://github
 This repo is a working scaffold, not a production linter yet.
 
 See [Rule status](docs/rule-status.md) for the current rule list and the corresponding ESLint documentation links.
+See [Migrating from ESLint](docs/eslint-migration.md) for the current migration path.
 
 ## Prerequisites
 
@@ -98,6 +99,20 @@ utoo-lint [options] [file-or-directory ...]
 ```
 
 If no target is provided, `utoo-lint` scans the current directory. It skips `.git`, `.zig-cache`, `node_modules`, `vendor`, and `zig-out`.
+
+Configuration files:
+
+```json
+{
+  "rules": {
+    "no-console": "off",
+    "no-debugger": "error",
+    "@typescript-eslint/no-unused-vars": ["warn"]
+  }
+}
+```
+
+By default, `utoo-lint` reads `utoo.json` or `utoo-lint.json` from the current directory. Use `--config=path/to/utoo.json` for an explicit file or `--no-config` to ignore local config. Rule values may be `off`, `warn`, `error`, `0`, `1`, `2`, booleans, or an ESLint-style array whose first item is the severity.
 
 Rule toggles:
 
