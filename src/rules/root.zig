@@ -30,6 +30,7 @@ pub const import_no_amd = @import("import_no_amd.zig");
 pub const import_no_duplicates = @import("import_no_duplicates.zig");
 pub const import_no_self_import = @import("import_no_self_import.zig");
 pub const jsx_a11y_iframe_has_title = @import("jsx_a11y_iframe_has_title.zig");
+pub const jsx_a11y_img_redundant_alt = @import("jsx_a11y_img_redundant_alt.zig");
 pub const jsx_a11y_no_access_key = @import("jsx_a11y_no_access_key.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const new_cap = @import("new_cap.zig");
@@ -1802,6 +1803,9 @@ const BasicVisitor = struct {
         }
         if (self.options.jsx_a11y_iframe_has_title) {
             try jsx_a11y_iframe_has_title.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
+        }
+        if (self.options.jsx_a11y_img_redundant_alt) {
+            try jsx_a11y_img_redundant_alt.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
         }
         if (self.options.react_jsx_no_target_blank) {
             try react_jsx_no_target_blank.check(self.allocator, self.diagnostics, ctx.tree, opening, index);

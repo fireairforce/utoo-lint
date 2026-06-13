@@ -197,6 +197,8 @@ pub fn main(init: std.process.Init) !void {
             options.import_no_self_import = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-iframe-has-title=off")) {
             options.jsx_a11y_iframe_has_title = false;
+        } else if (std.mem.eql(u8, arg, "--jsx-a11y-img-redundant-alt=off")) {
+            options.jsx_a11y_img_redundant_alt = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-no-access-key=off")) {
             options.jsx_a11y_no_access_key = false;
         } else if (std.mem.eql(u8, arg, "--no-invalid-regexp=off")) {
@@ -843,6 +845,7 @@ fn printHelp() void {
         \\  --import-no-duplicates=off Disable import/no-duplicates
         \\  --import-no-self-import=off Disable import/no-self-import
         \\  --jsx-a11y-iframe-has-title=off Disable jsx-a11y/iframe-has-title
+        \\  --jsx-a11y-img-redundant-alt=off Disable jsx-a11y/img-redundant-alt
         \\  --jsx-a11y-no-access-key=off Disable jsx-a11y/no-access-key
         \\  --no-invalid-regexp=off    Disable no-invalid-regexp
         \\  --no-irregular-whitespace=off Disable no-irregular-whitespace

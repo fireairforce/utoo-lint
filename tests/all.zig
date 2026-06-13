@@ -67,6 +67,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/jsx_a11y_img_redundant_alt.zig");
+}
+
+comptime {
     _ = @import("rules/jsx_a11y_no_access_key.zig");
 }
 
