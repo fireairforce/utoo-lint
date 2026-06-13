@@ -38,6 +38,7 @@ pub const import_named = @import("import_named.zig");
 pub const import_newline_after_import = @import("import_newline_after_import.zig");
 pub const import_no_amd = @import("import_no_amd.zig");
 pub const import_no_duplicates = @import("import_no_duplicates.zig");
+pub const import_no_named_as_default = @import("import_no_named_as_default.zig");
 pub const import_no_self_import = @import("import_no_self_import.zig");
 pub const jsx_a11y_alt_text = @import("jsx_a11y_alt_text.zig");
 pub const jsx_a11y_anchor_has_content = @import("jsx_a11y_anchor_has_content.zig");
@@ -405,6 +406,17 @@ pub fn runSemantic(
     if (options.import_named) {
         if (io) |actual_io| {
             try import_named.run(
+                allocator,
+                actual_io,
+                diagnostics,
+                tree,
+                file_path,
+            );
+        }
+    }
+    if (options.import_no_named_as_default) {
+        if (io) |actual_io| {
+            try import_no_named_as_default.run(
                 allocator,
                 actual_io,
                 diagnostics,
