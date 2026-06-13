@@ -195,6 +195,7 @@ pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_e
 pub const typescript_eslint_no_extra_semi = @import("typescript_eslint_no_extra_semi.zig");
 pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_eslint_no_extra_non_null_assertion.zig");
 pub const typescript_eslint_no_inferrable_types = @import("typescript_eslint_no_inferrable_types.zig");
+pub const typescript_eslint_no_invalid_void_type = @import("typescript_eslint_no_invalid_void_type.zig");
 pub const typescript_eslint_no_loss_of_precision = @import("typescript_eslint_no_loss_of_precision.zig");
 pub const typescript_eslint_no_misused_new = @import("typescript_eslint_no_misused_new.zig");
 pub const typescript_eslint_no_namespace = @import("typescript_eslint_no_namespace.zig");
@@ -893,6 +894,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_no_unnecessary_type_constraint) {
             try typescript_eslint_no_unnecessary_type_constraint.check(self.allocator, self.diagnostics, ctx.tree, parameter, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_void_keyword(
+        self: *BasicVisitor,
+        _: ast.TSVoidKeyword,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_no_invalid_void_type) {
+            try typescript_eslint_no_invalid_void_type.check(self.allocator, self.diagnostics, ctx.tree, index, ctx);
         }
         return .proceed;
     }
