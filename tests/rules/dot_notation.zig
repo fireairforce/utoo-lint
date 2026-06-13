@@ -15,6 +15,7 @@ test "reports dot-notation for computed string properties that can use dot acces
         .no_undef = false,
         .no_unused_expressions = false,
         .no_unused_vars = false,
+        .typescript_eslint_dot_notation = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -39,6 +40,7 @@ test "does not report dot-notation when bracket access is required" {
         .eol_last = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_dot_notation = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -56,6 +58,7 @@ test "can disable dot-notation" {
         .eol_last = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_dot_notation = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
