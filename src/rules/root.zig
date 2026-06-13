@@ -24,6 +24,10 @@ pub const eol_last = @import("eol_last.zig");
 pub const for_direction = @import("for_direction.zig");
 pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
+pub const import_first = @import("import_first.zig");
+pub const import_newline_after_import = @import("import_newline_after_import.zig");
+pub const import_no_amd = @import("import_no_amd.zig");
+pub const import_no_duplicates = @import("import_no_duplicates.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const new_cap = @import("new_cap.zig");
 pub const new_parens = @import("new_parens.zig");
@@ -498,7 +502,16 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.options.no_duplicate_imports) {
+        if (self.options.import_first) {
+            try import_first.check(self.allocator, self.diagnostics, ctx.tree, program);
+        }
+        if (self.options.import_newline_after_import) {
+            try import_newline_after_import.check(self.allocator, self.diagnostics, ctx.tree, program);
+        }
+        if (self.options.import_no_duplicates) {
+            try import_no_duplicates.check(self.allocator, self.diagnostics, ctx.tree, program);
+        }
+        if (self.options.no_duplicate_imports and !self.options.import_no_duplicates) {
             try no_duplicate_imports.check(self.allocator, self.diagnostics, ctx.tree, program);
         }
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
@@ -1435,6 +1448,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.array_callback_return) {
             try array_callback_return.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        if (self.options.import_no_amd) {
+            try import_no_amd.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
         if (self.options.no_console) {
             try no_console.check(self.allocator, self.diagnostics, ctx.tree, call, index);

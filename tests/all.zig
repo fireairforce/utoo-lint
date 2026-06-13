@@ -43,6 +43,22 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/import_first.zig");
+}
+
+comptime {
+    _ = @import("rules/import_newline_after_import.zig");
+}
+
+comptime {
+    _ = @import("rules/import_no_amd.zig");
+}
+
+comptime {
+    _ = @import("rules/import_no_duplicates.zig");
+}
+
+comptime {
     _ = @import("rules/linebreak_style.zig");
 }
 

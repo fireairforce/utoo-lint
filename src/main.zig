@@ -185,6 +185,14 @@ pub fn main(init: std.process.Init) !void {
             options.no_implied_eval = false;
         } else if (std.mem.eql(u8, arg, "--no-import-assign=off")) {
             options.no_import_assign = false;
+        } else if (std.mem.eql(u8, arg, "--import-first=off")) {
+            options.import_first = false;
+        } else if (std.mem.eql(u8, arg, "--import-newline-after-import=off")) {
+            options.import_newline_after_import = false;
+        } else if (std.mem.eql(u8, arg, "--import-no-amd=off")) {
+            options.import_no_amd = false;
+        } else if (std.mem.eql(u8, arg, "--import-no-duplicates=off")) {
+            options.import_no_duplicates = false;
         } else if (std.mem.eql(u8, arg, "--no-invalid-regexp=off")) {
             options.no_invalid_regexp = false;
         } else if (std.mem.eql(u8, arg, "--no-irregular-whitespace=off")) {
@@ -771,6 +779,10 @@ fn printHelp() void {
         \\  --no-implicit-coercion=off Disable no-implicit-coercion
         \\  --no-implied-eval=off      Disable no-implied-eval
         \\  --no-import-assign=off     Disable no-import-assign
+        \\  --import-first=off         Disable import/first
+        \\  --import-newline-after-import=off Disable import/newline-after-import
+        \\  --import-no-amd=off        Disable import/no-amd
+        \\  --import-no-duplicates=off Disable import/no-duplicates
         \\  --no-invalid-regexp=off    Disable no-invalid-regexp
         \\  --no-irregular-whitespace=off Disable no-irregular-whitespace
         \\  --no-inline-comments=off   Disable no-inline-comments
