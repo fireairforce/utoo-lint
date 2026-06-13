@@ -663,6 +663,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_render_return_value.zig");
+}
+
+comptime {
     _ = @import("rules/react_jsx_boolean_value.zig");
 }
 

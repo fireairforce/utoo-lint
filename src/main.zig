@@ -395,6 +395,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_no_find_dom_node = false;
         } else if (std.mem.eql(u8, arg, "--react-no-is-mounted=off")) {
             options.react_no_is_mounted = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-render-return-value=off")) {
+            options.react_no_render_return_value = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
         } else if (std.mem.eql(u8, arg, "--require-atomic-updates=off")) {
@@ -898,6 +900,7 @@ fn printHelp() void {
         \\  --react-no-danger=off     Disable react/no-danger
         \\  --react-no-find-dom-node=off Disable react/no-find-dom-node
         \\  --react-no-is-mounted=off Disable react/no-is-mounted
+        \\  --react-no-render-return-value=off Disable react/no-render-return-value
         \\  --radix=off               Disable radix
         \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield
