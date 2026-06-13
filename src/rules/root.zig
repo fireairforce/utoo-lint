@@ -196,6 +196,7 @@ pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
 pub const prefer_template = @import("prefer_template.zig");
+pub const react_default_props_match_prop_types = @import("react_default_props_match_prop_types.zig");
 pub const react_button_has_type = @import("react_button_has_type.zig");
 pub const react_display_name = @import("react_display_name.zig");
 pub const react_jsx_boolean_value = @import("react_jsx_boolean_value.zig");
@@ -361,6 +362,7 @@ pub fn runBasic(
     defer visitor.react_no_unused_state_state.deinit(allocator);
     defer visitor.react_display_name_state.deinit(allocator);
     defer visitor.react_forbid_prop_types_state.deinit(allocator);
+    defer visitor.react_default_props_match_prop_types_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -609,6 +611,7 @@ const BasicVisitor = struct {
     file_path: []const u8,
     options: core.Options,
     react_button_has_type_state: react_button_has_type.State = .{},
+    react_default_props_match_prop_types_state: react_default_props_match_prop_types.State = .{},
     react_display_name_state: react_display_name.State = .{},
     react_require_render_return_state: react_require_render_return.State = .{},
     react_no_danger_with_children_bindings: react_no_danger_with_children.ObjectBindings = .{},
@@ -661,6 +664,9 @@ const BasicVisitor = struct {
         if (self.options.react_button_has_type) {
             react_button_has_type.collectProgram(ctx.tree, program, &self.react_button_has_type_state);
         }
+        if (self.options.react_default_props_match_prop_types) {
+            try react_default_props_match_prop_types.collectProgram(self.allocator, ctx.tree, program, &self.react_default_props_match_prop_types_state);
+        }
         if (self.options.react_require_render_return) {
             try react_require_render_return.collectProgram(self.allocator, ctx.tree, program, &self.react_require_render_return_state);
         }
@@ -699,6 +705,9 @@ const BasicVisitor = struct {
     ) void {
         if (self.options.react_display_name) {
             react_display_name.finish(self.allocator, self.diagnostics, ctx.tree, &self.react_display_name_state) catch {};
+        }
+        if (self.options.react_default_props_match_prop_types) {
+            react_default_props_match_prop_types.finish(self.allocator, self.diagnostics, ctx.tree, &self.react_default_props_match_prop_types_state) catch {};
         }
     }
 
