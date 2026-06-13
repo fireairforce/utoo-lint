@@ -1188,6 +1188,7 @@ fn printHelp() void {
         \\  --no-array-constructor=off Disable no-array-constructor
         \\  --no-await-in-loop=off    Disable no-await-in-loop
         \\  --no-alert=off            Disable no-alert
+        \\  --no-bitwise=off          Disable no-bitwise
         \\  --no-buffer-constructor=off Disable no-buffer-constructor
         \\  --no-caller=off           Disable no-caller
         \\  --no-case-declarations=off Disable no-case-declarations
@@ -1281,6 +1282,7 @@ fn printHelp() void {
         \\  --no-loop-func=off        Disable no-loop-func
         \\  --no-loss-of-precision=off Disable no-loss-of-precision
         \\  --no-multi-str=off        Disable no-multi-str
+        \\  --no-multi-assign=off     Disable no-multi-assign
         \\  --no-multi-spaces=off     Disable no-multi-spaces
         \\  --no-mixed-spaces-and-tabs=off Disable no-mixed-spaces-and-tabs
         \\  --no-misleading-character-class=off Disable no-misleading-character-class
@@ -1360,6 +1362,7 @@ fn printHelp() void {
         \\  --prefer-regex-literals=off Disable prefer-regex-literals
         \\  --prefer-rest-params=off  Disable prefer-rest-params
         \\  --prefer-spread=off       Disable prefer-spread
+        \\  --prefer-template=off     Disable prefer-template
         \\  --react-default-props-match-prop-types=off Disable react/default-props-match-prop-types
         \\  --react-display-name=off Disable react/display-name
         \\  --react-jsx-boolean-value=off Disable react/jsx-boolean-value
@@ -1404,6 +1407,8 @@ fn printHelp() void {
         \\  --radix=off               Disable radix
         \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield
+        \\  --spaced-comment=off      Disable spaced-comment
+        \\  --symbol-description=off  Disable symbol-description
         \\  --typescript-eslint-adjacent-overload-signatures=off Disable @typescript-eslint/adjacent-overload-signatures
         \\  --typescript-eslint-array-type=off Disable @typescript-eslint/array-type
         \\  --typescript-eslint-class-literal-property-style=off Disable @typescript-eslint/class-literal-property-style
@@ -1442,6 +1447,7 @@ fn printHelp() void {
         \\  --typescript-eslint-prefer-as-const=off Disable @typescript-eslint/prefer-as-const
         \\  --typescript-eslint-prefer-namespace-keyword=off Disable @typescript-eslint/prefer-namespace-keyword
         \\  --typescript-eslint-restrict-plus-operands=off Disable @typescript-eslint/restrict-plus-operands
+        \\  --valid-typeof=off        Disable valid-typeof
         \\  --semantic-errors=off     Disable parser semantic errors
         \\  --yoda=off                Disable yoda
         \\
