@@ -85,6 +85,7 @@ pub const Options = struct {
     no_implicit_coercion: bool = true,
     no_implied_eval: bool = true,
     no_import_assign: bool = true,
+    alipay_ant_disallow_typos: bool = true,
     alipay_ant_no_import_src: bool = true,
     import_first: bool = true,
     import_newline_after_import: bool = true,
@@ -614,6 +615,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.alipay_ant_no_import_src);
     try std.testing.expect(options.setByCliName("@alipay/ant/no-import-src", true));
     try std.testing.expect(options.alipay_ant_no_import_src);
+
+    try std.testing.expect(!options.alipay_ant_disallow_typos);
+    try std.testing.expect(options.setByCliName("@alipay/ant/disallow-typos", true));
+    try std.testing.expect(options.alipay_ant_disallow_typos);
 
     try std.testing.expect(!options.setByCliName("unknown-rule", true));
 }

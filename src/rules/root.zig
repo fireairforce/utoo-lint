@@ -24,6 +24,7 @@ pub const eol_last = @import("eol_last.zig");
 pub const for_direction = @import("for_direction.zig");
 pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
+pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
 pub const import_first = @import("import_first.zig");
 pub const import_newline_after_import = @import("import_newline_after_import.zig");
@@ -1513,6 +1514,9 @@ const BasicVisitor = struct {
         if (self.options.no_template_curly_in_string) {
             try no_template_curly_in_string.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
+        if (self.options.alipay_ant_disallow_typos) {
+            try alipay_ant_disallow_typos.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
         if (self.options.no_useless_escape) {
             try no_useless_escape.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, index);
         }
@@ -1530,6 +1534,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_useless_escape) {
             try no_useless_escape.checkTemplateLiteral(self.allocator, self.diagnostics, ctx.tree, literal);
+        }
+        if (self.options.alipay_ant_disallow_typos) {
+            try alipay_ant_disallow_typos.checkTemplateLiteral(self.allocator, self.diagnostics, ctx.tree, literal);
         }
         return .proceed;
     }
