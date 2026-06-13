@@ -190,6 +190,7 @@ pub const Options = struct {
     react_jsx_no_bind: bool = true,
     react_jsx_key: bool = true,
     react_button_has_type: bool = true,
+    react_require_render_return: bool = true,
     react_jsx_no_target_blank: bool = true,
     react_jsx_no_undef: bool = true,
     react_jsx_pascal_case: bool = true,

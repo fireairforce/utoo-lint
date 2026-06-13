@@ -719,6 +719,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_require_render_return.zig");
+}
+
+comptime {
     _ = @import("rules/react_jsx_pascal_case.zig");
 }
 
