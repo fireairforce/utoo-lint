@@ -186,6 +186,7 @@ pub const react_no_children_prop = @import("react_no_children_prop.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
+pub const react_no_string_refs = @import("react_no_string_refs.zig");
 pub const react_no_unescaped_entities = @import("react_no_unescaped_entities.zig");
 pub const react_prefer_es6_class = @import("react_prefer_es6_class.zig");
 pub const react_style_prop_object = @import("react_style_prop_object.zig");
@@ -1647,6 +1648,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_children_prop) {
             try react_no_children_prop.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index);
+        }
+        if (self.options.react_no_string_refs) {
+            try react_no_string_refs.check(self.allocator, self.diagnostics, ctx.tree, attribute, index);
         }
         return .proceed;
     }

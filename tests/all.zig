@@ -675,6 +675,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_string_refs.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_unescaped_entities.zig");
 }
 
