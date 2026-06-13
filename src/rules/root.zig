@@ -183,6 +183,7 @@ pub const typescript_eslint_ban_types = @import("typescript_eslint_ban_types.zig
 pub const typescript_eslint_ban_ts_comment = @import("typescript_eslint_ban_ts_comment.zig");
 pub const typescript_eslint_ban_tslint_comment = @import("typescript_eslint_ban_tslint_comment.zig");
 pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescript_eslint_no_confusing_non_null_assertion.zig");
+pub const typescript_eslint_no_dupe_class_members = @import("typescript_eslint_no_dupe_class_members.zig");
 pub const typescript_eslint_no_empty_function = @import("typescript_eslint_no_empty_function.zig");
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
 pub const typescript_eslint_no_extra_semi = @import("typescript_eslint_no_extra_semi.zig");
@@ -1475,8 +1476,11 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.options.no_dupe_class_members) {
+        if (self.options.no_dupe_class_members and !self.options.typescript_eslint_no_dupe_class_members) {
             try no_dupe_class_members.check(self.allocator, self.diagnostics, ctx.tree, body);
+        }
+        if (self.options.typescript_eslint_no_dupe_class_members) {
+            try typescript_eslint_no_dupe_class_members.check(self.allocator, self.diagnostics, ctx.tree, body);
         }
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
             try typescript_eslint_adjacent_overload_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, body.body);

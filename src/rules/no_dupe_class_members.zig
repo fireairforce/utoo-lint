@@ -7,6 +7,11 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-dupe-class-members";
 
+pub const Options = struct {
+    rule_id: []const u8 = id,
+    severity: core.Severity = .warning,
+};
+
 const MemberKind = enum {
     constructor,
     method_or_field,
@@ -26,6 +31,16 @@ pub fn check(
     tree: *const ast.Tree,
     body: ast.ClassBody,
 ) Allocator.Error!void {
+    try checkWithOptions(allocator, diagnostics, tree, body, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    body: ast.ClassBody,
+    options: Options,
+) Allocator.Error!void {
     var members: std.ArrayList(Member) = .empty;
     defer members.deinit(allocator);
 
@@ -39,8 +54,8 @@ pub fn check(
         try core.addDiagnostic(
             allocator,
             diagnostics,
-            .warning,
-            id,
+            options.severity,
+            options.rule_id,
             "Duplicate class member.",
             tree.span(member_index),
         );

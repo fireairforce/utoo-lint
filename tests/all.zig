@@ -675,6 +675,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_dupe_class_members.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_empty_function.zig");
 }
 
