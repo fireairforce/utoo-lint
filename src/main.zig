@@ -393,6 +393,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_jsx_pascal_case = false;
         } else if (std.mem.eql(u8, arg, "--react-no-danger=off")) {
             options.react_no_danger = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-danger-with-children=off")) {
+            options.react_no_danger_with_children = false;
         } else if (std.mem.eql(u8, arg, "--react-no-children-prop=off")) {
             options.react_no_children_prop = false;
         } else if (std.mem.eql(u8, arg, "--react-no-find-dom-node=off")) {
@@ -907,6 +909,7 @@ fn printHelp() void {
         \\  --react-jsx-no-target-blank=off Disable react/jsx-no-target-blank
         \\  --react-jsx-pascal-case=off Disable react/jsx-pascal-case
         \\  --react-no-danger=off     Disable react/no-danger
+        \\  --react-no-danger-with-children=off Disable react/no-danger-with-children
         \\  --react-no-children-prop=off Disable react/no-children-prop
         \\  --react-no-find-dom-node=off Disable react/no-find-dom-node
         \\  --react-no-is-mounted=off Disable react/no-is-mounted
