@@ -695,6 +695,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_void_dom_elements_no_children.zig");
+}
+
+comptime {
     _ = @import("rules/require_atomic_updates.zig");
 }
 
