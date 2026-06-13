@@ -122,6 +122,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_async_promise_executor or
         options.alipay_ant_exhaustive_deps or
         options.no_buffer_constructor or
+        options.alipay_ant_no_spread_params or
         options.no_class_assign or
         options.no_const_assign or
         options.no_eval or
