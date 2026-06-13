@@ -257,6 +257,8 @@ pub fn main(init: std.process.Init) !void {
             options.alipay_ant_no_too_large_file = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-prefer-elseif-end-with-else=off")) {
             options.alipay_ant_prefer_elseif_end_with_else = false;
+        } else if (std.mem.eql(u8, arg, "--alipay-ant-prefer-catch-unsafe-func-call=off")) {
+            options.alipay_ant_prefer_catch_unsafe_func_call = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-prefer-click-with-debounce=off")) {
             options.alipay_ant_prefer_click_with_debounce = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-prefer-import-as-required=off")) {
@@ -1268,6 +1270,7 @@ fn printHelp() void {
         \\  --alipay-ant-no-phantom-dependencies=off Disable @alipay/ant/no-phantom-dependencies
         \\  --alipay-ant-no-too-large-file=off Disable @alipay/ant/no-too-large-file
         \\  --alipay-ant-prefer-elseif-end-with-else=off Disable @alipay/ant/prefer-elseif-end-with-else
+        \\  --alipay-ant-prefer-catch-unsafe-func-call=off Disable @alipay/ant/prefer-catch-unsafe-func-call
         \\  --alipay-ant-prefer-click-with-debounce=off Disable @alipay/ant/prefer-click-with-debounce
         \\  --alipay-ant-prefer-import-as-required=off Disable @alipay/ant/prefer-import-as-required
         \\  --alipay-ant-no-spread-params=off Disable @alipay/ant/no-spread-params

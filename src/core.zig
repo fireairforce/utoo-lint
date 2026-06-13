@@ -95,6 +95,7 @@ pub const Options = struct {
     alipay_ant_no_phantom_dependencies: bool = true,
     alipay_ant_no_too_large_file: bool = true,
     alipay_ant_prefer_elseif_end_with_else: bool = true,
+    alipay_ant_prefer_catch_unsafe_func_call: bool = true,
     alipay_ant_prefer_click_with_debounce: bool = true,
     alipay_ant_prefer_import_as_required: bool = true,
     alipay_ant_no_spread_params: bool = true,

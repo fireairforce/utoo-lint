@@ -34,6 +34,7 @@ pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
 pub const alipay_ant_no_phantom_dependencies = @import("alipay_ant_no_phantom_dependencies.zig");
 pub const alipay_ant_no_too_large_file = @import("alipay_ant_no_too_large_file.zig");
 pub const alipay_ant_prefer_elseif_end_with_else = @import("alipay_ant_prefer_elseif_end_with_else.zig");
+pub const alipay_ant_prefer_catch_unsafe_func_call = @import("alipay_ant_prefer_catch_unsafe_func_call.zig");
 pub const alipay_ant_prefer_click_with_debounce = @import("alipay_ant_prefer_click_with_debounce.zig");
 pub const alipay_ant_prefer_import_as_required = @import("alipay_ant_prefer_import_as_required.zig");
 pub const alipay_ant_no_spread_params = @import("alipay_ant_no_spread_params.zig");
@@ -1970,6 +1971,9 @@ const BasicVisitor = struct {
         }
         if (self.options.alipay_spmlint_valid_manual_pv) {
             try alipay_spmlint_valid_manual_pv.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
+        }
+        if (self.options.alipay_ant_prefer_catch_unsafe_func_call) {
+            try alipay_ant_prefer_catch_unsafe_func_call.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, ctx);
         }
         if (self.options.react_no_find_dom_node) {
             try react_no_find_dom_node.check(self.allocator, self.diagnostics, ctx.tree, call);
