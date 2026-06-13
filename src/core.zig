@@ -97,6 +97,7 @@ pub const Options = struct {
     import_export: bool = true,
     import_first: bool = true,
     import_named: bool = true,
+    import_namespace: bool = true,
     import_newline_after_import: bool = true,
     import_no_amd: bool = true,
     import_no_duplicates: bool = true,
@@ -671,6 +672,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.import_named);
     try std.testing.expect(options.setByCliName("import/named", true));
     try std.testing.expect(options.import_named);
+
+    try std.testing.expect(!options.import_namespace);
+    try std.testing.expect(options.setByCliName("import/namespace", true));
+    try std.testing.expect(options.import_namespace);
 
     try std.testing.expect(!options.import_no_named_as_default);
     try std.testing.expect(options.setByCliName("import/no-named-as-default", true));
