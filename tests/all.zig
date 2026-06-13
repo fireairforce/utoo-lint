@@ -103,6 +103,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/alipay_ant_no_deprecated_dependence.zig");
+}
+
+comptime {
     _ = @import("rules/alipay_ant_prefer_click_with_debounce.zig");
 }
 

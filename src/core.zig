@@ -88,6 +88,8 @@ pub const Options = struct {
     alipay_ant_disallow_typos: bool = true,
     alipay_ant_exhaustive_deps: bool = true,
     alipay_ant_jsx_handler_names: bool = true,
+    alipay_ant_no_deprecated_dependence: bool = true,
+    alipay_ant_no_deprecated_dependence_profile: DeprecatedDependenceProfile = .default,
     alipay_ant_no_deprecated_variable: bool = true,
     alipay_ant_no_import_files_from_pages_in_common: bool = true,
     alipay_ant_no_negative_conditionals: bool = true,
@@ -390,6 +392,9 @@ pub const Options = struct {
     pub fn setByRuleConfigValue(self: *Options, cli_name: []const u8, value: std.json.Value) RuleConfigError!void {
         const enabled = try ruleConfigValueToBool(value);
         if (!self.setByCliName(cli_name, enabled)) return error.UnknownRule;
+        if (std.mem.eql(u8, cli_name, "@alipay/ant/no-deprecated-dependence")) {
+            self.alipay_ant_no_deprecated_dependence_profile = deprecatedDependenceProfileFromConfig(value);
+        }
     }
 
     pub const RuleConfigError = error{
@@ -429,6 +434,36 @@ pub const Options = struct {
         return null;
     }
 
+    fn deprecatedDependenceProfileFromConfig(value: std.json.Value) DeprecatedDependenceProfile {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .default,
+        };
+        if (items.len < 2) return .default;
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return .default,
+        };
+        const external_packages = switch (config.get("externalPackages") orelse return .default) {
+            .object => |object| object,
+            else => return .default,
+        };
+
+        if (external_packages.get("@alipay/dp-anyshare-react") != null or
+            external_packages.get("@alipay/yuyan-monitor-web") != null or
+            external_packages.get("moment") != null)
+        {
+            return .ivy;
+        }
+        if (external_packages.get("@alipay/one-bridge") != null or
+            external_packages.get("@alipay/bx-rpc") != null or
+            external_packages.get("hooxjs") != null)
+        {
+            return .insurance;
+        }
+        return .default;
+    }
+
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
         inline for (@typeInfo(Options).@"struct".fields) |field| {
             if (field.type == bool) {
@@ -464,6 +499,12 @@ pub const Options = struct {
         }
         return true;
     }
+};
+
+pub const DeprecatedDependenceProfile = enum {
+    default,
+    ivy,
+    insurance,
 };
 
 pub const Diagnostic = struct {
@@ -749,6 +790,26 @@ test "Options can apply ESLint-style rule config values" {
     try array.append(.{ .string = "warn" });
     try options.setByRuleConfigValue("jsx-a11y/aria-props", .{ .array = array });
     try std.testing.expect(options.jsx_a11y_aria_props);
+
+    var ivy_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"externalPackages\":{\"moment\":\"dayjs\"}}]",
+        .{},
+    );
+    defer ivy_config.deinit();
+    try options.setByRuleConfigValue("@alipay/ant/no-deprecated-dependence", ivy_config.value);
+    try std.testing.expectEqual(DeprecatedDependenceProfile.ivy, options.alipay_ant_no_deprecated_dependence_profile);
+
+    var insurance_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"externalPackages\":{\"@alipay/one-bridge\":\"babyfish\"}}]",
+        .{},
+    );
+    defer insurance_config.deinit();
+    try options.setByRuleConfigValue("@alipay/ant/no-deprecated-dependence", insurance_config.value);
+    try std.testing.expectEqual(DeprecatedDependenceProfile.insurance, options.alipay_ant_no_deprecated_dependence_profile);
 
     try std.testing.expectError(
         Options.RuleConfigError.UnsupportedRuleConfigValue,

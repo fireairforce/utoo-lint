@@ -27,6 +27,7 @@ pub const guard_for_in = @import("guard_for_in.zig");
 pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_exhaustive_deps = @import("alipay_ant_exhaustive_deps.zig");
 pub const alipay_ant_jsx_handler_names = @import("alipay_ant_jsx_handler_names.zig");
+pub const alipay_ant_no_deprecated_dependence = @import("alipay_ant_no_deprecated_dependence.zig");
 pub const alipay_ant_no_deprecated_variable = @import("alipay_ant_no_deprecated_variable.zig");
 pub const alipay_ant_no_import_files_from_pages_in_common = @import("alipay_ant_no_import_files_from_pages_in_common.zig");
 pub const alipay_ant_no_negative_conditionals = @import("alipay_ant_no_negative_conditionals.zig");
@@ -1007,6 +1008,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.alipay_ant_prefer_import_as_required) {
             try alipay_ant_prefer_import_as_required.checkImportDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, index);
+        }
+        if (self.options.alipay_ant_no_deprecated_dependence) {
+            try alipay_ant_no_deprecated_dependence.checkImportDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, index, self.options.alipay_ant_no_deprecated_dependence_profile);
         }
         if (self.options.alipay_ant_no_import_files_from_pages_in_common) {
             try alipay_ant_no_import_files_from_pages_in_common.checkImportDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, index, self.file_path);
