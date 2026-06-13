@@ -202,6 +202,7 @@ pub const react_jsx_uses_react = @import("react_jsx_uses_react.zig");
 pub const react_jsx_uses_vars = @import("react_jsx_uses_vars.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
 pub const react_no_danger_with_children = @import("react_no_danger_with_children.zig");
+pub const react_no_deprecated = @import("react_no_deprecated.zig");
 pub const react_no_children_prop = @import("react_no_children_prop.zig");
 pub const react_no_array_index_key = @import("react_no_array_index_key.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
@@ -596,6 +597,9 @@ const BasicVisitor = struct {
         if (self.options.import_no_self_import) {
             try import_no_self_import.check(self.allocator, self.diagnostics, ctx.tree, program, self.file_path);
         }
+        if (self.options.react_no_deprecated) {
+            try react_no_deprecated.checkProgram(self.allocator, self.diagnostics, ctx.tree, program);
+        }
         if (self.options.react_no_children_prop) {
             self.react_no_children_prop_bindings = react_no_children_prop.bindingsFromProgram(ctx.tree, program);
         }
@@ -676,6 +680,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_redundant_should_component_update) {
             try react_no_redundant_should_component_update.checkClass(self.allocator, self.diagnostics, ctx.tree, class, index, ctx.path.parent());
+        }
+        if (self.options.react_no_deprecated) {
+            try react_no_deprecated.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
         if (self.options.no_this_before_super) {
             try no_this_before_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
@@ -919,6 +926,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_jsx_no_bind) {
             try react_jsx_no_bind.checkVariableDeclarator(self.allocator, ctx.tree, declarator, ctx.path.ancestor(1), &self.react_jsx_no_bind_state);
+        }
+        if (self.options.react_no_deprecated) {
+            try react_no_deprecated.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
         }
         return .proceed;
     }
@@ -1745,6 +1755,9 @@ const BasicVisitor = struct {
         if (self.options.no_process_env) {
             try no_process_env.check(self.allocator, self.diagnostics, ctx.tree, member, index);
         }
+        if (self.options.react_no_deprecated) {
+            try react_no_deprecated.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member, index);
+        }
         if (self.options.react_no_this_in_sfc) {
             try react_no_this_in_sfc.check(self.allocator, self.diagnostics, ctx.tree, member, index, ctx);
         }
@@ -1912,6 +1925,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_prefer_es6_class) {
             try react_prefer_es6_class.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, index, ctx.path.ancestor(1));
+        }
+        if (self.options.react_no_deprecated) {
+            try react_no_deprecated.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, index, expression, ctx.path.ancestor(1));
         }
         return .proceed;
     }
