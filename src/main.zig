@@ -265,6 +265,8 @@ pub fn main(init: std.process.Init) !void {
             options.alipay_ant_prefer_import_as_required = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-no-spread-params=off")) {
             options.alipay_ant_no_spread_params = false;
+        } else if (std.mem.eql(u8, arg, "--alipay-ant-prefer-resource-from-huamei=off")) {
+            options.alipay_ant_prefer_resource_from_huamei = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-prefer-import-from-stdlib=off")) {
             options.alipay_ant_prefer_import_from_stdlib = false;
         } else if (std.mem.eql(u8, arg, "--alipay-spmlint-use-labeled-spm=off")) {
@@ -1274,6 +1276,7 @@ fn printHelp() void {
         \\  --alipay-ant-prefer-click-with-debounce=off Disable @alipay/ant/prefer-click-with-debounce
         \\  --alipay-ant-prefer-import-as-required=off Disable @alipay/ant/prefer-import-as-required
         \\  --alipay-ant-no-spread-params=off Disable @alipay/ant/no-spread-params
+        \\  --alipay-ant-prefer-resource-from-huamei=off Disable @alipay/ant/prefer-resource-from-huamei
         \\  --alipay-ant-prefer-import-from-stdlib=off Disable @alipay/ant/prefer-import-from-stdlib
         \\  --alipay-spmlint-use-labeled-spm=off Disable @alipay/spmLint/use-labeled-spm
         \\  --alipay-spmlint-valid-manual-click=off Disable @alipay/spmLint/valid-manual-click
