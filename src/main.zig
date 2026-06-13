@@ -391,6 +391,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_jsx_pascal_case = false;
         } else if (std.mem.eql(u8, arg, "--react-no-danger=off")) {
             options.react_no_danger = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-find-dom-node=off")) {
+            options.react_no_find_dom_node = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
         } else if (std.mem.eql(u8, arg, "--require-atomic-updates=off")) {
@@ -892,6 +894,7 @@ fn printHelp() void {
         \\  --react-jsx-no-comment-textnodes=off Disable react/jsx-no-comment-textnodes
         \\  --react-jsx-pascal-case=off Disable react/jsx-pascal-case
         \\  --react-no-danger=off     Disable react/no-danger
+        \\  --react-no-find-dom-node=off Disable react/no-find-dom-node
         \\  --radix=off               Disable radix
         \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield
