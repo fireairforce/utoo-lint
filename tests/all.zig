@@ -1011,6 +1011,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_wrapper_object_types.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_prefer_as_const.zig");
 }
 

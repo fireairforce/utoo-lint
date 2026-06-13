@@ -267,6 +267,7 @@ pub const typescript_eslint_no_unused_expressions = @import("typescript_eslint_n
 pub const typescript_eslint_no_unused_vars = @import("typescript_eslint_no_unused_vars.zig");
 pub const typescript_eslint_no_use_before_define = @import("typescript_eslint_no_use_before_define.zig");
 pub const typescript_eslint_no_var_requires = @import("typescript_eslint_no_var_requires.zig");
+pub const typescript_eslint_no_wrapper_object_types = @import("typescript_eslint_no_wrapper_object_types.zig");
 pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_as_const.zig");
 pub const typescript_eslint_prefer_namespace_keyword = @import("typescript_eslint_prefer_namespace_keyword.zig");
 pub const typescript_eslint_restrict_plus_operands = @import("typescript_eslint_restrict_plus_operands.zig");
@@ -1068,8 +1069,14 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_array_type) {
             try typescript_eslint_array_type.checkTypeReference(self.allocator, self.diagnostics, ctx.tree, reference, index);
         }
-        if (self.options.typescript_eslint_ban_types) {
+        const wrapper_object_type_reported =
+            self.options.typescript_eslint_no_wrapper_object_types and
+            typescript_eslint_no_wrapper_object_types.isWrapperObjectTypeReference(ctx.tree, reference);
+        if (self.options.typescript_eslint_ban_types and !wrapper_object_type_reported) {
             try typescript_eslint_ban_types.checkTypeReference(self.allocator, self.diagnostics, ctx.tree, reference);
+        }
+        if (self.options.typescript_eslint_no_wrapper_object_types) {
+            try typescript_eslint_no_wrapper_object_types.checkTypeReference(self.allocator, self.diagnostics, ctx.tree, reference);
         }
         return .proceed;
     }
