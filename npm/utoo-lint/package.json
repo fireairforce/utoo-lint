@@ -12,11 +12,18 @@
   },
   "homepage": "https://github.com/fireairforce/utoo-lint#readme",
   "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./binary": "./lib/binary.js",
+    "./package.json": "./package.json"
+  },
   "bin": {
     "utoo-lint": "./bin/utoo-lint.js"
   },
   "files": [
-    "bin"
+    "bin",
+    "index.js",
+    "lib"
   ],
   "optionalDependencies": {
     "@utoo/lint-darwin-arm64": "0.1.0"

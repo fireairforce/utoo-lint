@@ -126,6 +126,23 @@ Run only a focused rule set:
 utoo-lint --rules=no-debugger,no-unused-vars,@typescript-eslint/no-unused-vars src
 ```
 
+Machine-readable output:
+
+```bash
+utoo-lint --format=json src
+```
+
+JavaScript API:
+
+```js
+import { lintFiles } from "@utoo/lint";
+
+const report = lintFiles(["src"], {
+  config: "utoo.json",
+  rules: ["no-debugger"]
+});
+```
+
 ## Architecture
 
 - `src/root.zig` owns parsing, rule execution, and public API exports.

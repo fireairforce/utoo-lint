@@ -16,6 +16,27 @@ const Stats = struct {
     }
 };
 
+const OutputFormat = enum {
+    text,
+    json,
+};
+
+const JsonDiagnostic = struct {
+    @"filePath": []const u8,
+    line: usize,
+    column: usize,
+    severity: []const u8,
+    message: []const u8,
+    @"ruleId": []const u8,
+};
+
+const JsonDiagnosticList = std.ArrayList(JsonDiagnostic);
+
+const JsonReport = struct {
+    files: usize,
+    diagnostics: []const JsonDiagnostic,
+};
+
 const WorkQueue = struct {
     io: std.Io,
     files: []const []const u8,
@@ -50,6 +71,7 @@ pub fn main(init: std.process.Init) !void {
     }
 
     var thread_count_override: ?usize = null;
+    var output_format: OutputFormat = .text;
     var targets: std.ArrayList([]const u8) = .empty;
     defer targets.deinit(allocator);
 
@@ -72,6 +94,14 @@ pub fn main(init: std.process.Init) !void {
                 std.process.exit(2);
             }
             thread_count_override = parsed;
+        } else if (std.mem.eql(u8, arg, "--json")) {
+            output_format = .json;
+        } else if (std.mem.startsWith(u8, arg, "--format=")) {
+            const value = arg["--format=".len..];
+            output_format = parseOutputFormat(value) orelse {
+                std.debug.print("utoo-lint: invalid --format value: {s}\n", .{value});
+                std.process.exit(2);
+            };
         } else if (std.mem.startsWith(u8, arg, "--rules=")) {
             options = lint.Options.allDisabled();
             parseEnabledRules(arg["--rules=".len..], &options);
@@ -580,17 +610,26 @@ pub fn main(init: std.process.Init) !void {
         files.deinit(allocator);
     }
 
+    var json_diagnostics: JsonDiagnosticList = .empty;
+    defer freeJsonDiagnostics(allocator, &json_diagnostics);
+    const json_diagnostics_ptr: ?*JsonDiagnosticList = if (output_format == .json) &json_diagnostics else null;
+
     var stats = Stats{};
     for (targets.items) |target| {
-        try collectLintablePaths(allocator, io, target, &files, &stats);
+        try collectLintablePaths(allocator, io, target, &files, &stats, json_diagnostics_ptr);
     }
 
-    try lintFiles(allocator, io, files.items, options, thread_count_override, &stats);
+    if (output_format == .json) {
+        try lintFilesJson(allocator, io, files.items, options, &stats, &json_diagnostics);
+        try writeJsonReport(io, stats, json_diagnostics.items);
+    } else {
+        try lintFiles(allocator, io, files.items, options, thread_count_override, &stats);
 
-    std.debug.print("{d} file(s) checked, {d} diagnostic(s)\n", .{
-        stats.files,
-        stats.diagnostics,
-    });
+        std.debug.print("{d} file(s) checked, {d} diagnostic(s)\n", .{
+            stats.files,
+            stats.diagnostics,
+        });
+    }
 
     if (stats.errors > 0 or stats.diagnostics > 0) {
         std.process.exit(1);
@@ -638,6 +677,12 @@ fn findDefaultConfig(io: std.Io) ?[]const u8 {
         const stat = cwd.statFile(io, path, .{}) catch continue;
         if (stat.kind == .file) return path;
     }
+    return null;
+}
+
+fn parseOutputFormat(value: []const u8) ?OutputFormat {
+    if (std.mem.eql(u8, value, "text")) return .text;
+    if (std.mem.eql(u8, value, "json")) return .json;
     return null;
 }
 
@@ -698,10 +743,17 @@ fn collectLintablePaths(
     path: []const u8,
     files: *std.ArrayList([]const u8),
     stats: *Stats,
+    json_diagnostics: ?*JsonDiagnosticList,
 ) !void {
     const cwd = std.Io.Dir.cwd();
     const stat = cwd.statFile(io, path, .{}) catch |err| {
-        std.debug.print("{s}: unable to stat path: {s}\n", .{ path, @errorName(err) });
+        if (json_diagnostics) |diagnostics| {
+            const message = try std.fmt.allocPrint(allocator, "unable to stat path: {s}", .{@errorName(err)});
+            defer allocator.free(message);
+            try appendJsonDiagnostic(allocator, diagnostics, path, 0, 0, "error", message, "io");
+        } else {
+            std.debug.print("{s}: unable to stat path: {s}\n", .{ path, @errorName(err) });
+        }
         stats.errors += 1;
         stats.diagnostics += 1;
         return;
@@ -713,7 +765,7 @@ fn collectLintablePaths(
                 try files.append(allocator, try allocator.dupe(u8, path));
             }
         },
-        .directory => try collectLintableDirectory(allocator, io, path, files, stats),
+        .directory => try collectLintableDirectory(allocator, io, path, files, stats, json_diagnostics),
         else => {},
     }
 }
@@ -744,6 +796,7 @@ fn collectLintableDirectory(
     path: []const u8,
     files: *std.ArrayList([]const u8),
     stats: *Stats,
+    json_diagnostics: ?*JsonDiagnosticList,
 ) !void {
     var dir = try std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true });
     defer dir.close(io);
@@ -761,7 +814,7 @@ fn collectLintableDirectory(
                     try files.append(allocator, try allocator.dupe(u8, child_path));
                 }
             },
-            .directory => try collectLintableDirectory(allocator, io, child_path, files, stats),
+            .directory => try collectLintableDirectory(allocator, io, child_path, files, stats, json_diagnostics),
             else => {},
         }
     }
@@ -829,6 +882,19 @@ fn lintFiles(
     }
 }
 
+fn lintFilesJson(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    files: []const []const u8,
+    options: lint.Options,
+    stats: *Stats,
+    json_diagnostics: *JsonDiagnosticList,
+) !void {
+    for (files) |file| {
+        try lintFileJson(allocator, io, file, options, stats, json_diagnostics);
+    }
+}
+
 fn lintWorker(queue: *WorkQueue, result: *WorkerResult) void {
     while (true) {
         const index = queue.next_index.fetchAdd(1, .monotonic);
@@ -845,6 +911,49 @@ fn lintWorker(queue: *WorkQueue, result: *WorkerResult) void {
             result.err = err;
             return;
         };
+    }
+}
+
+fn lintFileJson(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    path: []const u8,
+    options: lint.Options,
+    stats: *Stats,
+    json_diagnostics: *JsonDiagnosticList,
+) !void {
+    const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_file_size)) catch |err| {
+        const message = try std.fmt.allocPrint(allocator, "unable to read file: {s}", .{@errorName(err)});
+        defer allocator.free(message);
+        try appendJsonDiagnostic(allocator, json_diagnostics, path, 0, 0, "error", message, "io");
+        stats.errors += 1;
+        stats.diagnostics += 1;
+        return;
+    };
+    defer allocator.free(source);
+
+    var result = try lint.lintSource(allocator, source, path, options);
+    defer result.deinit(allocator);
+
+    stats.files += 1;
+
+    for (result.diagnostics) |diagnostic| {
+        const position = lint.offsetToLineColumn(source, diagnostic.span.start);
+        try appendJsonDiagnostic(
+            allocator,
+            json_diagnostics,
+            path,
+            position.line,
+            position.column,
+            diagnostic.severity.toString(),
+            diagnostic.message,
+            diagnostic.rule_id,
+        );
+
+        stats.diagnostics += 1;
+        if (diagnostic.severity == .@"error") {
+            stats.errors += 1;
+        }
     }
 }
 
@@ -887,6 +996,57 @@ fn lintFile(
     }
 }
 
+fn appendJsonDiagnostic(
+    allocator: std.mem.Allocator,
+    diagnostics: *JsonDiagnosticList,
+    path: []const u8,
+    line: usize,
+    column: usize,
+    severity: []const u8,
+    message: []const u8,
+    rule_id: []const u8,
+) !void {
+    const owned_path = try allocator.dupe(u8, path);
+    errdefer allocator.free(owned_path);
+
+    const owned_message = try allocator.dupe(u8, message);
+    errdefer allocator.free(owned_message);
+
+    const owned_rule_id = try allocator.dupe(u8, rule_id);
+    errdefer allocator.free(owned_rule_id);
+
+    try diagnostics.append(allocator, .{
+        .@"filePath" = owned_path,
+        .line = line,
+        .column = column,
+        .severity = severity,
+        .message = owned_message,
+        .@"ruleId" = owned_rule_id,
+    });
+}
+
+fn freeJsonDiagnostics(allocator: std.mem.Allocator, diagnostics: *JsonDiagnosticList) void {
+    for (diagnostics.items) |diagnostic| {
+        allocator.free(diagnostic.@"filePath");
+        allocator.free(diagnostic.message);
+        allocator.free(diagnostic.@"ruleId");
+    }
+    diagnostics.deinit(allocator);
+}
+
+fn writeJsonReport(io: std.Io, stats: Stats, diagnostics: []const JsonDiagnostic) !void {
+    var stdout_buffer: [4096]u8 = undefined;
+    var stdout_writer = std.Io.File.stdout().writer(io, &stdout_buffer);
+    const stdout = &stdout_writer.interface;
+
+    try std.json.Stringify.value(JsonReport{
+        .files = stats.files,
+        .diagnostics = diagnostics,
+    }, .{}, stdout);
+    try stdout.writeByte('\n');
+    try stdout.flush();
+}
+
 fn printLocked(
     io: std.Io,
     mutex: ?*std.Io.Mutex,
@@ -916,6 +1076,8 @@ fn printHelp() void {
         \\Options:
         \\  --config=PATH            Read configuration from PATH
         \\  --no-config              Do not read utoo.json or utoo-lint.json
+        \\  --format=text|json       Select diagnostic output format
+        \\  --json                   Alias for --format=json
         \\  --threads=N              Number of worker threads to use
         \\  --rules=a,b,c            Enable only the comma-separated rule list
         \\  --array-callback-return=off Disable array-callback-return
