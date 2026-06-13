@@ -723,6 +723,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_forbid_prop_types.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_children_prop.zig");
 }
 
