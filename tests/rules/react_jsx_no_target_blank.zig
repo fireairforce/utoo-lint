@@ -11,6 +11,7 @@ test "reports react/jsx-no-target-blank for external and dynamic links without n
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", .{
         .eol_last = false,
+        .jsx_a11y_anchor_has_content = false,
         .no_undef = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
