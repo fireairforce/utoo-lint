@@ -32,7 +32,8 @@ pub fn run(
         const resolved = try export_map.resolveRelativeModule(allocator, io, file_path, source) orelse continue;
         defer allocator.free(resolved);
 
-        const map = try export_map.readExportMap(allocator, io, resolved) orelse continue;
+        var map = try export_map.readExportMap(allocator, io, resolved) orelse continue;
+        defer map.deinit();
         if (map.has_default) continue;
 
         try core.addDiagnosticFmt(

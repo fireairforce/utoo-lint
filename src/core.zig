@@ -95,6 +95,7 @@ pub const Options = struct {
     alipay_spmlint_valid_manual_pv: bool = true,
     import_default: bool = true,
     import_first: bool = true,
+    import_named: bool = true,
     import_newline_after_import: bool = true,
     import_no_amd: bool = true,
     import_no_duplicates: bool = true,
@@ -659,6 +660,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.import_default);
     try std.testing.expect(options.setByCliName("import/default", true));
     try std.testing.expect(options.import_default);
+
+    try std.testing.expect(!options.import_named);
+    try std.testing.expect(options.setByCliName("import/named", true));
+    try std.testing.expect(options.import_named);
 
     try std.testing.expect(!options.react_default_props_match_prop_types);
     try std.testing.expect(options.setByCliName("react/default-props-match-prop-types", true));
