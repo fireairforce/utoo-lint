@@ -10,6 +10,7 @@ It uses [`yuku`](https://github.com/yuku-toolchain/yuku) (GitHub: https://github
 This repo is a working scaffold, not a production linter yet.
 
 See [Rule status](docs/rule-status.md) for the current rule list and the corresponding ESLint documentation links.
+See [Configuration](docs/configuration.md) for `utoo.json` files that can be used in frontend projects.
 See [Migrating from ESLint](docs/eslint-migration.md) for the current migration path.
 
 ## Prerequisites
@@ -104,6 +105,7 @@ Configuration files:
 
 ```json
 {
+  "$schema": "https://raw.githubusercontent.com/fireairforce/utoo-lint/main/npm/utoo-lint/schema.json",
   "rules": {
     "no-console": "off",
     "no-debugger": "error",
@@ -113,6 +115,13 @@ Configuration files:
 ```
 
 By default, `utoo-lint` reads `utoo.json` or `utoo-lint.json` from the current directory. Use `--config=path/to/utoo.json` for an explicit file or `--no-config` to ignore local config. Rule values may be `off`, `warn`, `error`, `0`, `1`, `2`, booleans, or an ESLint-style array whose first item is the severity.
+
+Start a frontend project from the packaged template:
+
+```bash
+cp node_modules/@utoo/lint/configs/frontend.json utoo.json
+npx utoo-lint src
+```
 
 Rule toggles:
 
