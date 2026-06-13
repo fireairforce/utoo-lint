@@ -715,6 +715,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_access_state_in_setstate.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_deprecated.zig");
 }
 

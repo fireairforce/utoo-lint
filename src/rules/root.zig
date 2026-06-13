@@ -202,6 +202,7 @@ pub const react_jsx_uses_react = @import("react_jsx_uses_react.zig");
 pub const react_jsx_uses_vars = @import("react_jsx_uses_vars.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
 pub const react_no_danger_with_children = @import("react_no_danger_with_children.zig");
+pub const react_no_access_state_in_setstate = @import("react_no_access_state_in_setstate.zig");
 pub const react_no_deprecated = @import("react_no_deprecated.zig");
 pub const react_no_children_prop = @import("react_no_children_prop.zig");
 pub const react_no_array_index_key = @import("react_no_array_index_key.zig");
@@ -339,6 +340,7 @@ pub fn runBasic(
     defer visitor.react_no_array_index_key_state.deinit(allocator);
     defer visitor.react_jsx_no_bind_state.deinit(allocator);
     defer visitor.react_require_render_return_state.deinit(allocator);
+    defer visitor.react_no_access_state_in_setstate_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -570,6 +572,7 @@ const BasicVisitor = struct {
     react_button_has_type_state: react_button_has_type.State = .{},
     react_require_render_return_state: react_require_render_return.State = .{},
     react_no_danger_with_children_bindings: react_no_danger_with_children.ObjectBindings = .{},
+    react_no_access_state_in_setstate_state: react_no_access_state_in_setstate.State = .{},
     react_no_children_prop_bindings: react_no_children_prop.ReactBindings = .{},
     react_no_array_index_key_state: react_no_array_index_key.State = .{},
     react_jsx_no_bind_state: react_jsx_no_bind.State = .{},
@@ -905,7 +908,7 @@ const BasicVisitor = struct {
     pub fn enter_variable_declarator(
         self: *BasicVisitor,
         declarator: ast.VariableDeclarator,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_prefer_as_const) {
@@ -934,6 +937,16 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_deprecated) {
             try react_no_deprecated.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
+        }
+        if (self.options.react_no_access_state_in_setstate) {
+            try react_no_access_state_in_setstate.checkVariableDeclarator(
+                self.allocator,
+                ctx.tree,
+                declarator,
+                index,
+                ctx,
+                &self.react_no_access_state_in_setstate_state,
+            );
         }
         return .proceed;
     }
@@ -1654,6 +1667,17 @@ const BasicVisitor = struct {
         if (self.options.react_no_will_update_set_state) {
             try react_no_will_update_set_state.check(self.allocator, self.diagnostics, ctx.tree, call, ctx);
         }
+        if (self.options.react_no_access_state_in_setstate) {
+            try react_no_access_state_in_setstate.checkCallExpression(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                call,
+                index,
+                ctx,
+                &self.react_no_access_state_in_setstate_state,
+            );
+        }
         if (self.options.react_button_has_type) {
             try react_button_has_type.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_button_has_type_state);
         }
@@ -1774,6 +1798,16 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_deprecated) {
             try react_no_deprecated.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member, index);
+        }
+        if (self.options.react_no_access_state_in_setstate) {
+            try react_no_access_state_in_setstate.checkMemberExpression(
+                self.allocator,
+                ctx.tree,
+                member,
+                index,
+                ctx,
+                &self.react_no_access_state_in_setstate_state,
+            );
         }
         if (self.options.react_no_this_in_sfc) {
             try react_no_this_in_sfc.check(self.allocator, self.diagnostics, ctx.tree, member, index, ctx);
