@@ -31,6 +31,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/eslint_comments_no_restricted_disable.zig");
+}
+
+comptime {
     _ = @import("rules/for_direction.zig");
 }
 

@@ -26,6 +26,8 @@ pub const Options = struct {
     default_case: bool = true,
     default_case_last: bool = true,
     eol_last: bool = true,
+    eslint_comments_no_restricted_disable: bool = true,
+    eslint_comments_no_restricted_disable_no_nested_ternary: bool = false,
     for_direction: bool = true,
     getter_return: bool = true,
     guard_for_in: bool = true,
@@ -360,6 +362,10 @@ pub const Options = struct {
             return self.setByPrefixedRuleName("import_", cli_name["import/".len..], value);
         }
 
+        if (std.mem.startsWith(u8, cli_name, "eslint-comments/")) {
+            return self.setByPrefixedRuleName("eslint_comments_", cli_name["eslint-comments/".len..], value);
+        }
+
         if (std.mem.startsWith(u8, cli_name, "@alipay/ant/")) {
             return self.setByPrefixedRuleName("alipay_ant_", cli_name["@alipay/ant/".len..], value);
         }
@@ -394,6 +400,9 @@ pub const Options = struct {
         if (!self.setByCliName(cli_name, enabled)) return error.UnknownRule;
         if (std.mem.eql(u8, cli_name, "@alipay/ant/no-deprecated-dependence")) {
             self.alipay_ant_no_deprecated_dependence_profile = deprecatedDependenceProfileFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "eslint-comments/no-restricted-disable")) {
+            self.eslint_comments_no_restricted_disable_no_nested_ternary = noRestrictedDisableRestrictsNoNestedTernary(value);
         }
     }
 
@@ -462,6 +471,22 @@ pub const Options = struct {
             return .insurance;
         }
         return .default;
+    }
+
+    fn noRestrictedDisableRestrictsNoNestedTernary(value: std.json.Value) bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+        for (items[1..]) |item| {
+            const rule = switch (item) {
+                .string => |rule| rule,
+                else => continue,
+            };
+            if (std.mem.eql(u8, rule, "no-nested-ternary")) return true;
+        }
+        return false;
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
@@ -810,6 +835,17 @@ test "Options can apply ESLint-style rule config values" {
     defer insurance_config.deinit();
     try options.setByRuleConfigValue("@alipay/ant/no-deprecated-dependence", insurance_config.value);
     try std.testing.expectEqual(DeprecatedDependenceProfile.insurance, options.alipay_ant_no_deprecated_dependence_profile);
+
+    var restricted_disable_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"warn\",\"no-nested-ternary\"]",
+        .{},
+    );
+    defer restricted_disable_config.deinit();
+    try options.setByRuleConfigValue("eslint-comments/no-restricted-disable", restricted_disable_config.value);
+    try std.testing.expect(options.eslint_comments_no_restricted_disable);
+    try std.testing.expect(options.eslint_comments_no_restricted_disable_no_nested_ternary);
 
     try std.testing.expectError(
         Options.RuleConfigError.UnsupportedRuleConfigValue,
