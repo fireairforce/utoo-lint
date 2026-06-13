@@ -659,6 +659,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_jsx_no_duplicate_props.zig");
+}
+
+comptime {
     _ = @import("rules/require_atomic_updates.zig");
 }
 

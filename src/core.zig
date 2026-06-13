@@ -185,6 +185,7 @@ pub const Options = struct {
     prefer_spread: bool = true,
     prefer_template: bool = true,
     react_jsx_boolean_value: bool = true,
+    react_jsx_no_duplicate_props: bool = true,
     react_no_danger: bool = true,
     radix: bool = true,
     require_atomic_updates: bool = true,
