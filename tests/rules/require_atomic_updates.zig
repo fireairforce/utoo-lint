@@ -115,6 +115,7 @@ test "does not leak require-atomic-updates stale reads across exclusive branches
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_unused_vars = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

@@ -14,6 +14,7 @@ test "reports @typescript-eslint/dot-notation for computed string properties" {
         .eol_last = false,
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
     });
@@ -57,6 +58,7 @@ test "can disable @typescript-eslint/dot-notation and fall back to core rule" {
         .eol_last = false,
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .no_unused_vars = false,
         .typescript_eslint_dot_notation = false,
         .parser_semantic_errors = false,

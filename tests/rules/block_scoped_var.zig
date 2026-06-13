@@ -30,6 +30,7 @@ test "reports block-scoped-var references outside binding context" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
     });
@@ -62,6 +63,7 @@ test "does not report block-scoped-var references inside binding context" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
     });
@@ -82,6 +84,7 @@ test "can disable block-scoped-var" {
         .block_scoped_var = false,
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
