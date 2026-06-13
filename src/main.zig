@@ -243,6 +243,8 @@ pub fn main(init: std.process.Init) !void {
             options.alipay_ant_exhaustive_deps = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-jsx-handler-names=off")) {
             options.alipay_ant_jsx_handler_names = false;
+        } else if (std.mem.eql(u8, arg, "--alipay-ant-no-deprecated-dependence=off")) {
+            options.alipay_ant_no_deprecated_dependence = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-no-deprecated-variable=off")) {
             options.alipay_ant_no_deprecated_variable = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-no-import-files-from-pages-in-common=off")) {
@@ -1267,6 +1269,7 @@ fn printHelp() void {
         \\  --alipay-ant-disallow-typos=off Disable @alipay/ant/disallow-typos
         \\  --alipay-ant-exhaustive-deps=off Disable @alipay/ant/exhaustive-deps
         \\  --alipay-ant-jsx-handler-names=off Disable @alipay/ant/jsx-handler-names
+        \\  --alipay-ant-no-deprecated-dependence=off Disable @alipay/ant/no-deprecated-dependence
         \\  --alipay-ant-no-deprecated-variable=off Disable @alipay/ant/no-deprecated-variable
         \\  --alipay-ant-no-import-files-from-pages-in-common=off Disable @alipay/ant/no-import-files-from-pages-in-common
         \\  --alipay-ant-no-negative-conditionals=off Disable @alipay/ant/no-negative-conditionals
