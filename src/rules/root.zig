@@ -175,6 +175,7 @@ pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
 pub const prefer_template = @import("prefer_template.zig");
+pub const react_no_danger = @import("react_no_danger.zig");
 pub const radix = @import("radix.zig");
 pub const require_atomic_updates = @import("require_atomic_updates.zig");
 const reassignment_rules = @import("reassignment_rules.zig");
@@ -1565,6 +1566,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_sparse_arrays) {
             try no_sparse_arrays.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_jsx_attribute(
+        self: *BasicVisitor,
+        attribute: ast.JSXAttribute,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.react_no_danger) {
+            try react_no_danger.check(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1));
         }
         return .proceed;
     }
