@@ -10,9 +10,16 @@ pub const id = "react/prop-types";
 
 const max_prop_depth = 16;
 
-const DeclaredProp = struct {
+pub const DeclaredKind = enum {
+    normal,
+    shape,
+    exact,
+};
+
+pub const DeclaredProp = struct {
     name: []const u8,
     node: ast.NodeIndex,
+    kind: DeclaredKind = .normal,
     accepts_any_children: bool = false,
     children: std.ArrayList(DeclaredProp) = .empty,
 
@@ -24,12 +31,12 @@ const DeclaredProp = struct {
     }
 };
 
-const UsedProp = struct {
+pub const UsedProp = struct {
     name: []const u8,
     node: ast.NodeIndex,
 };
 
-const ComponentInfo = struct {
+pub const ComponentInfo = struct {
     name: ?[]const u8 = null,
     node: ast.NodeIndex = .null,
     detected: bool = false,
@@ -52,10 +59,10 @@ const ComponentInfo = struct {
     }
 };
 
-const State = struct {
+pub const State = struct {
     components: std.ArrayList(ComponentInfo) = .empty,
 
-    fn deinit(self: *State, allocator: Allocator) void {
+    pub fn deinit(self: *State, allocator: Allocator) void {
         for (self.components.items) |*component| {
             component.deinit(allocator);
         }
@@ -113,8 +120,18 @@ pub fn run(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
 ) Allocator.Error!void {
-    var state = State{};
+    var state = try collect(allocator, tree);
     defer state.deinit(allocator);
+
+    try finish(allocator, diagnostics, tree, &state);
+}
+
+pub fn collect(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+) Allocator.Error!State {
+    var state = State{};
+    errdefer state.deinit(allocator);
 
     try collectComponents(allocator, tree, &state);
 
@@ -126,7 +143,7 @@ pub fn run(
     defer visitor.props_stack.deinit(allocator);
 
     try traverser.basic.traverse(UsageVisitor, tree, &visitor);
-    try finish(allocator, diagnostics, tree, &state);
+    return state;
 }
 
 fn collectComponents(
@@ -352,6 +369,7 @@ fn addDeclaredPropValue(
             return;
         }
         if (std.mem.eql(u8, callee_name, "shape") or std.mem.eql(u8, callee_name, "exact")) {
+            prop.kind = if (std.mem.eql(u8, callee_name, "shape")) .shape else .exact;
             const arguments = tree.extra(call.arguments);
             if (arguments.len == 0) return;
             try collectShapeChildren(allocator, tree, arguments[0], prop);

@@ -213,6 +213,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`react/no-is-mounted`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md) | Implemented |
 | [`react/no-render-return-value`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-render-return-value.md) | Implemented for eslint-plugin-react's default/latest React version behavior |
 | [`react/no-unescaped-entities`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-unescaped-entities.md) | Implemented for eslint-plugin-react's default entity set |
+| [`react/no-unused-prop-types`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-unused-prop-types.md) | Implemented for fishlint's `customValidators: [], skipShapeProps: true` configuration |
 | [`react/prop-types`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/prop-types.md) | Implemented for fishlint's `ignore: [], customValidators: [], skipUndeclared: false` configuration |
 
 ## TypeScript ESLint rules
