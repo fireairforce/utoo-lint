@@ -190,6 +190,7 @@ pub const Options = struct {
     react_jsx_no_target_blank: bool = true,
     react_jsx_pascal_case: bool = true,
     react_no_danger: bool = true,
+    react_no_children_prop: bool = true,
     react_no_find_dom_node: bool = true,
     react_no_is_mounted: bool = true,
     react_no_render_return_value: bool = true,

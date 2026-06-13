@@ -655,6 +655,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_children_prop.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_find_dom_node.zig");
 }
 
