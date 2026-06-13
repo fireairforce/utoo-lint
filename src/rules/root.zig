@@ -205,6 +205,7 @@ pub const react_no_children_prop = @import("react_no_children_prop.zig");
 pub const react_no_array_index_key = @import("react_no_array_index_key.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
+pub const react_no_redundant_should_component_update = @import("react_no_redundant_should_component_update.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
 pub const react_no_will_update_set_state = @import("react_no_will_update_set_state.zig");
 pub const react_require_render_return = @import("react_require_render_return.zig");
@@ -654,7 +655,7 @@ const BasicVisitor = struct {
     pub fn enter_class(
         self: *BasicVisitor,
         class: ast.Class,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.constructor_super) {
@@ -662,6 +663,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_require_render_return) {
             try react_require_render_return.checkClass(self.allocator, self.diagnostics, ctx.tree, class, self.react_require_render_return_state);
+        }
+        if (self.options.react_no_redundant_should_component_update) {
+            try react_no_redundant_should_component_update.checkClass(self.allocator, self.diagnostics, ctx.tree, class, index, ctx.path.parent());
         }
         if (self.options.no_this_before_super) {
             try no_this_before_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);

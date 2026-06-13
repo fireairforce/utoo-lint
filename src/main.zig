@@ -495,6 +495,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_no_find_dom_node = false;
         } else if (std.mem.eql(u8, arg, "--react-no-is-mounted=off")) {
             options.react_no_is_mounted = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-redundant-should-component-update=off")) {
+            options.react_no_redundant_should_component_update = false;
         } else if (std.mem.eql(u8, arg, "--react-no-render-return-value=off")) {
             options.react_no_render_return_value = false;
         } else if (std.mem.eql(u8, arg, "--react-no-will-update-set-state=off")) {
@@ -1290,6 +1292,7 @@ fn printHelp() void {
         \\  --react-no-children-prop=off Disable react/no-children-prop
         \\  --react-no-find-dom-node=off Disable react/no-find-dom-node
         \\  --react-no-is-mounted=off Disable react/no-is-mounted
+        \\  --react-no-redundant-should-component-update=off Disable react/no-redundant-should-component-update
         \\  --react-no-render-return-value=off Disable react/no-render-return-value
         \\  --react-no-will-update-set-state=off Disable react/no-will-update-set-state
         \\  --react-no-string-refs=off Disable react/no-string-refs
