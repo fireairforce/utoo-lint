@@ -99,6 +99,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/alipay_ant_prefer_render_img_with_promo_mobile.zig");
+}
+
+comptime {
     _ = @import("rules/alipay_ant_prefer_click_with_debounce.zig");
 }
 
