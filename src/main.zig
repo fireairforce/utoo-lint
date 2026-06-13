@@ -385,6 +385,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_adjacent_overload_signatures = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-array-type=off")) {
             options.typescript_eslint_array_type = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-class-literal-property-style=off")) {
+            options.typescript_eslint_class_literal_property_style = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-consistent-type-definitions=off")) {
             options.typescript_eslint_consistent_type_definitions = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-dot-notation=off")) {
@@ -849,6 +851,7 @@ fn printHelp() void {
         \\  --require-yield=off       Disable require-yield
         \\  --typescript-eslint-adjacent-overload-signatures=off Disable @typescript-eslint/adjacent-overload-signatures
         \\  --typescript-eslint-array-type=off Disable @typescript-eslint/array-type
+        \\  --typescript-eslint-class-literal-property-style=off Disable @typescript-eslint/class-literal-property-style
         \\  --typescript-eslint-consistent-type-definitions=off Disable @typescript-eslint/consistent-type-definitions
         \\  --typescript-eslint-dot-notation=off Disable @typescript-eslint/dot-notation
         \\  --typescript-eslint-ban-ts-comment=off Disable @typescript-eslint/ban-ts-comment

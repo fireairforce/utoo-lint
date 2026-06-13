@@ -178,6 +178,7 @@ pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_adjacent_overload_signatures = @import("typescript_eslint_adjacent_overload_signatures.zig");
 pub const typescript_eslint_array_type = @import("typescript_eslint_array_type.zig");
+pub const typescript_eslint_class_literal_property_style = @import("typescript_eslint_class_literal_property_style.zig");
 pub const typescript_eslint_consistent_type_definitions = @import("typescript_eslint_consistent_type_definitions.zig");
 pub const typescript_eslint_dot_notation = @import("typescript_eslint_dot_notation.zig");
 pub const typescript_eslint_no_array_constructor = @import("typescript_eslint_no_array_constructor.zig");
@@ -1554,6 +1555,9 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_explicit_member_accessibility) {
             try typescript_eslint_explicit_member_accessibility.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
+        }
+        if (self.options.typescript_eslint_class_literal_property_style) {
+            try typescript_eslint_class_literal_property_style.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
         }
         return .proceed;
     }
