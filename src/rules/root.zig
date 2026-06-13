@@ -261,6 +261,7 @@ pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_a
 pub const typescript_eslint_triple_slash_reference = @import("typescript_eslint_triple_slash_reference.zig");
 pub const typescript_eslint_typedef = @import("typescript_eslint_typedef.zig");
 pub const typescript_eslint_unified_signatures = @import("typescript_eslint_unified_signatures.zig");
+pub const typescript_eslint_no_unnecessary_parameter_property_assignment = @import("typescript_eslint_no_unnecessary_parameter_property_assignment.zig");
 pub const typescript_eslint_no_unnecessary_type_constraint = @import("typescript_eslint_no_unnecessary_type_constraint.zig");
 pub const typescript_eslint_no_useless_constructor = @import("typescript_eslint_no_useless_constructor.zig");
 pub const typescript_eslint_no_useless_empty_export = @import("typescript_eslint_no_useless_empty_export.zig");
@@ -713,6 +714,9 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_misused_new) {
             try typescript_eslint_no_misused_new.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
+        }
+        if (self.options.typescript_eslint_no_unnecessary_parameter_property_assignment) {
+            try typescript_eslint_no_unnecessary_parameter_property_assignment.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
         return .proceed;
     }
