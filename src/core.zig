@@ -99,6 +99,7 @@ pub const Options = struct {
     jsx_a11y_img_redundant_alt: bool = true,
     jsx_a11y_no_access_key: bool = true,
     jsx_a11y_no_distracting_elements: bool = true,
+    jsx_a11y_role_has_required_aria_props: bool = true,
     jsx_a11y_scope: bool = true,
     no_invalid_regexp: bool = true,
     no_irregular_whitespace: bool = true,

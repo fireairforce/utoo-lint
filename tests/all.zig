@@ -99,6 +99,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/jsx_a11y_role_has_required_aria_props.zig");
+}
+
+comptime {
     _ = @import("rules/jsx_a11y_scope.zig");
 }
 
