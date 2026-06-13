@@ -204,6 +204,7 @@ pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_r
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
 pub const typescript_eslint_triple_slash_reference = @import("typescript_eslint_triple_slash_reference.zig");
 pub const typescript_eslint_typedef = @import("typescript_eslint_typedef.zig");
+pub const typescript_eslint_unified_signatures = @import("typescript_eslint_unified_signatures.zig");
 pub const typescript_eslint_no_unnecessary_type_constraint = @import("typescript_eslint_no_unnecessary_type_constraint.zig");
 pub const typescript_eslint_no_useless_constructor = @import("typescript_eslint_no_useless_constructor.zig");
 pub const typescript_eslint_no_unused_expressions = @import("typescript_eslint_no_unused_expressions.zig");
@@ -486,6 +487,9 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
             try typescript_eslint_adjacent_overload_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, program.body);
+        }
+        if (self.options.typescript_eslint_unified_signatures) {
+            try typescript_eslint_unified_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, program.body);
         }
         return .proceed;
     }
@@ -805,6 +809,9 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
             try typescript_eslint_adjacent_overload_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, body.body);
         }
+        if (self.options.typescript_eslint_unified_signatures) {
+            try typescript_eslint_unified_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, body.body);
+        }
         return .proceed;
     }
 
@@ -828,6 +835,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
             try typescript_eslint_adjacent_overload_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, type_literal.members);
+        }
+        if (self.options.typescript_eslint_unified_signatures) {
+            try typescript_eslint_unified_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, type_literal.members);
         }
         if (self.options.typescript_eslint_no_misused_new) {
             try typescript_eslint_no_misused_new.checkTypeLiteral(self.allocator, self.diagnostics, ctx.tree, type_literal);
@@ -870,6 +880,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
             try typescript_eslint_adjacent_overload_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, block.body);
+        }
+        if (self.options.typescript_eslint_unified_signatures) {
+            try typescript_eslint_unified_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, block.body);
         }
         return .proceed;
     }
