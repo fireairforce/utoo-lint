@@ -395,6 +395,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_ban_tslint_comment = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-confusing-non-null-assertion=off")) {
             options.typescript_eslint_no_confusing_non_null_assertion = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-dupe-class-members=off")) {
+            options.typescript_eslint_no_dupe_class_members = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-empty-function=off")) {
             options.typescript_eslint_no_empty_function = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-empty-interface=off")) {
@@ -836,6 +838,7 @@ fn printHelp() void {
         \\  --typescript-eslint-ban-ts-comment=off Disable @typescript-eslint/ban-ts-comment
         \\  --typescript-eslint-ban-tslint-comment=off Disable @typescript-eslint/ban-tslint-comment
         \\  --typescript-eslint-no-confusing-non-null-assertion=off Disable @typescript-eslint/no-confusing-non-null-assertion
+        \\  --typescript-eslint-no-dupe-class-members=off Disable @typescript-eslint/no-dupe-class-members
         \\  --typescript-eslint-no-empty-interface=off Disable @typescript-eslint/no-empty-interface
         \\  --typescript-eslint-no-extra-non-null-assertion=off Disable @typescript-eslint/no-extra-non-null-assertion
         \\  --typescript-eslint-no-inferrable-types=off Disable @typescript-eslint/no-inferrable-types

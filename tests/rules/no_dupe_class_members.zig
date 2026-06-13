@@ -17,6 +17,7 @@ test "reports no-dupe-class-members for duplicate methods and fields" {
         .no_empty_function = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_dupe_class_members = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -40,6 +41,7 @@ test "reports no-dupe-class-members for constructors and static members" {
         .no_empty_function = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_dupe_class_members = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -64,6 +66,7 @@ test "does not report no-dupe-class-members for allowed combinations" {
         .no_empty_function = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_dupe_class_members = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -85,6 +88,7 @@ test "can disable no-dupe-class-members" {
         .no_empty_function = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_dupe_class_members = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

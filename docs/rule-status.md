@@ -175,6 +175,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/dot-notation`](https://typescript-eslint.io/rules/dot-notation/) | Implemented |
 | [`@typescript-eslint/no-array-constructor`](https://typescript-eslint.io/rules/no-array-constructor/) | Implemented |
 | [`@typescript-eslint/no-confusing-non-null-assertion`](https://typescript-eslint.io/rules/no-confusing-non-null-assertion/) | Implemented |
+| [`@typescript-eslint/no-dupe-class-members`](https://typescript-eslint.io/rules/no-dupe-class-members/) | Implemented |
 | [`@typescript-eslint/no-empty-function`](https://typescript-eslint.io/rules/no-empty-function/) | Implemented |
 | [`@typescript-eslint/no-empty-interface`](https://typescript-eslint.io/rules/no-empty-interface/) | Implemented |
 | [`@typescript-eslint/no-extra-semi`](https://typescript-eslint.io/rules/no-extra-semi/) | Implemented |
