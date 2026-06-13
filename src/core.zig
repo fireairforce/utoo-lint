@@ -198,6 +198,7 @@ pub const Options = struct {
     typescript_eslint_no_loss_of_precision: bool = true,
     typescript_eslint_no_misused_new: bool = true,
     typescript_eslint_no_non_null_asserted_optional_chain: bool = true,
+    typescript_eslint_no_namespace: bool = true,
     typescript_eslint_no_require_imports: bool = true,
     typescript_eslint_no_this_alias: bool = true,
     typescript_eslint_no_unnecessary_type_constraint: bool = true,
