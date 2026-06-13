@@ -569,6 +569,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_extra_semi = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-extra-non-null-assertion=off")) {
             options.typescript_eslint_no_extra_non_null_assertion = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-duplicate-enum-values=off")) {
+            options.typescript_eslint_no_duplicate_enum_values = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-inferrable-types=off")) {
             options.typescript_eslint_no_inferrable_types = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-invalid-void-type=off")) {
@@ -1331,6 +1333,7 @@ fn printHelp() void {
         \\  --typescript-eslint-no-dupe-class-members=off Disable @typescript-eslint/no-dupe-class-members
         \\  --typescript-eslint-no-empty-interface=off Disable @typescript-eslint/no-empty-interface
         \\  --typescript-eslint-no-extra-non-null-assertion=off Disable @typescript-eslint/no-extra-non-null-assertion
+        \\  --typescript-eslint-no-duplicate-enum-values=off Disable @typescript-eslint/no-duplicate-enum-values
         \\  --typescript-eslint-no-inferrable-types=off Disable @typescript-eslint/no-inferrable-types
         \\  --typescript-eslint-no-invalid-void-type=off Disable @typescript-eslint/no-invalid-void-type
         \\  --typescript-eslint-no-namespace=off Disable @typescript-eslint/no-namespace
