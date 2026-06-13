@@ -100,6 +100,7 @@ pub const Options = struct {
     import_no_amd: bool = true,
     import_no_duplicates: bool = true,
     import_no_named_as_default: bool = true,
+    import_no_named_as_default_member: bool = true,
     import_no_self_import: bool = true,
     jsx_a11y_alt_text: bool = true,
     jsx_a11y_anchor_has_content: bool = true,
@@ -669,6 +670,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.import_no_named_as_default);
     try std.testing.expect(options.setByCliName("import/no-named-as-default", true));
     try std.testing.expect(options.import_no_named_as_default);
+
+    try std.testing.expect(!options.import_no_named_as_default_member);
+    try std.testing.expect(options.setByCliName("import/no-named-as-default-member", true));
+    try std.testing.expect(options.import_no_named_as_default_member);
 
     try std.testing.expect(!options.react_default_props_match_prop_types);
     try std.testing.expect(options.setByCliName("react/default-props-match-prop-types", true));
