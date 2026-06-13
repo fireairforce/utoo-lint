@@ -707,6 +707,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_jsx_no_bind.zig");
+}
+
+comptime {
     _ = @import("rules/react_jsx_pascal_case.zig");
 }
 
