@@ -206,6 +206,7 @@ pub const react_no_array_index_key = @import("react_no_array_index_key.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
+pub const react_no_will_update_set_state = @import("react_no_will_update_set_state.zig");
 pub const react_require_render_return = @import("react_require_render_return.zig");
 pub const react_no_string_refs = @import("react_no_string_refs.zig");
 pub const react_no_unescaped_entities = @import("react_no_unescaped_entities.zig");
@@ -1608,6 +1609,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_render_return_value) {
             try react_no_render_return_value.check(self.allocator, self.diagnostics, ctx.tree, call, ctx);
+        }
+        if (self.options.react_no_will_update_set_state) {
+            try react_no_will_update_set_state.check(self.allocator, self.diagnostics, ctx.tree, call, ctx);
         }
         if (self.options.react_button_has_type) {
             try react_button_has_type.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_button_has_type_state);
