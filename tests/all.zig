@@ -667,6 +667,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_jsx_pascal_case.zig");
+}
+
+comptime {
     _ = @import("rules/require_atomic_updates.zig");
 }
 
