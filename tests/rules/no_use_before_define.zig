@@ -18,6 +18,7 @@ test "reports no-use-before-define for references before declarations" {
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .no_unused_vars = false,
         .typescript_eslint_no_use_before_define = false,
         .parser_semantic_errors = false,
@@ -41,6 +42,7 @@ test "does not report no-use-before-define for references after declarations" {
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .no_unused_vars = false,
         .typescript_eslint_no_use_before_define = false,
         .parser_semantic_errors = false,
@@ -76,6 +78,7 @@ test "can disable no-use-before-define" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_use_before_define = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .typescript_eslint_no_use_before_define = false,
         .parser_semantic_errors = false,
     });

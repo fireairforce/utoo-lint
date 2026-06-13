@@ -12,6 +12,7 @@ test "reports @typescript-eslint/no-non-null-asserted-optional-chain for asserte
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -33,6 +34,7 @@ test "does not report @typescript-eslint/no-non-null-asserted-optional-chain for
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -48,6 +50,7 @@ test "can disable @typescript-eslint/no-non-null-asserted-optional-chain" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .typescript_eslint_no_non_null_asserted_optional_chain = false,
         .parser_semantic_errors = false,
     });

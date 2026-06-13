@@ -14,6 +14,7 @@ test "reports dot-notation for computed string properties that can use dot acces
         .eol_last = false,
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .no_unused_vars = false,
         .typescript_eslint_dot_notation = false,
         .parser_semantic_errors = false,

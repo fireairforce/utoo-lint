@@ -196,6 +196,7 @@ pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_r
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
 pub const typescript_eslint_no_unnecessary_type_constraint = @import("typescript_eslint_no_unnecessary_type_constraint.zig");
 pub const typescript_eslint_no_useless_constructor = @import("typescript_eslint_no_useless_constructor.zig");
+pub const typescript_eslint_no_unused_expressions = @import("typescript_eslint_no_unused_expressions.zig");
 pub const typescript_eslint_no_unused_vars = @import("typescript_eslint_no_unused_vars.zig");
 pub const typescript_eslint_no_use_before_define = @import("typescript_eslint_no_use_before_define.zig");
 pub const typescript_eslint_no_var_requires = @import("typescript_eslint_no_var_requires.zig");
@@ -674,8 +675,11 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.options.no_unused_expressions) {
+        if (self.options.no_unused_expressions and !self.options.typescript_eslint_no_unused_expressions) {
             try no_unused_expressions.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
+        if (self.options.typescript_eslint_no_unused_expressions) {
+            try typescript_eslint_no_unused_expressions.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
         return .proceed;
     }

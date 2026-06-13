@@ -12,6 +12,7 @@ test "reports @typescript-eslint/no-extra-non-null-assertion for nested assertio
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -35,6 +36,7 @@ test "does not report @typescript-eslint/no-extra-non-null-assertion for useful 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -50,6 +52,7 @@ test "can disable @typescript-eslint/no-extra-non-null-assertion" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .typescript_eslint_no_extra_non_null_assertion = false,
         .parser_semantic_errors = false,
     });

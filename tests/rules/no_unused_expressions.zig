@@ -17,6 +17,7 @@ test "reports no-unused-expressions for expressions without side effects" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_undef = false,
         .no_unused_vars = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -50,6 +51,7 @@ test "does not report no-unused-expressions for expressions with side effects" {
         .no_unused_vars = false,
         .no_plusplus = false,
         .no_sequences = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -65,6 +67,7 @@ test "can disable no-unused-expressions" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_unused_expressions = false,
         .no_undef = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

@@ -13,6 +13,7 @@ test "reports @typescript-eslint/no-confusing-non-null-assertion for confusing e
         .eqeqeq = false,
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -31,6 +32,7 @@ test "does not report @typescript-eslint/no-confusing-non-null-assertion for par
         .eqeqeq = false,
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -47,6 +49,7 @@ test "can disable @typescript-eslint/no-confusing-non-null-assertion" {
         .eqeqeq = false,
         .no_undef = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .typescript_eslint_no_confusing_non_null_assertion = false,
         .parser_semantic_errors = false,
     });

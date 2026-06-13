@@ -21,6 +21,7 @@ test "reports no-loop-func for functions with unsafe loop references" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_unused_vars = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -46,6 +47,7 @@ test "reports no-loop-func for for-in and for-of iteration variables" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_unused_vars = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -70,6 +72,7 @@ test "does not report no-loop-func for per-iteration bindings or stable values" 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_unused_vars = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -89,6 +92,7 @@ test "can disable no-loop-func" {
         .no_loop_func = false,
         .no_unused_vars = false,
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

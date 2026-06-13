@@ -421,6 +421,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_unnecessary_type_constraint = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-useless-constructor=off")) {
             options.typescript_eslint_no_useless_constructor = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-unused-expressions=off")) {
+            options.typescript_eslint_no_unused_expressions = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-unused-vars=off")) {
             options.typescript_eslint_no_unused_vars = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-use-before-define=off")) {
@@ -846,6 +848,7 @@ fn printHelp() void {
         \\  --typescript-eslint-no-require-imports=off Disable @typescript-eslint/no-require-imports
         \\  --typescript-eslint-no-this-alias=off Disable @typescript-eslint/no-this-alias
         \\  --typescript-eslint-no-unnecessary-type-constraint=off Disable @typescript-eslint/no-unnecessary-type-constraint
+        \\  --typescript-eslint-no-unused-expressions=off Disable @typescript-eslint/no-unused-expressions
         \\  --typescript-eslint-no-unused-vars=off Disable @typescript-eslint/no-unused-vars
         \\  --typescript-eslint-prefer-as-const=off Disable @typescript-eslint/prefer-as-const
         \\  --typescript-eslint-prefer-namespace-keyword=off Disable @typescript-eslint/prefer-namespace-keyword

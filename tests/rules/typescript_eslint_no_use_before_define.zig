@@ -16,6 +16,7 @@ test "reports @typescript-eslint/no-use-before-define for classes and variables 
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
     });
