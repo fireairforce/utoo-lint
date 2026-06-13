@@ -21,6 +21,7 @@ pub const dot_notation = @import("dot_notation.zig");
 pub const default_case = @import("default_case.zig");
 pub const default_case_last = @import("default_case_last.zig");
 pub const eol_last = @import("eol_last.zig");
+pub const eslint_comments_no_restricted_disable = @import("eslint_comments_no_restricted_disable.zig");
 pub const for_direction = @import("for_direction.zig");
 pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
@@ -333,6 +334,9 @@ pub fn runBasic(
     }
     if (options.eol_last) {
         try eol_last.run(allocator, diagnostics, tree);
+    }
+    if (options.eslint_comments_no_restricted_disable) {
+        try eslint_comments_no_restricted_disable.run(allocator, diagnostics, tree, options.eslint_comments_no_restricted_disable_no_nested_ternary);
     }
     if (options.unicode_bom) {
         try unicode_bom.run(allocator, diagnostics, tree);

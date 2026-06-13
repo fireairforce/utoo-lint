@@ -121,6 +121,8 @@ pub fn main(init: std.process.Init) !void {
             options.default_case_last = false;
         } else if (std.mem.eql(u8, arg, "--eol-last=off")) {
             options.eol_last = false;
+        } else if (std.mem.eql(u8, arg, "--eslint-comments-no-restricted-disable=off")) {
+            options.eslint_comments_no_restricted_disable = false;
         } else if (std.mem.eql(u8, arg, "--for-direction=off")) {
             options.for_direction = false;
         } else if (std.mem.eql(u8, arg, "--getter-return=off")) {
@@ -1208,6 +1210,7 @@ fn printHelp() void {
         \\  --default-case=off        Disable default-case
         \\  --default-case-last=off   Disable default-case-last
         \\  --eol-last=off            Disable eol-last
+        \\  --eslint-comments-no-restricted-disable=off Disable eslint-comments/no-restricted-disable
         \\  --for-direction=off       Disable for-direction
         \\  --getter-return=off       Disable getter-return
         \\  --guard-for-in=off        Disable guard-for-in
