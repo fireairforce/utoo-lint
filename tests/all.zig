@@ -983,6 +983,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_useless_empty_export.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_unused_expressions.zig");
 }
 
