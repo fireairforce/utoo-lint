@@ -90,6 +90,7 @@ pub const Options = struct {
     alipay_ant_no_import_src: bool = true,
     alipay_ant_no_phantom_dependencies: bool = true,
     alipay_ant_no_spread_params: bool = true,
+    alipay_ant_prefer_import_from_stdlib: bool = true,
     alipay_spmlint_use_labeled_spm: bool = true,
     alipay_spmlint_valid_manual_click: bool = true,
     alipay_spmlint_valid_manual_expo: bool = true,
