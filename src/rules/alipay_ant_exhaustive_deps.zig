@@ -1,0 +1,538 @@
+const std = @import("std");
+const parser = @import("parser");
+const core = @import("../core.zig");
+
+const ast = parser.ast;
+const traverser = parser.traverser;
+const Allocator = std.mem.Allocator;
+
+pub const id = "@alipay/ant/exhaustive-deps";
+
+const SymbolId = traverser.semantic.SymbolId;
+const ReferenceLookup = std.AutoHashMap(ast.NodeIndex, SymbolId);
+const DeclSymbolMap = std.AutoHashMap(ast.NodeIndex, SymbolId);
+const SymbolSet = std.AutoHashMap(SymbolId, void);
+
+pub fn run(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+) Allocator.Error!void {
+    var reference_lookup = ReferenceLookup.init(allocator);
+    defer reference_lookup.deinit();
+
+    var decl_symbols = DeclSymbolMap.init(allocator);
+    defer decl_symbols.deinit();
+
+    var symbol_iter = symbol_table.iterSymbols();
+    while (symbol_iter.next()) |entry| {
+        for (symbol_table.symbolDecls(entry.id)) |decl| {
+            try decl_symbols.put(decl, entry.id);
+        }
+    }
+
+    var reference_iter = symbol_table.iterReferences();
+    while (reference_iter.next()) |entry| {
+        if (entry.reference.kind != .value) continue;
+        try reference_lookup.put(entry.reference.node, symbol_table.referenceSymbol(entry.id));
+    }
+
+    var stable_symbols = SymbolSet.init(allocator);
+    defer stable_symbols.deinit();
+
+    var stable_visitor = StableSymbolVisitor{
+        .decl_symbols = &decl_symbols,
+        .stable_symbols = &stable_symbols,
+    };
+    try traverser.basic.traverse(StableSymbolVisitor, tree, &stable_visitor);
+
+    var visitor = Visitor{
+        .allocator = allocator,
+        .diagnostics = diagnostics,
+        .reference_lookup = &reference_lookup,
+        .decl_symbols = &decl_symbols,
+        .stable_symbols = &stable_symbols,
+    };
+    try traverser.basic.traverse(Visitor, tree, &visitor);
+}
+
+const StableSymbolVisitor = struct {
+    decl_symbols: *const DeclSymbolMap,
+    stable_symbols: *SymbolSet,
+
+    pub fn enter_variable_declarator(
+        self: *StableSymbolVisitor,
+        declarator: ast.VariableDeclarator,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        const declaration = switch (ctx.tree.data(ctx.path.ancestor(1) orelse .null)) {
+            .variable_declaration => |declaration| declaration,
+            else => return .proceed,
+        };
+
+        if (ctx.path.depth() <= 3 or
+            (declaration.kind == .@"const" and isLiteralLike(ctx.tree, declarator.init)) or
+            isUseRefCall(ctx.tree, declarator.init))
+        {
+            try self.collectBinding(declarator.id);
+        }
+
+        if (declaration.kind == .@"const") {
+            try self.collectStableHookTuple(ctx.tree, declarator);
+        }
+
+        _ = index;
+        return .proceed;
+    }
+
+    pub fn enter_function(
+        self: *StableSymbolVisitor,
+        function: ast.Function,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (ctx.path.depth() <= 2 and function.id != .null) {
+            try self.collectBinding(function.id);
+        }
+        return .proceed;
+    }
+
+    fn collectStableHookTuple(
+        self: *StableSymbolVisitor,
+        tree: *const ast.Tree,
+        declarator: ast.VariableDeclarator,
+    ) Allocator.Error!void {
+        const pattern = switch (tree.data(declarator.id)) {
+            .array_pattern => |pattern| pattern,
+            else => return,
+        };
+        const hook_name = hookNameForCall(tree, declarator.init) orelse return;
+        if (!std.mem.eql(u8, hook_name, "useState") and
+            !std.mem.eql(u8, hook_name, "useReducer") and
+            !std.mem.eql(u8, hook_name, "useTransition"))
+        {
+            return;
+        }
+
+        const elements = tree.extra(pattern.elements);
+        if (elements.len < 2) return;
+        try self.collectBinding(elements[1]);
+    }
+
+    fn collectBinding(self: *StableSymbolVisitor, index: ast.NodeIndex) Allocator.Error!void {
+        if (index == .null) return;
+        const symbol_id = self.decl_symbols.get(index) orelse return;
+        if (symbol_id != .none) try self.stable_symbols.put(symbol_id, {});
+    }
+};
+
+const Visitor = struct {
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    reference_lookup: *const ReferenceLookup,
+    decl_symbols: *const DeclSymbolMap,
+    stable_symbols: *const SymbolSet,
+
+    pub fn enter_call_expression(
+        self: *Visitor,
+        call: ast.CallExpression,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        const hook = reactiveHook(ctx.tree, call) orelse return .proceed;
+        const args = ctx.tree.extra(call.arguments);
+        if (args.len <= hook.callback_index) {
+            try self.reportFmt(
+                ctx.tree,
+                call.callee,
+                "React Hook {s} requires an effect callback. Did you forget to pass a callback to the hook?",
+                .{hook.source},
+            );
+            return .proceed;
+        }
+
+        const callback = unwrapTransparent(ctx.tree, args[hook.callback_index]);
+        if (hook.is_effect and isAsyncFunction(ctx.tree, callback)) {
+            try core.addDiagnostic(
+                self.allocator,
+                self.diagnostics,
+                .@"error",
+                id,
+                asyncEffectMessage,
+                ctx.tree.span(callback),
+            );
+        }
+
+        if (!isFunctionLike(ctx.tree, callback)) {
+            try self.reportFmt(
+                ctx.tree,
+                callback,
+                "React Hook {s} received a function whose dependencies are unknown. Pass an inline function instead.",
+                .{hook.source},
+            );
+            return .proceed;
+        }
+
+        if (args.len <= hook.callback_index + 1) {
+            if (std.mem.eql(u8, hook.name, "useMemo") or std.mem.eql(u8, hook.name, "useCallback")) {
+                try self.reportFmt(
+                    ctx.tree,
+                    call.callee,
+                    "React Hook {s} does nothing when called with only one argument. Did you forget to pass an array of dependencies?",
+                    .{hook.source},
+                );
+            }
+            return .proceed;
+        }
+
+        const deps_node = unwrapTransparent(ctx.tree, args[hook.callback_index + 1]);
+        var declared = std.StringHashMap(ast.NodeIndex).init(self.allocator);
+        defer declared.deinit();
+
+        var duplicate: ?[]const u8 = null;
+        switch (ctx.tree.data(deps_node)) {
+            .array_expression => |array| {
+                for (ctx.tree.extra(array.elements)) |element| {
+                    if (element == .null) continue;
+                    const unwrapped = unwrapTransparent(ctx.tree, element);
+                    switch (ctx.tree.data(unwrapped)) {
+                        .spread_element => {
+                            try self.reportFmt(
+                                ctx.tree,
+                                unwrapped,
+                                "React Hook {s} has a spread element in its dependency array. This means we can't statically verify whether you've passed the correct dependencies.",
+                                .{hook.source},
+                            );
+                        },
+                        .string_literal, .numeric_literal, .bigint_literal, .boolean_literal, .null_literal => {
+                            try self.reportFmt(
+                                ctx.tree,
+                                unwrapped,
+                                "The {s} literal is not a valid dependency because it never changes. You can safely remove it.",
+                                .{nodeSource(ctx.tree, unwrapped)},
+                            );
+                        },
+                        else => {
+                            const key = dependencyKey(ctx.tree, unwrapped) orelse {
+                                try self.reportFmt(
+                                    ctx.tree,
+                                    unwrapped,
+                                    "React Hook {s} has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked.",
+                                    .{hook.source},
+                                );
+                                continue;
+                            };
+                            if (declared.contains(key)) {
+                                if (duplicate == null) duplicate = key;
+                            } else {
+                                try declared.put(key, unwrapped);
+                            }
+                        },
+                    }
+                }
+            },
+            else => {
+                try self.reportFmt(
+                    ctx.tree,
+                    deps_node,
+                    "React Hook {s} was passed a dependency list that is not an array literal. This means we can't statically verify whether you've passed the correct dependencies.",
+                    .{hook.source},
+                );
+            },
+        }
+
+        var used = std.StringHashMap(ast.NodeIndex).init(self.allocator);
+        defer used.deinit();
+        var dep_visitor = DependencyVisitor{
+            .allocator = self.allocator,
+            .callback_span = ctx.tree.span(callback),
+            .used = &used,
+            .reference_lookup = self.reference_lookup,
+            .stable_symbols = self.stable_symbols,
+            .decl_symbols = self.decl_symbols,
+        };
+        try traverser.basic.traverse(DependencyVisitor, ctx.tree, &dep_visitor);
+
+        if (duplicate) |name| {
+            try self.reportFmt(
+                ctx.tree,
+                deps_node,
+                "React Hook {s} has a duplicate dependency: '{s}'. Either omit it or remove the dependency array.",
+                .{ hook.source, name },
+            );
+        }
+
+        var missing_iter = used.iterator();
+        while (missing_iter.next()) |entry| {
+            const used_key = entry.key_ptr.*;
+            if (declaredSatisfies(&declared, used_key)) continue;
+            try self.reportFmt(
+                ctx.tree,
+                deps_node,
+                "React Hook {s} has a missing dependency: '{s}'. Either include it or remove the dependency array.",
+                .{ hook.source, used_key },
+            );
+        }
+
+        return .proceed;
+    }
+
+    fn reportFmt(
+        self: *Visitor,
+        tree: *const ast.Tree,
+        index: ast.NodeIndex,
+        comptime fmt: []const u8,
+        args: anytype,
+    ) Allocator.Error!void {
+        try core.addDiagnosticFmt(self.allocator, self.diagnostics, .@"error", id, tree.span(index), fmt, args);
+    }
+};
+
+const DependencyVisitor = struct {
+    allocator: Allocator,
+    callback_span: ast.Span,
+    used: *std.StringHashMap(ast.NodeIndex),
+    reference_lookup: *const ReferenceLookup,
+    stable_symbols: *const SymbolSet,
+    decl_symbols: *const DeclSymbolMap,
+
+    pub fn enter_identifier_reference(
+        self: *DependencyVisitor,
+        identifier: ast.IdentifierReference,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        const span = ctx.tree.span(index);
+        if (span.start < self.callback_span.start or span.end > self.callback_span.end) return .proceed;
+
+        const symbol_id = self.reference_lookup.get(index) orelse return .proceed;
+        if (symbol_id == .none or self.stable_symbols.contains(symbol_id)) return .proceed;
+        if (self.symbolDeclaredInsideCallback(ctx.tree, symbol_id)) return .proceed;
+
+        if (!isTopDependencyReference(ctx.tree, index, ctx)) return .proceed;
+
+        const key = dependencyKey(ctx.tree, topDependencyNode(ctx.tree, index, ctx)) orelse ctx.tree.string(identifier.name);
+        if (!self.used.contains(key)) try self.used.put(key, index);
+        return .proceed;
+    }
+
+    fn symbolDeclaredInsideCallback(self: *DependencyVisitor, tree: *const ast.Tree, symbol_id: SymbolId) bool {
+        var iter = self.decl_symbols.iterator();
+        while (iter.next()) |entry| {
+            if (entry.value_ptr.* != symbol_id) continue;
+            const span = tree.span(entry.key_ptr.*);
+            if (span.start >= self.callback_span.start and span.end <= self.callback_span.end) return true;
+        }
+        return false;
+    }
+};
+
+const ReactiveHook = struct {
+    name: []const u8,
+    source: []const u8,
+    callback_index: usize,
+    is_effect: bool,
+};
+
+fn reactiveHook(tree: *const ast.Tree, call: ast.CallExpression) ?ReactiveHook {
+    const name = hookNameForCallee(tree, call.callee) orelse return null;
+    const callback_index: usize = if (std.mem.eql(u8, name, "useImperativeHandle")) 1 else 0;
+    if (!std.mem.eql(u8, name, "useEffect") and
+        !std.mem.eql(u8, name, "useLayoutEffect") and
+        !std.mem.eql(u8, name, "useCallback") and
+        !std.mem.eql(u8, name, "useMemo") and
+        !std.mem.eql(u8, name, "useImperativeHandle"))
+    {
+        return null;
+    }
+    return .{
+        .name = name,
+        .source = nodeSource(tree, call.callee),
+        .callback_index = callback_index,
+        .is_effect = std.mem.eql(u8, name, "useEffect") or std.mem.eql(u8, name, "useLayoutEffect"),
+    };
+}
+
+fn hookNameForCall(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    if (index == .null) return null;
+    const call = switch (tree.data(unwrapTransparent(tree, index))) {
+        .call_expression => |call| call,
+        else => return null,
+    };
+    return hookNameForCallee(tree, call.callee);
+}
+
+fn hookNameForCallee(tree: *const ast.Tree, callee: ast.NodeIndex) ?[]const u8 {
+    if (identifierReferenceName(tree, callee)) |name| return if (isHookName(name)) name else null;
+    const member = switch (tree.data(unwrapTransparent(tree, callee))) {
+        .member_expression => |member| member,
+        else => return null,
+    };
+    if (member.computed) return null;
+    if (!isIdentifierReferenceNamed(tree, unwrapTransparent(tree, member.object), "React")) return null;
+    const name = propertyName(tree, member) orelse return null;
+    return if (isHookName(name)) name else null;
+}
+
+fn isUseRefCall(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    const name = hookNameForCall(tree, index) orelse return false;
+    return std.mem.eql(u8, name, "useRef");
+}
+
+fn isHookName(name: []const u8) bool {
+    if (!std.mem.startsWith(u8, name, "use")) return false;
+    return name.len == 3 or (name.len > 3 and !std.ascii.isLower(name[3]));
+}
+
+fn isAsyncFunction(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(index)) {
+        .function => |function| function.async,
+        .arrow_function_expression => |function| function.async,
+        else => false,
+    };
+}
+
+fn isFunctionLike(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(index)) {
+        .function, .arrow_function_expression => true,
+        else => false,
+    };
+}
+
+fn isLiteralLike(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    if (index == .null) return false;
+    return tree.data(unwrapTransparent(tree, index)).isLiteral();
+}
+
+fn dependencyKey(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    const unwrapped = unwrapTransparent(tree, index);
+    return switch (tree.data(unwrapped)) {
+        .identifier_reference => nodeSource(tree, unwrapped),
+        .member_expression => |member| if (isStaticMemberChain(tree, member)) nodeSource(tree, unwrapped) else null,
+        .chain_expression => |chain| dependencyKey(tree, chain.expression),
+        else => null,
+    };
+}
+
+fn isStaticMemberChain(tree: *const ast.Tree, member: ast.MemberExpression) bool {
+    if (member.computed) return false;
+    if (propertyName(tree, member) == null) return false;
+    const object = unwrapTransparent(tree, member.object);
+    return switch (tree.data(object)) {
+        .identifier_reference => true,
+        .member_expression => |inner| isStaticMemberChain(tree, inner),
+        else => false,
+    };
+}
+
+fn declaredSatisfies(declared: *const std.StringHashMap(ast.NodeIndex), used_key: []const u8) bool {
+    var iter = declared.iterator();
+    while (iter.next()) |entry| {
+        const declared_key = entry.key_ptr.*;
+        if (std.mem.eql(u8, declared_key, used_key)) return true;
+        if (used_key.len > declared_key.len and
+            std.mem.startsWith(u8, used_key, declared_key) and
+            used_key[declared_key.len] == '.')
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn isTopDependencyReference(tree: *const ast.Tree, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) bool {
+    var current = index;
+    var depth: usize = 1;
+    while (true) : (depth += 1) {
+        const parent_index = ctx.path.ancestor(depth) orelse return true;
+        const parent = switch (tree.data(parent_index)) {
+            .member_expression => |member| member,
+            .chain_expression => continue,
+            else => return true,
+        };
+        if (unwrapTransparent(tree, parent.object) != current) return true;
+        current = parent_index;
+    }
+}
+
+fn topDependencyNode(tree: *const ast.Tree, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) ast.NodeIndex {
+    var current = index;
+    var depth: usize = 1;
+    while (true) : (depth += 1) {
+        const parent_index = ctx.path.ancestor(depth) orelse return current;
+        switch (tree.data(parent_index)) {
+            .member_expression => |member| {
+                if (unwrapTransparent(tree, member.object) != current) return current;
+                current = parent_index;
+            },
+            .chain_expression => current = parent_index,
+            else => return current,
+        }
+    }
+}
+
+fn bindingName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    if (index == .null) return null;
+    return switch (tree.data(index)) {
+        .binding_identifier => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn identifierReferenceName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    if (index == .null) return null;
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .identifier_reference => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn isIdentifierReferenceNamed(tree: *const ast.Tree, index: ast.NodeIndex, name: []const u8) bool {
+    const actual = identifierReferenceName(tree, index) orelse return false;
+    return std.mem.eql(u8, actual, name);
+}
+
+fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
+    if (member.property == .null) return null;
+    return if (member.computed)
+        switch (tree.data(member.property)) {
+            .string_literal => |literal| tree.string(literal.value),
+            else => null,
+        }
+    else switch (tree.data(member.property)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+    return current;
+}
+
+fn nodeSource(tree: *const ast.Tree, index: ast.NodeIndex) []const u8 {
+    const span = tree.span(index);
+    if (span.start >= span.end or span.end > tree.source.len) return "";
+    return std.mem.trim(u8, tree.source[span.start..span.end], " \t\r\n");
+}
+
+const asyncEffectMessage =
+    "Effect callbacks are synchronous to prevent race conditions. Put the async function inside:\n\n" ++
+    "useEffect(() => {\n" ++
+    "  async function fetchData() {\n" ++
+    "    // You can await here\n" ++
+    "    const response = await MyAPI.getData(someId);\n" ++
+    "    // ...\n" ++
+    "  }\n" ++
+    "  fetchData();\n" ++
+    "}, [someId]); // Or [] if effect doesn't need props or state\n\n" ++
+    "Learn more about data fetching with Hooks: https://reactjs.org/link/hooks-data-fetching";

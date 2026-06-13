@@ -86,6 +86,7 @@ pub const Options = struct {
     no_implied_eval: bool = true,
     no_import_assign: bool = true,
     alipay_ant_disallow_typos: bool = true,
+    alipay_ant_exhaustive_deps: bool = true,
     alipay_ant_no_import_src: bool = true,
     alipay_ant_no_phantom_dependencies: bool = true,
     alipay_spmlint_use_labeled_spm: bool = true,
