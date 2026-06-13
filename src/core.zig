@@ -205,6 +205,7 @@ pub const Options = struct {
     prefer_rest_params: bool = true,
     prefer_spread: bool = true,
     prefer_template: bool = true,
+    react_default_props_match_prop_types: bool = true,
     react_display_name: bool = true,
     react_jsx_boolean_value: bool = true,
     react_jsx_filename_extension: bool = true,
@@ -653,6 +654,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.alipay_spmlint_valid_manual_pv);
     try std.testing.expect(options.setByCliName("@alipay/spmLint/valid-manual-pv", true));
     try std.testing.expect(options.alipay_spmlint_valid_manual_pv);
+
+    try std.testing.expect(!options.react_default_props_match_prop_types);
+    try std.testing.expect(options.setByCliName("react/default-props-match-prop-types", true));
+    try std.testing.expect(options.react_default_props_match_prop_types);
 
     try std.testing.expect(!options.setByCliName("unknown-rule", true));
 }

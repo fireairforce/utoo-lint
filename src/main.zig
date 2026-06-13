@@ -475,6 +475,8 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_spread = false;
         } else if (std.mem.eql(u8, arg, "--prefer-template=off")) {
             options.prefer_template = false;
+        } else if (std.mem.eql(u8, arg, "--react-default-props-match-prop-types=off")) {
+            options.react_default_props_match_prop_types = false;
         } else if (std.mem.eql(u8, arg, "--react-display-name=off")) {
             options.react_display_name = false;
         } else if (std.mem.eql(u8, arg, "--react-jsx-boolean-value=off")) {
@@ -1328,6 +1330,7 @@ fn printHelp() void {
         \\  --prefer-regex-literals=off Disable prefer-regex-literals
         \\  --prefer-rest-params=off  Disable prefer-rest-params
         \\  --prefer-spread=off       Disable prefer-spread
+        \\  --react-default-props-match-prop-types=off Disable react/default-props-match-prop-types
         \\  --react-display-name=off Disable react/display-name
         \\  --react-jsx-boolean-value=off Disable react/jsx-boolean-value
         \\  --react-jsx-filename-extension=off Disable react/jsx-filename-extension
