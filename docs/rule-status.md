@@ -192,6 +192,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-misused-new`](https://typescript-eslint.io/rules/no-misused-new/) | Implemented |
 | [`@typescript-eslint/no-namespace`](https://typescript-eslint.io/rules/no-namespace/) | Implemented for fishlint's `allowDeclarations: true, allowDefinitionFiles: true` configuration |
 | [`@typescript-eslint/no-non-null-asserted-optional-chain`](https://typescript-eslint.io/rules/no-non-null-asserted-optional-chain/) | Implemented |
+| [`@typescript-eslint/no-redeclare`](https://typescript-eslint.io/rules/no-redeclare/) | Implemented |
 | [`@typescript-eslint/no-require-imports`](https://typescript-eslint.io/rules/no-require-imports/) | Implemented |
 | [`@typescript-eslint/no-this-alias`](https://typescript-eslint.io/rules/no-this-alias/) | Implemented for fishlint's `allowedNames: ['self']` configuration |
 | [`@typescript-eslint/triple-slash-reference`](https://typescript-eslint.io/rules/triple-slash-reference/) | Implemented for fishlint's `path: never, types: always, lib: always` configuration |
