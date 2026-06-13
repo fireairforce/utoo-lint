@@ -198,6 +198,7 @@ pub const typescript_eslint_no_namespace = @import("typescript_eslint_no_namespa
 pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
+pub const typescript_eslint_triple_slash_reference = @import("typescript_eslint_triple_slash_reference.zig");
 pub const typescript_eslint_no_unnecessary_type_constraint = @import("typescript_eslint_no_unnecessary_type_constraint.zig");
 pub const typescript_eslint_no_useless_constructor = @import("typescript_eslint_no_useless_constructor.zig");
 pub const typescript_eslint_no_unused_expressions = @import("typescript_eslint_no_unused_expressions.zig");
@@ -258,6 +259,9 @@ pub fn runBasic(
     }
     if (options.typescript_eslint_ban_tslint_comment) {
         try typescript_eslint_ban_tslint_comment.run(allocator, diagnostics, tree);
+    }
+    if (options.typescript_eslint_triple_slash_reference) {
+        try typescript_eslint_triple_slash_reference.run(allocator, diagnostics, tree);
     }
     if (options.typescript_eslint_no_non_null_asserted_optional_chain) {
         try typescript_eslint_no_non_null_asserted_optional_chain.run(allocator, diagnostics, tree);

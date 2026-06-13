@@ -204,6 +204,7 @@ pub const Options = struct {
     typescript_eslint_no_namespace: bool = true,
     typescript_eslint_no_require_imports: bool = true,
     typescript_eslint_no_this_alias: bool = true,
+    typescript_eslint_triple_slash_reference: bool = true,
     typescript_eslint_no_unnecessary_type_constraint: bool = true,
     typescript_eslint_no_useless_constructor: bool = true,
     typescript_eslint_no_unused_vars: bool = true,
