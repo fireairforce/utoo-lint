@@ -195,6 +195,8 @@ pub fn main(init: std.process.Init) !void {
             options.import_no_duplicates = false;
         } else if (std.mem.eql(u8, arg, "--import-no-self-import=off")) {
             options.import_no_self_import = false;
+        } else if (std.mem.eql(u8, arg, "--jsx-a11y-no-access-key=off")) {
+            options.jsx_a11y_no_access_key = false;
         } else if (std.mem.eql(u8, arg, "--no-invalid-regexp=off")) {
             options.no_invalid_regexp = false;
         } else if (std.mem.eql(u8, arg, "--no-irregular-whitespace=off")) {
@@ -838,6 +840,7 @@ fn printHelp() void {
         \\  --import-no-amd=off        Disable import/no-amd
         \\  --import-no-duplicates=off Disable import/no-duplicates
         \\  --import-no-self-import=off Disable import/no-self-import
+        \\  --jsx-a11y-no-access-key=off Disable jsx-a11y/no-access-key
         \\  --no-invalid-regexp=off    Disable no-invalid-regexp
         \\  --no-irregular-whitespace=off Disable no-irregular-whitespace
         \\  --no-inline-comments=off   Disable no-inline-comments
