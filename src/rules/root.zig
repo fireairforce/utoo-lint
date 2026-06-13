@@ -26,6 +26,7 @@ pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
 pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
+pub const alipay_ant_no_phantom_dependencies = @import("alipay_ant_no_phantom_dependencies.zig");
 pub const alipay_spmlint_use_labeled_spm = @import("alipay_spmlint_use_labeled_spm.zig");
 pub const alipay_spmlint_valid_manual_click = @import("alipay_spmlint_valid_manual_click.zig");
 pub const alipay_spmlint_valid_manual_expo = @import("alipay_spmlint_valid_manual_expo.zig");
@@ -368,9 +369,24 @@ pub fn runSemantic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    io: ?std.Io,
+    file_path: []const u8,
     semantic_result: traverser.semantic.Result,
     options: core.Options,
 ) Allocator.Error!void {
+    if (options.alipay_ant_no_phantom_dependencies) {
+        if (io) |actual_io| {
+            try alipay_ant_no_phantom_dependencies.run(
+                allocator,
+                actual_io,
+                diagnostics,
+                tree,
+                file_path,
+                semantic_result.symbol_table,
+            );
+        }
+    }
+
     if (options.block_scoped_var) {
         try block_scoped_var.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }

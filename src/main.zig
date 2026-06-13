@@ -241,6 +241,8 @@ pub fn main(init: std.process.Init) !void {
             options.alipay_ant_disallow_typos = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-no-import-src=off")) {
             options.alipay_ant_no_import_src = false;
+        } else if (std.mem.eql(u8, arg, "--alipay-ant-no-phantom-dependencies=off")) {
+            options.alipay_ant_no_phantom_dependencies = false;
         } else if (std.mem.eql(u8, arg, "--alipay-spmlint-use-labeled-spm=off")) {
             options.alipay_spmlint_use_labeled_spm = false;
         } else if (std.mem.eql(u8, arg, "--alipay-spmlint-valid-manual-click=off")) {
@@ -996,7 +998,7 @@ fn lintFileJson(
     };
     defer allocator.free(source);
 
-    var result = try lint.lintSource(allocator, source, path, options);
+    var result = try lint.lintSourceWithIo(allocator, io, source, path, options);
     defer result.deinit(allocator);
 
     stats.files += 1;
@@ -1037,7 +1039,7 @@ fn lintFile(
     };
     defer allocator.free(source);
 
-    var result = try lint.lintSource(allocator, source, path, options);
+    var result = try lint.lintSourceWithIo(allocator, io, source, path, options);
     defer result.deinit(allocator);
 
     stats.files += 1;
@@ -1211,6 +1213,7 @@ fn printHelp() void {
         \\  --no-import-assign=off     Disable no-import-assign
         \\  --alipay-ant-disallow-typos=off Disable @alipay/ant/disallow-typos
         \\  --alipay-ant-no-import-src=off Disable @alipay/ant/no-import-src
+        \\  --alipay-ant-no-phantom-dependencies=off Disable @alipay/ant/no-phantom-dependencies
         \\  --alipay-spmlint-use-labeled-spm=off Disable @alipay/spmLint/use-labeled-spm
         \\  --alipay-spmlint-valid-manual-click=off Disable @alipay/spmLint/valid-manual-click
         \\  --alipay-spmlint-valid-manual-expo=off Disable @alipay/spmLint/valid-manual-expo

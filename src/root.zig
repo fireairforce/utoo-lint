@@ -18,6 +18,16 @@ pub fn lintSource(
     path: []const u8,
     options: Options,
 ) Allocator.Error!Result {
+    return lintSourceWithIo(allocator, null, source, path, options);
+}
+
+pub fn lintSourceWithIo(
+    allocator: Allocator,
+    io: ?std.Io,
+    source: []const u8,
+    path: []const u8,
+    options: Options,
+) Allocator.Error!Result {
     var diagnostics: core.DiagnosticList = .empty;
     errdefer core.freeDiagnostics(allocator, &diagnostics);
 
@@ -36,7 +46,7 @@ pub fn lintSource(
         try semantic_result.symbol_table.resolveAll(semantic_result.scope_tree);
         try appendParserDiagnostics(allocator, &diagnostics, &tree);
         try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);
-        try rules.runSemantic(allocator, &diagnostics, &tree, semantic_result, effective_options);
+        try rules.runSemantic(allocator, &diagnostics, &tree, io, path, semantic_result, effective_options);
     } else {
         try appendParserDiagnostics(allocator, &diagnostics, &tree);
         try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);
@@ -123,6 +133,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_global_is_nan or
         options.no_implied_eval or
         options.no_import_assign or
+        options.alipay_ant_no_phantom_dependencies or
         options.no_invalid_regexp or
         options.no_label_var or
         options.no_loop_func or
