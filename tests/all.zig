@@ -755,6 +755,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_unknown_property.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_redundant_should_component_update.zig");
 }
 
