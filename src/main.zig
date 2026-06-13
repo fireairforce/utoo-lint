@@ -255,6 +255,8 @@ pub fn main(init: std.process.Init) !void {
             options.alipay_spmlint_valid_manual_pv = false;
         } else if (std.mem.eql(u8, arg, "--import-default=off")) {
             options.import_default = false;
+        } else if (std.mem.eql(u8, arg, "--import-export=off")) {
+            options.import_export = false;
         } else if (std.mem.eql(u8, arg, "--import-first=off")) {
             options.import_first = false;
         } else if (std.mem.eql(u8, arg, "--import-named=off")) {
@@ -1230,6 +1232,7 @@ fn printHelp() void {
         \\  --alipay-spmlint-valid-manual-param=off Disable @alipay/spmLint/valid-manual-param
         \\  --alipay-spmlint-valid-manual-pv=off Disable @alipay/spmLint/valid-manual-pv
         \\  --import-default=off      Disable import/default
+        \\  --import-export=off       Disable import/export
         \\  --import-first=off         Disable import/first
         \\  --import-named=off        Disable import/named
         \\  --import-newline-after-import=off Disable import/newline-after-import
