@@ -391,6 +391,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_jsx_no_bind = false;
         } else if (std.mem.eql(u8, arg, "--react-jsx-key=off")) {
             options.react_jsx_key = false;
+        } else if (std.mem.eql(u8, arg, "--react-button-has-type=off")) {
+            options.react_button_has_type = false;
         } else if (std.mem.eql(u8, arg, "--react-jsx-no-target-blank=off")) {
             options.react_jsx_no_target_blank = false;
         } else if (std.mem.eql(u8, arg, "--react-jsx-no-undef=off")) {
@@ -928,6 +930,7 @@ fn printHelp() void {
         \\  --react-jsx-no-comment-textnodes=off Disable react/jsx-no-comment-textnodes
         \\  --react-jsx-no-bind=off Disable react/jsx-no-bind
         \\  --react-jsx-key=off Disable react/jsx-key
+        \\  --react-button-has-type=off Disable react/button-has-type
         \\  --react-jsx-no-target-blank=off Disable react/jsx-no-target-blank
         \\  --react-jsx-no-undef=off Disable react/jsx-no-undef
         \\  --react-jsx-pascal-case=off Disable react/jsx-pascal-case
