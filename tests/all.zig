@@ -695,6 +695,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_jsx_no_undef.zig");
+}
+
+comptime {
     _ = @import("rules/react_jsx_no_comment_textnodes.zig");
 }
 

@@ -389,6 +389,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_jsx_no_comment_textnodes = false;
         } else if (std.mem.eql(u8, arg, "--react-jsx-no-target-blank=off")) {
             options.react_jsx_no_target_blank = false;
+        } else if (std.mem.eql(u8, arg, "--react-jsx-no-undef=off")) {
+            options.react_jsx_no_undef = false;
         } else if (std.mem.eql(u8, arg, "--react-jsx-pascal-case=off")) {
             options.react_jsx_pascal_case = false;
         } else if (std.mem.eql(u8, arg, "--react-no-danger=off")) {
@@ -915,6 +917,7 @@ fn printHelp() void {
         \\  --react-jsx-no-duplicate-props=off Disable react/jsx-no-duplicate-props
         \\  --react-jsx-no-comment-textnodes=off Disable react/jsx-no-comment-textnodes
         \\  --react-jsx-no-target-blank=off Disable react/jsx-no-target-blank
+        \\  --react-jsx-no-undef=off Disable react/jsx-no-undef
         \\  --react-jsx-pascal-case=off Disable react/jsx-pascal-case
         \\  --react-no-danger=off     Disable react/no-danger
         \\  --react-no-danger-with-children=off Disable react/no-danger-with-children

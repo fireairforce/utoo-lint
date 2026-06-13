@@ -19,6 +19,7 @@ pub fn run(
     while (iter.next()) |entry| {
         const reference = entry.reference;
         if (reference.kind != .value) continue;
+        if (tree.data(reference.node) == .jsx_identifier) continue;
 
         const name = tree.string(reference.name);
         if (core.isKnownGlobal(name)) continue;
@@ -34,4 +35,3 @@ pub fn run(
         );
     }
 }
-

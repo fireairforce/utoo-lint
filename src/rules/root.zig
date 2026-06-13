@@ -179,6 +179,7 @@ pub const react_jsx_boolean_value = @import("react_jsx_boolean_value.zig");
 pub const react_jsx_no_duplicate_props = @import("react_jsx_no_duplicate_props.zig");
 pub const react_jsx_no_comment_textnodes = @import("react_jsx_no_comment_textnodes.zig");
 pub const react_jsx_no_target_blank = @import("react_jsx_no_target_blank.zig");
+pub const react_jsx_no_undef = @import("react_jsx_no_undef.zig");
 pub const react_jsx_pascal_case = @import("react_jsx_pascal_case.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
 pub const react_no_danger_with_children = @import("react_no_danger_with_children.zig");
@@ -504,6 +505,10 @@ pub fn runSemantic(
 
     if (options.no_undef) {
         try no_undef.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.react_jsx_no_undef) {
+        try react_jsx_no_undef.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.prefer_const) {
