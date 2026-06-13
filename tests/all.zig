@@ -663,6 +663,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_array_index_key.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_find_dom_node.zig");
 }
 
