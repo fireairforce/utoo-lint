@@ -186,6 +186,7 @@ pub const Options = struct {
     symbol_description: bool = true,
     typescript_eslint_adjacent_overload_signatures: bool = true,
     typescript_eslint_array_type: bool = true,
+    typescript_eslint_class_literal_property_style: bool = true,
     typescript_eslint_consistent_type_definitions: bool = true,
     typescript_eslint_no_array_constructor: bool = true,
     typescript_eslint_ban_types: bool = true,
