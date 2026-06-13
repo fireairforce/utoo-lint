@@ -18,7 +18,7 @@ pub fn check(
 ) Allocator.Error!void {
     const tag_name = elementName(tree, opening.name) orelse return;
     if (!isDomElement(tag_name)) return;
-    if (std.ascii.eqlIgnoreCase(tag_name, "th")) return;
+    if (std.mem.eql(u8, tag_name, "th")) return;
     if (!hasScopeAttribute(tree, opening)) return;
 
     try core.addDiagnostic(
@@ -59,7 +59,7 @@ fn attributeName(tree: *const ast.Tree, name_index: ast.NodeIndex) ?[]const u8 {
 
 fn isDomElement(name: []const u8) bool {
     for (dom_elements) |element| {
-        if (std.ascii.eqlIgnoreCase(name, element)) return true;
+        if (std.mem.eql(u8, name, element)) return true;
     }
     return false;
 }
