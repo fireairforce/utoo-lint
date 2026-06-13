@@ -239,6 +239,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_import_assign = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-disallow-typos=off")) {
             options.alipay_ant_disallow_typos = false;
+        } else if (std.mem.eql(u8, arg, "--alipay-ant-exhaustive-deps=off")) {
+            options.alipay_ant_exhaustive_deps = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-no-import-src=off")) {
             options.alipay_ant_no_import_src = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-no-phantom-dependencies=off")) {
@@ -1237,6 +1239,7 @@ fn printHelp() void {
         \\  --no-implied-eval=off      Disable no-implied-eval
         \\  --no-import-assign=off     Disable no-import-assign
         \\  --alipay-ant-disallow-typos=off Disable @alipay/ant/disallow-typos
+        \\  --alipay-ant-exhaustive-deps=off Disable @alipay/ant/exhaustive-deps
         \\  --alipay-ant-no-import-src=off Disable @alipay/ant/no-import-src
         \\  --alipay-ant-no-phantom-dependencies=off Disable @alipay/ant/no-phantom-dependencies
         \\  --alipay-spmlint-use-labeled-spm=off Disable @alipay/spmLint/use-labeled-spm

@@ -120,6 +120,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_array_constructor or
         options.no_alert or
         options.no_async_promise_executor or
+        options.alipay_ant_exhaustive_deps or
         options.no_buffer_constructor or
         options.no_class_assign or
         options.no_const_assign or
