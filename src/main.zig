@@ -247,6 +247,8 @@ pub fn main(init: std.process.Init) !void {
             options.alipay_ant_no_import_src = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-no-phantom-dependencies=off")) {
             options.alipay_ant_no_phantom_dependencies = false;
+        } else if (std.mem.eql(u8, arg, "--alipay-ant-prefer-click-with-debounce=off")) {
+            options.alipay_ant_prefer_click_with_debounce = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-no-spread-params=off")) {
             options.alipay_ant_no_spread_params = false;
         } else if (std.mem.eql(u8, arg, "--alipay-ant-prefer-import-from-stdlib=off")) {
@@ -1249,6 +1251,7 @@ fn printHelp() void {
         \\  --alipay-ant-jsx-handler-names=off Disable @alipay/ant/jsx-handler-names
         \\  --alipay-ant-no-import-src=off Disable @alipay/ant/no-import-src
         \\  --alipay-ant-no-phantom-dependencies=off Disable @alipay/ant/no-phantom-dependencies
+        \\  --alipay-ant-prefer-click-with-debounce=off Disable @alipay/ant/prefer-click-with-debounce
         \\  --alipay-ant-no-spread-params=off Disable @alipay/ant/no-spread-params
         \\  --alipay-ant-prefer-import-from-stdlib=off Disable @alipay/ant/prefer-import-from-stdlib
         \\  --alipay-spmlint-use-labeled-spm=off Disable @alipay/spmLint/use-labeled-spm
