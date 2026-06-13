@@ -94,6 +94,7 @@ pub const Options = struct {
     jsx_a11y_iframe_has_title: bool = true,
     jsx_a11y_img_redundant_alt: bool = true,
     jsx_a11y_no_access_key: bool = true,
+    jsx_a11y_no_distracting_elements: bool = true,
     no_invalid_regexp: bool = true,
     no_irregular_whitespace: bool = true,
     no_inline_comments: bool = true,
