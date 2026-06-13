@@ -85,6 +85,7 @@ pub const Options = struct {
     no_implicit_coercion: bool = true,
     no_implied_eval: bool = true,
     no_import_assign: bool = true,
+    alipay_ant_no_import_src: bool = true,
     import_first: bool = true,
     import_newline_after_import: bool = true,
     import_no_amd: bool = true,
@@ -308,6 +309,10 @@ pub const Options = struct {
 
         if (std.mem.startsWith(u8, cli_name, "import/")) {
             return self.setByPrefixedRuleName("import_", cli_name["import/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "@alipay/ant/")) {
+            return self.setByPrefixedRuleName("alipay_ant_", cli_name["@alipay/ant/".len..], value);
         }
 
         if (std.mem.startsWith(u8, cli_name, "jsx-a11y/")) {
@@ -571,6 +576,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.import_no_duplicates);
     try std.testing.expect(options.setByCliName("import/no-duplicates", true));
     try std.testing.expect(options.import_no_duplicates);
+
+    try std.testing.expect(!options.alipay_ant_no_import_src);
+    try std.testing.expect(options.setByCliName("@alipay/ant/no-import-src", true));
+    try std.testing.expect(options.alipay_ant_no_import_src);
 
     try std.testing.expect(!options.setByCliName("unknown-rule", true));
 }

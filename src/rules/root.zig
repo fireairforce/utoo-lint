@@ -24,6 +24,7 @@ pub const eol_last = @import("eol_last.zig");
 pub const for_direction = @import("for_direction.zig");
 pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
+pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
 pub const import_first = @import("import_first.zig");
 pub const import_newline_after_import = @import("import_newline_after_import.zig");
 pub const import_no_amd = @import("import_no_amd.zig");
@@ -587,6 +588,9 @@ const BasicVisitor = struct {
         }
         if (self.options.import_no_duplicates) {
             try import_no_duplicates.check(self.allocator, self.diagnostics, ctx.tree, program);
+        }
+        if (self.options.alipay_ant_no_import_src) {
+            try alipay_ant_no_import_src.check(self.allocator, self.diagnostics, ctx.tree, program);
         }
         if (self.options.import_no_self_import) {
             try import_no_self_import.check(self.allocator, self.diagnostics, ctx.tree, program, self.file_path);
