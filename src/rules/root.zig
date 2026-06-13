@@ -244,6 +244,7 @@ pub const typescript_eslint_no_empty_function = @import("typescript_eslint_no_em
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
 pub const typescript_eslint_no_extra_semi = @import("typescript_eslint_no_extra_semi.zig");
 pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_eslint_no_extra_non_null_assertion.zig");
+pub const typescript_eslint_no_duplicate_enum_values = @import("typescript_eslint_no_duplicate_enum_values.zig");
 pub const typescript_eslint_no_inferrable_types = @import("typescript_eslint_no_inferrable_types.zig");
 pub const typescript_eslint_no_invalid_void_type = @import("typescript_eslint_no_invalid_void_type.zig");
 pub const typescript_eslint_no_loss_of_precision = @import("typescript_eslint_no_loss_of_precision.zig");
@@ -968,6 +969,18 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_consistent_type_definitions) {
             try typescript_eslint_consistent_type_definitions.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_enum_declaration(
+        self: *BasicVisitor,
+        declaration: ast.TSEnumDeclaration,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_no_duplicate_enum_values) {
+            try typescript_eslint_no_duplicate_enum_values.check(self.allocator, self.diagnostics, ctx.tree, declaration);
         }
         return .proceed;
     }

@@ -903,6 +903,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_duplicate_enum_values.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_empty_function.zig");
 }
 
