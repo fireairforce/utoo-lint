@@ -269,6 +269,8 @@ pub fn main(init: std.process.Init) !void {
             options.jsx_a11y_no_distracting_elements = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-role-has-required-aria-props=off")) {
             options.jsx_a11y_role_has_required_aria_props = false;
+        } else if (std.mem.eql(u8, arg, "--jsx-a11y-role-supports-aria-props=off")) {
+            options.jsx_a11y_role_supports_aria_props = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-scope=off")) {
             options.jsx_a11y_scope = false;
         } else if (std.mem.eql(u8, arg, "--no-invalid-regexp=off")) {
@@ -1175,6 +1177,7 @@ fn printHelp() void {
         \\  --jsx-a11y-no-access-key=off Disable jsx-a11y/no-access-key
         \\  --jsx-a11y-no-distracting-elements=off Disable jsx-a11y/no-distracting-elements
         \\  --jsx-a11y-role-has-required-aria-props=off Disable jsx-a11y/role-has-required-aria-props
+        \\  --jsx-a11y-role-supports-aria-props=off Disable jsx-a11y/role-supports-aria-props
         \\  --jsx-a11y-scope=off      Disable jsx-a11y/scope
         \\  --no-invalid-regexp=off    Disable no-invalid-regexp
         \\  --no-irregular-whitespace=off Disable no-irregular-whitespace
