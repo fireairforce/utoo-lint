@@ -183,6 +183,12 @@ Each rule links to the corresponding ESLint rule reference.
 
 `parser-semantic-errors` reports parse diagnostics from Yuku, including semantic early errors by default. It is not an ESLint rule and therefore does not have a corresponding ESLint rule page.
 
+## React rules
+
+| Rule | Status |
+| --- | --- |
+| [`react/no-danger`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-danger.md) | Implemented |
+
 ## TypeScript ESLint rules
 
 | Rule | Status |

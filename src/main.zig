@@ -381,6 +381,8 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_spread = false;
         } else if (std.mem.eql(u8, arg, "--prefer-template=off")) {
             options.prefer_template = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-danger=off")) {
+            options.react_no_danger = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
         } else if (std.mem.eql(u8, arg, "--require-atomic-updates=off")) {
@@ -877,6 +879,7 @@ fn printHelp() void {
         \\  --prefer-regex-literals=off Disable prefer-regex-literals
         \\  --prefer-rest-params=off  Disable prefer-rest-params
         \\  --prefer-spread=off       Disable prefer-spread
+        \\  --react-no-danger=off     Disable react/no-danger
         \\  --radix=off               Disable radix
         \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield

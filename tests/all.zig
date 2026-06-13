@@ -651,6 +651,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_danger.zig");
+}
+
+comptime {
     _ = @import("rules/require_atomic_updates.zig");
 }
 
