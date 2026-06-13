@@ -87,6 +87,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/import_namespace.zig");
+}
+
+comptime {
     _ = @import("rules/import_newline_after_import.zig");
 }
 

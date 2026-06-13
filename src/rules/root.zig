@@ -36,6 +36,7 @@ pub const import_first = @import("import_first.zig");
 pub const import_default = @import("import_default.zig");
 pub const import_export = @import("import_export.zig");
 pub const import_named = @import("import_named.zig");
+pub const import_namespace = @import("import_namespace.zig");
 pub const import_newline_after_import = @import("import_newline_after_import.zig");
 pub const import_no_amd = @import("import_no_amd.zig");
 pub const import_no_duplicates = @import("import_no_duplicates.zig");
@@ -424,6 +425,18 @@ pub fn runSemantic(
                 diagnostics,
                 tree,
                 file_path,
+            );
+        }
+    }
+    if (options.import_namespace) {
+        if (io) |actual_io| {
+            try import_namespace.run(
+                allocator,
+                actual_io,
+                diagnostics,
+                tree,
+                file_path,
+                semantic_result.symbol_table,
             );
         }
     }
