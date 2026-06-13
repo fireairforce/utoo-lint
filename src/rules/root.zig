@@ -178,6 +178,7 @@ pub const prefer_template = @import("prefer_template.zig");
 pub const react_jsx_boolean_value = @import("react_jsx_boolean_value.zig");
 pub const react_jsx_no_duplicate_props = @import("react_jsx_no_duplicate_props.zig");
 pub const react_jsx_no_comment_textnodes = @import("react_jsx_no_comment_textnodes.zig");
+pub const react_jsx_pascal_case = @import("react_jsx_pascal_case.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
 pub const radix = @import("radix.zig");
 pub const require_atomic_updates = @import("require_atomic_updates.zig");
@@ -1591,11 +1592,14 @@ const BasicVisitor = struct {
     pub fn enter_jsx_opening_element(
         self: *BasicVisitor,
         opening: ast.JSXOpeningElement,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.react_jsx_no_duplicate_props) {
             try react_jsx_no_duplicate_props.check(self.allocator, self.diagnostics, ctx.tree, opening);
+        }
+        if (self.options.react_jsx_pascal_case) {
+            try react_jsx_pascal_case.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
         }
         return .proceed;
     }
