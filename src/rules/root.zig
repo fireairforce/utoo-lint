@@ -30,6 +30,7 @@ pub const alipay_ant_jsx_handler_names = @import("alipay_ant_jsx_handler_names.z
 pub const alipay_ant_no_negative_conditionals = @import("alipay_ant_no_negative_conditionals.zig");
 pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
 pub const alipay_ant_no_phantom_dependencies = @import("alipay_ant_no_phantom_dependencies.zig");
+pub const alipay_ant_no_too_large_file = @import("alipay_ant_no_too_large_file.zig");
 pub const alipay_ant_prefer_elseif_end_with_else = @import("alipay_ant_prefer_elseif_end_with_else.zig");
 pub const alipay_ant_prefer_click_with_debounce = @import("alipay_ant_prefer_click_with_debounce.zig");
 pub const alipay_ant_no_spread_params = @import("alipay_ant_no_spread_params.zig");
@@ -361,6 +362,9 @@ pub fn runBasic(
     }
     if (options.typescript_eslint_triple_slash_reference) {
         try typescript_eslint_triple_slash_reference.run(allocator, diagnostics, tree);
+    }
+    if (options.alipay_ant_no_too_large_file) {
+        try alipay_ant_no_too_large_file.run(allocator, diagnostics, tree, file_path);
     }
     if (options.typescript_eslint_no_non_null_asserted_optional_chain) {
         try typescript_eslint_no_non_null_asserted_optional_chain.run(allocator, diagnostics, tree);

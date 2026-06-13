@@ -63,6 +63,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/alipay_ant_no_too_large_file.zig");
+}
+
+comptime {
     _ = @import("rules/alipay_ant_prefer_elseif_end_with_else.zig");
 }
 
