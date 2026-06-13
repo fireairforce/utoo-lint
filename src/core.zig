@@ -90,6 +90,7 @@ pub const Options = struct {
     import_no_amd: bool = true,
     import_no_duplicates: bool = true,
     import_no_self_import: bool = true,
+    jsx_a11y_alt_text: bool = true,
     jsx_a11y_anchor_has_content: bool = true,
     jsx_a11y_aria_props: bool = true,
     jsx_a11y_aria_proptypes: bool = true,

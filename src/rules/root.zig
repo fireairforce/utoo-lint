@@ -29,6 +29,7 @@ pub const import_newline_after_import = @import("import_newline_after_import.zig
 pub const import_no_amd = @import("import_no_amd.zig");
 pub const import_no_duplicates = @import("import_no_duplicates.zig");
 pub const import_no_self_import = @import("import_no_self_import.zig");
+pub const jsx_a11y_alt_text = @import("jsx_a11y_alt_text.zig");
 pub const jsx_a11y_anchor_has_content = @import("jsx_a11y_anchor_has_content.zig");
 pub const jsx_a11y_aria_props = @import("jsx_a11y_aria_props.zig");
 pub const jsx_a11y_aria_proptypes = @import("jsx_a11y_aria_proptypes.zig");
@@ -1797,6 +1798,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_danger_with_children) {
             try react_no_danger_with_children.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index, &self.react_no_danger_with_children_bindings);
         }
+        if (self.options.jsx_a11y_alt_text) {
+            try jsx_a11y_alt_text.checkElement(self.allocator, self.diagnostics, ctx.tree, element, index);
+        }
         if (self.options.jsx_a11y_anchor_has_content) {
             try jsx_a11y_anchor_has_content.check(self.allocator, self.diagnostics, ctx.tree, element, index);
         }
@@ -1814,6 +1818,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.react_jsx_no_duplicate_props) {
             try react_jsx_no_duplicate_props.check(self.allocator, self.diagnostics, ctx.tree, opening);
+        }
+        if (self.options.jsx_a11y_alt_text) {
+            try jsx_a11y_alt_text.checkOpeningElement(self.allocator, self.diagnostics, ctx.tree, opening, index);
         }
         if (self.options.jsx_a11y_no_access_key) {
             try jsx_a11y_no_access_key.check(self.allocator, self.diagnostics, ctx.tree, opening, index);

@@ -63,6 +63,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/jsx_a11y_alt_text.zig");
+}
+
+comptime {
     _ = @import("rules/jsx_a11y_anchor_has_content.zig");
 }
 

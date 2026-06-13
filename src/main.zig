@@ -247,6 +247,8 @@ pub fn main(init: std.process.Init) !void {
             options.import_no_duplicates = false;
         } else if (std.mem.eql(u8, arg, "--import-no-self-import=off")) {
             options.import_no_self_import = false;
+        } else if (std.mem.eql(u8, arg, "--jsx-a11y-alt-text=off")) {
+            options.jsx_a11y_alt_text = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-anchor-has-content=off")) {
             options.jsx_a11y_anchor_has_content = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-aria-props=off")) {
@@ -1162,6 +1164,7 @@ fn printHelp() void {
         \\  --import-no-amd=off        Disable import/no-amd
         \\  --import-no-duplicates=off Disable import/no-duplicates
         \\  --import-no-self-import=off Disable import/no-self-import
+        \\  --jsx-a11y-alt-text=off   Disable jsx-a11y/alt-text
         \\  --jsx-a11y-anchor-has-content=off Disable jsx-a11y/anchor-has-content
         \\  --jsx-a11y-aria-props=off Disable jsx-a11y/aria-props
         \\  --jsx-a11y-aria-proptypes=off Disable jsx-a11y/aria-proptypes
