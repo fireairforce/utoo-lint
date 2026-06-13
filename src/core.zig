@@ -215,6 +215,7 @@ pub const Options = struct {
     react_no_children_prop: bool = true,
     react_no_find_dom_node: bool = true,
     react_no_is_mounted: bool = true,
+    react_no_redundant_should_component_update: bool = true,
     react_no_render_return_value: bool = true,
     react_no_will_update_set_state: bool = true,
     react_no_string_refs: bool = true,
