@@ -28,6 +28,7 @@ pub const import_first = @import("import_first.zig");
 pub const import_newline_after_import = @import("import_newline_after_import.zig");
 pub const import_no_amd = @import("import_no_amd.zig");
 pub const import_no_duplicates = @import("import_no_duplicates.zig");
+pub const import_no_self_import = @import("import_no_self_import.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const new_cap = @import("new_cap.zig");
 pub const new_parens = @import("new_parens.zig");
@@ -230,6 +231,7 @@ pub fn runBasic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    file_path: []const u8,
     options: core.Options,
 ) Allocator.Error!void {
     if (options.no_warning_comments) {
@@ -284,6 +286,7 @@ pub fn runBasic(
     var visitor = BasicVisitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
+        .file_path = file_path,
         .options = options,
     };
 
@@ -494,6 +497,7 @@ pub fn runSemantic(
 const BasicVisitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    file_path: []const u8,
     options: core.Options,
 
     pub fn enter_program(
@@ -510,6 +514,9 @@ const BasicVisitor = struct {
         }
         if (self.options.import_no_duplicates) {
             try import_no_duplicates.check(self.allocator, self.diagnostics, ctx.tree, program);
+        }
+        if (self.options.import_no_self_import) {
+            try import_no_self_import.check(self.allocator, self.diagnostics, ctx.tree, program, self.file_path);
         }
         if (self.options.no_duplicate_imports and !self.options.import_no_duplicates) {
             try no_duplicate_imports.check(self.allocator, self.diagnostics, ctx.tree, program);

@@ -177,6 +177,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`import/newline-after-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/newline-after-import.md) | Implemented for fishlint's default `count: 1` behavior |
 | [`import/no-amd`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-amd.md) | Implemented |
 | [`import/no-duplicates`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-duplicates.md) | Implemented |
+| [`import/no-self-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-self-import.md) | Implemented for relative imports resolved with fishlint's configured extensions |
 
 ## Parser diagnostics
 

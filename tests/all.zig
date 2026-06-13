@@ -59,6 +59,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/import_no_self_import.zig");
+}
+
+comptime {
     _ = @import("rules/linebreak_style.zig");
 }
 
