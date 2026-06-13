@@ -707,6 +707,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_jsx_uses_react.zig");
+}
+
+comptime {
     _ = @import("rules/react_prefer_es6_class.zig");
 }
 

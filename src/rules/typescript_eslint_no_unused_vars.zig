@@ -12,6 +12,7 @@ pub fn run(
     diagnostics: *core.DiagnosticList,
     tree: *const parser.ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
+    react_jsx_uses_react: bool,
 ) Allocator.Error!void {
     try no_unused_vars.runWithOptions(allocator, diagnostics, tree, symbol_table, .{
         .rule_id = id,
@@ -20,5 +21,6 @@ pub fn run(
         .args_after_used = true,
         .ignore_rest_siblings = true,
         .check_type_parameters = true,
+        .react_jsx_uses_react = react_jsx_uses_react,
     });
 }
