@@ -91,6 +91,7 @@ pub const Options = struct {
     alipay_ant_no_negative_conditionals: bool = true,
     alipay_ant_no_import_src: bool = true,
     alipay_ant_no_phantom_dependencies: bool = true,
+    alipay_ant_prefer_elseif_end_with_else: bool = true,
     alipay_ant_prefer_click_with_debounce: bool = true,
     alipay_ant_no_spread_params: bool = true,
     alipay_ant_prefer_import_from_stdlib: bool = true,
