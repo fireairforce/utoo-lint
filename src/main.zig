@@ -267,6 +267,8 @@ pub fn main(init: std.process.Init) !void {
             options.import_newline_after_import = false;
         } else if (std.mem.eql(u8, arg, "--import-no-amd=off")) {
             options.import_no_amd = false;
+        } else if (std.mem.eql(u8, arg, "--import-no-cycle=off")) {
+            options.import_no_cycle = false;
         } else if (std.mem.eql(u8, arg, "--import-no-duplicates=off")) {
             options.import_no_duplicates = false;
         } else if (std.mem.eql(u8, arg, "--import-no-named-as-default=off")) {
@@ -1240,6 +1242,7 @@ fn printHelp() void {
         \\  --import-namespace=off    Disable import/namespace
         \\  --import-newline-after-import=off Disable import/newline-after-import
         \\  --import-no-amd=off        Disable import/no-amd
+        \\  --import-no-cycle=off      Disable import/no-cycle
         \\  --import-no-duplicates=off Disable import/no-duplicates
         \\  --import-no-named-as-default=off Disable import/no-named-as-default
         \\  --import-no-named-as-default-member=off Disable import/no-named-as-default-member

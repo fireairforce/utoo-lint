@@ -39,6 +39,7 @@ pub const import_named = @import("import_named.zig");
 pub const import_namespace = @import("import_namespace.zig");
 pub const import_newline_after_import = @import("import_newline_after_import.zig");
 pub const import_no_amd = @import("import_no_amd.zig");
+pub const import_no_cycle = @import("import_no_cycle.zig");
 pub const import_no_duplicates = @import("import_no_duplicates.zig");
 pub const import_no_named_as_default = @import("import_no_named_as_default.zig");
 pub const import_no_named_as_default_member = @import("import_no_named_as_default_member.zig");
@@ -437,6 +438,17 @@ pub fn runSemantic(
                 tree,
                 file_path,
                 semantic_result.symbol_table,
+            );
+        }
+    }
+    if (options.import_no_cycle) {
+        if (io) |actual_io| {
+            try import_no_cycle.run(
+                allocator,
+                actual_io,
+                diagnostics,
+                tree,
+                file_path,
             );
         }
     }
