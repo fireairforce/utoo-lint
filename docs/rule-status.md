@@ -174,6 +174,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/ban-tslint-comment`](https://typescript-eslint.io/rules/ban-tslint-comment/) | Implemented |
 | [`@typescript-eslint/ban-types`](https://typescript-eslint.io/rules/ban-types/) | Implemented for fishlint's `types: { '{}': false, object: false }, extendDefaults: true` configuration |
 | [`@typescript-eslint/class-literal-property-style`](https://typescript-eslint.io/rules/class-literal-property-style/) | Implemented for fishlint's `fields` configuration |
+| [`@typescript-eslint/consistent-type-assertions`](https://typescript-eslint.io/rules/consistent-type-assertions/) | Implemented for fishlint's `assertionStyle: as, objectLiteralTypeAssertions: never` configuration |
 | [`@typescript-eslint/consistent-type-definitions`](https://typescript-eslint.io/rules/consistent-type-definitions/) | Implemented for fishlint's `interface` configuration |
 | [`@typescript-eslint/dot-notation`](https://typescript-eslint.io/rules/dot-notation/) | Implemented |
 | [`@typescript-eslint/explicit-member-accessibility`](https://typescript-eslint.io/rules/explicit-member-accessibility/) | Implemented for fishlint's `no-public` configuration |

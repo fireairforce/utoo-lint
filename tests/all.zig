@@ -659,6 +659,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_consistent_type_assertions.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_consistent_type_definitions.zig");
 }
 
