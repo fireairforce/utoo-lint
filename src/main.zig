@@ -433,6 +433,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_redeclare = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-require-imports=off")) {
             options.typescript_eslint_no_require_imports = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-shadow=off")) {
+            options.typescript_eslint_no_shadow = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-this-alias=off")) {
             options.typescript_eslint_no_this_alias = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-triple-slash-reference=off")) {
@@ -879,6 +881,7 @@ fn printHelp() void {
         \\  --typescript-eslint-no-non-null-asserted-optional-chain=off Disable @typescript-eslint/no-non-null-asserted-optional-chain
         \\  --typescript-eslint-no-redeclare=off Disable @typescript-eslint/no-redeclare
         \\  --typescript-eslint-no-require-imports=off Disable @typescript-eslint/no-require-imports
+        \\  --typescript-eslint-no-shadow=off Disable @typescript-eslint/no-shadow
         \\  --typescript-eslint-no-this-alias=off Disable @typescript-eslint/no-this-alias
         \\  --typescript-eslint-triple-slash-reference=off Disable @typescript-eslint/triple-slash-reference
         \\  --typescript-eslint-typedef=off Disable @typescript-eslint/typedef

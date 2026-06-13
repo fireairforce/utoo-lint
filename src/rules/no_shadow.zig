@@ -8,6 +8,17 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-shadow";
 
+pub const Options = struct {
+    rule_id: []const u8 = id,
+    severity: core.Severity = .warning,
+    mode: Mode = .javascript,
+};
+
+pub const Mode = enum {
+    javascript,
+    typescript,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -15,15 +26,26 @@ pub fn run(
     scope_tree: traverser.semantic.ScopeTree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, scope_tree, symbol_table, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    scope_tree: traverser.semantic.ScopeTree,
+    symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
+) Allocator.Error!void {
     var iter = symbol_table.iterSymbols();
 
     while (iter.next()) |entry| {
         const symbol = entry.symbol;
-        if (!isLintableSymbol(symbol.flags)) continue;
+        if (!isLintableSymbol(symbol.flags, options)) continue;
         if (symbol.scope == .root or symbol.scope == .module) continue;
 
         const name = tree.string(symbol.name);
-        const shadowed_id = findShadowedSymbol(scope_tree, symbol_table, symbol.scope, name, entry.id) orelse continue;
+        const shadowed_id = findShadowedSymbol(scope_tree, symbol_table, symbol.scope, name, entry.id, symbol.flags, options) orelse continue;
         const decls = symbol_table.symbolDecls(entry.id);
         const shadowed_decls = symbol_table.symbolDecls(shadowed_id);
         if (decls.len == 0 or shadowed_decls.len == 0) continue;
@@ -32,8 +54,8 @@ pub fn run(
         try core.addDiagnosticFmt(
             allocator,
             diagnostics,
-            .warning,
-            id,
+            options.severity,
+            options.rule_id,
             tree.span(decls[0]),
             "'{s}' is already declared in the upper scope on line {d} column {d}.",
             .{ name, shadowed_position.line, shadowed_position.column },
@@ -47,11 +69,14 @@ fn findShadowedSymbol(
     scope: traverser.semantic.ScopeId,
     name: []const u8,
     self_id: traverser.semantic.SymbolId,
+    self_flags: traverser.semantic.Symbol.Flags,
+    options: Options,
 ) ?traverser.semantic.SymbolId {
     var current = scope_tree.getScope(scope).parent;
     while (current != .none) {
         if (symbol_table.findInScope(current, name)) |candidate_id| {
-            if (candidate_id != self_id and isLintableSymbol(symbol_table.getSymbol(candidate_id).flags)) {
+            const candidate_flags = symbol_table.getSymbol(candidate_id).flags;
+            if (candidate_id != self_id and isLintableSymbol(candidate_flags, options) and !isAllowedTypescriptShadow(self_flags, candidate_flags, options)) {
                 return candidate_id;
             }
         }
@@ -60,10 +85,30 @@ fn findShadowedSymbol(
     return null;
 }
 
-fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags) bool {
+fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bool {
+    if (options.mode == .typescript) {
+        return flags.inValueSpace() or
+            flags.import or
+            flags.type_import or
+            flags.interface or
+            flags.type_alias or
+            flags.type_parameter or
+            flags.namespace_module;
+    }
+
     if (flags.ambient) return false;
     if (flags.type_import or flags.interface or flags.type_alias or flags.type_parameter) return false;
     return flags.inValueSpace() or flags.import;
+}
+
+fn isAllowedTypescriptShadow(
+    self_flags: traverser.semantic.Symbol.Flags,
+    candidate_flags: traverser.semantic.Symbol.Flags,
+    options: Options,
+) bool {
+    if (options.mode != .typescript) return false;
+    return (self_flags.interface and candidate_flags.class) or
+        (self_flags.class and candidate_flags.interface);
 }
 
 fn offsetToLineColumn(source: []const u8, offset: u32) core.SourcePosition {
