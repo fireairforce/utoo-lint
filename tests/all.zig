@@ -707,6 +707,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_self_closing_comp.zig");
+}
+
+comptime {
     _ = @import("rules/react_style_prop_object.zig");
 }
 
