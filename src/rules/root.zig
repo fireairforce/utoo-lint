@@ -232,6 +232,7 @@ pub const react_no_render_return_value = @import("react_no_render_return_value.z
 pub const react_no_this_in_sfc = @import("react_no_this_in_sfc.zig");
 pub const react_no_typos = @import("react_no_typos.zig");
 pub const react_no_unknown_property = @import("react_no_unknown_property.zig");
+pub const react_prop_types = @import("react_prop_types.zig");
 pub const react_no_unused_state = @import("react_no_unused_state.zig");
 pub const react_no_will_update_set_state = @import("react_no_will_update_set_state.zig");
 pub const react_require_render_return = @import("react_require_render_return.zig");
@@ -353,6 +354,9 @@ pub fn runBasic(
     }
     if (options.typescript_eslint_no_non_null_asserted_optional_chain) {
         try typescript_eslint_no_non_null_asserted_optional_chain.run(allocator, diagnostics, tree);
+    }
+    if (options.react_prop_types) {
+        try react_prop_types.run(allocator, diagnostics, tree);
     }
 
     var visitor = BasicVisitor{

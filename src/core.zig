@@ -243,6 +243,7 @@ pub const Options = struct {
     react_no_this_in_sfc: bool = true,
     react_no_typos: bool = true,
     react_no_unknown_property: bool = true,
+    react_prop_types: bool = true,
     react_no_unused_state: bool = true,
     react_no_string_refs: bool = true,
     react_no_unescaped_entities: bool = true,
@@ -693,6 +694,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.react_default_props_match_prop_types);
     try std.testing.expect(options.setByCliName("react/default-props-match-prop-types", true));
     try std.testing.expect(options.react_default_props_match_prop_types);
+
+    try std.testing.expect(!options.react_prop_types);
+    try std.testing.expect(options.setByCliName("react/prop-types", true));
+    try std.testing.expect(options.react_prop_types);
 
     try std.testing.expect(!options.setByCliName("unknown-rule", true));
 }
