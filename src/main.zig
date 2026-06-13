@@ -395,6 +395,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_jsx_pascal_case = false;
         } else if (std.mem.eql(u8, arg, "--react-jsx-uses-react=off")) {
             options.react_jsx_uses_react = false;
+        } else if (std.mem.eql(u8, arg, "--react-jsx-uses-vars=off")) {
+            options.react_jsx_uses_vars = false;
         } else if (std.mem.eql(u8, arg, "--react-no-danger=off")) {
             options.react_no_danger = false;
         } else if (std.mem.eql(u8, arg, "--react-no-danger-with-children=off")) {
@@ -924,6 +926,7 @@ fn printHelp() void {
         \\  --react-jsx-no-undef=off Disable react/jsx-no-undef
         \\  --react-jsx-pascal-case=off Disable react/jsx-pascal-case
         \\  --react-jsx-uses-react=off Disable react/jsx-uses-react
+        \\  --react-jsx-uses-vars=off Disable react/jsx-uses-vars
         \\  --react-no-danger=off     Disable react/no-danger
         \\  --react-no-danger-with-children=off Disable react/no-danger-with-children
         \\  --react-no-array-index-key=off Disable react/no-array-index-key
