@@ -63,6 +63,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/jsx_a11y_iframe_has_title.zig");
+}
+
+comptime {
     _ = @import("rules/jsx_a11y_no_access_key.zig");
 }
 
