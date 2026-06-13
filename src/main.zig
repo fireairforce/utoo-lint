@@ -249,6 +249,8 @@ pub fn main(init: std.process.Init) !void {
             options.import_no_self_import = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-aria-props=off")) {
             options.jsx_a11y_aria_props = false;
+        } else if (std.mem.eql(u8, arg, "--jsx-a11y-aria-proptypes=off")) {
+            options.jsx_a11y_aria_proptypes = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-aria-role=off")) {
             options.jsx_a11y_aria_role = false;
         } else if (std.mem.eql(u8, arg, "--jsx-a11y-aria-unsupported-elements=off")) {
@@ -1157,6 +1159,7 @@ fn printHelp() void {
         \\  --import-no-duplicates=off Disable import/no-duplicates
         \\  --import-no-self-import=off Disable import/no-self-import
         \\  --jsx-a11y-aria-props=off Disable jsx-a11y/aria-props
+        \\  --jsx-a11y-aria-proptypes=off Disable jsx-a11y/aria-proptypes
         \\  --jsx-a11y-aria-role=off Disable jsx-a11y/aria-role
         \\  --jsx-a11y-aria-unsupported-elements=off Disable jsx-a11y/aria-unsupported-elements
         \\  --jsx-a11y-iframe-has-title=off Disable jsx-a11y/iframe-has-title
