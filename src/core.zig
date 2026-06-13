@@ -191,6 +191,7 @@ pub const Options = struct {
     react_no_danger: bool = true,
     react_no_find_dom_node: bool = true,
     react_no_is_mounted: bool = true,
+    react_no_render_return_value: bool = true,
     radix: bool = true,
     require_atomic_updates: bool = true,
     require_yield: bool = true,
