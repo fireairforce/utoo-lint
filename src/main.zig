@@ -571,6 +571,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_style_prop_object = false;
         } else if (std.mem.eql(u8, arg, "--react-void-dom-elements-no-children=off")) {
             options.react_void_dom_elements_no_children = false;
+        } else if (std.mem.eql(u8, arg, "--react-hooks-rules-of-hooks=off")) {
+            options.react_hooks_rules_of_hooks = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
         } else if (std.mem.eql(u8, arg, "--require-atomic-updates=off")) {
@@ -1398,6 +1400,7 @@ fn printHelp() void {
         \\  --react-self-closing-comp=off Disable react/self-closing-comp
         \\  --react-style-prop-object=off Disable react/style-prop-object
         \\  --react-void-dom-elements-no-children=off Disable react/void-dom-elements-no-children
+        \\  --react-hooks-rules-of-hooks=off Disable react-hooks/rules-of-hooks
         \\  --radix=off               Disable radix
         \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield
