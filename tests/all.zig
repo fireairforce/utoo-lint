@@ -67,6 +67,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/jsx_a11y_aria_unsupported_elements.zig");
+}
+
+comptime {
     _ = @import("rules/jsx_a11y_iframe_has_title.zig");
 }
 

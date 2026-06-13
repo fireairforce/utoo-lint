@@ -30,6 +30,7 @@ pub const import_no_amd = @import("import_no_amd.zig");
 pub const import_no_duplicates = @import("import_no_duplicates.zig");
 pub const import_no_self_import = @import("import_no_self_import.zig");
 pub const jsx_a11y_aria_props = @import("jsx_a11y_aria_props.zig");
+pub const jsx_a11y_aria_unsupported_elements = @import("jsx_a11y_aria_unsupported_elements.zig");
 pub const jsx_a11y_iframe_has_title = @import("jsx_a11y_iframe_has_title.zig");
 pub const jsx_a11y_img_redundant_alt = @import("jsx_a11y_img_redundant_alt.zig");
 pub const jsx_a11y_no_access_key = @import("jsx_a11y_no_access_key.zig");
@@ -1815,6 +1816,9 @@ const BasicVisitor = struct {
         }
         if (self.options.jsx_a11y_no_distracting_elements) {
             try jsx_a11y_no_distracting_elements.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
+        }
+        if (self.options.jsx_a11y_aria_unsupported_elements) {
+            try jsx_a11y_aria_unsupported_elements.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
         }
         if (self.options.jsx_a11y_scope) {
             try jsx_a11y_scope.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
