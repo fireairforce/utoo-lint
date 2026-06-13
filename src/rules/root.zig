@@ -185,6 +185,7 @@ pub const react_jsx_uses_react = @import("react_jsx_uses_react.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
 pub const react_no_danger_with_children = @import("react_no_danger_with_children.zig");
 pub const react_no_children_prop = @import("react_no_children_prop.zig");
+pub const react_no_array_index_key = @import("react_no_array_index_key.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
@@ -308,6 +309,7 @@ pub fn runBasic(
         .file_path = file_path,
         .options = options,
     };
+    defer visitor.react_no_array_index_key_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -526,6 +528,7 @@ const BasicVisitor = struct {
     options: core.Options,
     react_no_danger_with_children_bindings: react_no_danger_with_children.ObjectBindings = .{},
     react_no_children_prop_bindings: react_no_children_prop.ReactBindings = .{},
+    react_no_array_index_key_state: react_no_array_index_key.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
 
@@ -549,6 +552,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_children_prop) {
             self.react_no_children_prop_bindings = react_no_children_prop.bindingsFromProgram(ctx.tree, program);
+        }
+        if (self.options.react_no_array_index_key) {
+            try react_no_array_index_key.collectProgram(self.allocator, ctx.tree, program, &self.react_no_array_index_key_state);
         }
         if (self.options.react_void_dom_elements_no_children) {
             self.react_void_dom_elements_no_children_bindings = react_void_dom_elements_no_children.bindingsFromProgram(ctx.tree, program);
@@ -1542,6 +1548,9 @@ const BasicVisitor = struct {
         if (self.options.react_void_dom_elements_no_children) {
             try react_void_dom_elements_no_children.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_void_dom_elements_no_children_bindings);
         }
+        if (self.options.react_no_array_index_key) {
+            try react_no_array_index_key.enterCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, &self.react_no_array_index_key_state);
+        }
         if (self.options.new_cap) {
             try new_cap.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
@@ -1558,6 +1567,17 @@ const BasicVisitor = struct {
             try typescript_eslint_no_array_constructor.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
         return .proceed;
+    }
+
+    pub fn exit_call_expression(
+        self: *BasicVisitor,
+        call: ast.CallExpression,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) void {
+        if (self.options.react_no_array_index_key) {
+            react_no_array_index_key.exitCallExpression(ctx.tree, call, &self.react_no_array_index_key_state);
+        }
     }
 
     pub fn enter_new_expression(
@@ -1660,6 +1680,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_string_refs) {
             try react_no_string_refs.check(self.allocator, self.diagnostics, ctx.tree, attribute, index);
+        }
+        if (self.options.react_no_array_index_key) {
+            try react_no_array_index_key.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, self.react_no_array_index_key_state);
         }
         return .proceed;
     }

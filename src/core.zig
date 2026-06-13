@@ -193,6 +193,7 @@ pub const Options = struct {
     react_jsx_uses_react: bool = true,
     react_no_danger: bool = true,
     react_no_danger_with_children: bool = true,
+    react_no_array_index_key: bool = true,
     react_no_children_prop: bool = true,
     react_no_find_dom_node: bool = true,
     react_no_is_mounted: bool = true,

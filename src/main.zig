@@ -399,6 +399,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_no_danger = false;
         } else if (std.mem.eql(u8, arg, "--react-no-danger-with-children=off")) {
             options.react_no_danger_with_children = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-array-index-key=off")) {
+            options.react_no_array_index_key = false;
         } else if (std.mem.eql(u8, arg, "--react-no-children-prop=off")) {
             options.react_no_children_prop = false;
         } else if (std.mem.eql(u8, arg, "--react-no-find-dom-node=off")) {
@@ -924,6 +926,7 @@ fn printHelp() void {
         \\  --react-jsx-uses-react=off Disable react/jsx-uses-react
         \\  --react-no-danger=off     Disable react/no-danger
         \\  --react-no-danger-with-children=off Disable react/no-danger-with-children
+        \\  --react-no-array-index-key=off Disable react/no-array-index-key
         \\  --react-no-children-prop=off Disable react/no-children-prop
         \\  --react-no-find-dom-node=off Disable react/no-find-dom-node
         \\  --react-no-is-mounted=off Disable react/no-is-mounted
