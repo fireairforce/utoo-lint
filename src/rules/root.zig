@@ -187,6 +187,7 @@ pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
 pub const react_no_unescaped_entities = @import("react_no_unescaped_entities.zig");
+pub const react_prefer_es6_class = @import("react_prefer_es6_class.zig");
 pub const react_style_prop_object = @import("react_style_prop_object.zig");
 pub const react_void_dom_elements_no_children = @import("react_void_dom_elements_no_children.zig");
 pub const radix = @import("radix.zig");
@@ -1704,7 +1705,7 @@ const BasicVisitor = struct {
     pub fn enter_object_expression(
         self: *BasicVisitor,
         expression: ast.ObjectExpression,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_dupe_keys) {
@@ -1712,6 +1713,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
+        if (self.options.react_prefer_es6_class) {
+            try react_prefer_es6_class.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, index, ctx.path.ancestor(1));
         }
         return .proceed;
     }
