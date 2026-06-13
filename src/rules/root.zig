@@ -27,6 +27,7 @@ pub const guard_for_in = @import("guard_for_in.zig");
 pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_exhaustive_deps = @import("alipay_ant_exhaustive_deps.zig");
 pub const alipay_ant_jsx_handler_names = @import("alipay_ant_jsx_handler_names.zig");
+pub const alipay_ant_no_negative_conditionals = @import("alipay_ant_no_negative_conditionals.zig");
 pub const alipay_ant_no_import_src = @import("alipay_ant_no_import_src.zig");
 pub const alipay_ant_no_phantom_dependencies = @import("alipay_ant_no_phantom_dependencies.zig");
 pub const alipay_ant_prefer_click_with_debounce = @import("alipay_ant_prefer_click_with_debounce.zig");
@@ -766,6 +767,18 @@ const BasicVisitor = struct {
     react_no_unused_state_state: react_no_unused_state.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
+
+    pub fn enter_node(
+        self: *BasicVisitor,
+        data: ast.NodeData,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.alipay_ant_no_negative_conditionals) {
+            try alipay_ant_no_negative_conditionals.checkNode(self.allocator, self.diagnostics, ctx.tree, data, index);
+        }
+        return .proceed;
+    }
 
     pub fn enter_program(
         self: *BasicVisitor,
