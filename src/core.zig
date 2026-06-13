@@ -88,6 +88,7 @@ pub const Options = struct {
     alipay_ant_disallow_typos: bool = true,
     alipay_ant_no_import_src: bool = true,
     alipay_spmlint_use_labeled_spm: bool = true,
+    alipay_spmlint_valid_manual_click: bool = true,
     alipay_spmlint_valid_manual_pv: bool = true,
     import_first: bool = true,
     import_newline_after_import: bool = true,
@@ -629,6 +630,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.alipay_spmlint_use_labeled_spm);
     try std.testing.expect(options.setByCliName("@alipay/spmLint/use-labeled-spm", true));
     try std.testing.expect(options.alipay_spmlint_use_labeled_spm);
+
+    try std.testing.expect(!options.alipay_spmlint_valid_manual_click);
+    try std.testing.expect(options.setByCliName("@alipay/spmLint/valid-manual-click", true));
+    try std.testing.expect(options.alipay_spmlint_valid_manual_click);
 
     try std.testing.expect(!options.alipay_spmlint_valid_manual_pv);
     try std.testing.expect(options.setByCliName("@alipay/spmLint/valid-manual-pv", true));
