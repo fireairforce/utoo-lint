@@ -266,6 +266,7 @@ pub const Options = struct {
     typescript_eslint_triple_slash_reference: bool = true,
     typescript_eslint_typedef: bool = true,
     typescript_eslint_unified_signatures: bool = true,
+    typescript_eslint_no_unnecessary_parameter_property_assignment: bool = true,
     typescript_eslint_no_unnecessary_type_constraint: bool = true,
     typescript_eslint_no_useless_constructor: bool = true,
     typescript_eslint_no_useless_empty_export: bool = true,
@@ -582,6 +583,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_wrapper_object_types);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-wrapper-object-types", true));
     try std.testing.expect(options.typescript_eslint_no_wrapper_object_types);
+
+    try std.testing.expect(!options.typescript_eslint_no_unnecessary_parameter_property_assignment);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-unnecessary-parameter-property-assignment", true));
+    try std.testing.expect(options.typescript_eslint_no_unnecessary_parameter_property_assignment);
 
     try std.testing.expect(!options.jsx_a11y_aria_props);
     try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));

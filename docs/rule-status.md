@@ -244,6 +244,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/triple-slash-reference`](https://typescript-eslint.io/rules/triple-slash-reference/) | Implemented for fishlint's `path: never, types: always, lib: always` configuration |
 | [`@typescript-eslint/typedef`](https://typescript-eslint.io/rules/typedef/) | Implemented for fishlint's `propertyDeclaration: true` configuration |
 | [`@typescript-eslint/unified-signatures`](https://typescript-eslint.io/rules/unified-signatures/) | Implemented |
+| [`@typescript-eslint/no-unnecessary-parameter-property-assignment`](https://typescript-eslint.io/rules/no-unnecessary-parameter-property-assignment/) | Implemented for constructor assignments in the constructor body |
 | [`@typescript-eslint/no-unnecessary-type-constraint`](https://typescript-eslint.io/rules/no-unnecessary-type-constraint/) | Implemented |
 | [`@typescript-eslint/no-useless-constructor`](https://typescript-eslint.io/rules/no-useless-constructor/) | Implemented |
 | [`@typescript-eslint/no-useless-empty-export`](https://typescript-eslint.io/rules/no-useless-empty-export/) | Implemented |

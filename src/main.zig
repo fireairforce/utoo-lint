@@ -601,6 +601,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_typedef = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-unified-signatures=off")) {
             options.typescript_eslint_unified_signatures = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-unnecessary-parameter-property-assignment=off")) {
+            options.typescript_eslint_no_unnecessary_parameter_property_assignment = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-unnecessary-type-constraint=off")) {
             options.typescript_eslint_no_unnecessary_type_constraint = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-useless-constructor=off")) {
@@ -1353,6 +1355,7 @@ fn printHelp() void {
         \\  --typescript-eslint-triple-slash-reference=off Disable @typescript-eslint/triple-slash-reference
         \\  --typescript-eslint-typedef=off Disable @typescript-eslint/typedef
         \\  --typescript-eslint-unified-signatures=off Disable @typescript-eslint/unified-signatures
+        \\  --typescript-eslint-no-unnecessary-parameter-property-assignment=off Disable @typescript-eslint/no-unnecessary-parameter-property-assignment
         \\  --typescript-eslint-no-unnecessary-type-constraint=off Disable @typescript-eslint/no-unnecessary-type-constraint
         \\  --typescript-eslint-no-useless-empty-export=off Disable @typescript-eslint/no-useless-empty-export
         \\  --typescript-eslint-no-unused-expressions=off Disable @typescript-eslint/no-unused-expressions
