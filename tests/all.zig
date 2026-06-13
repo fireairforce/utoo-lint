@@ -695,6 +695,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_member_ordering.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_confusing_non_null_assertion.zig");
 }
 
