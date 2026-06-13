@@ -597,6 +597,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_shadow = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-this-alias=off")) {
             options.typescript_eslint_no_this_alias = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-unsafe-declaration-merging=off")) {
+            options.typescript_eslint_no_unsafe_declaration_merging = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-triple-slash-reference=off")) {
             options.typescript_eslint_triple_slash_reference = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-typedef=off")) {
@@ -1355,6 +1357,7 @@ fn printHelp() void {
         \\  --typescript-eslint-no-loop-func=off Disable @typescript-eslint/no-loop-func
         \\  --typescript-eslint-no-shadow=off Disable @typescript-eslint/no-shadow
         \\  --typescript-eslint-no-this-alias=off Disable @typescript-eslint/no-this-alias
+        \\  --typescript-eslint-no-unsafe-declaration-merging=off Disable @typescript-eslint/no-unsafe-declaration-merging
         \\  --typescript-eslint-triple-slash-reference=off Disable @typescript-eslint/triple-slash-reference
         \\  --typescript-eslint-typedef=off Disable @typescript-eslint/typedef
         \\  --typescript-eslint-unified-signatures=off Disable @typescript-eslint/unified-signatures
