@@ -205,6 +205,7 @@ pub const react_no_children_prop = @import("react_no_children_prop.zig");
 pub const react_no_array_index_key = @import("react_no_array_index_key.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
+pub const react_no_multi_comp = @import("react_no_multi_comp.zig");
 pub const react_no_redundant_should_component_update = @import("react_no_redundant_should_component_update.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
 pub const react_no_will_update_set_state = @import("react_no_will_update_set_state.zig");
@@ -568,6 +569,7 @@ const BasicVisitor = struct {
     react_no_array_index_key_state: react_no_array_index_key.State = .{},
     react_jsx_no_bind_state: react_jsx_no_bind.State = .{},
     react_jsx_key_state: react_jsx_key.State = .{},
+    react_no_multi_comp_state: react_no_multi_comp.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
 
@@ -663,6 +665,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_require_render_return) {
             try react_require_render_return.checkClass(self.allocator, self.diagnostics, ctx.tree, class, self.react_require_render_return_state);
+        }
+        if (self.options.react_no_multi_comp) {
+            try react_no_multi_comp.checkClass(self.allocator, self.diagnostics, ctx.tree, class, index, &self.react_no_multi_comp_state);
         }
         if (self.options.react_no_redundant_should_component_update) {
             try react_no_redundant_should_component_update.checkClass(self.allocator, self.diagnostics, ctx.tree, class, index, ctx.path.parent());
