@@ -216,6 +216,7 @@ pub const react_no_render_return_value = @import("react_no_render_return_value.z
 pub const react_no_this_in_sfc = @import("react_no_this_in_sfc.zig");
 pub const react_no_typos = @import("react_no_typos.zig");
 pub const react_no_unknown_property = @import("react_no_unknown_property.zig");
+pub const react_no_unused_state = @import("react_no_unused_state.zig");
 pub const react_no_will_update_set_state = @import("react_no_will_update_set_state.zig");
 pub const react_require_render_return = @import("react_require_render_return.zig");
 pub const react_no_string_refs = @import("react_no_string_refs.zig");
@@ -349,6 +350,7 @@ pub fn runBasic(
     defer visitor.react_require_render_return_state.deinit(allocator);
     defer visitor.react_no_access_state_in_setstate_state.deinit(allocator);
     defer visitor.react_no_typos_state.deinit(allocator);
+    defer visitor.react_no_unused_state_state.deinit(allocator);
     defer visitor.react_forbid_prop_types_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
@@ -594,6 +596,7 @@ const BasicVisitor = struct {
     react_jsx_key_state: react_jsx_key.State = .{},
     react_no_multi_comp_state: react_no_multi_comp.State = .{},
     react_no_typos_state: react_no_typos.State = .{},
+    react_no_unused_state_state: react_no_unused_state.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
 
@@ -711,6 +714,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_redundant_should_component_update) {
             try react_no_redundant_should_component_update.checkClass(self.allocator, self.diagnostics, ctx.tree, class, index, ctx.path.parent());
         }
+        if (self.options.react_no_unused_state) {
+            try react_no_unused_state.enterClass(self.allocator, ctx.tree, class, index, &self.react_no_unused_state_state);
+        }
         if (self.options.react_no_deprecated) {
             try react_no_deprecated.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
@@ -733,6 +739,17 @@ const BasicVisitor = struct {
             try typescript_eslint_no_unnecessary_parameter_property_assignment.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
         return .proceed;
+    }
+
+    pub fn exit_class(
+        self: *BasicVisitor,
+        _: ast.Class,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) void {
+        if (self.options.react_no_unused_state) {
+            react_no_unused_state.exitClass(self.allocator, self.diagnostics, ctx.tree, index, &self.react_no_unused_state_state) catch {};
+        }
     }
 
     pub fn enter_if_statement(
@@ -975,6 +992,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_forbid_prop_types) {
             try react_forbid_prop_types.collectVariableDeclarator(self.allocator, ctx.tree, declarator, &self.react_forbid_prop_types_state);
+        }
+        if (self.options.react_no_unused_state) {
+            try react_no_unused_state.checkVariableDeclarator(self.allocator, ctx.tree, declarator, &self.react_no_unused_state_state);
         }
         return .proceed;
     }
@@ -1563,6 +1583,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_typos) {
             try react_no_typos.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_no_typos_state);
         }
+        if (self.options.react_no_unused_state) {
+            try react_no_unused_state.checkAssignmentExpression(self.allocator, ctx.tree, expression, ctx, &self.react_no_unused_state_state);
+        }
         if (self.options.react_forbid_prop_types) {
             try react_forbid_prop_types.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state);
         }
@@ -1718,6 +1741,9 @@ const BasicVisitor = struct {
                 &self.react_no_access_state_in_setstate_state,
             );
         }
+        if (self.options.react_no_unused_state) {
+            try react_no_unused_state.checkCallExpression(self.allocator, ctx.tree, call, &self.react_no_unused_state_state);
+        }
         if (self.options.react_button_has_type) {
             try react_button_has_type.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_button_has_type_state);
         }
@@ -1851,6 +1877,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_this_in_sfc) {
             try react_no_this_in_sfc.check(self.allocator, self.diagnostics, ctx.tree, member, index, ctx);
+        }
+        if (self.options.react_no_unused_state) {
+            try react_no_unused_state.checkMemberExpression(self.allocator, ctx.tree, member, index, ctx, &self.react_no_unused_state_state);
         }
         if (self.options.typescript_eslint_no_extra_non_null_assertion) {
             try typescript_eslint_no_extra_non_null_assertion.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member);
@@ -2041,10 +2070,24 @@ const BasicVisitor = struct {
         if (self.options.react_no_typos) {
             try react_no_typos.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx.path.ancestor(1), self.react_no_typos_state);
         }
+        if (self.options.react_no_unused_state) {
+            try react_no_unused_state.enterObjectExpression(self.allocator, ctx.tree, index, ctx.path.parent(), &self.react_no_unused_state_state);
+        }
         if (self.options.react_forbid_prop_types) {
             try react_forbid_prop_types.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state);
         }
         return .proceed;
+    }
+
+    pub fn exit_object_expression(
+        self: *BasicVisitor,
+        _: ast.ObjectExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) void {
+        if (self.options.react_no_unused_state) {
+            react_no_unused_state.exitObjectExpression(self.allocator, self.diagnostics, ctx.tree, index, &self.react_no_unused_state_state) catch {};
+        }
     }
 
     pub fn enter_object_property(
@@ -2056,7 +2099,21 @@ const BasicVisitor = struct {
         if (self.options.object_shorthand) {
             try object_shorthand.check(self.allocator, self.diagnostics, ctx.tree, property, index);
         }
+        if (self.options.react_no_unused_state) {
+            try react_no_unused_state.enterObjectProperty(self.allocator, ctx.tree, property, index, ctx.path.parent(), &self.react_no_unused_state_state);
+        }
         return .proceed;
+    }
+
+    pub fn exit_object_property(
+        self: *BasicVisitor,
+        property: ast.ObjectProperty,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) void {
+        if (self.options.react_no_unused_state) {
+            react_no_unused_state.exitObjectProperty(property, ctx.tree, ctx.path.parent(), &self.react_no_unused_state_state);
+        }
     }
 
     pub fn enter_object_pattern(
@@ -2119,7 +2176,21 @@ const BasicVisitor = struct {
         if (self.options.react_forbid_prop_types) {
             try react_forbid_prop_types.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, self.react_forbid_prop_types_state);
         }
+        if (self.options.react_no_unused_state) {
+            try react_no_unused_state.enterMethodDefinition(self.allocator, ctx.tree, method, &self.react_no_unused_state_state);
+        }
         return .proceed;
+    }
+
+    pub fn exit_method_definition(
+        self: *BasicVisitor,
+        method: ast.MethodDefinition,
+        _: ast.NodeIndex,
+        _: *traverser.basic.Ctx,
+    ) void {
+        if (self.options.react_no_unused_state) {
+            react_no_unused_state.exitMethodDefinition(method, &self.react_no_unused_state_state);
+        }
     }
 
     pub fn enter_property_definition(
@@ -2145,6 +2216,44 @@ const BasicVisitor = struct {
         }
         if (self.options.react_forbid_prop_types) {
             try react_forbid_prop_types.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, self.react_forbid_prop_types_state);
+        }
+        if (self.options.react_no_unused_state) {
+            try react_no_unused_state.enterPropertyDefinition(self.allocator, ctx.tree, property, &self.react_no_unused_state_state);
+        }
+        return .proceed;
+    }
+
+    pub fn exit_property_definition(
+        self: *BasicVisitor,
+        property: ast.PropertyDefinition,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) void {
+        if (self.options.react_no_unused_state) {
+            react_no_unused_state.exitPropertyDefinition(property, ctx.tree, &self.react_no_unused_state_state);
+        }
+    }
+
+    pub fn enter_spread_element(
+        self: *BasicVisitor,
+        element: ast.SpreadElement,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) traverser.Action {
+        if (self.options.react_no_unused_state) {
+            react_no_unused_state.checkSpreadElement(ctx.tree, element, &self.react_no_unused_state_state);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_jsx_spread_attribute(
+        self: *BasicVisitor,
+        attribute: ast.JSXSpreadAttribute,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) traverser.Action {
+        if (self.options.react_no_unused_state) {
+            react_no_unused_state.checkJSXSpreadAttribute(ctx.tree, attribute, &self.react_no_unused_state_state);
         }
         return .proceed;
     }
