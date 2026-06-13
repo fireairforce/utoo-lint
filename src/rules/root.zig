@@ -191,6 +191,7 @@ pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_es
 pub const typescript_eslint_no_inferrable_types = @import("typescript_eslint_no_inferrable_types.zig");
 pub const typescript_eslint_no_loss_of_precision = @import("typescript_eslint_no_loss_of_precision.zig");
 pub const typescript_eslint_no_misused_new = @import("typescript_eslint_no_misused_new.zig");
+pub const typescript_eslint_no_namespace = @import("typescript_eslint_no_namespace.zig");
 pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
 pub const typescript_eslint_no_this_alias = @import("typescript_eslint_no_this_alias.zig");
@@ -836,6 +837,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_prefer_namespace_keyword) {
             try typescript_eslint_prefer_namespace_keyword.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
+        }
+        if (self.options.typescript_eslint_no_namespace) {
+            try typescript_eslint_no_namespace.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
         }
         return .proceed;
     }

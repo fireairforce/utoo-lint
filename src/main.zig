@@ -411,6 +411,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_loss_of_precision = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-misused-new=off")) {
             options.typescript_eslint_no_misused_new = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-namespace=off")) {
+            options.typescript_eslint_no_namespace = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-non-null-asserted-optional-chain=off")) {
             options.typescript_eslint_no_non_null_asserted_optional_chain = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-require-imports=off")) {
@@ -844,6 +846,7 @@ fn printHelp() void {
         \\  --typescript-eslint-no-empty-interface=off Disable @typescript-eslint/no-empty-interface
         \\  --typescript-eslint-no-extra-non-null-assertion=off Disable @typescript-eslint/no-extra-non-null-assertion
         \\  --typescript-eslint-no-inferrable-types=off Disable @typescript-eslint/no-inferrable-types
+        \\  --typescript-eslint-no-namespace=off Disable @typescript-eslint/no-namespace
         \\  --typescript-eslint-no-non-null-asserted-optional-chain=off Disable @typescript-eslint/no-non-null-asserted-optional-chain
         \\  --typescript-eslint-no-require-imports=off Disable @typescript-eslint/no-require-imports
         \\  --typescript-eslint-no-this-alias=off Disable @typescript-eslint/no-this-alias

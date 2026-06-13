@@ -21,23 +21,28 @@ pub fn lintSource(
     var diagnostics: core.DiagnosticList = .empty;
     errdefer core.freeDiagnostics(allocator, &diagnostics);
 
+    var effective_options = options;
+    if (isDefinitionFile(path)) {
+        effective_options.typescript_eslint_no_namespace = false;
+    }
+
     var tree = try parser.parse(allocator, source, .{
         .source_type = ast.SourceType.fromPath(path),
         .lang = ast.Lang.fromPath(path),
     });
     defer tree.deinit();
 
-    const needs_semantic = options.parser_semantic_errors or options.block_scoped_var or options.no_array_constructor or options.no_alert or options.no_extra_boolean_cast or options.no_global_is_finite or options.no_global_is_nan or options.no_invalid_regexp or options.no_loop_func or options.no_misleading_character_class or options.no_new_func or options.no_new_object or options.no_new_symbol or options.no_new_wrappers or options.no_redeclare or options.no_shadow or options.no_unused_vars or options.no_use_before_define or options.no_undef or options.prefer_const or options.prefer_exponentiation_operator or options.prefer_regex_literals or options.radix or options.require_atomic_updates or options.symbol_description;
+    const needs_semantic = effective_options.parser_semantic_errors or effective_options.block_scoped_var or effective_options.no_array_constructor or effective_options.no_alert or effective_options.no_extra_boolean_cast or effective_options.no_global_is_finite or effective_options.no_global_is_nan or effective_options.no_invalid_regexp or effective_options.no_loop_func or effective_options.no_misleading_character_class or effective_options.no_new_func or effective_options.no_new_object or effective_options.no_new_symbol or effective_options.no_new_wrappers or effective_options.no_redeclare or effective_options.no_shadow or effective_options.no_unused_vars or effective_options.no_use_before_define or effective_options.no_undef or effective_options.prefer_const or effective_options.prefer_exponentiation_operator or effective_options.prefer_regex_literals or effective_options.radix or effective_options.require_atomic_updates or effective_options.symbol_description;
 
     if (needs_semantic) {
         var semantic_result = try parser.semantic.analyze(&tree);
         try semantic_result.symbol_table.resolveAll(semantic_result.scope_tree);
         try appendParserDiagnostics(allocator, &diagnostics, &tree);
-        try rules.runBasic(allocator, &diagnostics, &tree, options);
-        try rules.runSemantic(allocator, &diagnostics, &tree, semantic_result, options);
+        try rules.runBasic(allocator, &diagnostics, &tree, effective_options);
+        try rules.runSemantic(allocator, &diagnostics, &tree, semantic_result, effective_options);
     } else {
         try appendParserDiagnostics(allocator, &diagnostics, &tree);
-        try rules.runBasic(allocator, &diagnostics, &tree, options);
+        try rules.runBasic(allocator, &diagnostics, &tree, effective_options);
     }
 
     return .{
@@ -54,6 +59,12 @@ pub fn isLintablePath(path: []const u8) bool {
         std.mem.endsWith(u8, path, ".cjs") or
         std.mem.endsWith(u8, path, ".mts") or
         std.mem.endsWith(u8, path, ".cts");
+}
+
+fn isDefinitionFile(path: []const u8) bool {
+    return std.mem.endsWith(u8, path, ".d.ts") or
+        std.mem.endsWith(u8, path, ".d.mts") or
+        std.mem.endsWith(u8, path, ".d.cts");
 }
 
 pub fn offsetToLineColumn(source: []const u8, offset: u32) SourcePosition {
