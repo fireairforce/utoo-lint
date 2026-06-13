@@ -667,6 +667,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_unescaped_entities.zig");
+}
+
+comptime {
     _ = @import("rules/react_jsx_boolean_value.zig");
 }
 

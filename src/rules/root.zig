@@ -183,6 +183,7 @@ pub const react_no_danger = @import("react_no_danger.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
+pub const react_no_unescaped_entities = @import("react_no_unescaped_entities.zig");
 pub const radix = @import("radix.zig");
 pub const require_atomic_updates = @import("require_atomic_updates.zig");
 const reassignment_rules = @import("reassignment_rules.zig");
@@ -1624,6 +1625,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.react_jsx_no_comment_textnodes) {
             try react_jsx_no_comment_textnodes.check(self.allocator, self.diagnostics, ctx.tree, text, index);
+        }
+        if (self.options.react_no_unescaped_entities) {
+            try react_no_unescaped_entities.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
         return .proceed;
     }
