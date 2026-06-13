@@ -1421,6 +1421,7 @@ fn printHelp() void {
         \\  --typescript-eslint-consistent-type-assertions=off Disable @typescript-eslint/consistent-type-assertions
         \\  --typescript-eslint-consistent-type-definitions=off Disable @typescript-eslint/consistent-type-definitions
         \\  --typescript-eslint-dot-notation=off Disable @typescript-eslint/dot-notation
+        \\  --typescript-eslint-no-array-constructor=off Disable @typescript-eslint/no-array-constructor
         \\  --typescript-eslint-ban-ts-comment=off Disable @typescript-eslint/ban-ts-comment
         \\  --typescript-eslint-ban-tslint-comment=off Disable @typescript-eslint/ban-tslint-comment
         \\  --typescript-eslint-explicit-member-accessibility=off Disable @typescript-eslint/explicit-member-accessibility
@@ -1428,6 +1429,7 @@ fn printHelp() void {
         \\  --typescript-eslint-method-signature-style=off Disable @typescript-eslint/method-signature-style
         \\  --typescript-eslint-no-confusing-non-null-assertion=off Disable @typescript-eslint/no-confusing-non-null-assertion
         \\  --typescript-eslint-no-dupe-class-members=off Disable @typescript-eslint/no-dupe-class-members
+        \\  --typescript-eslint-no-empty-function=off Disable @typescript-eslint/no-empty-function
         \\  --typescript-eslint-no-empty-interface=off Disable @typescript-eslint/no-empty-interface
         \\  --typescript-eslint-no-extra-non-null-assertion=off Disable @typescript-eslint/no-extra-non-null-assertion
         \\  --typescript-eslint-no-duplicate-enum-values=off Disable @typescript-eslint/no-duplicate-enum-values
@@ -1446,9 +1448,11 @@ fn printHelp() void {
         \\  --typescript-eslint-unified-signatures=off Disable @typescript-eslint/unified-signatures
         \\  --typescript-eslint-no-unnecessary-parameter-property-assignment=off Disable @typescript-eslint/no-unnecessary-parameter-property-assignment
         \\  --typescript-eslint-no-unnecessary-type-constraint=off Disable @typescript-eslint/no-unnecessary-type-constraint
+        \\  --typescript-eslint-no-useless-constructor=off Disable @typescript-eslint/no-useless-constructor
         \\  --typescript-eslint-no-useless-empty-export=off Disable @typescript-eslint/no-useless-empty-export
         \\  --typescript-eslint-no-unused-expressions=off Disable @typescript-eslint/no-unused-expressions
         \\  --typescript-eslint-no-unused-vars=off Disable @typescript-eslint/no-unused-vars
+        \\  --typescript-eslint-no-use-before-define=off Disable @typescript-eslint/no-use-before-define
         \\  --typescript-eslint-no-wrapper-object-types=off Disable @typescript-eslint/no-wrapper-object-types
         \\  --typescript-eslint-prefer-as-const=off Disable @typescript-eslint/prefer-as-const
         \\  --typescript-eslint-prefer-namespace-keyword=off Disable @typescript-eslint/prefer-namespace-keyword
