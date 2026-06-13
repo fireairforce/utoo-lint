@@ -615,6 +615,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_no_use_before_define = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-var-requires=off")) {
             options.typescript_eslint_no_var_requires = false;
+        } else if (std.mem.eql(u8, arg, "--typescript-eslint-no-wrapper-object-types=off")) {
+            options.typescript_eslint_no_wrapper_object_types = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-prefer-as-const=off")) {
             options.typescript_eslint_prefer_as_const = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-prefer-namespace-keyword=off")) {
@@ -1355,6 +1357,7 @@ fn printHelp() void {
         \\  --typescript-eslint-no-useless-empty-export=off Disable @typescript-eslint/no-useless-empty-export
         \\  --typescript-eslint-no-unused-expressions=off Disable @typescript-eslint/no-unused-expressions
         \\  --typescript-eslint-no-unused-vars=off Disable @typescript-eslint/no-unused-vars
+        \\  --typescript-eslint-no-wrapper-object-types=off Disable @typescript-eslint/no-wrapper-object-types
         \\  --typescript-eslint-prefer-as-const=off Disable @typescript-eslint/prefer-as-const
         \\  --typescript-eslint-prefer-namespace-keyword=off Disable @typescript-eslint/prefer-namespace-keyword
         \\  --typescript-eslint-restrict-plus-operands=off Disable @typescript-eslint/restrict-plus-operands

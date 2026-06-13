@@ -16,6 +16,7 @@ test "reports @typescript-eslint/ban-types for fishlint banned default types" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_unused_vars = false,
         .no_undef = false,
+        .typescript_eslint_no_wrapper_object_types = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
