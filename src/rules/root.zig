@@ -33,6 +33,7 @@ pub const alipay_spmlint_valid_manual_expo = @import("alipay_spmlint_valid_manua
 pub const alipay_spmlint_valid_manual_param = @import("alipay_spmlint_valid_manual_param.zig");
 pub const alipay_spmlint_valid_manual_pv = @import("alipay_spmlint_valid_manual_pv.zig");
 pub const import_first = @import("import_first.zig");
+pub const import_default = @import("import_default.zig");
 pub const import_newline_after_import = @import("import_newline_after_import.zig");
 pub const import_no_amd = @import("import_no_amd.zig");
 pub const import_no_duplicates = @import("import_no_duplicates.zig");
@@ -385,6 +386,18 @@ pub fn runSemantic(
                 tree,
                 file_path,
                 semantic_result.symbol_table,
+            );
+        }
+    }
+
+    if (options.import_default) {
+        if (io) |actual_io| {
+            try import_default.run(
+                allocator,
+                actual_io,
+                diagnostics,
+                tree,
+                file_path,
             );
         }
     }

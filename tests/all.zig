@@ -71,6 +71,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/import_default.zig");
+}
+
+comptime {
     _ = @import("rules/import_first.zig");
 }
 
