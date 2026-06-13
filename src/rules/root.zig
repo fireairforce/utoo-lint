@@ -176,6 +176,7 @@ pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
 pub const prefer_template = @import("prefer_template.zig");
 pub const react_jsx_boolean_value = @import("react_jsx_boolean_value.zig");
+pub const react_jsx_no_duplicate_props = @import("react_jsx_no_duplicate_props.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
 pub const radix = @import("radix.zig");
 pub const require_atomic_updates = @import("require_atomic_updates.zig");
@@ -1582,6 +1583,18 @@ const BasicVisitor = struct {
         }
         if (self.options.react_jsx_boolean_value) {
             try react_jsx_boolean_value.check(self.allocator, self.diagnostics, ctx.tree, attribute, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_jsx_opening_element(
+        self: *BasicVisitor,
+        opening: ast.JSXOpeningElement,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.react_jsx_no_duplicate_props) {
+            try react_jsx_no_duplicate_props.check(self.allocator, self.diagnostics, ctx.tree, opening);
         }
         return .proceed;
     }

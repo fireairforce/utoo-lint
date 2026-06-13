@@ -188,6 +188,7 @@ Each rule links to the corresponding ESLint rule reference.
 | Rule | Status |
 | --- | --- |
 | [`react/jsx-boolean-value`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md) | Implemented for fishlint's `never` configuration |
+| [`react/jsx-no-duplicate-props`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-duplicate-props.md) | Implemented for fishlint's `ignoreCase: true` configuration |
 | [`react/no-danger`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-danger.md) | Implemented |
 
 ## TypeScript ESLint rules
