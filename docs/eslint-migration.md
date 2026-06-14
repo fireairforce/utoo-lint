@@ -109,6 +109,10 @@ It forwards `--config`, maps `--glob` values to lint targets, accepts `--ext`
 for compatibility, and ignores fishlint-only setup/debug flags. `--fix` is
 accepted with a warning because `utoo-lint` does not apply fixes yet.
 
+Fishlint presets often include `prettier/prettier`. `utoo-lint` accepts that rule
+in config files for compatibility and ignores it because formatting remains
+outside the native linter.
+
 ## Replace ESLint API Calls
 
 For scripts that already use ESLint's Node API, import `ESLint` from `@utoo/lint`
