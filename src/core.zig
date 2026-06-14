@@ -31,6 +31,11 @@ pub const NoUnderscoreDangleAllowDestructuring = enum {
     no,
 };
 
+pub const NoWarningCommentsLocation = enum {
+    start,
+    anywhere,
+};
+
 pub const WrapIifeStyle = enum {
     outside,
     inside,
@@ -284,6 +289,7 @@ pub const Options = struct {
     no_unused_expressions: bool = true,
     typescript_eslint_no_unused_expressions: bool = true,
     no_warning_comments: bool = true,
+    no_warning_comments_location: NoWarningCommentsLocation = .start,
     no_void: bool = true,
     no_with: bool = true,
     no_var: bool = true,

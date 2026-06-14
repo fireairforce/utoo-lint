@@ -534,6 +534,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_unused_expressions = false;
         } else if (std.mem.eql(u8, arg, "--no-warning-comments=off")) {
             options.no_warning_comments = false;
+        } else if (std.mem.eql(u8, arg, "--no-warning-comments-location=anywhere")) {
+            options.no_warning_comments_location = .anywhere;
         } else if (std.mem.eql(u8, arg, "--no-void=off")) {
             options.no_void = false;
         } else if (std.mem.eql(u8, arg, "--no-with=off")) {
@@ -1490,6 +1492,7 @@ fn printHelp() void {
         \\  --no-useless-rename=off   Disable no-useless-rename
         \\  --no-unused-expressions=off Disable no-unused-expressions
         \\  --no-warning-comments=off Disable no-warning-comments
+        \\  --no-warning-comments-location=anywhere Report warning terms anywhere in comments
         \\  --no-void=off             Disable no-void
         \\  --no-with=off             Disable no-with
         \\  --no-var=off              Disable no-var
