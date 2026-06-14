@@ -20,12 +20,31 @@ test "reports prefer-destructuring for object property variable declarators" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_destructuring.id));
 }
 
+test "reports prefer-destructuring for array index variable declarators" {
+    const source =
+        \\const first = array[0];
+        \\let second = array["1"];
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_destructuring.id));
+    try std.testing.expectEqualStrings("Use array destructuring.", result.diagnostics[0].message);
+}
+
 test "does not report prefer-destructuring for renamed dynamic or assignment cases" {
     const source =
         \\const renamed = object.first;
         \\const value = object[key];
-        \\const zero = array[0];
+        \\const fractional = array[1.5];
         \\const maybe = object?.maybe;
+        \\const maybeArray = array?.[0];
         \\target = object.target;
         \\const { direct } = object;
     ;

@@ -163,7 +163,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`one-var`](https://eslint.org/docs/latest/rules/one-var) | Implemented for fishlint's `never` configuration |
 | [`operator-assignment`](https://eslint.org/docs/latest/rules/operator-assignment) | Implemented |
 | [`prefer-const`](https://eslint.org/docs/latest/rules/prefer-const) | Implemented for fishlint's `destructuring: any, ignoreReadBeforeAssign: true` configuration |
-| [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Implemented for fishlint's object variable declarator configuration |
+| [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Implemented for object and array variable declarators |
 | [`prefer-exponentiation-operator`](https://eslint.org/docs/latest/rules/prefer-exponentiation-operator) | Implemented |
 | [`prefer-numeric-literals`](https://eslint.org/docs/latest/rules/prefer-numeric-literals) | Implemented for literal `parseInt` calls with binary, octal, or hexadecimal radix |
 | [`prefer-object-has-own`](https://eslint.org/docs/latest/rules/prefer-object-has-own) | Implemented |

@@ -7,6 +7,11 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "prefer-destructuring";
 
+const DestructuringKind = enum {
+    object,
+    array,
+};
+
 pub fn checkVariableDeclaration(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -18,32 +23,41 @@ pub fn checkVariableDeclaration(
             .variable_declarator => |declarator| declarator,
             else => continue,
         };
-        if (!shouldPreferObjectDestructuring(tree, declarator)) continue;
+        const kind = preferredDestructuringKind(tree, declarator) orelse continue;
 
         try core.addDiagnostic(
             allocator,
             diagnostics,
             .warning,
             id,
-            "Use object destructuring.",
+            diagnosticMessage(kind),
             tree.span(declarator.id),
         );
     }
 }
 
-fn shouldPreferObjectDestructuring(tree: *const ast.Tree, declarator: ast.VariableDeclarator) bool {
-    if (declarator.init == .null) return false;
+fn preferredDestructuringKind(tree: *const ast.Tree, declarator: ast.VariableDeclarator) ?DestructuringKind {
+    if (declarator.init == .null) return null;
 
-    const local_name = bindingIdentifierName(tree, declarator.id) orelse return false;
+    const local_name = bindingIdentifierName(tree, declarator.id) orelse return null;
 
     const member = switch (tree.data(unwrapTransparent(tree, declarator.init))) {
         .member_expression => |member| member,
-        else => return false,
+        else => return null,
     };
-    if (member.optional) return false;
+    if (member.optional) return null;
 
-    const property_name = propertyName(tree, member) orelse return false;
-    return std.mem.eql(u8, local_name, property_name);
+    if (isArrayIndexProperty(tree, member)) return .array;
+
+    const property_name = propertyName(tree, member) orelse return null;
+    return if (std.mem.eql(u8, local_name, property_name)) .object else null;
+}
+
+fn diagnosticMessage(kind: DestructuringKind) []const u8 {
+    return switch (kind) {
+        .object => "Use object destructuring.",
+        .array => "Use array destructuring.",
+    };
 }
 
 fn bindingIdentifierName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
@@ -65,6 +79,28 @@ fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8
         .identifier_name => |identifier| tree.string(identifier.name),
         else => null,
     };
+}
+
+fn isArrayIndexProperty(tree: *const ast.Tree, member: ast.MemberExpression) bool {
+    if (!member.computed or member.property == .null) return false;
+
+    return switch (tree.data(unwrapTransparent(tree, member.property))) {
+        .numeric_literal => |literal| isArrayIndexNumber(literal.value(tree)),
+        .string_literal => |literal| isArrayIndexString(tree.string(literal.value)),
+        else => false,
+    };
+}
+
+fn isArrayIndexNumber(value: f64) bool {
+    return value >= 0 and value == @floor(value);
+}
+
+fn isArrayIndexString(value: []const u8) bool {
+    if (value.len == 0) return false;
+    for (value) |char| {
+        if (char < '0' or char > '9') return false;
+    }
+    return true;
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
