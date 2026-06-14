@@ -87,7 +87,7 @@ class UtooLint {
     return maybeFilterQuietResults(reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
-      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
+      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
     }), mergedOptions);
   }
 
@@ -102,7 +102,7 @@ class UtooLint {
       source: code,
       filePath: normalizeESLintFilePath(options.filePath ?? "<text>", mergedOptions.cwd),
       includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0,
-      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
+      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
     }), mergedOptions);
   }
 
@@ -110,8 +110,8 @@ class UtooLint {
     return isPathIgnored(filePath, mergeLintOptions(this.options, {}));
   }
 
-  async calculateConfigForFile() {
-    return calculatedConfig(eslintConstructorOptions(this.options));
+  async calculateConfigForFile(filePath) {
+    return calculatedConfig(eslintConstructorOptions(this.options), filePath);
   }
 
   getRulesMetaForResults(results) {
@@ -129,6 +129,8 @@ class UtooLint {
     };
   }
 }
+
+const ESLint = UtooLint;
 
 class CLIEngine {
   static get version() {
@@ -165,7 +167,7 @@ class CLIEngine {
     const results = maybeFilterQuietResults(reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
-      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
+      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
     }), mergedOptions);
     return resultsToCLIEngineReport(results);
   }
@@ -191,7 +193,7 @@ class CLIEngine {
       source: code,
       filePath: normalizeESLintFilePath(filePath, mergedOptions.cwd),
       includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0,
-      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
+      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
     }), mergedOptions);
     return resultsToCLIEngineReport(results);
   }
@@ -206,8 +208,8 @@ class CLIEngine {
     return isPathIgnored(filePath, eslintConstructorOptions(this.options));
   }
 
-  getConfigForFile() {
-    return calculatedConfig(eslintConstructorOptions(this.options));
+  getConfigForFile(filePath) {
+    return calculatedConfig(eslintConstructorOptions(this.options), filePath);
   }
 }
 
@@ -225,7 +227,18 @@ function run(args = [], options = {}) {
 }
 
 function runFishlint(args = [], options = {}) {
-  return run(translateFishlintArgs(args, options), options);
+  const cliArgs = normalizeStringArray(args, "args");
+  const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+  if (options.binary) {
+    env.UTOO_LINT_BIN = options.binary;
+  }
+
+  return spawnSync(process.execPath, [join(__dirname, "bin", "fishlint.js"), ...cliArgs], {
+    cwd: options.cwd,
+    env,
+    encoding: options.encoding ?? "utf8",
+    stdio: options.stdio
+  });
 }
 
 function translateFishlintArgs(args = [], options = {}) {
@@ -398,6 +411,9 @@ function translateFishlintFormat(format, warn) {
   if (format === "json" || format === "text") {
     return format;
   }
+  if (format === "json-with-metadata") {
+    return "json";
+  }
   if (format !== "stylish") {
     warn(`utoo-lint: fishlint formatter '${format}' is not implemented; using native text output.`);
   }
@@ -456,6 +472,11 @@ function lintFiles(paths = ["."], options = {}) {
       ...(report.diagnostics ?? []),
       ...ignoredDiagnostics
     ];
+    if (!resolvedOptions.deferDiagnosticConfigFiltering) {
+      report.filePaths = normalizeReportFilePaths(report.filePaths, resolvedOptions);
+      report.diagnostics = normalizeDiagnosticFilePaths(report.diagnostics, resolvedOptions);
+      report.diagnostics = normalizeReportDiagnostics(report.diagnostics, resolvedOptions);
+    }
     if (stderr) {
       Object.defineProperty(report, "stderr", {
         value: stderr,
@@ -497,12 +518,15 @@ function lintText(code, options = {}) {
       ...options,
       cwd: options.cwd,
       config: options.config ?? discoveredConfig,
-      noConfig: options.noConfig
+      noConfig: options.noConfig,
+      deferDiagnosticConfigFiltering: true
     });
+    report.filePaths = (report.filePaths ?? []).map((filePath) => (filePath === tempFile ? requestedPath : filePath));
     report.diagnostics = report.diagnostics.map((diagnostic) => ({
       ...diagnostic,
       filePath: requestedPath
     }));
+    report.diagnostics = normalizeReportDiagnostics(report.diagnostics, options);
     return report;
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -579,30 +603,33 @@ function eslintConstructorOptions(options) {
   return mapped;
 }
 
-function calculatedConfig(options = {}) {
+function calculatedConfig(options = {}, filePath) {
   return {
     rules: {
-      ...rulesFromConfig(options.baseConfig),
-      ...rulesFromFileConfig(options),
-      ...rulesFromConfig(options.overrideConfig)
+      ...rulesFromConfig(options.baseConfig, filePath, options.cwd),
+      ...rulesFromFileConfig(options, filePath),
+      ...rulesFromConfig(options.overrideConfig, filePath, options.cwd)
     }
   };
 }
 
-function rulesFromConfig(config) {
+function rulesFromConfig(config, filePath, cwd) {
   if (!config) {
     return {};
   }
   if (Array.isArray(config)) {
     return config.reduce((rules, entry) => ({
       ...rules,
-      ...rulesFromConfig(entry)
+      ...rulesFromConfig(entry, filePath, cwd)
     }), {});
+  }
+  if (!configAppliesToFile(config, filePath, cwd)) {
+    return {};
   }
   return config.rules && typeof config.rules === "object" ? config.rules : {};
 }
 
-function rulesFromFileConfig(options) {
+function rulesFromFileConfig(options, filePath) {
   if (options.noConfig) {
     return {};
   }
@@ -613,7 +640,35 @@ function rulesFromFileConfig(options) {
   }
 
   const config = readJsonConfig(configPath);
-  return rulesFromConfig(config);
+  return rulesFromConfig(config, filePath, options.cwd);
+}
+
+function configAppliesToFile(config, filePath, cwd) {
+  if (!filePath) {
+    return true;
+  }
+
+  const normalized = normalizeIgnoredPath(filePath, cwd ?? process.cwd());
+  const files = normalizeConfigPatterns(config.files);
+  if (files.length > 0 && !files.some((pattern) => matchesIgnorePattern(normalized, normalizeIgnoredPattern(pattern)))) {
+    return false;
+  }
+
+  const ignores = normalizeIgnorePatterns(config.ignores);
+  return !pathIgnoredByPatterns(normalized, ignores);
+}
+
+function normalizeConfigPatterns(patterns) {
+  if (!patterns) {
+    return [];
+  }
+  const values = Array.isArray(patterns) ? patterns : [patterns];
+  return values.flatMap((value) => {
+    if (typeof value === "string") {
+      return [value];
+    }
+    return [];
+  });
 }
 
 function configPathForOptions(options) {
@@ -649,8 +704,8 @@ function withTemporaryConfig(options, callback) {
   }
 
   const rules = calculatedConfig(options).rules;
-  const enabledRules = enabledRuleNames(rules);
-  if (!hasRuleOptions(rules) && !hasDisabledRules(rules)) {
+  const enabledRules = enabledRuleNamesFromConfigs(options.baseConfig, options.overrideConfig);
+  if (!hasRuleOptions(rules)) {
     return callback({
       ...options,
       noConfig: options.noConfig ?? true,
@@ -678,12 +733,28 @@ function enabledRuleNames(rules) {
     .map(([rule]) => rule);
 }
 
-function hasRuleOptions(rules) {
-  return Object.values(rules).some((value) => Array.isArray(value) && value.length > 1);
+function enabledRuleNamesFromConfigs(...configs) {
+  const rules = new Set();
+  for (const config of configs) {
+    for (const rule of enabledRuleNamesFromConfig(config)) {
+      rules.add(rule);
+    }
+  }
+  return [...rules];
 }
 
-function hasDisabledRules(rules) {
-  return Object.values(rules).some((value) => ruleConfigSeverity(value) === 0);
+function enabledRuleNamesFromConfig(config) {
+  if (!config) {
+    return [];
+  }
+  if (Array.isArray(config)) {
+    return config.flatMap((entry) => enabledRuleNamesFromConfig(entry));
+  }
+  return enabledRuleNames(rulesFromConfig(config));
+}
+
+function hasRuleOptions(rules) {
+  return Object.values(rules).some((value) => Array.isArray(value) && value.length > 1);
 }
 
 function normalizeStringArray(values, name) {
@@ -706,7 +777,11 @@ function reportToESLintResults(report, textOptions = {}) {
     if (!byFile.has(filePath)) {
       byFile.set(filePath, emptyESLintResult(filePath, textOptions.source));
     }
-    byFile.get(filePath).messages.push(diagnosticToESLintMessage(diagnostic, textOptions.ruleSeverities));
+    const ruleSeverities = textOptions.ruleSeverityForFile?.(filePath) ?? textOptions.ruleSeverities;
+    if (diagnostic.ruleId && ruleSeverities?.get(diagnostic.ruleId) === 0) {
+      continue;
+    }
+    byFile.get(filePath).messages.push(diagnosticToESLintMessage(diagnostic, ruleSeverities));
   }
 
   if (textOptions.filePath && textOptions.includeEmptyTextResult !== false && !byFile.has(textOptions.filePath)) {
@@ -723,6 +798,35 @@ function reportToESLintResults(report, textOptions = {}) {
   }
 
   return [...byFile.values()];
+}
+
+function normalizeReportDiagnostics(diagnostics, options = {}) {
+  return (diagnostics ?? []).flatMap((diagnostic) => {
+    if (!diagnostic?.ruleId) {
+      return [diagnostic];
+    }
+
+    const filePath = normalizeESLintFilePath(diagnostic.filePath, options.cwd);
+    const severity = ruleSeverityMapForOptions(options, filePath)?.get(diagnostic.ruleId);
+    if (severity === 0) {
+      return [];
+    }
+    if (severity === 1 || severity === 2) {
+      return [{ ...diagnostic, severity: severity === 2 ? "error" : "warning" }];
+    }
+    return [diagnostic];
+  });
+}
+
+function normalizeReportFilePaths(filePaths, options = {}) {
+  return (filePaths ?? []).map((filePath) => normalizeESLintFilePath(filePath, options.cwd));
+}
+
+function normalizeDiagnosticFilePaths(diagnostics, options = {}) {
+  return (diagnostics ?? []).map((diagnostic) => ({
+    ...diagnostic,
+    filePath: normalizeESLintFilePath(diagnostic.filePath, options.cwd)
+  }));
 }
 
 function normalizeESLintFilePath(filePath, cwd) {
@@ -758,7 +862,10 @@ function explicitLintFilePaths(patterns, cwd) {
       if (statSync(filePath).isFile()) {
         files.push(filePath);
       }
-    } catch {}
+    } catch {
+      // Let the native binary report missing paths. This helper only fills in
+      // empty ESLint results for files that were checked successfully.
+    }
   }
   return files;
 }
@@ -1011,12 +1118,35 @@ function matchesIgnorePattern(target, pattern) {
     return target === pattern || target.endsWith(`/${pattern}`) || target.startsWith(`${pattern}/`);
   }
 
-  const expression = new RegExp(`(^|/)${escapeRegExp(pattern).replaceAll("\\*\\*", ".*").replaceAll("\\*", "[^/]*")}$`);
+  const expression = new RegExp(`(^|/)${globPatternRegExpSource(pattern)}$`);
   return expression.test(target);
 }
 
 function normalizePath(path) {
   return path.replaceAll("\\", "/").replace(/^\.\//, "");
+}
+
+function globPatternRegExpSource(pattern) {
+  let source = "";
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+    if (char === "*") {
+      if (pattern[index + 1] === "*") {
+        if (pattern[index + 2] === "/") {
+          source += "(?:.*/)?";
+          index += 2;
+        } else {
+          source += ".*";
+          index += 1;
+        }
+      } else {
+        source += "[^/]*";
+      }
+      continue;
+    }
+    source += escapeRegExp(char);
+  }
+  return source;
 }
 
 function escapeRegExp(value) {
@@ -1238,15 +1368,13 @@ function ruleSeverityMap(rules) {
   const severities = new Map();
   for (const [rule, config] of Object.entries(rules)) {
     const severity = ruleConfigSeverity(config);
-    if (severity > 0) {
-      severities.set(rule, severity);
-    }
+    severities.set(rule, severity);
   }
   return severities;
 }
 
-function ruleSeverityMapForOptions(options) {
-  return ruleSeverityMap(calculatedConfig(options).rules);
+function ruleSeverityMapForOptions(options, filePath) {
+  return ruleSeverityMap(calculatedConfig(options, filePath).rules);
 }
 
 function ruleConfigSeverity(config) {
@@ -1275,7 +1403,7 @@ function ruleConfigSeverity(config) {
 
 module.exports = {
   CLIEngine,
-  ESLint: UtooLint,
+  ESLint,
   UtooLint,
   default: UtooLint,
   lintFiles,
