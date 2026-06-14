@@ -59,6 +59,22 @@ export class UtooLint {
     return version;
   }
 
+  static get configType() {
+    return "flat";
+  }
+
+  static get defaultConfig() {
+    return [];
+  }
+
+  static async fromOptionsModule(optionsURL) {
+    if (!(optionsURL instanceof URL)) {
+      throw new TypeError("Argument must be a URL object");
+    }
+    const loaded = await import(optionsURL.href);
+    return new UtooLint(loaded.default ?? loaded);
+  }
+
   static async outputFixes(results) {
     if (!Array.isArray(results)) {
       throw new Error("'results' must be an array");
@@ -135,6 +151,10 @@ export class UtooLint {
 }
 
 export { UtooLint as ESLint };
+
+export async function loadESLint() {
+  return UtooLint;
+}
 
 export class CLIEngine {
   static get version() {

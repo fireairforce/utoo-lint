@@ -71,7 +71,9 @@ diagnostics. The `ESLint` export is an alias for `UtooLint`
 and supports the common `lintFiles()`, `lintText()`,
 `loadFormatter()`, `isPathIgnored()`, and `calculateConfigForFile()` methods for
 low-friction replacements. It also provides ESLint-compatible `version`,
-`outputFixes()`, `getErrorResults()`, and `getRulesMetaForResults()` surfaces.
+`configType`, `defaultConfig`, `fromOptionsModule()`, `outputFixes()`,
+`getErrorResults()`, and `getRulesMetaForResults()` surfaces. The top-level
+`loadESLint()` helper resolves to the compatibility `ESLint` class.
 Rule meta includes best-effort `docs.url` values for common ESLint-compatible
 rule IDs. `loadFormatter()` and `CLIEngine#getFormatter()` support `json`,
 `json-with-metadata`, `compact`, `unix`, and the native text formatter shape.
