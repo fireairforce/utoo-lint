@@ -38,14 +38,39 @@ test "reports prefer-destructuring for array index variable declarators" {
     try std.testing.expectEqualStrings("Use array destructuring.", result.diagnostics[0].message);
 }
 
-test "does not report prefer-destructuring for renamed dynamic or assignment cases" {
+test "reports prefer-destructuring for assignment expressions" {
+    const source =
+        \\first = object.first;
+        \\second = object["second"];
+        \\item = array[0];
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .dot_notation = false,
+        .eol_last = false,
+        .no_undef = false,
+        .typescript_eslint_dot_notation = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_destructuring.id));
+    try std.testing.expectEqualStrings("Use object destructuring.", result.diagnostics[0].message);
+    try std.testing.expectEqualStrings("Use array destructuring.", result.diagnostics[2].message);
+}
+
+test "does not report prefer-destructuring for renamed dynamic or optional cases" {
     const source =
         \\const renamed = object.first;
         \\const value = object[key];
         \\const fractional = array[1.5];
         \\const maybe = object?.maybe;
         \\const maybeArray = array?.[0];
-        \\target = object.target;
+        \\renamed = object.target;
+        \\value = object[key];
+        \\fractional = array[1.5];
+        \\maybe = object?.maybe;
+        \\maybeArray = array?.[0];
         \\const { direct } = object;
     ;
 
