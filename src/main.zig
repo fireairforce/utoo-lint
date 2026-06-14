@@ -128,6 +128,8 @@ pub fn main(init: std.process.Init) !void {
             options.eslint_comments_no_restricted_disable = false;
         } else if (std.mem.eql(u8, arg, "--for-direction=off")) {
             options.for_direction = false;
+        } else if (std.mem.eql(u8, arg, "--func-names=off")) {
+            options.func_names = false;
         } else if (std.mem.eql(u8, arg, "--getter-return=off")) {
             options.getter_return = false;
         } else if (std.mem.eql(u8, arg, "--guard-for-in=off")) {
@@ -1227,6 +1229,7 @@ fn printHelp() void {
         \\  --eol-last=off            Disable eol-last
         \\  --eslint-comments-no-restricted-disable=off Disable eslint-comments/no-restricted-disable
         \\  --for-direction=off       Disable for-direction
+        \\  --func-names=off          Disable func-names
         \\  --getter-return=off       Disable getter-return
         \\  --guard-for-in=off        Disable guard-for-in
         \\  --linebreak-style=off     Disable linebreak-style

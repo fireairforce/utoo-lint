@@ -24,6 +24,7 @@ pub const default_case_last = @import("default_case_last.zig");
 pub const eol_last = @import("eol_last.zig");
 pub const eslint_comments_no_restricted_disable = @import("eslint_comments_no_restricted_disable.zig");
 pub const for_direction = @import("for_direction.zig");
+pub const func_names = @import("func_names.zig");
 pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
 pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
@@ -910,6 +911,9 @@ const BasicVisitor = struct {
         }
         if (self.options.consistent_return) {
             try consistent_return.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
+        }
+        if (self.options.func_names) {
+            try func_names.check(self.allocator, self.diagnostics, ctx.tree, function, index, ctx);
         }
         if (self.options.no_param_reassign) {
             try no_param_reassign.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);

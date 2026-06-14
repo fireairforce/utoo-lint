@@ -11,6 +11,7 @@ test "reports no-extend-native for native prototype assignments" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .dot_notation = false,
         .eol_last = false,
+        .func_names = false,
         .no_empty_block_statements = false,
         .no_empty_function = false,
         .no_undef = false,
@@ -36,6 +37,7 @@ test "reports no-extend-native for Object defineProperty calls" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .dot_notation = false,
         .eol_last = false,
+        .func_names = false,
         .no_empty_block_statements = false,
         .no_empty_function = false,
         .no_undef = false,
@@ -64,6 +66,7 @@ test "does not report no-extend-native for shadowed constructors or ordinary obj
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .dot_notation = false,
         .eol_last = false,
+        .func_names = false,
         .no_empty_block_statements = false,
         .no_empty_function = false,
         .no_undef = false,
@@ -85,6 +88,7 @@ test "can disable no-extend-native" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .dot_notation = false,
         .eol_last = false,
+        .func_names = false,
         .no_empty_block_statements = false,
         .no_empty_function = false,
         .no_extend_native = false,

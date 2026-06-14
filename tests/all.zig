@@ -43,6 +43,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/func_names.zig");
+}
+
+comptime {
     _ = @import("rules/getter_return.zig");
 }
 

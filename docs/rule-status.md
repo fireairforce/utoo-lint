@@ -16,6 +16,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`eol-last`](https://eslint.org/docs/latest/rules/eol-last) | Implemented |
 | [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Implemented |
 | [`for-direction`](https://eslint.org/docs/latest/rules/for-direction) | Implemented |
+| [`func-names`](https://eslint.org/docs/latest/rules/func-names) | Implemented for the default `always` option |
 | [`getter-return`](https://eslint.org/docs/latest/rules/getter-return) | Implemented |
 | [`guard-for-in`](https://eslint.org/docs/latest/rules/guard-for-in) | Implemented |
 | [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Implemented |
