@@ -73,6 +73,61 @@ test "allows named functions and non-function-expression callbacks" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.func_names.id));
 }
 
+test "allows func-names as-needed for inferable names" {
+    const source =
+        \\const first = function () {
+        \\  return value;
+        \\};
+        \\const object = {
+        \\  method: function () {
+        \\    return value;
+        \\  },
+        \\};
+        \\class Example {
+        \\  field = function () {
+        \\    return value;
+        \\  };
+        \\}
+        \\quux ??= function () {
+        \\  return value;
+        \\};
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .func_names_style = .as_needed,
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.func_names.id));
+}
+
+test "reports func-names as-needed for non-inferable names" {
+    const source =
+        \\const call = (function () {
+        \\  return value;
+        \\})();
+        \\Foo.prototype.bar = function () {
+        \\  return value;
+        \\};
+        \\export default function () {
+        \\  return value;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .func_names_style = .as_needed,
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.func_names.id));
+}
+
 test "can disable func-names" {
     const source = "const value = function () { return 1; };\n";
 
