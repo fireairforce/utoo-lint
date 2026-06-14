@@ -107,7 +107,7 @@ filters to supported JavaScript and TypeScript extensions. ESLint cache controls
 other cache flags are consumed for compatibility because utoo-lint does not keep
 an ESLint-style result cache. The wrapper applies ESLint-style warning exit-code
 semantics, including `--max-warnings`. ESLint runtime config flags such as
-`--env`, `--global`, `--parser`, `--parser-options`, `--plugin`, and
+`--env`, `-E`, `--global`, `--parser`, `--parser-options`, `--plugin`, and
 ignore-pattern flags are accepted so existing wrapper scripts do not pass them
 as file targets. The wrapper applies simple `.eslintignore`, `--ignore-path`,
 and `--ignore-pattern` filters such as `dist/**` to explicit and `--glob`

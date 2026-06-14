@@ -32,6 +32,7 @@ const TARGET_VALUE_FLAGS = new Set([
   "--stdin-filename",
   "--threads",
   "-c",
+  "-E",
   "-f",
   "-o"
 ]);
