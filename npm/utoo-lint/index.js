@@ -112,8 +112,8 @@ export class UtooLint {
     return isPathIgnored(filePath, mergeLintOptions(this.options, {}));
   }
 
-  async calculateConfigForFile() {
-    return calculatedConfig(eslintConstructorOptions(this.options));
+  async calculateConfigForFile(filePath) {
+    return calculatedConfig(eslintConstructorOptions(this.options), filePath);
   }
 
   getRulesMetaForResults(results) {
@@ -210,8 +210,8 @@ export class CLIEngine {
     return isPathIgnored(filePath, eslintConstructorOptions(this.options));
   }
 
-  getConfigForFile() {
-    return calculatedConfig(eslintConstructorOptions(this.options));
+  getConfigForFile(filePath) {
+    return calculatedConfig(eslintConstructorOptions(this.options), filePath);
   }
 }
 
@@ -583,30 +583,33 @@ function eslintConstructorOptions(options) {
   return mapped;
 }
 
-function calculatedConfig(options = {}) {
+function calculatedConfig(options = {}, filePath) {
   return {
     rules: {
-      ...rulesFromConfig(options.baseConfig),
-      ...rulesFromFileConfig(options),
-      ...rulesFromConfig(options.overrideConfig)
+      ...rulesFromConfig(options.baseConfig, filePath, options.cwd),
+      ...rulesFromFileConfig(options, filePath),
+      ...rulesFromConfig(options.overrideConfig, filePath, options.cwd)
     }
   };
 }
 
-function rulesFromConfig(config) {
+function rulesFromConfig(config, filePath, cwd) {
   if (!config) {
     return {};
   }
   if (Array.isArray(config)) {
     return config.reduce((rules, entry) => ({
       ...rules,
-      ...rulesFromConfig(entry)
+      ...rulesFromConfig(entry, filePath, cwd)
     }), {});
+  }
+  if (!configAppliesToFile(config, filePath, cwd)) {
+    return {};
   }
   return config.rules && typeof config.rules === "object" ? config.rules : {};
 }
 
-function rulesFromFileConfig(options) {
+function rulesFromFileConfig(options, filePath) {
   if (options.noConfig) {
     return {};
   }
@@ -617,7 +620,35 @@ function rulesFromFileConfig(options) {
   }
 
   const config = readJsonConfig(configPath);
-  return rulesFromConfig(config);
+  return rulesFromConfig(config, filePath, options.cwd);
+}
+
+function configAppliesToFile(config, filePath, cwd) {
+  if (!filePath) {
+    return true;
+  }
+
+  const normalized = normalizeIgnoredPath(filePath, cwd ?? process.cwd());
+  const files = normalizeConfigPatterns(config.files);
+  if (files.length > 0 && !files.some((pattern) => matchesIgnorePattern(normalized, normalizeIgnoredPattern(pattern)))) {
+    return false;
+  }
+
+  const ignores = normalizeIgnorePatterns(config.ignores);
+  return !pathIgnoredByPatterns(normalized, ignores);
+}
+
+function normalizeConfigPatterns(patterns) {
+  if (!patterns) {
+    return [];
+  }
+  const values = Array.isArray(patterns) ? patterns : [patterns];
+  return values.flatMap((value) => {
+    if (typeof value === "string") {
+      return [value];
+    }
+    return [];
+  });
 }
 
 function configPathForOptions(options) {
@@ -1018,12 +1049,35 @@ function matchesIgnorePattern(target, pattern) {
     return target === pattern || target.endsWith(`/${pattern}`) || target.startsWith(`${pattern}/`);
   }
 
-  const expression = new RegExp(`(^|/)${escapeRegExp(pattern).replaceAll("\\*\\*", ".*").replaceAll("\\*", "[^/]*")}$`);
+  const expression = new RegExp(`(^|/)${globPatternRegExpSource(pattern)}$`);
   return expression.test(target);
 }
 
 function normalizePath(path) {
   return path.replaceAll("\\", "/").replace(/^\.\//, "");
+}
+
+function globPatternRegExpSource(pattern) {
+  let source = "";
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+    if (char === "*") {
+      if (pattern[index + 1] === "*") {
+        if (pattern[index + 2] === "/") {
+          source += "(?:.*/)?";
+          index += 2;
+        } else {
+          source += ".*";
+          index += 1;
+        }
+      } else {
+        source += "[^/]*";
+      }
+      continue;
+    }
+    source += escapeRegExp(char);
+  }
+  return source;
 }
 
 function escapeRegExp(value) {
