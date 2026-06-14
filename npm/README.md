@@ -44,15 +44,15 @@ console.log(ESLint.version);
 console.log(ESLint.getErrorResults(results));
 ```
 
-`lintFiles()` and `lintText()` return `{ files, diagnostics, exitCode }`. Each
-diagnostic includes `filePath`, `line`, `column`, `severity`, `message`, and
-`ruleId`. The `ESLint` export is an alias for `UtooLint` and supports the common
-`lintFiles()`, `lintText()`, `loadFormatter()`, `isPathIgnored()`, and
-`calculateConfigForFile()` methods for low-friction replacements. It also
-provides ESLint-compatible `version`, `outputFixes()`, `getErrorResults()`, and
-`getRulesMetaForResults()` surfaces. `lintFiles()` returns absolute `filePath`
-values and includes empty results for explicitly provided files with no
-messages. Set
+`lintFiles()` and `lintText()` return an object with `files`, `filePaths`,
+`diagnostics`, and `exitCode`. Each diagnostic includes `filePath`, `line`,
+`column`, `severity`, `message`, and `ruleId`. The `ESLint` export is an alias
+for `UtooLint` and supports the common `lintFiles()`, `lintText()`,
+`loadFormatter()`, `isPathIgnored()`, and `calculateConfigForFile()` methods for
+low-friction replacements. It also provides ESLint-compatible `version`,
+`outputFixes()`, `getErrorResults()`, and `getRulesMetaForResults()` surfaces.
+`lintFiles()` returns absolute `filePath` values and includes empty results for
+checked files with no messages. Set
 `UTOO_LINT_BIN=/path/to/utoo-lint` to force the JS API and CLI wrapper to use a
 specific native binary during local development.
 
