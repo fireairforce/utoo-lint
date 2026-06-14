@@ -50,7 +50,9 @@ diagnostic includes `filePath`, `line`, `column`, `severity`, `message`, and
 `lintFiles()`, `lintText()`, `loadFormatter()`, `isPathIgnored()`, and
 `calculateConfigForFile()` methods for low-friction replacements. It also
 provides ESLint-compatible `version`, `outputFixes()`, `getErrorResults()`, and
-`getRulesMetaForResults()` surfaces. Set
+`getRulesMetaForResults()` surfaces. `lintFiles()` returns absolute `filePath`
+values and includes empty results for explicitly provided files with no
+messages. Set
 `UTOO_LINT_BIN=/path/to/utoo-lint` to force the JS API and CLI wrapper to use a
 specific native binary during local development.
 
