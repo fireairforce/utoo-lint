@@ -924,7 +924,12 @@ function hasFlagInOptions(options, flag) {
 }
 
 function calculatedConfig(options = {}, filePath) {
+  const configData = mergeConfigData(
+    mergeConfigData(configDataFromConfig(options.baseConfig, filePath, options.cwd), configDataFromFileConfig(options, filePath)),
+    configDataFromConfig(options.overrideConfig, filePath, options.cwd)
+  );
   return {
+    ...configData,
     rules: {
       ...rulesFromNativeRuleList(options.rules),
       ...rulesFromConfig(options.baseConfig, filePath, options.cwd),
@@ -932,6 +937,59 @@ function calculatedConfig(options = {}, filePath) {
       ...rulesFromConfig(options.overrideConfig, filePath, options.cwd)
     }
   };
+}
+
+function configDataFromConfig(config, filePath, cwd) {
+  if (!config) {
+    return {};
+  }
+  if (Array.isArray(config)) {
+    return config.reduce((result, entry) => mergeConfigData(result, configDataFromConfig(entry, filePath, cwd)), {});
+  }
+  if (!configAppliesToFile(config, filePath, cwd)) {
+    return {};
+  }
+
+  const result = {};
+  if (config.settings && typeof config.settings === "object") {
+    result.settings = { ...config.settings };
+  }
+  if (config.languageOptions && typeof config.languageOptions === "object") {
+    result.languageOptions = { ...config.languageOptions };
+  }
+  if (config.parserOptions && typeof config.parserOptions === "object") {
+    result.parserOptions = { ...config.parserOptions };
+  }
+  if (config.globals && typeof config.globals === "object") {
+    result.globals = { ...config.globals };
+  }
+  if (config.env && typeof config.env === "object") {
+    result.env = { ...config.env };
+  }
+  if (config.parser != null) {
+    result.parser = config.parser;
+  }
+  return result;
+}
+
+function mergeConfigData(base, override) {
+  const result = { ...base, ...override };
+  if (base.settings || override.settings) {
+    result.settings = { ...(base.settings ?? {}), ...(override.settings ?? {}) };
+  }
+  if (base.languageOptions || override.languageOptions) {
+    result.languageOptions = { ...(base.languageOptions ?? {}), ...(override.languageOptions ?? {}) };
+  }
+  if (base.parserOptions || override.parserOptions) {
+    result.parserOptions = { ...(base.parserOptions ?? {}), ...(override.parserOptions ?? {}) };
+  }
+  if (base.globals || override.globals) {
+    result.globals = { ...(base.globals ?? {}), ...(override.globals ?? {}) };
+  }
+  if (base.env || override.env) {
+    result.env = { ...(base.env ?? {}), ...(override.env ?? {}) };
+  }
+  return result;
 }
 
 function publicCalculatedConfig(options = {}, filePath) {
@@ -995,6 +1053,20 @@ function rulesFromFileConfig(options, filePath) {
 
   const config = readConfig(configPath, options.cwd);
   return rulesFromConfig(config, filePath, options.cwd);
+}
+
+function configDataFromFileConfig(options, filePath) {
+  if (options.noConfig) {
+    return {};
+  }
+
+  const configPath = filePath ? configPathForFile(options, filePath) : configPathForOptions(options);
+  if (!configPath) {
+    return {};
+  }
+
+  const config = readConfig(configPath, options.cwd);
+  return configDataFromConfig(config, filePath, options.cwd);
 }
 
 function configAppliesToFile(config, filePath, cwd) {
@@ -1234,7 +1306,8 @@ class Linter {
     const verifyOptions = typeof options === "string" ? { filename: options } : { ...options };
     const filePath = verifyOptions.filename ?? verifyOptions.filePath ?? "input.js";
     const sourceCode = createLinterSourceCode(code);
-    const customRules = customRuleEntriesForConfig(config, this.rules);
+    const normalizedFilePath = normalizeESLintFilePath(filePath, verifyOptions.cwd);
+    const customRules = customRuleEntriesForConfig(config, this.rules, normalizedFilePath, verifyOptions.cwd);
     const nativeConfig = configWithoutCustomRules(config, this.rules);
     const lintOptions = {
       cwd: verifyOptions.cwd,
@@ -1245,7 +1318,7 @@ class Linter {
       overrideConfig: nativeConfig
     };
     const report = lintText(code, lintOptions);
-    const ruleSeverities = ruleSeverityMapForOptions(lintOptions, normalizeESLintFilePath(filePath, verifyOptions.cwd));
+    const ruleSeverities = ruleSeverityMapForOptions(lintOptions, normalizedFilePath);
     this.sourceCode = sourceCode;
     this.suppressedMessages = [];
     this.times = { passes: [] };
@@ -1254,7 +1327,8 @@ class Linter {
       ...(report.diagnostics ?? []).map((diagnostic) => diagnosticToESLintMessage(diagnostic, ruleSeverities)),
       ...runCustomLinterRules(customRules, sourceCode, {
         cwd: verifyOptions.cwd,
-        filename: filePath
+        filename: filePath,
+        config: calculatedConfig({ cwd: verifyOptions.cwd, noConfig: true, overrideConfig: config }, normalizedFilePath)
       })
     ];
   }
@@ -1315,9 +1389,9 @@ class Linter {
   }
 }
 
-function customRuleEntriesForConfig(config, rules) {
+function customRuleEntriesForConfig(config, rules, filePath, cwd) {
   const entries = new Map();
-  for (const [ruleId, ruleConfig] of ruleConfigEntries(config)) {
+  for (const [ruleId, ruleConfig] of ruleConfigEntries(config, filePath, cwd)) {
     if (!rules.has(ruleId)) {
       continue;
     }
@@ -1336,11 +1410,14 @@ function customRuleEntriesForConfig(config, rules) {
   return [...entries.values()];
 }
 
-function ruleConfigEntries(config) {
+function ruleConfigEntries(config, filePath = undefined, cwd = undefined) {
   if (Array.isArray(config)) {
-    return config.flatMap((item) => ruleConfigEntries(item));
+    return config.flatMap((item) => ruleConfigEntries(item, filePath, cwd));
   }
   if (!config || typeof config !== "object" || !config.rules || typeof config.rules !== "object") {
+    return [];
+  }
+  if (!configAppliesToFile(config, filePath, cwd)) {
     return [];
   }
   return Object.entries(config.rules);
@@ -1377,9 +1454,11 @@ function runCustomLinterRules(ruleEntries, sourceCode, options) {
     const context = createCustomRuleContext(ruleEntry, sourceCode, options, messages);
     const listeners = customRuleListeners(ruleEntry.rule, context);
     if (typeof listeners.Program === "function") {
+      context.setCurrentNode(program);
       listeners.Program(program);
     }
     if (typeof listeners["Program:exit"] === "function") {
+      context.setCurrentNode(program);
       listeners["Program:exit"](program);
     }
   }
@@ -1389,13 +1468,22 @@ function runCustomLinterRules(ruleEntries, sourceCode, options) {
 function createCustomRuleContext(ruleEntry, sourceCode, options, messages) {
   const filename = options.filename ?? "<input>";
   const cwd = options.cwd ?? "";
-  return {
+  const config = options.config ?? {};
+  const languageOptions = config.languageOptions ?? {};
+  const parserOptions = languageOptions.parserOptions ?? config.parserOptions ?? {};
+  let currentNode = sourceCode.ast ?? null;
+  const context = {
     id: ruleEntry.ruleId,
     options: ruleEntry.options,
     filename,
     physicalFilename: filename,
     cwd,
     sourceCode,
+    settings: config.settings ?? {},
+    parserOptions,
+    parserPath: config.parser ?? languageOptions.parser ?? null,
+    parserServices: sourceCode.parserServices ?? {},
+    languageOptions,
     getCwd() {
       return cwd;
     },
@@ -1408,10 +1496,28 @@ function createCustomRuleContext(ruleEntry, sourceCode, options, messages) {
     getSourceCode() {
       return sourceCode;
     },
+    getScope() {
+      return sourceCode.getScope(currentNode);
+    },
+    getAncestors() {
+      return currentNode ? sourceCode.getAncestors(currentNode) : [];
+    },
+    getDeclaredVariables(node) {
+      return sourceCode.getDeclaredVariables(node);
+    },
+    markVariableAsUsed(name) {
+      return sourceCode.markVariableAsUsed(name, currentNode);
+    },
     report(...args) {
       messages.push(customRuleMessageFromReport(ruleEntry, sourceCode, args));
     }
   };
+  Object.defineProperty(context, "setCurrentNode", {
+    value(node) {
+      currentNode = node;
+    }
+  });
+  return context;
 }
 
 function customRuleListeners(rule, context) {

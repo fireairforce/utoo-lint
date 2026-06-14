@@ -54,6 +54,17 @@ export interface ConfigObject {
   ignores?: string[];
   rules?: Record<string, RuleConfig>;
   plugins?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  languageOptions?: {
+    parser?: unknown;
+    parserOptions?: Record<string, unknown>;
+    globals?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+  parser?: unknown;
+  parserOptions?: Record<string, unknown>;
+  globals?: Record<string, unknown>;
+  env?: Record<string, unknown>;
   extends?: Array<string | ConfigObject | ConfigObject[]>;
   basePath?: string;
   [key: string]: unknown;
