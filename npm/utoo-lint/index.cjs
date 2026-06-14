@@ -917,7 +917,7 @@ function isLintableFilePath(filePath) {
 function filteredLintPaths(paths, options = {}) {
   const values = normalizeStringArray(Array.isArray(paths) ? paths : [paths], "paths");
   const cwd = options.cwd ?? process.cwd();
-  const patterns = options.noIgnore ? [] : ignorePatternsForOptions(options, cwd);
+  const patterns = ignoreDisabled(options) ? [] : ignorePatternsForOptions(options, cwd);
   if (patterns.length === 0 && options.errorOnUnmatchedPattern !== false && !values.some(hasGlobMagic)) {
     return values;
   }
@@ -1030,7 +1030,7 @@ function collectGlobFiles(target, cwd, patterns, expression, files) {
 }
 
 function ignoredLintPathDiagnostics(paths, options = {}) {
-  if (options.noIgnore || options.warnIgnored === false) {
+  if (ignoreDisabled(options) || options.warnIgnored === false) {
     return [];
   }
 
@@ -1120,7 +1120,7 @@ function isPathIgnored(filePath, options = {}) {
   if (typeof filePath !== "string") {
     throw new TypeError("filePath must be a string");
   }
-  if (options.noIgnore) {
+  if (ignoreDisabled(options)) {
     return false;
   }
 
@@ -1128,6 +1128,10 @@ function isPathIgnored(filePath, options = {}) {
   const normalized = normalizeIgnoredPath(filePath, cwd);
   const patterns = ignorePatternsForOptions(options, cwd);
   return pathIgnoredByPatterns(normalized, patterns);
+}
+
+function ignoreDisabled(options = {}) {
+  return options.noIgnore || options.ignore === false;
 }
 
 function ignorePatternsForOptions(options, cwd) {
