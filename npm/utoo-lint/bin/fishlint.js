@@ -9,6 +9,31 @@ import { translateFishlintArgs } from "../index.js";
 
 const values = process.argv.slice(2);
 const command = values[0];
+const TARGET_VALUE_FLAGS = new Set([
+  "--cache-location",
+  "--cache-strategy",
+  "--config",
+  "--env",
+  "--fix-type",
+  "--format",
+  "--global",
+  "--ignore-path",
+  "--ignore-pattern",
+  "--max-warnings",
+  "--output-file",
+  "--parser",
+  "--parser-options",
+  "--plugin",
+  "--print-config",
+  "--resolve-plugins-relative-to",
+  "--rule",
+  "--rules",
+  "--rulesdir",
+  "--stdin-filename",
+  "--threads",
+  "-f",
+  "-o"
+]);
 
 if (command === "setup" || command === "setuplint") {
   console.warn(`utoo-lint: fishlint ${command} is treated as a no-op; configure utoo-lint with utoo.json.`);
@@ -31,7 +56,9 @@ if (printConfig.enabled) {
   process.exit(0);
 }
 
-const filtered = filterIgnoredTargets(printConfig.args, ignored.patterns);
+const unmatched = extractUnmatchedPatternOption(printConfig.args);
+const ignoredFiltered = filterIgnoredTargets(unmatched.args, ignored.patterns);
+const filtered = filterUnmatchedTargets(ignoredFiltered.args, unmatched.enabled);
 const input = extractStdin(filtered.args);
 const nativeValues = input.file ? [...input.args, input.file] : input.args;
 try {
@@ -49,7 +76,7 @@ if (args.length === 0) {
   cleanupStdinInput(input);
   process.exit(0);
 }
-if (filtered.removedTarget && !hasLintTarget(nativeValues)) {
+if ((ignoredFiltered.removedTarget || filtered.removedTarget) && !hasLintTarget(nativeValues)) {
   writeOutput(emptyLintOutput(nativeValues), output.file);
   cleanupStdinInput(input);
   process.exit(0);
@@ -212,6 +239,21 @@ function extractQuiet(args) {
   return { args: values, enabled };
 }
 
+function extractUnmatchedPatternOption(args) {
+  const values = [];
+  let enabled = false;
+
+  for (const arg of args) {
+    if (arg === "--no-error-on-unmatched-pattern") {
+      enabled = true;
+      continue;
+    }
+    values.push(arg);
+  }
+
+  return { args: values, enabled };
+}
+
 function extractRuleOverrides(args) {
   const values = [];
   const rules = {};
@@ -345,32 +387,57 @@ function filterIgnoredTargets(args, patterns) {
   return { args: values, removedTarget };
 }
 
+function filterUnmatchedTargets(args, enabled) {
+  if (!enabled) {
+    return { args, removedTarget: false };
+  }
+
+  const values = [];
+  let removedTarget = false;
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (TARGET_VALUE_FLAGS.has(arg)) {
+      values.push(arg);
+      if (index + 1 < args.length) {
+        values.push(args[index + 1]);
+        index += 1;
+      }
+      continue;
+    }
+    if (arg === "--glob") {
+      const value = args[index + 1];
+      if (!value) {
+        console.error("utoo-lint: fishlint --glob requires a path");
+        process.exit(2);
+      }
+      if (existsSync(value)) {
+        values.push(arg, value);
+      } else {
+        removedTarget = true;
+      }
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--glob=")) {
+      const value = arg.slice("--glob=".length);
+      if (existsSync(value)) {
+        values.push(arg);
+      } else {
+        removedTarget = true;
+      }
+      continue;
+    }
+    if (index > 0 && !arg.startsWith("-") && !existsSync(arg)) {
+      removedTarget = true;
+      continue;
+    }
+    values.push(arg);
+  }
+  return { args: values, removedTarget };
+}
+
 function hasLintTarget(args) {
-  const valueFlags = new Set([
-    "--cache-location",
-    "--cache-strategy",
-    "--config",
-    "--env",
-    "--fix-type",
-    "--format",
-    "--global",
-    "--ignore-path",
-    "--ignore-pattern",
-    "--max-warnings",
-    "--output-file",
-    "--parser",
-    "--parser-options",
-    "--plugin",
-    "--print-config",
-    "--resolve-plugins-relative-to",
-    "--rule",
-    "--rules",
-    "--rulesdir",
-    "--stdin-filename",
-    "--threads",
-    "-f",
-    "-o"
-  ]);
+  const valueFlags = TARGET_VALUE_FLAGS;
 
   for (let index = 1; index < args.length; index += 1) {
     const arg = args[index];
