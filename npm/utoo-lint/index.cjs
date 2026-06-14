@@ -1753,28 +1753,32 @@ function disableDirectiveMatchesRule(directive, ruleId) {
   return directive.ruleId == null || directive.ruleId === ruleId;
 }
 
-function traverseCustomRuleAst(node, listeners, context, visitorKeys, seen = new Set(), ancestors = []) {
+function traverseCustomRuleAst(node, listeners, context, visitorKeys, seen = new Set(), ancestors = [], siblings = {}) {
   if (!node || typeof node !== "object" || typeof node.type !== "string" || seen.has(node)) {
     return;
   }
   seen.add(node);
-  for (const listener of customRuleMatchingListeners(listeners, node, false, ancestors)) {
+  for (const listener of customRuleMatchingListeners(listeners, node, false, ancestors, siblings)) {
     context.setCurrentNode(node);
     listener(node);
   }
-  for (const child of customRuleChildNodes(node, visitorKeys)) {
-    traverseCustomRuleAst(child, listeners, context, visitorKeys, seen, [...ancestors, node]);
+  const children = customRuleChildNodes(node, visitorKeys);
+  for (const [index, child] of children.entries()) {
+    traverseCustomRuleAst(child, listeners, context, visitorKeys, seen, [...ancestors, node], {
+      previous: children[index - 1] ?? null,
+      previousAll: children.slice(0, index)
+    });
   }
-  for (const listener of customRuleMatchingListeners(listeners, node, true, ancestors)) {
+  for (const listener of customRuleMatchingListeners(listeners, node, true, ancestors, siblings)) {
     context.setCurrentNode(node);
     listener(node);
   }
 }
 
-function customRuleMatchingListeners(listeners, node, exit, ancestors = []) {
+function customRuleMatchingListeners(listeners, node, exit, ancestors = [], siblings = {}) {
   const matches = [];
   for (const [selector, listener] of Object.entries(listeners)) {
-    if (typeof listener !== "function" || !customRuleSelectorMatches(selector, node, exit, ancestors)) {
+    if (typeof listener !== "function" || !customRuleSelectorMatches(selector, node, exit, ancestors, siblings)) {
       continue;
     }
     matches.push(listener);
@@ -1782,7 +1786,7 @@ function customRuleMatchingListeners(listeners, node, exit, ancestors = []) {
   return matches;
 }
 
-function customRuleSelectorMatches(selector, node, exit, ancestors = []) {
+function customRuleSelectorMatches(selector, node, exit, ancestors = [], siblings = {}) {
   const suffix = ":exit";
   const isExit = selector.endsWith(suffix);
   if (isExit !== exit) {
@@ -1795,6 +1799,17 @@ function customRuleSelectorMatches(selector, node, exit, ancestors = []) {
     return Boolean(parent)
       && customRuleSimpleSelectorMatches(childSelector[0].trim(), parent)
       && customRuleSimpleSelectorMatches(childSelector[1].trim(), node);
+  }
+  const adjacentSelector = customRuleSplitTopLevelSelector(expression, "+");
+  if (adjacentSelector) {
+    return Boolean(siblings.previous)
+      && customRuleSimpleSelectorMatches(adjacentSelector[0].trim(), siblings.previous)
+      && customRuleSimpleSelectorMatches(adjacentSelector[1].trim(), node);
+  }
+  const siblingSelector = customRuleSplitTopLevelSelector(expression, "~");
+  if (siblingSelector) {
+    return (siblings.previousAll ?? []).some((sibling) => customRuleSimpleSelectorMatches(siblingSelector[0].trim(), sibling))
+      && customRuleSimpleSelectorMatches(siblingSelector[1].trim(), node);
   }
   const descendantSelector = customRuleSplitTopLevelDescendantSelector(expression);
   if (descendantSelector) {
