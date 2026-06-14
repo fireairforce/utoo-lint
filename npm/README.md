@@ -98,8 +98,9 @@ currently run `fishlint eslint ...`. It supports the common eslint subcommand
 shape, forwards `--config` and `-c`, maps `--glob` values to native lint
 targets, and normalizes split value flags such as `--format json`, `-f json`,
 `--threads 4`, and `--rules no-debugger`. `--no-eslintrc` maps to native
-`--no-config`. Non-JSON ESLint formatter names are accepted and use native text
-output. `--rule` accepts JSON objects such as
+`--no-config`, and `--no-eslintrc=true` is accepted for compatibility. Non-JSON
+ESLint formatter names are accepted and use native text output. `--rule`
+accepts JSON objects such as
 `{"no-console":"warn"}` and simple `rule: severity` pairs, merging them into the
 selected utoo-lint config for the run. It ignores fishlint-only setup/debug
 flags. `--ext` is accepted for compatibility; native directory traversal already
@@ -112,7 +113,7 @@ ignore-pattern flags are accepted so existing wrapper scripts do not pass them
 as file targets. The wrapper applies simple `.eslintignore`, `--ignore-path`,
 and `--ignore-pattern` filters such as `dist/**` to explicit and `--glob`
 targets before invoking native lint, including `!pattern` negation entries.
-`--no-ignore` disables those wrapper-side ignore filters.
+`--no-ignore` and `--no-ignore=true` disable those wrapper-side ignore filters.
 `--no-error-on-unmatched-pattern` skips
 missing explicit and `--glob` targets before invoking native lint. `--quiet`
 filters warnings from compatibility output. Explicit ignored file paths emit

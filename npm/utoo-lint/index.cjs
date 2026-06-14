@@ -259,6 +259,9 @@ function translateFishlintArgs(args = [], options = {}) {
       continue;
     }
     if (startsWithFlagValue(arg, FISHLINT_DROP_FLAGS)) {
+      if (arg.startsWith("--no-eslintrc=") && booleanFlagValue(arg) !== false) {
+        translated.push("--no-config");
+      }
       index += 1;
       continue;
     }
@@ -408,6 +411,14 @@ function startsWithFlagValue(arg, flags) {
     }
   }
   return false;
+}
+
+function booleanFlagValue(arg) {
+  const value = arg.slice(arg.indexOf("=") + 1).trim().toLowerCase();
+  if (value === "false" || value === "0") {
+    return false;
+  }
+  return true;
 }
 
 function lintFiles(paths = ["."], options = {}) {
