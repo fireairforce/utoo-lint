@@ -579,12 +579,35 @@ function matchesIgnorePattern(target, pattern) {
     return target === pattern || target.endsWith(`/${pattern}`) || target.startsWith(`${pattern}/`);
   }
 
-  const expression = new RegExp(`(^|/)${escapeRegExp(pattern).replaceAll("\\*\\*", ".*").replaceAll("\\*", "[^/]*")}$`);
+  const expression = new RegExp(`(^|/)${globPatternRegExpSource(pattern)}$`);
   return expression.test(target);
 }
 
 function normalizePath(path) {
   return path.replaceAll("\\", "/").replace(/^\.\//, "");
+}
+
+function globPatternRegExpSource(pattern) {
+  let source = "";
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+    if (char === "*") {
+      if (pattern[index + 1] === "*") {
+        if (pattern[index + 2] === "/") {
+          source += "(?:.*/)?";
+          index += 2;
+        } else {
+          source += ".*";
+          index += 1;
+        }
+      } else {
+        source += "[^/]*";
+      }
+      continue;
+    }
+    source += escapeRegExp(char);
+  }
+  return source;
 }
 
 function escapeRegExp(value) {
