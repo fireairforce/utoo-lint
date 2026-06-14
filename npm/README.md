@@ -68,6 +68,11 @@ npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
 For programmatic replacements, `runFishlint()` applies the same argument
 translation before invoking the native binary.
 
+`fishlint-lint-staged` is also provided for generated fishlint pre-commit hooks.
+If a project has its own `lint-staged` install, the wrapper delegates to it.
+Otherwise it lints staged JavaScript and TypeScript files directly with
+`utoo-lint`.
+
 Use the packaged frontend config in an app:
 
 ```bash
