@@ -22,7 +22,8 @@ if (command && command !== "eslint") {
 let args;
 const output = extractOutputFile(values);
 const ignored = extractIgnorePatterns(output.args);
-const printConfig = extractPrintConfig(ignored.args);
+const maxWarnings = extractMaxWarnings(ignored.args);
+const printConfig = extractPrintConfig(maxWarnings.args);
 if (printConfig.enabled) {
   writeOutput(JSON.stringify(loadPrintableConfig(printConfig.args), null, 2) + "\n", output.file);
   process.exit(0);
@@ -60,25 +61,24 @@ try {
   process.exit(1);
 }
 
-const shouldCapture = Boolean(output.file || input.displayPath);
-const result = spawnSync(binary, args, shouldCapture ? { encoding: "utf8" } : { stdio: "inherit" });
+const result = spawnSync(binary, args, { encoding: "utf8" });
 
 if (result.error) {
   console.error(`utoo-lint: failed to run native binary: ${result.error.message}`);
   cleanupStdinInput(input);
   process.exit(1);
 }
-if (shouldCapture) {
-  const stdout = rewriteStdinPath(result.stdout ?? "", input);
-  const stderr = rewriteStdinPath(result.stderr ?? "", input);
-  if (stderr) {
-    process.stderr.write(stderr);
-  }
-  writeOutput(stdout, output.file);
+const rawStdout = result.stdout ?? "";
+const stdout = rewriteStdinPath(rawStdout, input);
+const stderr = rewriteStdinPath(result.stderr ?? "", input);
+if (stderr) {
+  process.stderr.write(stderr);
 }
+writeOutput(stdout, output.file);
 
+const exitStatus = eslintExitStatus(binary, args, result.status ?? 1, rawStdout, maxWarnings.value);
 cleanupStdinInput(input);
-process.exit(result.status ?? 1);
+process.exit(exitStatus);
 
 function extractOutputFile(args) {
   const values = [];
@@ -152,6 +152,41 @@ function extractIgnorePatterns(args) {
   }
 
   return { args: values, patterns };
+}
+
+function extractMaxWarnings(args) {
+  const values = [];
+  let maxWarnings;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--max-warnings") {
+      const value = args[index + 1];
+      if (!value) {
+        console.error("utoo-lint: fishlint --max-warnings requires a number");
+        process.exit(2);
+      }
+      maxWarnings = parseMaxWarnings(value);
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--max-warnings=")) {
+      maxWarnings = parseMaxWarnings(arg.slice("--max-warnings=".length));
+      continue;
+    }
+    values.push(arg);
+  }
+
+  return { args: values, value: maxWarnings };
+}
+
+function parseMaxWarnings(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < -1) {
+    console.error(`utoo-lint: fishlint --max-warnings must be an integer greater than or equal to -1: ${value}`);
+    process.exit(2);
+  }
+  return parsed;
 }
 
 function readIgnoreFile(path) {
@@ -445,6 +480,83 @@ function cleanupStdinInput(input) {
   if (input.directory) {
     rmSync(input.directory, { recursive: true, force: true });
   }
+}
+
+function eslintExitStatus(binary, args, status, stdout, maxWarnings) {
+  if (status !== 0 && status !== 1) {
+    return status;
+  }
+
+  const counts = diagnosticCounts(stdout) ?? (status === 1 ? jsonDiagnosticCounts(binary, args) : null);
+  if (!counts) {
+    return status;
+  }
+  if (counts.errors > 0) {
+    return 1;
+  }
+  if (maxWarnings != null && maxWarnings >= 0 && counts.warnings > maxWarnings) {
+    console.error(
+      `utoo-lint: fishlint found too many warnings (maximum: ${maxWarnings}, found: ${counts.warnings}).`
+    );
+    return 1;
+  }
+  return 0;
+}
+
+function diagnosticCounts(stdout) {
+  let report;
+  try {
+    report = JSON.parse(stdout);
+  } catch {
+    return null;
+  }
+
+  if (!Array.isArray(report?.diagnostics)) {
+    return null;
+  }
+
+  let errors = 0;
+  let warnings = 0;
+  for (const diagnostic of report.diagnostics) {
+    if (diagnostic?.severity === "error") {
+      errors += 1;
+    } else {
+      warnings += 1;
+    }
+  }
+  return { errors, warnings };
+}
+
+function jsonDiagnosticCounts(binary, args) {
+  const result = spawnSync(binary, withJsonFormat(args), { encoding: "utf8" });
+  if (result.error) {
+    return null;
+  }
+  return diagnosticCounts(result.stdout ?? "");
+}
+
+function withJsonFormat(args) {
+  const values = [];
+  let foundFormat = false;
+
+  for (const arg of args) {
+    if (arg === "--json") {
+      foundFormat = true;
+      values.push(arg);
+      continue;
+    }
+    if (arg.startsWith("--format=")) {
+      foundFormat = true;
+      values.push("--format=json");
+      continue;
+    }
+    values.push(arg);
+  }
+
+  if (!foundFormat) {
+    values.unshift("--format=json");
+  }
+  return values;
 }
 
 function runDelegatedCommand(command, args) {
