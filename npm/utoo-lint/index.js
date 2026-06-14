@@ -262,6 +262,10 @@ export function translateFishlintArgs(args = [], options = {}) {
       index += 1;
       continue;
     }
+    if (startsWithFlagValue(arg, FISHLINT_DROP_FLAGS)) {
+      index += 1;
+      continue;
+    }
     if (FISHLINT_DROP_VALUE_FLAGS.has(arg)) {
       const value = rest[index + 1];
       if (!value) {
