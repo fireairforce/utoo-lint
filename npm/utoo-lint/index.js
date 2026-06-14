@@ -42,6 +42,7 @@ const FISHLINT_DROP_VALUE_FLAGS = new Set([
   "--parser",
   "--parser-options",
   "--plugin",
+  "--print-config",
   "--resolve-plugins-relative-to",
   "--rule",
   "--rulesdir",

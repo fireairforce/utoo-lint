@@ -82,6 +82,8 @@ Display and reporting controls such as `--color`, `--no-color`, `--stats`, and
 `--no-warn-ignored` are accepted for the same reason. `--output-file` and `-o`
 write the native output to the requested report file. `--stdin` reads source
 from standard input, and `--stdin-filename` controls the path shown in output.
+`--print-config` prints the selected utoo-lint JSON configuration for migration
+debugging.
 
 ```bash
 npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
