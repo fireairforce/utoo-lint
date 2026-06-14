@@ -202,7 +202,7 @@ export interface RuleTesterValidCase extends ConfigObject {
 }
 
 export interface RuleTesterInvalidCase extends RuleTesterValidCase {
-  errors?: number | Array<number | Partial<LintMessage> & { messageId?: string }>;
+  errors?: number | Array<number | Partial<LintMessage> & { messageId?: string; data?: Record<string, unknown> }>;
   output?: string | null;
 }
 

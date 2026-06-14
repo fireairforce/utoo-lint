@@ -1783,7 +1783,7 @@ class RuleTester {
           const testCase = normalizeRuleTesterCase(test);
           RuleTester[testCase.only ? "itOnly" : "it"](testCase.name ?? testCase.code, () => {
             const messages = linter.verify(testCase.code, ruleTesterConfig(ruleName, this.config, testCase, "error"), ruleTesterOptions(testCase));
-            assertRuleTesterErrors(testCase, messages);
+            assertRuleTesterErrors(testCase, messages, rule);
             assertRuleTesterOutput(testCase, testCase.code);
           });
         }
@@ -1839,7 +1839,7 @@ function ruleTesterOptions(testCase) {
   };
 }
 
-function assertRuleTesterErrors(testCase, messages) {
+function assertRuleTesterErrors(testCase, messages, rule) {
   const expected = testCase.errors;
   if (typeof expected === "number") {
     if (messages.length !== expected) {
@@ -1870,9 +1870,22 @@ function assertRuleTesterErrors(testCase, messages) {
       }
     }
     if (expectation.messageId != null) {
-      throw new Error("RuleTester messageId assertions are not supported by @utoo/lint");
+      const expectedMessage = ruleTesterMessageForId(rule, expectation.messageId, expectation.data);
+      if (message.message !== expectedMessage) {
+        throw new Error(`Error ${index + 1} messageId ${JSON.stringify(expectation.messageId)} should resolve to ${JSON.stringify(expectedMessage)} but message was ${JSON.stringify(message.message)}`);
+      }
     }
   });
+}
+
+function ruleTesterMessageForId(rule, messageId, data = {}) {
+  const template = rule?.meta?.messages?.[messageId];
+  if (typeof template !== "string") {
+    throw new Error(`RuleTester messageId ${JSON.stringify(messageId)} was not found in rule.meta.messages`);
+  }
+  return template.replace(/\{\{\s*([^{}]+?)\s*\}\}/gu, (placeholder, key) => (
+    Object.hasOwn(data, key) ? String(data[key]) : placeholder
+  ));
 }
 
 function assertRuleTesterOutput(testCase, actualOutput) {
