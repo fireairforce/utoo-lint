@@ -799,6 +799,40 @@ async function loadESLint() {
   return UtooLint;
 }
 
+class Linter {
+  static get version() {
+    return version;
+  }
+
+  verify(code, config = {}, options = {}) {
+    if (typeof code !== "string") {
+      throw new TypeError("code must be a string");
+    }
+
+    const verifyOptions = typeof options === "string" ? { filename: options } : { ...options };
+    const filePath = verifyOptions.filename ?? verifyOptions.filePath ?? "input.js";
+    const lintOptions = {
+      cwd: verifyOptions.cwd,
+      filePath,
+      noConfig: true,
+      noIgnore: true,
+      warnIgnored: false,
+      overrideConfig: config
+    };
+    const report = lintText(code, lintOptions);
+    const ruleSeverities = ruleSeverityMapForOptions(lintOptions, normalizeESLintFilePath(filePath, verifyOptions.cwd));
+    return (report.diagnostics ?? []).map((diagnostic) => diagnosticToESLintMessage(diagnostic, ruleSeverities));
+  }
+
+  verifyAndFix(code, config = {}, options = {}) {
+    return {
+      fixed: false,
+      messages: this.verify(code, config, options),
+      output: code
+    };
+  }
+}
+
 function normalizeStringArray(values, name) {
   if (!Array.isArray(values)) {
     throw new TypeError(`${name} must be an array of strings`);
@@ -1612,6 +1646,7 @@ function ruleConfigSeverity(config) {
 module.exports = {
   CLIEngine,
   ESLint,
+  Linter,
   UtooLint,
   default: UtooLint,
   lintFiles,
