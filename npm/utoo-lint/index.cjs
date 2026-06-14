@@ -92,6 +92,7 @@ const BUILTIN_RULE_IDS = [
   "eol-last",
   "eqeqeq",
   "for-direction",
+  "func-names",
   "getter-return",
   "guard-for-in",
   "linebreak-style",
