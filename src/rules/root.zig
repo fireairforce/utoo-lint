@@ -2130,6 +2130,7 @@ const BasicVisitor = struct {
         if (self.options.accessor_pairs) {
             try accessor_pairs.checkCallExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, call, .{
                 .get_without_set = self.options.accessor_pairs_get_without_set == .yes,
+                .set_without_get = self.options.accessor_pairs_set_without_get == .yes,
             });
         }
         if (self.options.import_no_amd) {
@@ -2527,6 +2528,7 @@ const BasicVisitor = struct {
         if (self.options.accessor_pairs) {
             try accessor_pairs.checkObjectExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
                 .get_without_set = self.options.accessor_pairs_get_without_set == .yes,
+                .set_without_get = self.options.accessor_pairs_set_without_get == .yes,
             });
         }
         if (self.options.grouped_accessor_pairs) {
@@ -2630,6 +2632,7 @@ const BasicVisitor = struct {
         if (self.options.accessor_pairs) {
             try accessor_pairs.checkClassBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, body, .{
                 .get_without_set = self.options.accessor_pairs_get_without_set == .yes,
+                .set_without_get = self.options.accessor_pairs_set_without_get == .yes,
             });
         }
         if (self.options.grouped_accessor_pairs) {
