@@ -116,25 +116,13 @@ class UtooLint {
     if (!Array.isArray(results)) {
       throw new Error("'results' must be an array");
     }
-
-    const meta = {};
-    for (const result of results) {
-      for (const message of [...(result.messages ?? []), ...(result.suppressedMessages ?? [])]) {
-        if (message.ruleId) {
-          meta[message.ruleId] = ruleMetaForRuleId(message.ruleId);
-        }
-      }
-    }
-    return meta;
+    return rulesMetaForResults(results);
   }
 
   async loadFormatter(name = "stylish") {
     return {
       format(results) {
-        if (name === "json") {
-          return JSON.stringify(results);
-        }
-        return formatESLintResults(results);
+        return formatResultsByName(results, name);
       }
     };
   }
@@ -208,10 +196,7 @@ class CLIEngine {
 
   getFormatter(name = "stylish") {
     return (results) => {
-      if (name === "json") {
-        return JSON.stringify(results);
-      }
-      return formatESLintResults(results);
+      return formatResultsByName(results, name);
     };
   }
 
@@ -1168,6 +1153,37 @@ function formatESLintResults(results) {
   }
 
   return lines.join("\n");
+}
+
+function formatResultsByName(results, name = "stylish") {
+  if (name === "json") {
+    return JSON.stringify(results);
+  }
+  if (name === "json-with-metadata") {
+    return JSON.stringify({
+      results,
+      metadata: {
+        rulesMeta: rulesMetaForResults(results)
+      }
+    });
+  }
+  return formatESLintResults(results);
+}
+
+function rulesMetaForResults(results) {
+  if (!Array.isArray(results)) {
+    throw new Error("'results' must be an array");
+  }
+
+  const meta = {};
+  for (const result of results) {
+    for (const message of [...(result.messages ?? []), ...(result.suppressedMessages ?? [])]) {
+      if (message.ruleId) {
+        meta[message.ruleId] = ruleMetaForRuleId(message.ruleId);
+      }
+    }
+  }
+  return meta;
 }
 
 function ruleSeverityMap(rules) {
