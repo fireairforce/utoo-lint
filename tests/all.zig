@@ -303,6 +303,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_confusing_arrow.zig");
+}
+
+comptime {
     _ = @import("rules/no_comma_operator.zig");
 }
 

@@ -46,6 +46,7 @@ pub const Options = struct {
     no_caller: bool = true,
     no_case_declarations: bool = true,
     no_class_assign: bool = true,
+    no_confusing_arrow: bool = true,
     no_cond_assign: bool = true,
     no_compare_neg_zero: bool = true,
     no_constant_condition: bool = true,

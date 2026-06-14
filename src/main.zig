@@ -160,6 +160,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_case_declarations = false;
         } else if (std.mem.eql(u8, arg, "--no-class-assign=off")) {
             options.no_class_assign = false;
+        } else if (std.mem.eql(u8, arg, "--no-confusing-arrow=off")) {
+            options.no_confusing_arrow = false;
         } else if (std.mem.eql(u8, arg, "--no-cond-assign=off")) {
             options.no_cond_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-compare-neg-zero=off")) {
@@ -1249,6 +1251,7 @@ fn printHelp() void {
         \\  --no-caller=off           Disable no-caller
         \\  --no-case-declarations=off Disable no-case-declarations
         \\  --no-class-assign=off     Disable no-class-assign
+        \\  --no-confusing-arrow=off  Disable no-confusing-arrow
         \\  --no-cond-assign=off      Disable no-cond-assign
         \\  --no-compare-neg-zero=off Disable no-compare-neg-zero
         \\  --no-constant-condition=off Disable no-constant-condition
