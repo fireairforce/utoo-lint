@@ -143,6 +143,84 @@ export class UtooLint {
 
 export { UtooLint as ESLint };
 
+export class CLIEngine {
+  static get version() {
+    return version;
+  }
+
+  static outputFixes(report) {
+    const results = Array.isArray(report) ? report : report?.results;
+    if (!Array.isArray(results)) {
+      throw new Error("'report' must be an ESLint report or result array");
+    }
+
+    for (const result of results) {
+      if (typeof result !== "object" || result === null) {
+        throw new Error("'report' must include only result objects");
+      }
+      if (typeof result.output === "string" && isAbsolute(result.filePath)) {
+        writeFileSync(result.filePath, result.output);
+      }
+    }
+  }
+
+  static getErrorResults(results) {
+    return getErrorResults(results);
+  }
+
+  constructor(options = {}) {
+    this.options = { ...options };
+  }
+
+  executeOnFiles(patterns) {
+    const mergedOptions = eslintConstructorOptions(this.options);
+    const report = lintFiles(patterns, mergedOptions);
+    const results = reportToESLintResults(report, {
+      cwd: mergedOptions.cwd,
+      filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(patterns, mergedOptions.cwd)),
+      ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
+    });
+    return resultsToCLIEngineReport(results);
+  }
+
+  executeOnText(code, filePathOrOptions = "input.js") {
+    const filePath =
+      typeof filePathOrOptions === "object" && filePathOrOptions !== null
+        ? filePathOrOptions.filePath ?? filePathOrOptions.filename ?? "input.js"
+        : filePathOrOptions;
+    const mergedOptions = eslintConstructorOptions(this.options);
+    const report = lintText(code, {
+      ...mergedOptions,
+      filePath
+    });
+    const results = reportToESLintResults(report, {
+      source: code,
+      filePath: normalizeESLintFilePath(filePath, mergedOptions.cwd),
+      ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
+    });
+    return resultsToCLIEngineReport(results);
+  }
+
+  getFormatter(name = "stylish") {
+    return (results) => {
+      if (name === "json") {
+        return JSON.stringify(results);
+      }
+      return formatESLintResults(results);
+    };
+  }
+
+  isPathIgnored() {
+    return false;
+  }
+
+  getConfigForFile() {
+    return {
+      rules: this.options.overrideConfig?.rules ?? this.options.baseConfig?.rules ?? {}
+    };
+  }
+}
+
 export function run(args = [], options = {}) {
   const cliArgs = normalizeStringArray(args, "args");
   const env = options.env ? { ...process.env, ...options.env } : process.env;
@@ -422,8 +500,9 @@ function eslintConstructorOptions(options) {
   if (typeof options.overrideConfigFile === "string") {
     mapped.config = options.overrideConfigFile;
   }
-  if (options.overrideConfig?.rules) {
-    mapped.overrideConfig = { rules: options.overrideConfig.rules };
+  const rules = options.overrideConfig?.rules ?? options.baseConfig?.rules;
+  if (rules) {
+    mapped.overrideConfig = { rules };
   }
   return mapped;
 }
@@ -573,6 +652,28 @@ function getErrorResults(results) {
     });
   }
   return filtered;
+}
+
+function resultsToCLIEngineReport(results) {
+  const report = {
+    results,
+    errorCount: 0,
+    fatalErrorCount: 0,
+    warningCount: 0,
+    fixableErrorCount: 0,
+    fixableWarningCount: 0,
+    usedDeprecatedRules: []
+  };
+
+  for (const result of results) {
+    report.errorCount += result.errorCount ?? 0;
+    report.fatalErrorCount += result.fatalErrorCount ?? 0;
+    report.warningCount += result.warningCount ?? 0;
+    report.fixableErrorCount += result.fixableErrorCount ?? 0;
+    report.fixableWarningCount += result.fixableWarningCount ?? 0;
+  }
+
+  return report;
 }
 
 function emptyESLintResult(filePath, source) {

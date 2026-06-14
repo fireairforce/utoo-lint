@@ -12,7 +12,7 @@ This directory contains the npm CLI wrapper for `@utoo/lint` and the native plat
 The CLI package also exposes a small ESM API:
 
 ```js
-import { ESLint, lintFiles, lintText, resolveBinary, run, runFishlint } from "@utoo/lint";
+import { CLIEngine, ESLint, lintFiles, lintText, resolveBinary, run, runFishlint } from "@utoo/lint";
 
 const report = lintFiles(["src", "test"], {
   config: "utoo.json",
@@ -42,6 +42,16 @@ const results = await eslint.lintText("debugger;\n", { filePath: "inline.js" });
 console.log(results[0].messages);
 console.log(ESLint.version);
 console.log(ESLint.getErrorResults(results));
+
+const cli = new CLIEngine({
+  useEslintrc: false,
+  baseConfig: {
+    rules: {
+      "no-debugger": "error"
+    }
+  }
+});
+console.log(cli.executeOnFiles(["src"]).results);
 ```
 
 `lintFiles()` and `lintText()` return an object with `files`, `filePaths`,
@@ -52,7 +62,8 @@ for `UtooLint` and supports the common `lintFiles()`, `lintText()`,
 low-friction replacements. It also provides ESLint-compatible `version`,
 `outputFixes()`, `getErrorResults()`, and `getRulesMetaForResults()` surfaces.
 `lintFiles()` returns absolute `filePath` values and includes empty results for
-checked files with no messages. Set
+checked files with no messages. The `CLIEngine` export provides a synchronous
+legacy facade for older ESLint integrations. Set
 `UTOO_LINT_BIN=/path/to/utoo-lint` to force the JS API and CLI wrapper to use a
 specific native binary during local development.
 
