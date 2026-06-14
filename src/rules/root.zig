@@ -1283,7 +1283,10 @@ const BasicVisitor = struct {
             try typescript_eslint_no_inferrable_types.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
         }
         if (self.options.no_underscore_dangle) {
-            try no_underscore_dangle.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
+            try no_underscore_dangle.checkVariableDeclaratorWithOptions(self.allocator, self.diagnostics, ctx.tree, declarator, .{
+                .allow_in_array_destructuring = self.options.no_underscore_dangle_allow_in_array_destructuring == .yes,
+                .allow_in_object_destructuring = self.options.no_underscore_dangle_allow_in_object_destructuring == .yes,
+            });
         }
         if (self.options.func_name_matching) {
             try func_name_matching.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
