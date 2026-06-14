@@ -11,6 +11,34 @@ export { platformPackageName, resolveBinary } from "./lib/binary.js";
 export const version = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version;
 
 const LINTABLE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"]);
+const FISHLINT_DROP_FLAGS = new Set([
+  "--cache",
+  "--debug",
+  "--disable-legacy",
+  "--disable-setup",
+  "--no-cache",
+  "--no-error-on-unmatched-pattern",
+  "--no-inline-config",
+  "--quiet",
+  "--report-unused-disable-directives",
+  "--verbose",
+  "-v"
+]);
+const FISHLINT_DROP_VALUE_FLAGS = new Set([
+  "--cache-location",
+  "--cache-strategy",
+  "--env",
+  "--global",
+  "--ignore-path",
+  "--ignore-pattern",
+  "--max-warnings",
+  "--parser",
+  "--parser-options",
+  "--plugin",
+  "--resolve-plugins-relative-to",
+  "--rule",
+  "--rulesdir"
+]);
 
 export class UtooLint {
   static get version() {
@@ -146,21 +174,11 @@ export function translateFishlintArgs(args = [], options = {}) {
       index += 1;
       continue;
     }
-    if (
-      arg === "--disable-setup" ||
-      arg === "--disable-legacy" ||
-      arg === "--debug" ||
-      arg === "--verbose" ||
-      arg === "-v" ||
-      arg === "--quiet" ||
-      arg === "--no-error-on-unmatched-pattern" ||
-      arg === "--cache" ||
-      arg === "--no-cache"
-    ) {
+    if (FISHLINT_DROP_FLAGS.has(arg)) {
       index += 1;
       continue;
     }
-    if (arg === "--cache-location" || arg === "--cache-strategy" || arg === "--max-warnings") {
+    if (FISHLINT_DROP_VALUE_FLAGS.has(arg)) {
       const value = rest[index + 1];
       if (!value) {
         throw new Error(`utoo-lint: fishlint ${arg} requires a value`);
@@ -168,11 +186,7 @@ export function translateFishlintArgs(args = [], options = {}) {
       index += 2;
       continue;
     }
-    if (
-      arg.startsWith("--cache-location=") ||
-      arg.startsWith("--cache-strategy=") ||
-      arg.startsWith("--max-warnings=")
-    ) {
+    if (startsWithFlagValue(arg, FISHLINT_DROP_VALUE_FLAGS)) {
       index += 1;
       continue;
     }
@@ -276,6 +290,15 @@ export function translateFishlintArgs(args = [], options = {}) {
 
 function translateFishlintFormat(format) {
   return format === "stylish" ? "text" : format;
+}
+
+function startsWithFlagValue(arg, flags) {
+  for (const flag of flags) {
+    if (arg.startsWith(`${flag}=`)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function lintFiles(paths = ["."], options = {}) {
