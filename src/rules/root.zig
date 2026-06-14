@@ -29,6 +29,7 @@ pub const for_direction = @import("for_direction.zig");
 pub const func_name_matching = @import("func_name_matching.zig");
 pub const func_names = @import("func_names.zig");
 pub const getter_return = @import("getter_return.zig");
+pub const grouped_accessor_pairs = @import("grouped_accessor_pairs.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
 pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_exhaustive_deps = @import("alipay_ant_exhaustive_deps.zig");
@@ -2432,6 +2433,9 @@ const BasicVisitor = struct {
         if (self.options.accessor_pairs) {
             try accessor_pairs.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
+        if (self.options.grouped_accessor_pairs) {
+            try grouped_accessor_pairs.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
         if (self.options.no_dupe_keys) {
             try no_dupe_keys.check(self.allocator, self.diagnostics, ctx.tree, expression);
         }
@@ -2522,6 +2526,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.accessor_pairs) {
             try accessor_pairs.checkClassBody(self.allocator, self.diagnostics, ctx.tree, body);
+        }
+        if (self.options.grouped_accessor_pairs) {
+            try grouped_accessor_pairs.checkClassBody(self.allocator, self.diagnostics, ctx.tree, body);
         }
         if (self.options.no_dupe_class_members and !self.options.typescript_eslint_no_dupe_class_members) {
             try no_dupe_class_members.check(self.allocator, self.diagnostics, ctx.tree, body);

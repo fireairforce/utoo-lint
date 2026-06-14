@@ -138,6 +138,8 @@ pub fn main(init: std.process.Init) !void {
             options.func_names = false;
         } else if (std.mem.eql(u8, arg, "--getter-return=off")) {
             options.getter_return = false;
+        } else if (std.mem.eql(u8, arg, "--grouped-accessor-pairs=off")) {
+            options.grouped_accessor_pairs = false;
         } else if (std.mem.eql(u8, arg, "--guard-for-in=off")) {
             options.guard_for_in = false;
         } else if (std.mem.eql(u8, arg, "--linebreak-style=off")) {
@@ -1248,6 +1250,7 @@ fn printHelp() void {
         \\  --func-name-matching=off Disable func-name-matching
         \\  --func-names=off          Disable func-names
         \\  --getter-return=off       Disable getter-return
+        \\  --grouped-accessor-pairs=off Disable grouped-accessor-pairs
         \\  --guard-for-in=off        Disable guard-for-in
         \\  --linebreak-style=off     Disable linebreak-style
         \\  --new-cap=off             Disable new-cap

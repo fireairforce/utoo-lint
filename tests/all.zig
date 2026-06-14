@@ -63,6 +63,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/grouped_accessor_pairs.zig");
+}
+
+comptime {
     _ = @import("rules/guard_for_in.zig");
 }
 
