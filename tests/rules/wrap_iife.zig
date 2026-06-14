@@ -1,0 +1,59 @@
+const std = @import("std");
+const lint = @import("utoo_lint");
+const helpers = @import("../helpers.zig");
+
+test "reports wrap-iife for unwrapped and inside-wrapped IIFEs" {
+    const source =
+        \\const first = function () {
+        \\  return value;
+        \\}();
+        \\const second = (function () {
+        \\  return value;
+        \\})();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.wrap_iife.id));
+    try std.testing.expectEqualStrings("Wrap an immediate function invocation in parentheses.", result.diagnostics[0].message);
+}
+
+test "allows outside-wrapped IIFEs and non-IIFE calls" {
+    const source =
+        \\const first = (function () {
+        \\  return value;
+        \\}());
+        \\const second = callback(function () {
+        \\  return value;
+        \\});
+        \\const third = (() => value)();
+        \\const fourth = function () {
+        \\  return value;
+        \\}.call(context);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.wrap_iife.id));
+}
+
+test "can disable wrap-iife" {
+    const source = "const value = function () { return 1; }();\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .wrap_iife = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.wrap_iife.id));
+}

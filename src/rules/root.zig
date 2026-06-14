@@ -321,6 +321,7 @@ pub const typescript_eslint_restrict_plus_operands = @import("typescript_eslint_
 pub const unicode_bom = @import("unicode_bom.zig");
 pub const use_isnan = @import("use_isnan.zig");
 pub const valid_typeof = @import("valid_typeof.zig");
+pub const wrap_iife = @import("wrap_iife.zig");
 pub const yoda = @import("yoda.zig");
 
 pub fn runBasic(
@@ -344,6 +345,9 @@ pub fn runBasic(
     }
     if (options.unicode_bom) {
         try unicode_bom.run(allocator, diagnostics, tree);
+    }
+    if (options.wrap_iife) {
+        try wrap_iife.run(allocator, diagnostics, tree);
     }
     if (options.no_tabs) {
         try no_tabs.run(allocator, diagnostics, tree);

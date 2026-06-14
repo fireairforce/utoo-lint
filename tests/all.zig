@@ -1219,5 +1219,9 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/wrap_iife.zig");
+}
+
+comptime {
     _ = @import("rules/yoda.zig");
 }
