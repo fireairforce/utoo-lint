@@ -26,6 +26,7 @@ pub fn checkFunction(
 
     var state = ScanState{};
     try scanNode(allocator, diagnostics, tree, function.body, &state);
+    try checkFallthrough(allocator, diagnostics, tree, function.body, &state);
 }
 
 pub fn checkArrowFunction(
@@ -38,6 +39,7 @@ pub fn checkArrowFunction(
 
     var state = ScanState{};
     try scanNode(allocator, diagnostics, tree, expression.body, &state);
+    try checkFallthrough(allocator, diagnostics, tree, expression.body, &state);
 }
 
 fn scanNode(
@@ -123,4 +125,66 @@ fn checkReturn(
         return;
     }
     state.expected = kind;
+}
+
+fn checkFallthrough(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    body_index: ast.NodeIndex,
+    state: *ScanState,
+) Allocator.Error!void {
+    if (state.reported or state.expected != .value) return;
+    if (!nodeCanCompleteNormally(tree, body_index)) return;
+
+    state.reported = true;
+    try core.addDiagnostic(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        "Expected to return a value at the end of function.",
+        tree.span(body_index),
+    );
+}
+
+fn nodeCanCompleteNormally(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    if (index == .null) return true;
+
+    return switch (tree.data(index)) {
+        .function_body => |body| rangeCanCompleteNormally(tree, body.body),
+        .block_statement => |block| rangeCanCompleteNormally(tree, block.body),
+        .return_statement,
+        .throw_statement,
+        => false,
+        .if_statement => |statement| ifCanCompleteNormally(tree, statement),
+        .try_statement => |statement| tryCanCompleteNormally(tree, statement),
+        else => true,
+    };
+}
+
+fn rangeCanCompleteNormally(tree: *const ast.Tree, range: ast.IndexRange) bool {
+    for (tree.extra(range)) |statement| {
+        if (!nodeCanCompleteNormally(tree, statement)) return false;
+    }
+    return true;
+}
+
+fn ifCanCompleteNormally(tree: *const ast.Tree, statement: ast.IfStatement) bool {
+    if (statement.alternate == .null) return true;
+    return nodeCanCompleteNormally(tree, statement.consequent) or
+        nodeCanCompleteNormally(tree, statement.alternate);
+}
+
+fn tryCanCompleteNormally(tree: *const ast.Tree, statement: ast.TryStatement) bool {
+    if (statement.finalizer != .null and !nodeCanCompleteNormally(tree, statement.finalizer)) return false;
+
+    const block_can_complete = nodeCanCompleteNormally(tree, statement.block);
+    if (block_can_complete or statement.handler == .null) return block_can_complete;
+
+    const handler_body = switch (tree.data(statement.handler)) {
+        .catch_clause => |handler| handler.body,
+        else => return true,
+    };
+    return nodeCanCompleteNormally(tree, handler_body);
 }

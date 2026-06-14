@@ -26,6 +26,53 @@ test "reports consistent-return for mixed return values" {
     try std.testing.expectEqualStrings("Expected no return value.", result.diagnostics[1].message);
 }
 
+test "reports consistent-return when value-returning functions can fall through" {
+    const source =
+        "function maybeValue(flag) {\n" ++
+        "  if (flag) return 1;\n" ++
+        "}\n" ++
+        "const maybeArrow = (flag) => {\n" ++
+        "  if (flag) {\n" ++
+        "    return 1;\n" ++
+        "  }\n" ++
+        "};\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
+        .no_unused_vars = false,
+        .no_unused_expressions = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.consistent_return.id));
+    try std.testing.expectEqualStrings("Expected to return a value at the end of function.", result.diagnostics[0].message);
+}
+
+test "allows value-returning functions when all paths are terminal" {
+    const source =
+        "function bothBranches(flag) {\n" ++
+        "  if (flag) {\n" ++
+        "    return 1;\n" ++
+        "  } else {\n" ++
+        "    return 2;\n" ++
+        "  }\n" ++
+        "}\n" ++
+        "function returnOrThrow(flag) {\n" ++
+        "  if (flag) {\n" ++
+        "    return 1;\n" ++
+        "  }\n" ++
+        "  throw error;\n" ++
+        "}\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_undef = false,
+        .no_unused_vars = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.consistent_return.id));
+}
+
 test "scopes nested functions separately" {
     const source =
         "function values(flag) {\n" ++
