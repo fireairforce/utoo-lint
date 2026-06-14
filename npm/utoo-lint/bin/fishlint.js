@@ -1080,6 +1080,16 @@ function translateCommitlintArgs(args) {
       hasMessageSource = true;
       continue;
     }
+    if (arg.startsWith("-E=")) {
+      const envKey = arg.slice("-E=".length);
+      if (process.env[envKey]) {
+        translated.push("--env", envKey);
+      } else {
+        translated.push("--edit");
+      }
+      hasMessageSource = true;
+      continue;
+    }
     translated.push(arg);
   }
 
