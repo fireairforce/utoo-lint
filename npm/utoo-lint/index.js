@@ -662,6 +662,9 @@ function customRuleMessageFromReport(ruleEntry, sourceCode, args) {
     result.endLine = location.end.line;
     result.endColumn = location.end.column + 1;
   }
+  if (Array.isArray(descriptor.suggest)) {
+    result.suggestions = customRuleSuggestions(ruleEntry.rule, sourceCode, descriptor.suggest);
+  }
   return result;
 }
 
@@ -704,6 +707,75 @@ function customRuleReportLocation(sourceCode, descriptor, node) {
       line: end.line ?? start.line ?? 1,
       column: end.column ?? start.column ?? 0
     } : null
+  };
+}
+
+function customRuleSuggestions(rule, sourceCode, suggestions) {
+  return suggestions.map((suggestion) => {
+    const result = {
+      desc: customRuleSuggestionDescription(rule, suggestion)
+    };
+    if (suggestion.messageId != null) {
+      result.messageId = suggestion.messageId;
+    }
+    const fix = customRuleSuggestionFix(sourceCode, suggestion);
+    if (fix) {
+      result.fix = fix;
+    }
+    return result;
+  });
+}
+
+function customRuleSuggestionDescription(rule, suggestion) {
+  if (typeof suggestion.desc === "string") {
+    return replaceRuleMessageData(suggestion.desc, suggestion.data);
+  }
+  if (suggestion.messageId != null) {
+    return ruleTesterMessageForId(rule, suggestion.messageId, suggestion.data);
+  }
+  return "";
+}
+
+function customRuleSuggestionFix(sourceCode, suggestion) {
+  if (typeof suggestion.fix !== "function") {
+    return null;
+  }
+  const value = suggestion.fix(customRuleFixer(sourceCode));
+  const fixes = (Array.isArray(value) ? value : [value]).filter(Boolean);
+  if (fixes.length === 0) {
+    return null;
+  }
+  return fixes.length === 1 ? fixes[0] : fixes;
+}
+
+function customRuleFixer(sourceCode) {
+  return {
+    insertTextAfter(node, text) {
+      const range = sourceCode.getRange(node);
+      return { range: [range[1], range[1]], text };
+    },
+    insertTextAfterRange(range, text) {
+      return { range: [range[1], range[1]], text };
+    },
+    insertTextBefore(node, text) {
+      const range = sourceCode.getRange(node);
+      return { range: [range[0], range[0]], text };
+    },
+    insertTextBeforeRange(range, text) {
+      return { range: [range[0], range[0]], text };
+    },
+    remove(node) {
+      return this.replaceText(node, "");
+    },
+    removeRange(range) {
+      return this.replaceTextRange(range, "");
+    },
+    replaceText(node, text) {
+      return this.replaceTextRange(sourceCode.getRange(node), text);
+    },
+    replaceTextRange(range, text) {
+      return { range: [range[0], range[1]], text };
+    }
   };
 }
 
@@ -1349,7 +1421,57 @@ function assertRuleTesterErrors(testCase, messages, rule) {
     if (expectation.type != null && message.nodeType !== expectation.type) {
       throw new Error(`Error ${index + 1} type should be ${JSON.stringify(expectation.type)} but was ${JSON.stringify(message.nodeType)}`);
     }
+    if (Object.hasOwn(expectation, "suggestions")) {
+      assertRuleTesterSuggestions(index, message.suggestions ?? [], expectation.suggestions, testCase.code, rule);
+    }
   });
+}
+
+function assertRuleTesterSuggestions(errorIndex, actualSuggestions, expectedSuggestions, code, rule) {
+  if (expectedSuggestions == null) {
+    if (actualSuggestions.length > 0) {
+      throw new Error(`Error ${errorIndex + 1} should have no suggestions but had ${actualSuggestions.length}: ${JSON.stringify(actualSuggestions)}`);
+    }
+    return;
+  }
+  if (typeof expectedSuggestions === "number") {
+    if (actualSuggestions.length !== expectedSuggestions) {
+      throw new Error(`Error ${errorIndex + 1} should have ${expectedSuggestions} suggestion${expectedSuggestions === 1 ? "" : "s"} but had ${actualSuggestions.length}: ${JSON.stringify(actualSuggestions)}`);
+    }
+    return;
+  }
+  if (!Array.isArray(expectedSuggestions)) {
+    throw new TypeError("RuleTester suggestions must be a number, null, or an array");
+  }
+  if (actualSuggestions.length !== expectedSuggestions.length) {
+    throw new Error(`Error ${errorIndex + 1} should have ${expectedSuggestions.length} suggestion${expectedSuggestions.length === 1 ? "" : "s"} but had ${actualSuggestions.length}: ${JSON.stringify(actualSuggestions)}`);
+  }
+
+  expectedSuggestions.forEach((expectation, suggestionIndex) => {
+    const suggestion = actualSuggestions[suggestionIndex];
+    if (expectation.messageId != null) {
+      const expectedDesc = ruleTesterMessageForId(rule, expectation.messageId, expectation.data);
+      if (suggestion.desc !== expectedDesc) {
+        throw new Error(`Error ${errorIndex + 1} suggestion ${suggestionIndex + 1} messageId ${JSON.stringify(expectation.messageId)} should resolve to ${JSON.stringify(expectedDesc)} but desc was ${JSON.stringify(suggestion.desc)}`);
+      }
+    }
+    if (expectation.desc != null && suggestion.desc !== expectation.desc) {
+      throw new Error(`Error ${errorIndex + 1} suggestion ${suggestionIndex + 1} desc should be ${JSON.stringify(expectation.desc)} but was ${JSON.stringify(suggestion.desc)}`);
+    }
+    if (Object.hasOwn(expectation, "output")) {
+      const output = applyRuleTesterSuggestionFixes(code, suggestion.fix);
+      if (output !== expectation.output) {
+        throw new Error(`Error ${errorIndex + 1} suggestion ${suggestionIndex + 1} output should be ${JSON.stringify(expectation.output)} but was ${JSON.stringify(output)}`);
+      }
+    }
+  });
+}
+
+function applyRuleTesterSuggestionFixes(code, fix) {
+  const fixes = (Array.isArray(fix) ? fix : [fix]).filter((item) => item?.range);
+  return fixes
+    .sort((left, right) => right.range[0] - left.range[0])
+    .reduce((output, item) => output.slice(0, item.range[0]) + item.text + output.slice(item.range[1]), code);
 }
 
 function ruleTesterMessageForId(rule, messageId, data = {}) {

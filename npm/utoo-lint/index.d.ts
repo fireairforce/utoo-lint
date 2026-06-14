@@ -7,6 +7,18 @@ export interface LintMessage {
   endLine?: number;
   endColumn?: number;
   nodeType?: string | null;
+  suggestions?: LintSuggestion[];
+}
+
+export interface LintFix {
+  range: [number, number];
+  text: string;
+}
+
+export interface LintSuggestion {
+  desc: string;
+  messageId?: string;
+  fix?: LintFix | LintFix[];
 }
 
 export interface LintResult {
@@ -203,7 +215,12 @@ export interface RuleTesterValidCase extends ConfigObject {
 }
 
 export interface RuleTesterInvalidCase extends RuleTesterValidCase {
-  errors?: number | Array<number | Partial<LintMessage> & { messageId?: string; data?: Record<string, unknown>; type?: string | null }>;
+  errors?: number | Array<number | Partial<LintMessage> & {
+    messageId?: string;
+    data?: Record<string, unknown>;
+    type?: string | null;
+    suggestions?: number | null | Array<Partial<LintSuggestion> & { data?: Record<string, unknown>; output?: string | null }>;
+  }>;
   output?: string | null;
 }
 
