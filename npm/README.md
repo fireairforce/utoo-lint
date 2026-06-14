@@ -68,6 +68,12 @@ npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
 For programmatic replacements, `runFishlint()` applies the same argument
 translation before invoking the native binary.
 
+For non-eslint fishlint commands, the compatibility command delegates to
+project-local tools when they are installed: `fishlint format` runs `prettier`,
+`fishlint stylelint` runs `stylelint`, `fishlint commitlint` runs `commitlint`,
+and `fishlint projectlint` runs `projectlint`. This keeps existing scripts
+working without treating those tools as native `utoo-lint` checks.
+
 `fishlint-lint-staged` is also provided for generated fishlint pre-commit hooks.
 If a project has its own `lint-staged` install, the wrapper delegates to it.
 Otherwise it lints staged JavaScript and TypeScript files directly with
