@@ -225,6 +225,7 @@ export function run(args = [], options = {}) {
     cwd: options.cwd,
     env,
     encoding: options.encoding ?? "utf8",
+    input: options.input,
     stdio: options.stdio
   });
 }
@@ -240,6 +241,7 @@ export function runFishlint(args = [], options = {}) {
     cwd: options.cwd,
     env,
     encoding: options.encoding ?? "utf8",
+    input: options.input,
     stdio: options.stdio
   });
 }

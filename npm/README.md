@@ -156,7 +156,8 @@ npx eslint --config utoo.json --ext .js,.ts src
 
 For programmatic replacements, `runFishlint()` invokes the same compatibility
 wrapper as the `fishlint` bin, including wrapper-side ignore filtering, quiet
-output, max-warning exit semantics, stdin handling, and delegated commands.
+output, max-warning exit semantics, stdin handling through `options.input`, and
+delegated commands.
 
 For non-eslint fishlint commands, the compatibility command delegates to
 project-local tools when they are installed: `fishlint format` runs `prettier`,
