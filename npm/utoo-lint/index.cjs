@@ -1364,16 +1364,18 @@ class Linter {
     const report = lintText(code, lintOptions);
     const ruleSeverities = ruleSeverityMapForOptions(lintOptions, normalizedFilePath);
     this.sourceCode = sourceCode;
-    this.suppressedMessages = [];
+    const customRuleMessages = runCustomLinterRules(customRules, sourceCode, {
+      cwd: verifyOptions.cwd,
+      filename: filePath,
+      config: calculatedConfig({ cwd: verifyOptions.cwd, noConfig: true, overrideConfig: config }, normalizedFilePath)
+    });
+    const customRuleFilter = applyDisableDirectives(customRuleMessages, sourceCode);
+    this.suppressedMessages = customRuleFilter.suppressedMessages;
     this.times = { passes: [] };
     this.fixPassCount = 0;
     return [
       ...(report.diagnostics ?? []).map((diagnostic) => diagnosticToESLintMessage(diagnostic, ruleSeverities)),
-      ...runCustomLinterRules(customRules, sourceCode, {
-        cwd: verifyOptions.cwd,
-        filename: filePath,
-        config: calculatedConfig({ cwd: verifyOptions.cwd, noConfig: true, overrideConfig: config }, normalizedFilePath)
-      })
+      ...customRuleFilter.messages
     ];
   }
 
@@ -1589,7 +1591,8 @@ function appendCustomLintTextMessages(results, code, filePath, config, rules, op
     filename: filePath,
     config: calculatedConfig({ cwd: options.cwd, noConfig: true, baseConfig: options.baseConfig, overrideConfig: options.overrideConfig }, filePath)
   });
-  if (messages.length === 0) {
+  const filtered = applyDisableDirectives(messages, sourceCode);
+  if (filtered.messages.length === 0 && filtered.suppressedMessages.length === 0) {
     return results;
   }
 
@@ -1598,7 +1601,8 @@ function appendCustomLintTextMessages(results, code, filePath, config, rules, op
     result = emptyESLintResult(filePath, code);
     results.push(result);
   }
-  result.messages.push(...messages);
+  result.messages.push(...filtered.messages);
+  result.suppressedMessages.push(...filtered.suppressedMessages);
   applyResultFixes(result, code, options);
   finalizeESLintResult(result);
   return results;
@@ -1624,10 +1628,12 @@ function appendCustomLintFileMessages(results, config, options) {
       filename: filePath,
       config: calculatedConfig({ cwd: options.cwd, noConfig: true, baseConfig: options.baseConfig, overrideConfig: options.overrideConfig }, filePath)
     });
-    if (messages.length === 0) {
+    const filtered = applyDisableDirectives(messages, sourceCode);
+    if (filtered.messages.length === 0 && filtered.suppressedMessages.length === 0) {
       continue;
     }
-    result.messages.push(...messages);
+    result.messages.push(...filtered.messages);
+    result.suppressedMessages.push(...filtered.suppressedMessages);
     applyResultFixes(result, code, options);
     finalizeESLintResult(result);
   }
@@ -1661,6 +1667,87 @@ function runCustomLinterRules(ruleEntries, sourceCode, options) {
     }
   }
   return messages;
+}
+
+function applyDisableDirectives(messages, sourceCode) {
+  if (messages.length === 0) {
+    return { messages, suppressedMessages: [] };
+  }
+  const directives = sourceCode.getDisableDirectives()
+    .filter((directive) => directive.node?.loc?.start?.line)
+    .sort((left, right) => left.node.loc.start.line - right.node.loc.start.line);
+  if (directives.length === 0) {
+    return { messages, suppressedMessages: [] };
+  }
+
+  const kept = [];
+  const suppressed = [];
+  for (const message of messages) {
+    const directive = disableDirectiveForMessage(message, directives);
+    if (directive) {
+      suppressed.push({
+        ...message,
+        suppressions: [{
+          kind: "directive",
+          justification: directive.justification
+        }]
+      });
+    } else {
+      kept.push(message);
+    }
+  }
+  return { messages: kept, suppressedMessages: suppressed };
+}
+
+function disableDirectiveForMessage(message, directives) {
+  const active = {
+    all: null,
+    allEnabledRules: new Set(),
+    rules: new Map()
+  };
+  for (const directive of directives) {
+    const line = directive.node.loc.start.line;
+    if (directive.type === "eslint-disable-line" && line === message.line && disableDirectiveMatchesRule(directive, message.ruleId)) {
+      return directive;
+    }
+    if (directive.type === "eslint-disable-next-line" && line + 1 === message.line && disableDirectiveMatchesRule(directive, message.ruleId)) {
+      return directive;
+    }
+    if (line > message.line) {
+      break;
+    }
+    if (directive.type === "eslint-disable") {
+      if (directive.ruleId) {
+        active.rules.set(directive.ruleId, directive);
+        active.allEnabledRules.delete(directive.ruleId);
+      } else {
+        active.all = directive;
+        active.allEnabledRules.clear();
+      }
+    } else if (directive.type === "eslint-enable") {
+      if (directive.ruleId) {
+        active.rules.delete(directive.ruleId);
+        if (active.all) {
+          active.allEnabledRules.add(directive.ruleId);
+        }
+      } else {
+        active.all = null;
+        active.allEnabledRules.clear();
+        active.rules.clear();
+      }
+    }
+  }
+  if (active.rules.has(message.ruleId)) {
+    return active.rules.get(message.ruleId);
+  }
+  if (active.all && !active.allEnabledRules.has(message.ruleId)) {
+    return active.all;
+  }
+  return null;
+}
+
+function disableDirectiveMatchesRule(directive, ruleId) {
+  return directive.ruleId == null || directive.ruleId === ruleId;
 }
 
 function traverseCustomRuleAst(node, listeners, context, visitorKeys, seen = new Set(), ancestors = []) {
