@@ -362,7 +362,11 @@ pub fn runBasic(
         try unicode_bom.run(allocator, diagnostics, tree);
     }
     if (options.wrap_iife) {
-        try wrap_iife.run(allocator, diagnostics, tree);
+        try wrap_iife.runWithStyle(allocator, diagnostics, tree, switch (options.wrap_iife_style) {
+            .outside => .outside,
+            .inside => .inside,
+            .any => .any,
+        });
     }
     if (options.no_tabs) {
         try no_tabs.run(allocator, diagnostics, tree);

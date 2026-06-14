@@ -21,6 +21,12 @@ pub const NoConfusingArrowAllowParens = enum {
     no,
 };
 
+pub const WrapIifeStyle = enum {
+    outside,
+    inside,
+    any,
+};
+
 pub const Options = struct {
     accessor_pairs: bool = true,
     array_callback_return: bool = true,
@@ -346,6 +352,7 @@ pub const Options = struct {
     valid_typeof: bool = true,
     vars_on_top: bool = true,
     wrap_iife: bool = true,
+    wrap_iife_style: WrapIifeStyle = .outside,
     yoda: bool = true,
 
     pub fn allDisabled() Options {

@@ -7,14 +7,30 @@ const Allocator = @import("std").mem.Allocator;
 
 pub const id = "wrap-iife";
 
+pub const Style = enum {
+    outside,
+    inside,
+    any,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
 ) Allocator.Error!void {
+    try runWithStyle(allocator, diagnostics, tree, .outside);
+}
+
+pub fn runWithStyle(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    style: Style,
+) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
+        .style = style,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -23,6 +39,7 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    style: Style,
 
     pub fn enter_call_expression(
         self: *Visitor,
@@ -30,7 +47,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (isIifeCall(ctx.tree, call) and !isParenthesized(ctx.tree, index, ctx.path.ancestor(1))) {
+        if (isIifeCall(ctx.tree, call) and !isAllowedStyle(ctx.tree, call, index, ctx.path.ancestor(1), self.style)) {
             try core.addDiagnostic(
                 self.allocator,
                 self.diagnostics,
@@ -44,6 +61,14 @@ const Visitor = struct {
         return .proceed;
     }
 };
+
+fn isAllowedStyle(tree: *const ast.Tree, call: ast.CallExpression, index: ast.NodeIndex, parent: ?ast.NodeIndex, style: Style) bool {
+    return switch (style) {
+        .outside => isParenthesized(tree, index, parent),
+        .inside => tree.data(call.callee) == .parenthesized_expression,
+        .any => isParenthesized(tree, index, parent) or tree.data(call.callee) == .parenthesized_expression,
+    };
+}
 
 fn isIifeCall(tree: *const ast.Tree, call: ast.CallExpression) bool {
     return switch (tree.data(unwrapTransparent(tree, call.callee))) {
