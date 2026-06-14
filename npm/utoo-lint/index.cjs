@@ -942,6 +942,8 @@ class Linter {
 
   constructor(options = {}) {
     this.flags = flagsFromOptions(options);
+    this.rules = new Map();
+    this.parsers = new Map();
     this.sourceCode = null;
     this.suppressedMessages = [];
     this.times = { passes: [] };
@@ -1001,19 +1003,30 @@ class Linter {
   }
 
   getRules() {
-    return new Map();
+    return new Map(this.rules);
   }
 
-  defineRule() {
-    throw new Error("Linter#defineRule is not implemented by @utoo/lint");
+  defineRule(ruleId, rule) {
+    if (typeof ruleId !== "string" || ruleId.length === 0) {
+      throw new TypeError("Linter#defineRule requires a rule id string");
+    }
+    this.rules.set(ruleId, rule);
   }
 
-  defineRules() {
-    throw new Error("Linter#defineRules is not implemented by @utoo/lint");
+  defineRules(rules) {
+    if (typeof rules !== "object" || rules === null) {
+      throw new TypeError("Linter#defineRules requires a rules object");
+    }
+    for (const [ruleId, rule] of Object.entries(rules)) {
+      this.defineRule(ruleId, rule);
+    }
   }
 
-  defineParser() {
-    throw new Error("Linter#defineParser is not implemented by @utoo/lint");
+  defineParser(parserId, parser) {
+    if (typeof parserId !== "string" || parserId.length === 0) {
+      throw new TypeError("Linter#defineParser requires a parser id string");
+    }
+    this.parsers.set(parserId, parser);
   }
 }
 
@@ -1376,8 +1389,9 @@ class RuleTester {
     this.config = mergeRuleTesterConfig(ruleTesterDefaultConfig, config);
   }
 
-  run(ruleName, _rule, tests = {}) {
+  run(ruleName, rule, tests = {}) {
     const linter = new Linter();
+    linter.defineRule(ruleName, rule);
     RuleTester.describe(ruleName, () => {
       RuleTester.describe("valid", () => {
         for (const test of tests.valid ?? []) {

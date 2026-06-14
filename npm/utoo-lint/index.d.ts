@@ -173,9 +173,9 @@ export class Linter {
   getFixPassCount(): number;
   hasFlag(flag: string): boolean;
   getRules(): Map<string, unknown>;
-  defineRule(): never;
-  defineRules(): never;
-  defineParser(): never;
+  defineRule(ruleId: string, rule: unknown): void;
+  defineRules(rules: Record<string, unknown>): void;
+  defineParser(parserId: string, parser: unknown): void;
 }
 
 export interface RuleTesterValidCase extends ConfigObject {
