@@ -14,6 +14,7 @@ pub const Mode = enum {
 
 pub const Options = struct {
     mode: Mode = .always,
+    ignore_inline_comments: bool = false,
 };
 
 pub fn run(
@@ -31,6 +32,8 @@ pub fn runWithOptions(
     options: Options,
 ) Allocator.Error!void {
     for (tree.comments) |comment| {
+        if (options.ignore_inline_comments and isInlineComment(tree, comment)) continue;
+
         const value = trimLeftDecorations(tree.string(comment.value));
         if (isIgnoredComment(value)) continue;
 
@@ -60,6 +63,32 @@ fn violatesMode(first: u8, mode: Mode) bool {
         .always => std.ascii.isLower(first),
         .never => std.ascii.isUpper(first),
     };
+}
+
+fn isInlineComment(tree: *const ast.Tree, comment: ast.Comment) bool {
+    return hasNonWhitespaceBeforeOnLine(tree.source, comment.start) and
+        hasNonWhitespaceAfterOnLine(tree.source, comment.end);
+}
+
+fn hasNonWhitespaceBeforeOnLine(source: []const u8, offset: usize) bool {
+    var cursor = offset;
+    while (cursor > 0) {
+        cursor -= 1;
+        const char = source[cursor];
+        if (char == '\n' or char == '\r') return false;
+        if (!isWhitespace(char)) return true;
+    }
+    return false;
+}
+
+fn hasNonWhitespaceAfterOnLine(source: []const u8, offset: usize) bool {
+    var cursor = offset;
+    while (cursor < source.len) : (cursor += 1) {
+        const char = source[cursor];
+        if (char == '\n' or char == '\r') return false;
+        if (!isWhitespace(char)) return true;
+    }
+    return false;
 }
 
 fn trimLeftDecorations(value: []const u8) []const u8 {

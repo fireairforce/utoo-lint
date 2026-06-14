@@ -109,6 +109,11 @@ pub const CapitalizedCommentsMode = enum {
     never,
 };
 
+pub const CapitalizedCommentsIgnoreInlineComments = enum {
+    yes,
+    no,
+};
+
 pub const Options = struct {
     accessor_pairs: bool = true,
     accessor_pairs_get_without_set: AccessorPairsGetWithoutSet = .no,
@@ -120,6 +125,7 @@ pub const Options = struct {
     block_scoped_var: bool = true,
     capitalized_comments: bool = true,
     capitalized_comments_mode: CapitalizedCommentsMode = .always,
+    capitalized_comments_ignore_inline_comments: CapitalizedCommentsIgnoreInlineComments = .no,
     consistent_return: bool = true,
     constructor_super: bool = true,
     curly: bool = true,

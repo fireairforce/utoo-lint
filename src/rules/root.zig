@@ -364,6 +364,7 @@ pub fn runBasic(
                 .always => .always,
                 .never => .never,
             },
+            .ignore_inline_comments = options.capitalized_comments_ignore_inline_comments == .yes,
         });
     }
     if (options.no_warning_comments) {

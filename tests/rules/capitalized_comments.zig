@@ -66,6 +66,34 @@ test "reports capitalized-comments for uppercase starts in never mode" {
     try std.testing.expectEqualStrings("Comments should not start with an uppercase character.", result.diagnostics[0].message);
 }
 
+test "ignores only inline comments when ignoreInlineComments is enabled" {
+    const source =
+        \\const first = call(/* lowercase inline block */ value);
+        \\const second = value; // lowercase trailing line comment
+        \\/* lowercase standalone block */
+        \\const third = 1;
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .spaced_comment = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(default_result, lint.rules.capitalized_comments.id));
+
+    var ignored_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments_ignore_inline_comments = .yes,
+        .no_unused_vars = false,
+        .spaced_comment = false,
+        .parser_semantic_errors = false,
+    });
+    defer ignored_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(ignored_result, lint.rules.capitalized_comments.id));
+}
+
 test "can disable capitalized-comments" {
     const source =
         \\// lowercase line comment

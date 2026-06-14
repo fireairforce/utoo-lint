@@ -8,7 +8,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`accessor-pairs`](https://eslint.org/docs/latest/rules/accessor-pairs) | Implemented for optional `setWithoutGet` and `getWithoutSet` behavior |
 | [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for optional `allowImplicit`, `checkForEach`, and `allowVoid` behavior |
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
-| [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Implemented for `always` and optional `never` behavior |
+| [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Implemented for `always`, optional `never`, and optional `ignoreInlineComments` behavior |
 | [`consistent-return`](https://eslint.org/docs/latest/rules/consistent-return) | Implemented for mixed explicit value/bare returns and value-returning functions that can fall through |
 | [`constructor-super`](https://eslint.org/docs/latest/rules/constructor-super) | Implemented |
 | [`curly`](https://eslint.org/docs/latest/rules/curly) | Implemented |

@@ -130,6 +130,8 @@ pub fn main(init: std.process.Init) !void {
             options.capitalized_comments = false;
         } else if (std.mem.eql(u8, arg, "--capitalized-comments=never")) {
             options.capitalized_comments_mode = .never;
+        } else if (std.mem.eql(u8, arg, "--capitalized-comments-ignore-inline-comments=on")) {
+            options.capitalized_comments_ignore_inline_comments = .yes;
         } else if (std.mem.eql(u8, arg, "--curly=off")) {
             options.curly = false;
         } else if (std.mem.eql(u8, arg, "--dot-notation=off")) {
@@ -1304,6 +1306,7 @@ fn printHelp() void {
         \\  --block-scoped-var=off   Disable block-scoped-var
         \\  --capitalized-comments=off Disable capitalized-comments
         \\  --capitalized-comments=never Require lowercase comment starts
+        \\  --capitalized-comments-ignore-inline-comments=on Ignore inline comments
         \\  --consistent-return=off  Disable consistent-return
         \\  --constructor-super=off  Disable constructor-super
         \\  --curly=off              Disable curly
