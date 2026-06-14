@@ -101,6 +101,17 @@ export interface SourceRange {
   [key: string]: unknown;
 }
 
+export interface SourceCodeTokenOptions {
+  includeComments?: boolean;
+  filter?: (token: SourceRange) => boolean;
+  skip?: number;
+  count?: number;
+  beforeCount?: number;
+  afterCount?: number;
+}
+
+export type SourceCodeTokenCountOrOptions = number | SourceCodeTokenOptions;
+
 export class SourceCode {
   static splitLines(text: string): string[];
   constructor(text: string, ast?: SourceRange | null);
@@ -126,19 +137,20 @@ export class SourceCode {
   getLoc(node?: SourceRange): { start: SourceLocation; end: SourceLocation };
   getAllTokens(): SourceRange[];
   getTokens(node?: SourceRange, beforeCount?: number, afterCount?: number): SourceRange[];
-  getFirstToken(node?: SourceRange): SourceRange | null;
-  getFirstTokens(node?: SourceRange, count?: number): SourceRange[];
-  getLastToken(node?: SourceRange): SourceRange | null;
-  getLastTokens(node?: SourceRange, count?: number): SourceRange[];
-  getTokenBefore(nodeOrToken: SourceRange): SourceRange | null;
-  getTokensBefore(nodeOrToken: SourceRange, count?: number): SourceRange[];
-  getTokenAfter(nodeOrToken: SourceRange): SourceRange | null;
-  getTokensAfter(nodeOrToken: SourceRange, count?: number): SourceRange[];
-  getTokensBetween(left: SourceRange, right: SourceRange): SourceRange[];
-  getFirstTokenBetween(left: SourceRange, right: SourceRange): SourceRange | null;
-  getFirstTokensBetween(left: SourceRange, right: SourceRange, count?: number): SourceRange[];
-  getLastTokenBetween(left: SourceRange, right: SourceRange): SourceRange | null;
-  getLastTokensBetween(left: SourceRange, right: SourceRange, count?: number): SourceRange[];
+  getTokens(node?: SourceRange, options?: SourceCodeTokenOptions): SourceRange[];
+  getFirstToken(node?: SourceRange, skipOrOptions?: SourceCodeTokenCountOrOptions): SourceRange | null;
+  getFirstTokens(node?: SourceRange, countOrOptions?: SourceCodeTokenCountOrOptions): SourceRange[];
+  getLastToken(node?: SourceRange, skipOrOptions?: SourceCodeTokenCountOrOptions): SourceRange | null;
+  getLastTokens(node?: SourceRange, countOrOptions?: SourceCodeTokenCountOrOptions): SourceRange[];
+  getTokenBefore(nodeOrToken: SourceRange, skipOrOptions?: SourceCodeTokenCountOrOptions): SourceRange | null;
+  getTokensBefore(nodeOrToken: SourceRange, countOrOptions?: SourceCodeTokenCountOrOptions): SourceRange[];
+  getTokenAfter(nodeOrToken: SourceRange, skipOrOptions?: SourceCodeTokenCountOrOptions): SourceRange | null;
+  getTokensAfter(nodeOrToken: SourceRange, countOrOptions?: SourceCodeTokenCountOrOptions): SourceRange[];
+  getTokensBetween(left: SourceRange, right: SourceRange, countOrOptions?: SourceCodeTokenCountOrOptions): SourceRange[];
+  getFirstTokenBetween(left: SourceRange, right: SourceRange, skipOrOptions?: SourceCodeTokenCountOrOptions): SourceRange | null;
+  getFirstTokensBetween(left: SourceRange, right: SourceRange, countOrOptions?: SourceCodeTokenCountOrOptions): SourceRange[];
+  getLastTokenBetween(left: SourceRange, right: SourceRange, skipOrOptions?: SourceCodeTokenCountOrOptions): SourceRange | null;
+  getLastTokensBetween(left: SourceRange, right: SourceRange, countOrOptions?: SourceCodeTokenCountOrOptions): SourceRange[];
   getTokenByRangeStart(index: number): SourceRange | null;
   getTokenOrCommentBefore(nodeOrToken: SourceRange): SourceRange | null;
   getTokenOrCommentAfter(nodeOrToken: SourceRange): SourceRange | null;
