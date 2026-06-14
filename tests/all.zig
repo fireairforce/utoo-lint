@@ -1219,6 +1219,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/vars_on_top.zig");
+}
+
+comptime {
     _ = @import("rules/wrap_iife.zig");
 }
 

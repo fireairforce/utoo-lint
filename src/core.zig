@@ -327,6 +327,7 @@ pub const Options = struct {
     typescript_eslint_restrict_plus_operands: bool = true,
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
+    vars_on_top: bool = true,
     wrap_iife: bool = true,
     yoda: bool = true,
 
