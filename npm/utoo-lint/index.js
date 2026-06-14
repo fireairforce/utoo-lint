@@ -363,13 +363,18 @@ export class UtooLint {
 
   async lintFiles(patterns = ["."], options = {}) {
     const mergedOptions = mergeLintOptions(this.options, options);
-    const report = lintFiles(patterns, mergedOptions);
-    throwOnUnmatchedPatternDiagnostics(report, mergedOptions);
-    return maybeFilterQuietResults(reportToESLintResults(report, {
+    const customRuleConfig = [mergedOptions.baseConfig, mergedOptions.overrideConfig].filter(Boolean);
+    const customRuleFilterMap = customRuleMapForConfig(customRuleConfig, new Map());
+    const nativeOptions = lintOptionsWithoutCustomRules(mergedOptions, customRuleFilterMap);
+    const report = lintFiles(patterns, nativeOptions);
+    throwOnUnmatchedPatternDiagnostics(report, nativeOptions);
+    const results = reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
-      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
-    }), mergedOptions);
+      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(nativeOptions, filePath)
+    });
+    appendCustomLintFileMessages(results, customRuleConfig, mergedOptions);
+    return maybeFilterQuietResults(results, mergedOptions);
   }
 
   async lintText(code, options = {}) {
@@ -676,6 +681,35 @@ function appendCustomLintTextMessages(results, code, filePath, config, rules, op
   }
   result.messages.push(...messages);
   finalizeESLintResult(result);
+  return results;
+}
+
+function appendCustomLintFileMessages(results, config, options) {
+  for (const result of results) {
+    const filePath = result.filePath;
+    const rules = customRuleMapForConfig(config, new Map(), filePath, options.cwd);
+    const customRules = customRuleEntriesForConfig(config, rules, filePath, options.cwd);
+    if (customRules.length === 0) {
+      continue;
+    }
+    let code;
+    try {
+      code = readFileSync(filePath, "utf8");
+    } catch {
+      continue;
+    }
+    const sourceCode = createLinterSourceCode(code);
+    const messages = runCustomLinterRules(customRules, sourceCode, {
+      cwd: options.cwd,
+      filename: filePath,
+      config: calculatedConfig({ cwd: options.cwd, noConfig: true, baseConfig: options.baseConfig, overrideConfig: options.overrideConfig }, filePath)
+    });
+    if (messages.length === 0) {
+      continue;
+    }
+    result.messages.push(...messages);
+    finalizeESLintResult(result);
+  }
   return results;
 }
 
