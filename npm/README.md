@@ -82,7 +82,8 @@ same config discovery as file linting unless `noConfig` is set.
 `overrideConfig` may be objects or flat config arrays; when a file path is
 provided, flat config `files` and `ignores` entries are applied before merging.
 ESLint-compatible results use those calculated rule severities for `messages`,
-`errorCount`, and `warningCount`. The `CLIEngine` export
+`errorCount`, and `warningCount`, including per-file flat config matches. The
+`CLIEngine` export
 provides a synchronous legacy facade for older ESLint integrations.
 `CLIEngine#executeOnText()` accepts a string path or an options object with
 `filePath`, `filename`, and text lint options.
