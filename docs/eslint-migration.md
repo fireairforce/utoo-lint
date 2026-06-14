@@ -94,3 +94,36 @@ npx utoo-lint --config=utoo.json src test
 ```
 
 Once diagnostics match your expectations, replace the ESLint job for that rule set or keep both while expanding rule coverage.
+
+## Replace ESLint API Calls
+
+For scripts that already use ESLint's Node API, import `ESLint` from `@utoo/lint`
+and keep the high-level call shape:
+
+```js
+import { ESLint } from "@utoo/lint";
+
+const eslint = new ESLint({
+  useEslintrc: false,
+  overrideConfig: {
+    rules: {
+      "no-debugger": "warn",
+      "no-console": "warn"
+    }
+  }
+});
+
+const results = await eslint.lintFiles(["src"]);
+const formatter = await eslint.loadFormatter("stylish");
+console.log(formatter.format(results));
+```
+
+`ESLint#lintText()` is also supported. It writes the text to a temporary file and
+maps diagnostics back to the provided `filePath`, which is useful for editor,
+pre-commit, and codemod integrations:
+
+```js
+const [result] = await eslint.lintText("debugger;\n", {
+  filePath: "inline.js"
+});
+```
