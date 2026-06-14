@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { extname, join } from "node:path";
 
 import { resolveBinary } from "../lib/binary.js";
 import { translateFishlintArgs } from "../index.js";
@@ -20,8 +21,10 @@ if (command && command !== "eslint") {
 
 let args;
 const output = extractOutputFile(values);
+const input = extractStdin(output.args);
+const nativeValues = input.file ? [...input.args, input.file] : input.args;
 try {
-  args = translateFishlintArgs(output.args, {
+  args = translateFishlintArgs(nativeValues, {
     warn(message) {
       console.warn(message);
     }
@@ -39,19 +42,28 @@ try {
   process.exit(1);
 }
 
-const result = spawnSync(binary, args, output.file ? { encoding: "utf8" } : { stdio: "inherit" });
+const shouldCapture = Boolean(output.file || input.displayPath);
+const result = spawnSync(binary, args, shouldCapture ? { encoding: "utf8" } : { stdio: "inherit" });
 
 if (result.error) {
   console.error(`utoo-lint: failed to run native binary: ${result.error.message}`);
+  cleanupStdinInput(input);
   process.exit(1);
 }
-if (output.file) {
-  if (result.stderr) {
-    process.stderr.write(result.stderr);
+if (shouldCapture) {
+  const stdout = rewriteStdinPath(result.stdout ?? "", input);
+  const stderr = rewriteStdinPath(result.stderr ?? "", input);
+  if (stderr) {
+    process.stderr.write(stderr);
   }
-  writeFileSync(output.file, result.stdout ?? "");
+  if (output.file) {
+    writeFileSync(output.file, stdout);
+  } else if (stdout) {
+    process.stdout.write(stdout);
+  }
 }
 
+cleanupStdinInput(input);
 process.exit(result.status ?? 1);
 
 function extractOutputFile(args) {
@@ -77,6 +89,57 @@ function extractOutputFile(args) {
   }
 
   return { args: values, file };
+}
+
+function extractStdin(args) {
+  const values = [];
+  let enabled = false;
+  let displayPath = "<stdin>";
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--stdin") {
+      enabled = true;
+      continue;
+    }
+    if (arg === "--stdin-filename") {
+      displayPath = args[index + 1];
+      if (!displayPath) {
+        console.error("utoo-lint: fishlint --stdin-filename requires a path");
+        process.exit(2);
+      }
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--stdin-filename=")) {
+      displayPath = arg.slice("--stdin-filename=".length);
+      continue;
+    }
+    values.push(arg);
+  }
+
+  if (!enabled) {
+    return { args: values };
+  }
+
+  const directory = mkdtempSync(join(tmpdir(), "utoo-fishlint-stdin-"));
+  const extension = extname(displayPath) || ".js";
+  const file = join(directory, `stdin${extension}`);
+  writeFileSync(file, readFileSync(0, "utf8"));
+  return { args: values, directory, displayPath, file };
+}
+
+function rewriteStdinPath(text, input) {
+  if (!input.file || !input.displayPath) {
+    return text;
+  }
+  return text.split(input.file).join(input.displayPath);
+}
+
+function cleanupStdinInput(input) {
+  if (input.directory) {
+    rmSync(input.directory, { recursive: true, force: true });
+  }
 }
 
 function runDelegatedCommand(command, args) {

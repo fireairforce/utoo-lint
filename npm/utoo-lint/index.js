@@ -26,6 +26,7 @@ const FISHLINT_DROP_FLAGS = new Set([
   "--quiet",
   "--report-unused-disable-directives",
   "--stats",
+  "--stdin",
   "--verbose",
   "-v"
 ]);
@@ -44,6 +45,7 @@ const FISHLINT_DROP_VALUE_FLAGS = new Set([
   "--resolve-plugins-relative-to",
   "--rule",
   "--rulesdir",
+  "--stdin-filename",
   "-o"
 ]);
 
