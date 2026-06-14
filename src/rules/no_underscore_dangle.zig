@@ -14,6 +14,7 @@ pub const Options = struct {
     allow_function_params: bool = true,
     allow_in_array_destructuring: bool = true,
     allow_in_object_destructuring: bool = true,
+    enforce_in_method_names: bool = false,
 };
 
 pub fn checkVariableDeclarator(
@@ -128,6 +129,33 @@ pub fn checkMemberExpressionWithOptions(
     try checkName(allocator, diagnostics, tree, member.property, name, true);
 }
 
+pub fn checkMethodDefinitionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    method: ast.MethodDefinition,
+    options: Options,
+) Allocator.Error!void {
+    if (!options.enforce_in_method_names) return;
+
+    const name = staticName(tree, method.key, method.computed) orelse return;
+    try checkName(allocator, diagnostics, tree, method.key, name, false);
+}
+
+pub fn checkObjectPropertyWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    property: ast.ObjectProperty,
+    options: Options,
+) Allocator.Error!void {
+    if (!options.enforce_in_method_names) return;
+    if (!property.method and property.kind == .init) return;
+
+    const name = staticName(tree, property.key, property.computed) orelse return;
+    try checkName(allocator, diagnostics, tree, property.key, name, false);
+}
+
 fn isAllowedMemberAccess(tree: *const ast.Tree, member: ast.MemberExpression, options: Options) bool {
     if (options.allow_after_this and isThisExpression(tree, member.object)) return true;
     if (options.allow_after_super and isSuperExpression(tree, member.object)) return true;
@@ -223,6 +251,17 @@ fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8
 
     return switch (tree.data(member.property)) {
         .identifier_name => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn staticName(tree: *const ast.Tree, index: ast.NodeIndex, computed: bool) ?[]const u8 {
+    if (index == .null or computed) return null;
+
+    return switch (tree.data(index)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        .private_identifier => |identifier| tree.string(identifier.name),
+        .string_literal => |literal| tree.string(literal.value),
         else => null,
     };
 }

@@ -2538,6 +2538,11 @@ const BasicVisitor = struct {
         if (self.options.func_name_matching) {
             try func_name_matching.checkObjectProperty(self.allocator, self.diagnostics, ctx.tree, property);
         }
+        if (self.options.no_underscore_dangle) {
+            try no_underscore_dangle.checkObjectPropertyWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
+                .enforce_in_method_names = self.options.no_underscore_dangle_enforce_in_method_names,
+            });
+        }
         if (self.options.react_no_unused_state) {
             try react_no_unused_state.enterObjectProperty(self.allocator, ctx.tree, property, index, ctx.path.parent(), &self.react_no_unused_state_state);
         }
@@ -2610,6 +2615,11 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
+        }
+        if (self.options.no_underscore_dangle) {
+            try no_underscore_dangle.checkMethodDefinitionWithOptions(self.allocator, self.diagnostics, ctx.tree, method, .{
+                .enforce_in_method_names = self.options.no_underscore_dangle_enforce_in_method_names,
+            });
         }
         if (self.options.typescript_eslint_explicit_member_accessibility) {
             try typescript_eslint_explicit_member_accessibility.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
