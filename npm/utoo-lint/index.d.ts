@@ -85,6 +85,7 @@ export interface LintOptions {
   config?: string;
   configFile?: string;
   noConfig?: boolean;
+  fix?: boolean;
   useEslintrc?: boolean;
   overrideConfigFile?: string | boolean;
   baseConfig?: ConfigObject | ConfigObject[];
