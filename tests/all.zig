@@ -807,6 +807,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_object_spread.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_promise_reject_errors.zig");
 }
 
