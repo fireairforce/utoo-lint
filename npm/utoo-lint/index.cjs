@@ -121,7 +121,7 @@ class UtooLint {
     for (const result of results) {
       for (const message of [...(result.messages ?? []), ...(result.suppressedMessages ?? [])]) {
         if (message.ruleId) {
-          meta[message.ruleId] = {};
+          meta[message.ruleId] = ruleMetaForRuleId(message.ruleId);
         }
       }
     }
@@ -1037,6 +1037,36 @@ function getErrorResults(results) {
     });
   }
   return filtered;
+}
+
+function ruleMetaForRuleId(ruleId) {
+  return {
+    docs: {
+      url: ruleDocsUrl(ruleId)
+    }
+  };
+}
+
+function ruleDocsUrl(ruleId) {
+  if (ruleId.startsWith("@typescript-eslint/")) {
+    return `https://typescript-eslint.io/rules/${ruleId.slice("@typescript-eslint/".length)}/`;
+  }
+  if (ruleId.startsWith("eslint-comments/")) {
+    return `https://mysticatea.github.io/eslint-plugin-eslint-comments/rules/${ruleId.slice("eslint-comments/".length)}.html`;
+  }
+  if (ruleId.startsWith("import/")) {
+    return `https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/${ruleId.slice("import/".length)}.md`;
+  }
+  if (ruleId.startsWith("jsx-a11y/")) {
+    return `https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/main/docs/rules/${ruleId.slice("jsx-a11y/".length)}.md`;
+  }
+  if (ruleId.startsWith("react-hooks/")) {
+    return `https://react.dev/reference/eslint-plugin-react-hooks/lints/${ruleId.slice("react-hooks/".length)}`;
+  }
+  if (ruleId.startsWith("react/")) {
+    return `https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/${ruleId.slice("react/".length)}.md`;
+  }
+  return `https://eslint.org/docs/latest/rules/${ruleId}`;
 }
 
 function resultsToCLIEngineReport(results) {

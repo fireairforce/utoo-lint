@@ -67,6 +67,8 @@ for `UtooLint` and supports the common `lintFiles()`, `lintText()`,
 `loadFormatter()`, `isPathIgnored()`, and `calculateConfigForFile()` methods for
 low-friction replacements. It also provides ESLint-compatible `version`,
 `outputFixes()`, `getErrorResults()`, and `getRulesMetaForResults()` surfaces.
+Rule meta includes best-effort `docs.url` values for common ESLint-compatible
+rule IDs.
 `lintFiles()` returns absolute `filePath` values, includes empty results for
 checked files with no messages, and filters inputs with the same ignore rules.
 `lintText()` applies those ignore rules to the supplied `filePath` and uses the
