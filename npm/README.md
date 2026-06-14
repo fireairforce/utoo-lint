@@ -62,8 +62,9 @@ const { ESLint, lintFiles } = require("@utoo/lint");
 
 `lintFiles()` and `lintText()` return an object with `files`, `filePaths`,
 `diagnostics`, and `exitCode`. Each diagnostic includes `filePath`, `line`,
-`column`, `severity`, `message`, and `ruleId`. The `ESLint` export is an alias
-for `UtooLint` and supports the common `lintFiles()`, `lintText()`,
+`column`, `severity`, `message`, and `ruleId`, with disabled per-file rules
+filtered from the diagnostics. The `ESLint` export is an alias for `UtooLint`
+and supports the common `lintFiles()`, `lintText()`,
 `loadFormatter()`, `isPathIgnored()`, and `calculateConfigForFile()` methods for
 low-friction replacements. It also provides ESLint-compatible `version`,
 `outputFixes()`, `getErrorResults()`, and `getRulesMetaForResults()` surfaces.
@@ -85,7 +86,8 @@ ESLint-compatible results use those calculated rule severities for `messages`,
 `errorCount`, and `warningCount`, including per-file flat config matches. The
 JS API filters diagnostics for rules disabled by the matched file config. The
 native run keeps rules enabled when any matched flat config entry may need them,
-so later `off` entries do not suppress diagnostics for other files. The
+so later `off` entries do not suppress diagnostics for other files. Raw
+`diagnostics` use the same per-file severity and disabled-rule filtering. The
 `CLIEngine` export
 provides a synchronous legacy facade for older ESLint integrations.
 `CLIEngine#executeOnText()` accepts a string path or an options object with
