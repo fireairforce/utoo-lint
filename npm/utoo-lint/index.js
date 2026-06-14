@@ -680,6 +680,7 @@ function appendCustomLintTextMessages(results, code, filePath, config, rules, op
     results.push(result);
   }
   result.messages.push(...messages);
+  applyResultFixes(result, code, options);
   finalizeESLintResult(result);
   return results;
 }
@@ -708,9 +709,20 @@ function appendCustomLintFileMessages(results, config, options) {
       continue;
     }
     result.messages.push(...messages);
+    applyResultFixes(result, code, options);
     finalizeESLintResult(result);
   }
   return results;
+}
+
+function applyResultFixes(result, code, options) {
+  if (!options.fix) {
+    return;
+  }
+  const output = applyRuleFixes(code, result.messages.flatMap((message) => ruleFixItems(message.fix)));
+  if (output !== code) {
+    result.output = output;
+  }
 }
 
 function runCustomLinterRules(ruleEntries, sourceCode, options) {
@@ -2322,6 +2334,7 @@ function eslintConstructorOptions(options) {
     noIgnore: options.noIgnore ?? options.ignore === false,
     baseConfig: options.baseConfig,
     noConfig: options.noConfig,
+    fix: options.fix,
     quiet: options.quiet,
     errorOnUnmatchedPattern: options.errorOnUnmatchedPattern,
     warnIgnored: options.warnIgnored
@@ -3388,11 +3401,19 @@ function diagnosticToESLintMessage(diagnostic, ruleSeverities) {
 function finalizeESLintResult(result) {
   result.errorCount = 0;
   result.warningCount = 0;
+  result.fixableErrorCount = 0;
+  result.fixableWarningCount = 0;
   for (const message of result.messages) {
     if (message.severity === 2) {
       result.errorCount += 1;
+      if (ruleFixItems(message.fix).length > 0) {
+        result.fixableErrorCount += 1;
+      }
     } else {
       result.warningCount += 1;
+      if (ruleFixItems(message.fix).length > 0) {
+        result.fixableWarningCount += 1;
+      }
     }
   }
 }
