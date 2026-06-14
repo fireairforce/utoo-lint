@@ -495,7 +495,18 @@ function hasLintTarget(args) {
 
 function isIgnoredTarget(target, patterns) {
   const normalized = normalizePath(target);
-  return patterns.some((pattern) => matchesIgnorePattern(normalized, normalizePath(pattern)));
+  let ignored = false;
+  for (const pattern of patterns) {
+    const negated = pattern.startsWith("!");
+    if (matchesIgnorePattern(normalized, normalizeIgnoredPattern(pattern))) {
+      ignored = !negated;
+    }
+  }
+  return ignored;
+}
+
+function normalizeIgnoredPattern(pattern) {
+  return normalizePath(pattern.replace(/^!/, "").replace(/^\//, ""));
 }
 
 function matchesIgnorePattern(target, pattern) {

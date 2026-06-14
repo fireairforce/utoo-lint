@@ -111,7 +111,8 @@ semantics, including `--max-warnings`. ESLint runtime config flags such as
 ignore-pattern flags are accepted so existing wrapper scripts do not pass them
 as file targets. The wrapper applies simple `.eslintignore`, `--ignore-path`,
 and `--ignore-pattern` filters such as `dist/**` to explicit and `--glob`
-targets before invoking native lint. `--no-error-on-unmatched-pattern` skips
+targets before invoking native lint, including `!pattern` negation entries.
+`--no-error-on-unmatched-pattern` skips
 missing explicit and `--glob` targets before invoking native lint. `--quiet`
 filters warnings from compatibility output. Explicit ignored file paths emit
 ESLint-style warnings unless `--no-warn-ignored` is set.
