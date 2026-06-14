@@ -887,13 +887,23 @@ function filteredLintPaths(paths, options = {}) {
   const values = normalizeStringArray(Array.isArray(paths) ? paths : [paths], "paths");
   const cwd = options.cwd ?? process.cwd();
   const patterns = options.noIgnore ? [] : ignorePatternsForOptions(options, cwd);
-  if (patterns.length === 0 && options.errorOnUnmatchedPattern !== false) {
+  if (patterns.length === 0 && options.errorOnUnmatchedPattern !== false && !values.some(hasGlobMagic)) {
     return values;
   }
 
   const filtered = new Set();
   for (const target of values) {
     if (hasGlobMagic(target)) {
+      const expanded = expandGlobTarget(target, cwd, patterns);
+      if (expanded.length > 0) {
+        for (const filePath of expanded) {
+          filtered.add(filePath);
+        }
+        continue;
+      }
+      if (options.errorOnUnmatchedPattern === false) {
+        continue;
+      }
       if (!pathIgnoredByPatterns(normalizeIgnoredPath(target, cwd), patterns)) {
         filtered.add(target);
       }
@@ -915,6 +925,62 @@ function filteredLintPaths(paths, options = {}) {
     }
   }
   return [...filtered];
+}
+
+function expandGlobTarget(target, cwd, patterns) {
+  const base = globBaseDirectory(target);
+  const absoluteBase = normalizeESLintFilePath(base, cwd);
+  let stat;
+  try {
+    stat = statSync(absoluteBase);
+  } catch {
+    return [];
+  }
+  if (!stat.isDirectory()) {
+    return [];
+  }
+
+  const expression = new RegExp(`^${globPatternRegExpSource(normalizePath(target))}$`);
+  const files = [];
+  collectGlobFiles(base, cwd, patterns, expression, files);
+  return files;
+}
+
+function globBaseDirectory(pattern) {
+  const segments = normalizePath(pattern).split("/");
+  const baseSegments = [];
+  for (const segment of segments) {
+    if (hasGlobMagic(segment)) {
+      break;
+    }
+    baseSegments.push(segment);
+  }
+  return baseSegments.length > 0 ? baseSegments.join("/") : ".";
+}
+
+function collectGlobFiles(target, cwd, patterns, expression, files) {
+  const absolute = normalizeESLintFilePath(target, cwd);
+  for (const entry of readdirSync(absolute, { withFileTypes: true })) {
+    if (shouldSkipDirectoryEntry(entry.name)) {
+      continue;
+    }
+
+    const child = join(target, entry.name);
+    if (entry.isDirectory()) {
+      if (!pathIgnoredByPatterns(normalizeIgnoredPath(child, cwd), patterns)) {
+        collectGlobFiles(child, cwd, patterns, expression, files);
+      }
+      continue;
+    }
+    if (
+      entry.isFile() &&
+      isLintableFilePath(child) &&
+      expression.test(normalizePath(child)) &&
+      !pathIgnoredByPatterns(normalizeIgnoredPath(child, cwd), patterns)
+    ) {
+      files.push(child);
+    }
+  }
 }
 
 function ignoredLintPathDiagnostics(paths, options = {}) {
@@ -1148,6 +1214,19 @@ function globPatternRegExpSource(pattern) {
         source += "[^/]*";
       }
       continue;
+    }
+    if (char === "?") {
+      source += "[^/]";
+      continue;
+    }
+    if (char === "{") {
+      const end = pattern.indexOf("}", index + 1);
+      if (end !== -1) {
+        const parts = pattern.slice(index + 1, end).split(",");
+        source += `(?:${parts.map(escapeRegExp).join("|")})`;
+        index = end;
+        continue;
+      }
     }
     source += escapeRegExp(char);
   }
