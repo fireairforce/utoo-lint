@@ -89,7 +89,7 @@ export class UtooLint {
     return maybeFilterQuietResults(reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
-      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
+      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
     }), mergedOptions);
   }
 
@@ -104,7 +104,7 @@ export class UtooLint {
       source: code,
       filePath: normalizeESLintFilePath(options.filePath ?? "<text>", mergedOptions.cwd),
       includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0,
-      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
+      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
     }), mergedOptions);
   }
 
@@ -169,7 +169,7 @@ export class CLIEngine {
     const results = maybeFilterQuietResults(reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
-      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
+      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
     }), mergedOptions);
     return resultsToCLIEngineReport(results);
   }
@@ -195,7 +195,7 @@ export class CLIEngine {
       source: code,
       filePath: normalizeESLintFilePath(filePath, mergedOptions.cwd),
       includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0,
-      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
+      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
     }), mergedOptions);
     return resultsToCLIEngineReport(results);
   }
@@ -744,7 +744,8 @@ function reportToESLintResults(report, textOptions = {}) {
     if (!byFile.has(filePath)) {
       byFile.set(filePath, emptyESLintResult(filePath, textOptions.source));
     }
-    byFile.get(filePath).messages.push(diagnosticToESLintMessage(diagnostic, textOptions.ruleSeverities));
+    const ruleSeverities = textOptions.ruleSeverityForFile?.(filePath) ?? textOptions.ruleSeverities;
+    byFile.get(filePath).messages.push(diagnosticToESLintMessage(diagnostic, ruleSeverities));
   }
 
   if (textOptions.filePath && textOptions.includeEmptyTextResult !== false && !byFile.has(textOptions.filePath)) {
@@ -1309,8 +1310,8 @@ function ruleSeverityMap(rules) {
   return severities;
 }
 
-function ruleSeverityMapForOptions(options) {
-  return ruleSeverityMap(calculatedConfig(options).rules);
+function ruleSeverityMapForOptions(options, filePath) {
+  return ruleSeverityMap(calculatedConfig(options, filePath).rules);
 }
 
 function ruleConfigSeverity(config) {
