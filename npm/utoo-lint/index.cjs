@@ -934,6 +934,22 @@ class Linter {
   hasFlag(flag) {
     return this.flags.includes(flag);
   }
+
+  getRules() {
+    return new Map();
+  }
+
+  defineRule() {
+    throw new Error("Linter#defineRule is not implemented by @utoo/lint");
+  }
+
+  defineRules() {
+    throw new Error("Linter#defineRules is not implemented by @utoo/lint");
+  }
+
+  defineParser() {
+    throw new Error("Linter#defineParser is not implemented by @utoo/lint");
+  }
 }
 
 class SourceCode {
