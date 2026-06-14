@@ -34,6 +34,7 @@ const JsonDiagnosticList = std.ArrayList(JsonDiagnostic);
 
 const JsonReport = struct {
     files: usize,
+    filePaths: []const []const u8,
     diagnostics: []const JsonDiagnostic,
 };
 
@@ -743,7 +744,7 @@ pub fn main(init: std.process.Init) !void {
 
     if (output_format == .json) {
         try lintFilesJson(allocator, io, files.items, options, &stats, &json_diagnostics);
-        try writeJsonReport(io, stats, json_diagnostics.items);
+        try writeJsonReport(io, stats, files.items, json_diagnostics.items);
     } else {
         try lintFiles(allocator, io, files.items, options, thread_count_override, &stats);
 
@@ -1156,13 +1157,14 @@ fn freeJsonDiagnostics(allocator: std.mem.Allocator, diagnostics: *JsonDiagnosti
     diagnostics.deinit(allocator);
 }
 
-fn writeJsonReport(io: std.Io, stats: Stats, diagnostics: []const JsonDiagnostic) !void {
+fn writeJsonReport(io: std.Io, stats: Stats, file_paths: []const []const u8, diagnostics: []const JsonDiagnostic) !void {
     var stdout_buffer: [4096]u8 = undefined;
     var stdout_writer = std.Io.File.stdout().writer(io, &stdout_buffer);
     const stdout = &stdout_writer.interface;
 
     try std.json.Stringify.value(JsonReport{
         .files = stats.files,
+        .filePaths = file_paths,
         .diagnostics = diagnostics,
     }, .{}, stdout);
     try stdout.writeByte('\n');

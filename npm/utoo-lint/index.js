@@ -47,7 +47,7 @@ export class UtooLint {
     const report = lintFiles(patterns, mergedOptions);
     return reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
-      filePaths: explicitLintFilePaths(patterns, mergedOptions.cwd),
+      filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(patterns, mergedOptions.cwd)),
       ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
     });
   }
@@ -413,6 +413,21 @@ function normalizeESLintFilePath(filePath, cwd) {
   if (filePath === "<text>") return filePath;
   if (isAbsolute(filePath)) return filePath;
   return resolvePath(cwd ?? process.cwd(), filePath);
+}
+
+function reportFilePaths(report, cwd, fallbackFilePaths = []) {
+  const filePaths = new Set();
+  if (Array.isArray(report.filePaths)) {
+    for (const filePath of report.filePaths) {
+      if (typeof filePath === "string") {
+        filePaths.add(normalizeESLintFilePath(filePath, cwd));
+      }
+    }
+  }
+  for (const filePath of fallbackFilePaths) {
+    filePaths.add(filePath);
+  }
+  return [...filePaths];
 }
 
 function explicitLintFilePaths(patterns, cwd) {
