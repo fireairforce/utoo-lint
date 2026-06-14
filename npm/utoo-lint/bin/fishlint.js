@@ -14,6 +14,7 @@ const TARGET_VALUE_FLAGS = new Set([
   "--cache-strategy",
   "--config",
   "--env",
+  "--ext",
   "--fix-type",
   "--format",
   "--global",
