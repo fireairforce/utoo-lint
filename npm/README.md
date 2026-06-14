@@ -143,8 +143,9 @@ npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
 npx eslint --config utoo.json --ext .js,.ts src
 ```
 
-For programmatic replacements, `runFishlint()` applies the same argument
-translation before invoking the native binary.
+For programmatic replacements, `runFishlint()` invokes the same compatibility
+wrapper as the `fishlint` bin, including wrapper-side ignore filtering, quiet
+output, max-warning exit semantics, stdin handling, and delegated commands.
 
 For non-eslint fishlint commands, the compatibility command delegates to
 project-local tools when they are installed: `fishlint format` runs `prettier`,
