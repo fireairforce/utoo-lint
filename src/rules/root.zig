@@ -355,7 +355,12 @@ pub fn runBasic(
         try capitalized_comments.run(allocator, diagnostics, tree);
     }
     if (options.no_warning_comments) {
-        try no_warning_comments.run(allocator, diagnostics, tree);
+        try no_warning_comments.runWithOptions(allocator, diagnostics, tree, .{
+            .location = switch (options.no_warning_comments_location) {
+                .start => .start,
+                .anywhere => .anywhere,
+            },
+        });
     }
     if (options.no_trailing_spaces) {
         try no_trailing_spaces.run(allocator, diagnostics, tree);

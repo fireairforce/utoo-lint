@@ -157,7 +157,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-useless-return`](https://eslint.org/docs/latest/rules/no-useless-return) | Implemented |
 | [`no-var`](https://eslint.org/docs/latest/rules/no-var) | Implemented |
 | [`no-void`](https://eslint.org/docs/latest/rules/no-void) | Implemented |
-| [`no-warning-comments`](https://eslint.org/docs/latest/rules/no-warning-comments) | Implemented |
+| [`no-warning-comments`](https://eslint.org/docs/latest/rules/no-warning-comments) | Implemented for default `location: start` and optional `location: anywhere` behavior |
 | [`no-with`](https://eslint.org/docs/latest/rules/no-with) | Implemented |
 | [`object-shorthand`](https://eslint.org/docs/latest/rules/object-shorthand) | Implemented |
 | [`one-var`](https://eslint.org/docs/latest/rules/one-var) | Implemented for fishlint's `never` configuration |
