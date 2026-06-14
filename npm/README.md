@@ -62,7 +62,9 @@ shape, forwards `--config`, maps `--glob` values to native lint targets, and
 normalizes split value flags such as `--format json`, `-f json`, `--threads 4`,
 and `--rules no-debugger`. It ignores fishlint-only setup/debug flags. `--ext`
 is accepted for compatibility; native directory traversal already filters to
-supported JavaScript and TypeScript extensions.
+supported JavaScript and TypeScript extensions. ESLint cache controls and
+`--max-warnings` are consumed for compatibility because utoo-lint does not keep
+an ESLint-style result cache.
 
 ```bash
 npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
