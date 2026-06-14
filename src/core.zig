@@ -32,6 +32,12 @@ pub const AccessorPairsGetWithoutSet = enum {
     no,
 };
 
+pub const GroupedAccessorPairsStyle = enum {
+    any_order,
+    get_before_set,
+    set_before_get,
+};
+
 pub const LogicalAssignmentOperatorsEnforceForIfStatements = enum {
     yes,
     no,
@@ -65,6 +71,7 @@ pub const Options = struct {
     func_names: bool = true,
     getter_return: bool = true,
     grouped_accessor_pairs: bool = true,
+    grouped_accessor_pairs_style: GroupedAccessorPairsStyle = .any_order,
     guard_for_in: bool = true,
     linebreak_style: bool = true,
     logical_assignment_operators: bool = true,

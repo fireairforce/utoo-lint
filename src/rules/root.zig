@@ -336,6 +336,14 @@ pub const vars_on_top = @import("vars_on_top.zig");
 pub const wrap_iife = @import("wrap_iife.zig");
 pub const yoda = @import("yoda.zig");
 
+fn groupedAccessorPairsStyle(style: core.GroupedAccessorPairsStyle) grouped_accessor_pairs.Style {
+    return switch (style) {
+        .any_order => .any_order,
+        .get_before_set => .get_before_set,
+        .set_before_get => .set_before_get,
+    };
+}
+
 pub fn runBasic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -2464,7 +2472,7 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.grouped_accessor_pairs) {
-            try grouped_accessor_pairs.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+            try grouped_accessor_pairs.checkObjectExpressionWithStyle(self.allocator, self.diagnostics, ctx.tree, expression, groupedAccessorPairsStyle(self.options.grouped_accessor_pairs_style));
         }
         if (self.options.no_dupe_keys) {
             try no_dupe_keys.check(self.allocator, self.diagnostics, ctx.tree, expression);
@@ -2560,7 +2568,7 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.grouped_accessor_pairs) {
-            try grouped_accessor_pairs.checkClassBody(self.allocator, self.diagnostics, ctx.tree, body);
+            try grouped_accessor_pairs.checkClassBodyWithStyle(self.allocator, self.diagnostics, ctx.tree, body, groupedAccessorPairsStyle(self.options.grouped_accessor_pairs_style));
         }
         if (self.options.no_dupe_class_members and !self.options.typescript_eslint_no_dupe_class_members) {
             try no_dupe_class_members.check(self.allocator, self.diagnostics, ctx.tree, body);

@@ -12,6 +12,12 @@ const AccessorKind = enum {
     set,
 };
 
+pub const Style = enum {
+    any_order,
+    get_before_set,
+    set_before_get,
+};
+
 const Accessor = struct {
     name: []const u8,
     static: bool = false,
@@ -25,6 +31,16 @@ pub fn checkObjectExpression(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     expression: ast.ObjectExpression,
+) Allocator.Error!void {
+    return checkObjectExpressionWithStyle(allocator, diagnostics, tree, expression, .any_order);
+}
+
+pub fn checkObjectExpressionWithStyle(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.ObjectExpression,
+    style: Style,
 ) Allocator.Error!void {
     var accessors: std.ArrayList(Accessor) = .empty;
     defer accessors.deinit(allocator);
@@ -49,7 +65,7 @@ pub fn checkObjectExpression(
         });
     }
 
-    try checkAccessors(allocator, diagnostics, tree, accessors.items);
+    try checkAccessors(allocator, diagnostics, tree, accessors.items, style);
 }
 
 pub fn checkClassBody(
@@ -57,6 +73,16 @@ pub fn checkClassBody(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     body: ast.ClassBody,
+) Allocator.Error!void {
+    return checkClassBodyWithStyle(allocator, diagnostics, tree, body, .any_order);
+}
+
+pub fn checkClassBodyWithStyle(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    body: ast.ClassBody,
+    style: Style,
 ) Allocator.Error!void {
     var accessors: std.ArrayList(Accessor) = .empty;
     defer accessors.deinit(allocator);
@@ -82,7 +108,7 @@ pub fn checkClassBody(
         });
     }
 
-    try checkAccessors(allocator, diagnostics, tree, accessors.items);
+    try checkAccessors(allocator, diagnostics, tree, accessors.items, style);
 }
 
 fn checkAccessors(
@@ -90,10 +116,11 @@ fn checkAccessors(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     accessors: []const Accessor,
+    style: Style,
 ) Allocator.Error!void {
     for (accessors, 0..) |accessor, index| {
         const previous = previousCounterpart(accessors[0..index], accessor) orelse continue;
-        if (previous.position + 1 == accessor.position) continue;
+        if (previous.position + 1 == accessor.position and orderMatches(style, previous.kind, accessor.kind)) continue;
 
         try core.addDiagnosticFmt(
             allocator,
@@ -105,6 +132,14 @@ fn checkAccessors(
             .{accessor.name},
         );
     }
+}
+
+fn orderMatches(style: Style, previous: AccessorKind, current: AccessorKind) bool {
+    return switch (style) {
+        .any_order => true,
+        .get_before_set => previous == .get and current == .set,
+        .set_before_get => previous == .set and current == .get,
+    };
 }
 
 fn previousCounterpart(previous_accessors: []const Accessor, accessor: Accessor) ?Accessor {
