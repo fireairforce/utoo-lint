@@ -101,6 +101,7 @@ const BUILTIN_RULE_IDS = [
   "getter-return",
   "guard-for-in",
   "linebreak-style",
+  "logical-assignment-operators",
   "new-cap",
   "new-parens",
   "no-alert",
