@@ -536,6 +536,10 @@ pub fn main(init: std.process.Init) !void {
             options.no_warning_comments = false;
         } else if (std.mem.eql(u8, arg, "--no-warning-comments-location=anywhere")) {
             options.no_warning_comments_location = .anywhere;
+        } else if (std.mem.eql(u8, arg, "--no-warning-comments-decoration=asterisk")) {
+            options.no_warning_comments_decoration = .asterisk;
+        } else if (std.mem.eql(u8, arg, "--no-warning-comments-decoration=slash-asterisk")) {
+            options.no_warning_comments_decoration = .slash_asterisk;
         } else if (std.mem.eql(u8, arg, "--no-void=off")) {
             options.no_void = false;
         } else if (std.mem.eql(u8, arg, "--no-with=off")) {
@@ -1493,6 +1497,8 @@ fn printHelp() void {
         \\  --no-unused-expressions=off Disable no-unused-expressions
         \\  --no-warning-comments=off Disable no-warning-comments
         \\  --no-warning-comments-location=anywhere Report warning terms anywhere in comments
+        \\  --no-warning-comments-decoration=asterisk Ignore leading * comment decorations
+        \\  --no-warning-comments-decoration=slash-asterisk Ignore leading / and * comment decorations
         \\  --no-void=off             Disable no-void
         \\  --no-with=off             Disable no-with
         \\  --no-var=off              Disable no-var
