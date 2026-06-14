@@ -164,7 +164,7 @@ export class SourceCode {
   isSpaceBetween(left: SourceRange, right: SourceRange): boolean;
   isSpaceBetweenTokens(left: SourceRange, right: SourceRange): boolean;
   getNodeByRangeIndex(index: number): SourceRange | null;
-  getAncestors(): SourceRange[];
+  getAncestors(node?: SourceRange): SourceRange[];
   getDeclaredVariables(): unknown[];
   getScope(): unknown;
   markVariableAsUsed(name: string): boolean;
