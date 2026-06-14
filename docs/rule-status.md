@@ -165,7 +165,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`prefer-const`](https://eslint.org/docs/latest/rules/prefer-const) | Implemented for optional `destructuring: any` and `destructuring: all` behavior; `ignoreReadBeforeAssign: true` |
 | [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Implemented for object and array variable declarators and assignment expressions |
 | [`prefer-exponentiation-operator`](https://eslint.org/docs/latest/rules/prefer-exponentiation-operator) | Implemented |
-| [`prefer-numeric-literals`](https://eslint.org/docs/latest/rules/prefer-numeric-literals) | Implemented for literal `parseInt` calls with binary, octal, or hexadecimal radix |
+| [`prefer-numeric-literals`](https://eslint.org/docs/latest/rules/prefer-numeric-literals) | Implemented for static string and template `parseInt` calls with binary, octal, or hexadecimal radix |
 | [`prefer-object-has-own`](https://eslint.org/docs/latest/rules/prefer-object-has-own) | Implemented |
 | [`prefer-object-spread`](https://eslint.org/docs/latest/rules/prefer-object-spread) | Implemented for `Object.assign` calls with a new object literal target |
 | [`prefer-promise-reject-errors`](https://eslint.org/docs/latest/rules/prefer-promise-reject-errors) | Implemented |

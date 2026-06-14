@@ -65,9 +65,9 @@ fn preferredLiteralKind(
     const arguments = tree.extra(call.arguments);
     if (arguments.len != 2) return null;
 
-    const source = staticStringValue(tree, arguments[0]) orelse return null;
+    _ = staticStringValue(tree, arguments[0]) orelse return null;
     const kind = radixLiteralKind(tree, arguments[1]) orelse return null;
-    return if (isValidDigits(source, kind)) kind else null;
+    return kind;
 }
 
 fn diagnosticMessage(kind: LiteralKind) []const u8 {
@@ -113,21 +113,6 @@ fn radixLiteralKind(tree: *const ast.Tree, index: ast.NodeIndex) ?LiteralKind {
         16 => .hexadecimal,
         else => null,
     };
-}
-
-fn isValidDigits(source: []const u8, kind: LiteralKind) bool {
-    if (source.len == 0) return false;
-
-    for (source) |char| {
-        const valid = switch (kind) {
-            .binary => char == '0' or char == '1',
-            .octal => char >= '0' and char <= '7',
-            .hexadecimal => std.ascii.isHex(char),
-        };
-        if (!valid) return false;
-    }
-
-    return true;
 }
 
 fn isGlobalParseIntCall(
