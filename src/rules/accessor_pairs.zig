@@ -7,10 +7,15 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "accessor-pairs";
 
+pub const Options = struct {
+    get_without_set: bool = false,
+};
+
 const Accessor = struct {
     name: []const u8,
     static: bool = false,
     get: bool = false,
+    get_index: ast.NodeIndex = .null,
     set: bool = false,
     set_index: ast.NodeIndex = .null,
 };
@@ -20,6 +25,16 @@ pub fn checkObjectExpression(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     expression: ast.ObjectExpression,
+) Allocator.Error!void {
+    try checkObjectExpressionWithOptions(allocator, diagnostics, tree, expression, .{});
+}
+
+pub fn checkObjectExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.ObjectExpression,
+    options: Options,
 ) Allocator.Error!void {
     var accessors: std.ArrayList(Accessor) = .empty;
     defer accessors.deinit(allocator);
@@ -35,7 +50,7 @@ pub fn checkObjectExpression(
         try recordAccessor(allocator, &accessors, name, false, property.kind == .get, property.kind == .set, property_index);
     }
 
-    try reportSettersWithoutGetters(allocator, diagnostics, tree, accessors.items);
+    try reportMissingCounterparts(allocator, diagnostics, tree, accessors.items, options);
 }
 
 pub fn checkClassBody(
@@ -43,6 +58,16 @@ pub fn checkClassBody(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     body: ast.ClassBody,
+) Allocator.Error!void {
+    try checkClassBodyWithOptions(allocator, diagnostics, tree, body, .{});
+}
+
+pub fn checkClassBodyWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    body: ast.ClassBody,
+    options: Options,
 ) Allocator.Error!void {
     var accessors: std.ArrayList(Accessor) = .empty;
     defer accessors.deinit(allocator);
@@ -58,7 +83,7 @@ pub fn checkClassBody(
         try recordAccessor(allocator, &accessors, name, method.static, method.kind == .get, method.kind == .set, member_index);
     }
 
-    try reportSettersWithoutGetters(allocator, diagnostics, tree, accessors.items);
+    try reportMissingCounterparts(allocator, diagnostics, tree, accessors.items, options);
 }
 
 pub fn checkCallExpression(
@@ -67,23 +92,33 @@ pub fn checkCallExpression(
     tree: *const ast.Tree,
     call: ast.CallExpression,
 ) Allocator.Error!void {
+    try checkCallExpressionWithOptions(allocator, diagnostics, tree, call, .{});
+}
+
+pub fn checkCallExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    call: ast.CallExpression,
+    options: Options,
+) Allocator.Error!void {
     const arguments = tree.extra(call.arguments);
 
     if (isStaticMemberCall(tree, call.callee, "Object", "defineProperty")) {
         if (arguments.len < 3) return;
-        try checkPropertyDescriptor(allocator, diagnostics, tree, arguments[2], arguments[1]);
+        try checkPropertyDescriptor(allocator, diagnostics, tree, arguments[2], arguments[1], options);
         return;
     }
 
     if (isStaticMemberCall(tree, call.callee, "Object", "defineProperties")) {
         if (arguments.len < 2) return;
-        try checkNestedDescriptors(allocator, diagnostics, tree, arguments[1]);
+        try checkNestedDescriptors(allocator, diagnostics, tree, arguments[1], options);
         return;
     }
 
     if (isStaticMemberCall(tree, call.callee, "Object", "create")) {
         if (arguments.len < 2) return;
-        try checkNestedDescriptors(allocator, diagnostics, tree, arguments[1]);
+        try checkNestedDescriptors(allocator, diagnostics, tree, arguments[1], options);
     }
 }
 
@@ -92,6 +127,7 @@ fn checkNestedDescriptors(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     descriptors_index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     const descriptors = switch (tree.data(descriptors_index)) {
         .object_expression => |object| object,
@@ -104,7 +140,7 @@ fn checkNestedDescriptors(
             else => continue,
         };
         if (property.value == .null) continue;
-        try checkPropertyDescriptor(allocator, diagnostics, tree, property.value, property.key);
+        try checkPropertyDescriptor(allocator, diagnostics, tree, property.value, property.key, options);
     }
 }
 
@@ -114,6 +150,7 @@ fn checkPropertyDescriptor(
     tree: *const ast.Tree,
     descriptor_index: ast.NodeIndex,
     report_index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     const descriptor = switch (tree.data(descriptor_index)) {
         .object_expression => |object| object,
@@ -121,6 +158,8 @@ fn checkPropertyDescriptor(
     };
 
     var has_get = false;
+    var get_index: ast.NodeIndex = .null;
+    var has_set = false;
     var set_index: ast.NodeIndex = .null;
 
     for (tree.extra(descriptor.properties)) |property_index| {
@@ -131,13 +170,18 @@ fn checkPropertyDescriptor(
 
         if (propertyKeyEquals(tree, property, "get")) {
             has_get = true;
+            get_index = property_index;
         } else if (propertyKeyEquals(tree, property, "set")) {
+            has_set = true;
             set_index = property_index;
         }
     }
 
     if (!has_get and set_index != .null) {
-        try addDiagnostic(allocator, diagnostics, tree, report_index);
+        try addSetterDiagnostic(allocator, diagnostics, tree, report_index);
+    }
+    if (options.get_without_set and has_get and !has_set and get_index != .null) {
+        try addGetterDiagnostic(allocator, diagnostics, tree, report_index);
     }
 }
 
@@ -155,6 +199,7 @@ fn recordAccessor(
         if (!std.mem.eql(u8, accessor.name, name)) continue;
 
         accessor.get = accessor.get or is_get;
+        if (is_get) accessor.get_index = index;
         if (is_set) {
             accessor.set = true;
             accessor.set_index = index;
@@ -166,25 +211,30 @@ fn recordAccessor(
         .name = name,
         .static = static,
         .get = is_get,
+        .get_index = if (is_get) index else .null,
         .set = is_set,
         .set_index = if (is_set) index else .null,
     });
 }
 
-fn reportSettersWithoutGetters(
+fn reportMissingCounterparts(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     accessors: []const Accessor,
+    options: Options,
 ) Allocator.Error!void {
     for (accessors) |accessor| {
         if (accessor.set and !accessor.get) {
-            try addDiagnostic(allocator, diagnostics, tree, accessor.set_index);
+            try addSetterDiagnostic(allocator, diagnostics, tree, accessor.set_index);
+        }
+        if (options.get_without_set and accessor.get and !accessor.set) {
+            try addGetterDiagnostic(allocator, diagnostics, tree, accessor.get_index);
         }
     }
 }
 
-fn addDiagnostic(
+fn addSetterDiagnostic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
@@ -196,6 +246,22 @@ fn addDiagnostic(
         .warning,
         id,
         "Setter must be accompanied by a getter.",
+        tree.span(index),
+    );
+}
+
+fn addGetterDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+) Allocator.Error!void {
+    try core.addDiagnostic(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        "Getter must be accompanied by a setter.",
         tree.span(index),
     );
 }

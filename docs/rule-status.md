@@ -5,7 +5,7 @@ Each rule links to the corresponding ESLint rule reference.
 
 | Rule | Status |
 | --- | --- |
-| [`accessor-pairs`](https://eslint.org/docs/latest/rules/accessor-pairs) | Implemented for ESLint's default `setWithoutGet: true, getWithoutSet: false` behavior |
+| [`accessor-pairs`](https://eslint.org/docs/latest/rules/accessor-pairs) | Implemented for `setWithoutGet: true` and optional `getWithoutSet: true` behavior |
 | [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for fishlint's `allowImplicit: true, checkForEach: false, allowVoid: false` configuration |
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
 | [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Implemented for the default `always` behavior |
