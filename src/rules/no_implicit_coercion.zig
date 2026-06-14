@@ -7,6 +7,12 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-implicit-coercion";
 
+pub const Options = struct {
+    boolean: bool = true,
+    number: bool = true,
+    string: bool = true,
+};
+
 pub fn checkUnaryExpression(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -14,24 +20,35 @@ pub fn checkUnaryExpression(
     expression: ast.UnaryExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkUnaryExpressionWithOptions(allocator, diagnostics, tree, expression, index, .{});
+}
+
+pub fn checkUnaryExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.UnaryExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
     switch (expression.operator) {
         .logical_not => {
-            if (isDoubleNegation(tree, expression)) {
+            if (options.boolean and isDoubleNegation(tree, expression)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Boolean()` instead of double negation.");
             }
         },
         .bitwise_not => {
-            if (isIndexOfCall(tree, expression.argument)) {
+            if (options.boolean and isIndexOfCall(tree, expression.argument)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use an explicit comparison instead of bitwise negation.");
             }
         },
         .positive => {
-            if (!isNumeric(tree, expression.argument)) {
+            if (options.number and !isNumeric(tree, expression.argument)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Number()` instead of unary plus.");
             }
         },
         .negate => {
-            if (isNegatedExpression(tree, expression.argument)) {
+            if (options.number and isNegatedExpression(tree, expression.argument)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Number()` instead of double negation.");
             }
         },
@@ -46,20 +63,31 @@ pub fn checkBinaryExpression(
     expression: ast.BinaryExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkBinaryExpressionWithOptions(allocator, diagnostics, tree, expression, index, .{});
+}
+
+pub fn checkBinaryExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.BinaryExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
     switch (expression.operator) {
         .add => {
-            if (isConcatWithEmptyString(tree, expression)) {
+            if (options.string and isConcatWithEmptyString(tree, expression)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `String()` instead of string concatenation.");
             }
         },
         .subtract => {
-            if (isZeroLiteral(tree, expression.right) and !isNumeric(tree, expression.left)) {
+            if (options.number and isZeroLiteral(tree, expression.right) and !isNumeric(tree, expression.left)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Number()` instead of subtracting zero.");
             }
         },
         .multiply => {
-            if ((isOneLiteral(tree, expression.left) and !isNumeric(tree, expression.right)) or
-                (isOneLiteral(tree, expression.right) and !isNumeric(tree, expression.left)))
+            if (options.number and ((isOneLiteral(tree, expression.left) and !isNumeric(tree, expression.right)) or
+                (isOneLiteral(tree, expression.right) and !isNumeric(tree, expression.left))))
             {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Number()` instead of multiplying by one.");
             }
@@ -75,7 +103,18 @@ pub fn checkAssignmentExpression(
     expression: ast.AssignmentExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
-    if (expression.operator == .add_assign and isEmptyStringLiteral(tree, expression.right)) {
+    try checkAssignmentExpressionWithOptions(allocator, diagnostics, tree, expression, index, .{});
+}
+
+pub fn checkAssignmentExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (options.string and expression.operator == .add_assign and isEmptyStringLiteral(tree, expression.right)) {
         try addDiagnostic(allocator, diagnostics, tree, index, "Use `String()` instead of appending an empty string.");
     }
 }

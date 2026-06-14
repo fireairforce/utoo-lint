@@ -47,6 +47,21 @@ pub const NoVoidAllowAsStatement = enum {
     no,
 };
 
+pub const NoImplicitCoercionBoolean = enum {
+    yes,
+    no,
+};
+
+pub const NoImplicitCoercionNumber = enum {
+    yes,
+    no,
+};
+
+pub const NoImplicitCoercionString = enum {
+    yes,
+    no,
+};
+
 pub const WrapIifeStyle = enum {
     outside,
     inside,
@@ -210,6 +225,9 @@ pub const Options = struct {
     no_global_is_finite: bool = true,
     no_global_is_nan: bool = true,
     no_implicit_coercion: bool = true,
+    no_implicit_coercion_boolean: NoImplicitCoercionBoolean = .yes,
+    no_implicit_coercion_number: NoImplicitCoercionNumber = .yes,
+    no_implicit_coercion_string: NoImplicitCoercionString = .yes,
     no_implied_eval: bool = true,
     no_import_assign: bool = true,
     alipay_ant_disallow_typos: bool = true,

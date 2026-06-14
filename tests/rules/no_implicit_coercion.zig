@@ -86,6 +86,64 @@ test "does not report no-implicit-coercion for explicit conversions" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_implicit_coercion.id));
 }
 
+test "supports no-implicit-coercion category options" {
+    const source =
+        \\const first = !!value;
+        \\const second = ~items.indexOf(value);
+        \\const third = +value;
+        \\const fourth = value - 0;
+        \\const fifth = "" + value;
+        \\let sixth = value;
+        \\sixth += "";
+    ;
+
+    var boolean_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_implicit_coercion_boolean = .no,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer boolean_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(boolean_result, lint.rules.no_implicit_coercion.id));
+
+    var number_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_implicit_coercion_number = .no,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer number_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(number_result, lint.rules.no_implicit_coercion.id));
+
+    var string_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_implicit_coercion_string = .no,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer string_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(string_result, lint.rules.no_implicit_coercion.id));
+
+    var all_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_implicit_coercion_boolean = .no,
+        .no_implicit_coercion_number = .no,
+        .no_implicit_coercion_string = .no,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer all_result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(all_result, lint.rules.no_implicit_coercion.id));
+}
+
 test "can disable no-implicit-coercion" {
     const source =
         \\const first = !!value;
