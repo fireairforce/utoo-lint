@@ -1977,9 +1977,65 @@ function createLinterSourceCode(text) {
       type: "Program",
       range: [0, text.length],
       comments: sourceCommentsFromText(text),
-      tokens: []
+      tokens: sourceTokensFromText(text)
     }
   });
+}
+
+function sourceTokensFromText(text) {
+  const tokens = [];
+  const lineStarts = sourceLineStartIndices(text);
+  let index = 0;
+
+  while (index < text.length) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (/\s/u.test(char)) {
+      index += 1;
+      continue;
+    }
+    if (char === "/" && next === "/") {
+      index += 2;
+      while (index < text.length && text[index] !== "\n" && text[index] !== "\r") {
+        index += 1;
+      }
+      continue;
+    }
+    if (char === "/" && next === "*") {
+      const close = text.indexOf("*/", index + 2);
+      index = close === -1 ? text.length : close + 2;
+      continue;
+    }
+    if (char === "\"" || char === "'" || char === "`") {
+      const start = index;
+      const end = skipQuotedSourceText(text, index, char);
+      tokens.push(sourceTokenNode("String", text.slice(start, end), start, end, lineStarts));
+      index = end;
+      continue;
+    }
+    if (isIdentifierStart(char)) {
+      const start = index;
+      index += 1;
+      while (index < text.length && isIdentifierPart(text[index])) {
+        index += 1;
+      }
+      tokens.push(sourceTokenNode("Identifier", text.slice(start, index), start, index, lineStarts));
+      continue;
+    }
+    if (isDigit(char)) {
+      const start = index;
+      index += 1;
+      while (index < text.length && /[0-9._a-fA-FxXbBoO]/u.test(text[index])) {
+        index += 1;
+      }
+      tokens.push(sourceTokenNode("Numeric", text.slice(start, index), start, index, lineStarts));
+      continue;
+    }
+    const punctuator = sourcePunctuatorAt(text, index);
+    tokens.push(sourceTokenNode("Punctuator", punctuator, index, index + punctuator.length, lineStarts));
+    index += punctuator.length;
+  }
+  return tokens;
 }
 
 function sourceCommentsFromText(text) {
@@ -2033,6 +2089,35 @@ function skipQuotedSourceText(text, start, quote) {
     index += 1;
   }
   return text.length;
+}
+
+function isIdentifierStart(char) {
+  return /[$_\p{ID_Start}]/u.test(char);
+}
+
+function isIdentifierPart(char) {
+  return /[$_\u200c\u200d\p{ID_Continue}]/u.test(char);
+}
+
+function isDigit(char) {
+  return /[0-9]/u.test(char);
+}
+
+function sourcePunctuatorAt(text, index) {
+  const candidates = ["===", "!==", ">>>", "**=", "<<=", ">>=", "=>", "==", "!=", "<=", ">=", "++", "--", "&&", "||", "??", "+=", "-=", "*=", "/=", "%=", "**", "<<", ">>", "?.", "..."];
+  return candidates.find((candidate) => text.startsWith(candidate, index)) ?? text[index];
+}
+
+function sourceTokenNode(type, value, start, end, lineStarts) {
+  return {
+    type,
+    value,
+    range: [start, end],
+    loc: {
+      start: sourceLocFromIndex(lineStarts, start),
+      end: sourceLocFromIndex(lineStarts, end)
+    }
+  };
 }
 
 function sourceCommentNode(type, value, start, end, lineStarts) {
