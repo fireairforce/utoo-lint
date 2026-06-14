@@ -21,9 +21,17 @@
       "import": "./lib/binary.js",
       "require": "./lib/binary.cjs"
     },
+    "./config": {
+      "import": "./config.js",
+      "require": "./config.cjs"
+    },
     "./use-at-your-own-risk": {
       "import": "./use-at-your-own-risk.js",
       "require": "./use-at-your-own-risk.cjs"
+    },
+    "./universal": {
+      "import": "./universal.js",
+      "require": "./universal.cjs"
     },
     "./configs/frontend": "./configs/frontend.json",
     "./schema": "./schema.json",
@@ -37,11 +45,15 @@
   },
   "files": [
     "bin",
+    "config.cjs",
+    "config.js",
     "configs",
     "index.cjs",
     "index.js",
     "lib",
     "schema.json",
+    "universal.cjs",
+    "universal.js",
     "use-at-your-own-risk.cjs",
     "use-at-your-own-risk.js"
   ],
