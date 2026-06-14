@@ -811,28 +811,28 @@ function runCustomLinterRules(ruleEntries, sourceCode, options) {
   return messages;
 }
 
-function traverseCustomRuleAst(node, listeners, context, visitorKeys, seen = new Set()) {
+function traverseCustomRuleAst(node, listeners, context, visitorKeys, seen = new Set(), ancestors = []) {
   if (!node || typeof node !== "object" || typeof node.type !== "string" || seen.has(node)) {
     return;
   }
   seen.add(node);
-  for (const listener of customRuleMatchingListeners(listeners, node, false)) {
+  for (const listener of customRuleMatchingListeners(listeners, node, false, ancestors)) {
     context.setCurrentNode(node);
     listener(node);
   }
   for (const child of customRuleChildNodes(node, visitorKeys)) {
-    traverseCustomRuleAst(child, listeners, context, visitorKeys, seen);
+    traverseCustomRuleAst(child, listeners, context, visitorKeys, seen, [...ancestors, node]);
   }
-  for (const listener of customRuleMatchingListeners(listeners, node, true)) {
+  for (const listener of customRuleMatchingListeners(listeners, node, true, ancestors)) {
     context.setCurrentNode(node);
     listener(node);
   }
 }
 
-function customRuleMatchingListeners(listeners, node, exit) {
+function customRuleMatchingListeners(listeners, node, exit, ancestors = []) {
   const matches = [];
   for (const [selector, listener] of Object.entries(listeners)) {
-    if (typeof listener !== "function" || !customRuleSelectorMatches(selector, node, exit)) {
+    if (typeof listener !== "function" || !customRuleSelectorMatches(selector, node, exit, ancestors)) {
       continue;
     }
     matches.push(listener);
@@ -840,13 +840,24 @@ function customRuleMatchingListeners(listeners, node, exit) {
   return matches;
 }
 
-function customRuleSelectorMatches(selector, node, exit) {
+function customRuleSelectorMatches(selector, node, exit, ancestors = []) {
   const suffix = ":exit";
   const isExit = selector.endsWith(suffix);
   if (isExit !== exit) {
     return false;
   }
   const expression = isExit ? selector.slice(0, -suffix.length) : selector;
+  const childSelector = expression.match(/^(.+?)\s*>\s*(.+)$/u);
+  if (childSelector) {
+    const parent = ancestors.at(-1);
+    return Boolean(parent)
+      && customRuleSimpleSelectorMatches(childSelector[1].trim(), parent)
+      && customRuleSimpleSelectorMatches(childSelector[2].trim(), node);
+  }
+  return customRuleSimpleSelectorMatches(expression, node);
+}
+
+function customRuleSimpleSelectorMatches(expression, node) {
   if (expression === node.type) {
     return true;
   }
