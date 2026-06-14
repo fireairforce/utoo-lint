@@ -53,10 +53,12 @@ specific native binary during local development.
 The package also installs a `fishlint` compatibility command for projects that
 currently run `fishlint eslint ...`. It supports the common eslint subcommand
 shape, forwards `--config`, maps `--glob` values to native lint targets, and
-ignores fishlint-only setup/debug flags:
+ignores fishlint-only setup/debug flags. `--ext` is accepted for compatibility;
+native directory traversal already filters to supported JavaScript and
+TypeScript extensions.
 
 ```bash
-npx fishlint eslint --disable-setup --config utoo.json --glob src
+npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
 ```
 
 For programmatic replacements, `runFishlint()` applies the same argument

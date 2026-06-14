@@ -101,13 +101,13 @@ Once diagnostics match your expectations, replace the ESLint job for that rule s
 call the eslint subcommand:
 
 ```bash
-npx fishlint eslint --disable-setup --config utoo.json --glob src
+npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
 ```
 
 The wrapper invokes `utoo-lint` after translating common fishlint eslint flags.
-It forwards `--config`, maps `--glob` values to lint targets, and ignores
-fishlint-only setup/debug flags. `--fix` is accepted with a warning because
-`utoo-lint` does not apply fixes yet.
+It forwards `--config`, maps `--glob` values to lint targets, accepts `--ext`
+for compatibility, and ignores fishlint-only setup/debug flags. `--fix` is
+accepted with a warning because `utoo-lint` does not apply fixes yet.
 
 ## Replace ESLint API Calls
 
