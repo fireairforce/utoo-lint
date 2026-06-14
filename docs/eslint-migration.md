@@ -145,3 +145,22 @@ const [result] = await eslint.lintText("debugger;\n", {
   filePath: "inline.js"
 });
 ```
+
+Older integrations that still use ESLint's legacy `CLIEngine` can import a
+small synchronous facade:
+
+```js
+import { CLIEngine } from "@utoo/lint";
+
+const cli = new CLIEngine({
+  useEslintrc: false,
+  baseConfig: {
+    rules: {
+      "no-debugger": "error"
+    }
+  }
+});
+
+const report = cli.executeOnFiles(["src"]);
+console.log(cli.getFormatter("stylish")(report.results));
+```
