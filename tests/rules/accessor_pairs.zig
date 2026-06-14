@@ -97,6 +97,47 @@ test "does not report accessor-pairs for getters without setters by default" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.accessor_pairs.id));
 }
 
+test "reports accessor-pairs for getters without setters when enabled" {
+    const source =
+        \\const object = {
+        \\  get value() { return 1; },
+        \\};
+        \\class Example {
+        \\  get value() { return 1; }
+        \\}
+        \\Object.defineProperty(target, "value", {
+        \\  get() { return 1; }
+        \\});
+        \\Object.defineProperties(target, {
+        \\  first: {
+        \\    get() { return 1; }
+        \\  },
+        \\  second: {
+        \\    get() { return 1; },
+        \\    set(next) {}
+        \\  }
+        \\});
+        \\Object.create(proto, {
+        \\  third: {
+        \\    get() { return 1; }
+        \\  }
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .accessor_pairs_get_without_set = .yes,
+        .eol_last = false,
+        .no_empty_function = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.accessor_pairs.id));
+    try std.testing.expectEqualStrings("Getter must be accompanied by a setter.", result.diagnostics[0].message);
+}
+
 test "does not treat ordinary descriptor-looking objects as property descriptors" {
     const source =
         \\const object = {

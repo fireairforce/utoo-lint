@@ -2058,7 +2058,9 @@ const BasicVisitor = struct {
             try array_callback_return.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
         if (self.options.accessor_pairs) {
-            try accessor_pairs.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
+            try accessor_pairs.checkCallExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, call, .{
+                .get_without_set = self.options.accessor_pairs_get_without_set == .yes,
+            });
         }
         if (self.options.import_no_amd) {
             try import_no_amd.check(self.allocator, self.diagnostics, ctx.tree, call, index);
@@ -2449,7 +2451,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.accessor_pairs) {
-            try accessor_pairs.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+            try accessor_pairs.checkObjectExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
+                .get_without_set = self.options.accessor_pairs_get_without_set == .yes,
+            });
         }
         if (self.options.grouped_accessor_pairs) {
             try grouped_accessor_pairs.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);
@@ -2543,7 +2547,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.accessor_pairs) {
-            try accessor_pairs.checkClassBody(self.allocator, self.diagnostics, ctx.tree, body);
+            try accessor_pairs.checkClassBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, body, .{
+                .get_without_set = self.options.accessor_pairs_get_without_set == .yes,
+            });
         }
         if (self.options.grouped_accessor_pairs) {
             try grouped_accessor_pairs.checkClassBody(self.allocator, self.diagnostics, ctx.tree, body);

@@ -108,6 +108,8 @@ pub fn main(init: std.process.Init) !void {
             parseEnabledRules(arg["--rules=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--accessor-pairs=off")) {
             options.accessor_pairs = false;
+        } else if (std.mem.eql(u8, arg, "--accessor-pairs-get-without-set=on")) {
+            options.accessor_pairs_get_without_set = .yes;
         } else if (std.mem.eql(u8, arg, "--consistent-return=off")) {
             options.consistent_return = false;
         } else if (std.mem.eql(u8, arg, "--constructor-super=off")) {
@@ -1247,6 +1249,7 @@ fn printHelp() void {
         \\  --threads=N              Number of worker threads to use
         \\  --rules=a,b,c            Enable only the comma-separated rule list
         \\  --accessor-pairs=off    Disable accessor-pairs
+        \\  --accessor-pairs-get-without-set=on Enable accessor-pairs getWithoutSet
         \\  --array-callback-return=off Disable array-callback-return
         \\  --block-scoped-var=off   Disable block-scoped-var
         \\  --capitalized-comments=off Disable capitalized-comments
