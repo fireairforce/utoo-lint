@@ -21,6 +21,11 @@ pub const NoConfusingArrowAllowParens = enum {
     no,
 };
 
+pub const NoUnderscoreDangleAllowFunctionParams = enum {
+    yes,
+    no,
+};
+
 pub const WrapIifeStyle = enum {
     outside,
     inside,
@@ -253,6 +258,7 @@ pub const Options = struct {
     no_underscore_dangle_allow_after_this: bool = false,
     no_underscore_dangle_allow_after_super: bool = false,
     no_underscore_dangle_allow_after_this_constructor: bool = false,
+    no_underscore_dangle_allow_function_params: NoUnderscoreDangleAllowFunctionParams = .yes,
     no_undefined: bool = true,
     unicode_bom: bool = true,
     no_unneeded_ternary: bool = true,

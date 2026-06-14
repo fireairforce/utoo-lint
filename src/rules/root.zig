@@ -946,7 +946,9 @@ const BasicVisitor = struct {
             try no_dupe_args.check(self.allocator, self.diagnostics, ctx.tree, function);
         }
         if (self.options.no_underscore_dangle) {
-            try no_underscore_dangle.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
+            try no_underscore_dangle.checkFunctionWithOptions(self.allocator, self.diagnostics, ctx.tree, function, .{
+                .allow_function_params = self.options.no_underscore_dangle_allow_function_params == .yes,
+            });
         }
         if (self.options.consistent_return) {
             try consistent_return.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
@@ -1885,6 +1887,11 @@ const BasicVisitor = struct {
         }
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, expression.params);
+        }
+        if (self.options.no_underscore_dangle) {
+            try no_underscore_dangle.checkFormalParametersWithOptions(self.allocator, self.diagnostics, ctx.tree, expression.params, .{
+                .allow_function_params = self.options.no_underscore_dangle_allow_function_params == .yes,
+            });
         }
         if (self.options.no_confusing_arrow) {
             try no_confusing_arrow.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{

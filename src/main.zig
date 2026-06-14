@@ -494,6 +494,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_underscore_dangle_allow_after_super = true;
         } else if (std.mem.eql(u8, arg, "--no-underscore-dangle-allow-after-this-constructor=on")) {
             options.no_underscore_dangle_allow_after_this_constructor = true;
+        } else if (std.mem.eql(u8, arg, "--no-underscore-dangle-allow-function-params=off")) {
+            options.no_underscore_dangle_allow_function_params = .no;
         } else if (std.mem.eql(u8, arg, "--no-undefined=off")) {
             options.no_undefined = false;
         } else if (std.mem.eql(u8, arg, "--unicode-bom=off")) {
@@ -1460,6 +1462,7 @@ fn printHelp() void {
         \\  --no-underscore-dangle-allow-after-this=on Allow dangling underscores after this
         \\  --no-underscore-dangle-allow-after-super=on Allow dangling underscores after super
         \\  --no-underscore-dangle-allow-after-this-constructor=on Allow dangling underscores after this.constructor
+        \\  --no-underscore-dangle-allow-function-params=off Report dangling underscores in function parameters
         \\  --no-undefined=off        Disable no-undefined
         \\  --unicode-bom=off         Disable unicode-bom
         \\  --no-unneeded-ternary=off Disable no-unneeded-ternary
