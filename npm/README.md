@@ -109,7 +109,8 @@ specific native binary during local development.
 The package also installs a `fishlint` compatibility command for projects that
 currently run `fishlint eslint ...`. It supports the common eslint subcommand
 shape, forwards `--config` and `-c`, maps `--glob` values to native lint
-targets, and normalizes split value flags such as `--format json`, `-f json`,
+targets, expands common `--glob` patterns such as `src/**/*.js` and
+`src/**/*.{js,ts}`, and normalizes split value flags such as `--format json`, `-f json`,
 `--threads 4`, and `--rules no-debugger`. `--no-eslintrc` maps to native
 `--no-config`, and `--no-eslintrc=true` is accepted for compatibility.
 `json-with-metadata` emits the native JSON report with a `metadata.rulesMeta`

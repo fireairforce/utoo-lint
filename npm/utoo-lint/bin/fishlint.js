@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
 
@@ -68,7 +68,8 @@ if (command && command !== "eslint") {
 let args;
 const output = extractOutputFile(values);
 const ignored = extractIgnorePatterns(output.args);
-const maxWarnings = extractMaxWarnings(ignored.args);
+const globExpanded = expandGlobTargets(ignored.args);
+const maxWarnings = extractMaxWarnings(globExpanded.args);
 const ruleOverrides = extractRuleOverrides(maxWarnings.args);
 const quiet = extractQuiet(ruleOverrides.args);
 const printConfig = extractPrintConfig(quiet.args);
@@ -423,6 +424,97 @@ function readIgnoreFile(path) {
     .filter((line) => line && !line.startsWith("#"));
 }
 
+function expandGlobTargets(args) {
+  const values = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (TARGET_VALUE_FLAGS.has(arg)) {
+      values.push(arg);
+      if (index + 1 < args.length) {
+        values.push(args[index + 1]);
+        index += 1;
+      }
+      continue;
+    }
+    if (arg === "--glob") {
+      const value = args[index + 1];
+      if (!value) {
+        console.error("utoo-lint: fishlint --glob requires a path");
+        process.exit(2);
+      }
+      values.push(...expandedGlobOrOriginal(value, [arg, value]));
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--glob=")) {
+      const value = arg.slice("--glob=".length);
+      values.push(...expandedGlobOrOriginal(value, [arg]));
+      continue;
+    }
+    values.push(arg);
+  }
+  return { args: values };
+}
+
+function expandedGlobOrOriginal(pattern, original) {
+  if (!hasGlobSyntax(pattern)) {
+    return original;
+  }
+  const matches = expandGlobPattern(pattern);
+  return matches.length > 0 ? matches : original;
+}
+
+function hasGlobSyntax(pattern) {
+  return /[*?[\]{}]/.test(pattern);
+}
+
+function expandGlobPattern(pattern) {
+  const base = globBaseDirectory(pattern);
+  if (!base || !existsSync(base)) {
+    return [];
+  }
+
+  let stat;
+  try {
+    stat = statSync(base);
+  } catch {
+    return [];
+  }
+  if (!stat.isDirectory()) {
+    return [];
+  }
+
+  const expression = new RegExp(`^${globPatternRegExpSource(normalizePath(pattern))}$`);
+  return walkFiles(base)
+    .map(normalizePath)
+    .filter((file) => expression.test(file));
+}
+
+function globBaseDirectory(pattern) {
+  const segments = normalizePath(pattern).split("/");
+  const baseSegments = [];
+  for (const segment of segments) {
+    if (hasGlobSyntax(segment)) {
+      break;
+    }
+    baseSegments.push(segment);
+  }
+  return baseSegments.length > 0 ? baseSegments.join("/") : ".";
+}
+
+function walkFiles(directory) {
+  const files = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = `${directory}/${entry.name}`;
+    if (entry.isDirectory()) {
+      files.push(...walkFiles(path));
+    } else if (entry.isFile()) {
+      files.push(path);
+    }
+  }
+  return files;
+}
+
 function filterIgnoredTargets(args, patterns, warnIgnored) {
   if (patterns.length === 0) {
     return { args, removedTarget: false, diagnostics: [] };
@@ -604,6 +696,19 @@ function globPatternRegExpSource(pattern) {
         source += "[^/]*";
       }
       continue;
+    }
+    if (char === "?") {
+      source += "[^/]";
+      continue;
+    }
+    if (char === "{") {
+      const end = pattern.indexOf("}", index + 1);
+      if (end !== -1) {
+        const parts = pattern.slice(index + 1, end).split(",");
+        source += `(?:${parts.map(escapeRegExp).join("|")})`;
+        index = end;
+        continue;
+      }
     }
     source += escapeRegExp(char);
   }
