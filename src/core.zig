@@ -69,6 +69,11 @@ pub const FuncNamesStyle = enum {
     as_needed,
 };
 
+pub const FuncNameMatchingStyle = enum {
+    always,
+    never,
+};
+
 pub const ArrayCallbackReturnAllowImplicit = enum {
     yes,
     no,
@@ -112,6 +117,7 @@ pub const Options = struct {
     eslint_comments_no_restricted_disable_no_nested_ternary: bool = false,
     for_direction: bool = true,
     func_name_matching: bool = true,
+    func_name_matching_style: FuncNameMatchingStyle = .always,
     func_names: bool = true,
     func_names_style: FuncNamesStyle = .always,
     getter_return: bool = true,

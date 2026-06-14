@@ -344,6 +344,13 @@ fn groupedAccessorPairsStyle(style: core.GroupedAccessorPairsStyle) grouped_acce
     };
 }
 
+fn funcNameMatchingStyle(style: core.FuncNameMatchingStyle) func_name_matching.Style {
+    return switch (style) {
+        .always => .always,
+        .never => .never,
+    };
+}
+
 pub fn runBasic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -1304,7 +1311,9 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.func_name_matching) {
-            try func_name_matching.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
+            try func_name_matching.checkVariableDeclaratorWithOptions(self.allocator, self.diagnostics, ctx.tree, declarator, .{
+                .style = funcNameMatchingStyle(self.options.func_name_matching_style),
+            });
         }
         if (self.options.react_no_children_prop) {
             react_no_children_prop.checkVariableDeclarator(ctx.tree, declarator, &self.react_no_children_prop_bindings);
@@ -1947,7 +1956,9 @@ const BasicVisitor = struct {
             try logical_assignment_operators.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.func_name_matching) {
-            try func_name_matching.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+            try func_name_matching.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
+                .style = funcNameMatchingStyle(self.options.func_name_matching_style),
+            });
         }
         if (self.options.prefer_destructuring) {
             try prefer_destructuring.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);
@@ -2553,7 +2564,9 @@ const BasicVisitor = struct {
             try object_shorthand.check(self.allocator, self.diagnostics, ctx.tree, property, index);
         }
         if (self.options.func_name_matching) {
-            try func_name_matching.checkObjectProperty(self.allocator, self.diagnostics, ctx.tree, property);
+            try func_name_matching.checkObjectPropertyWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
+                .style = funcNameMatchingStyle(self.options.func_name_matching_style),
+            });
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkObjectPropertyWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
@@ -2691,7 +2704,9 @@ const BasicVisitor = struct {
             try typescript_eslint_no_inferrable_types.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
         }
         if (self.options.func_name_matching) {
-            try func_name_matching.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
+            try func_name_matching.checkPropertyDefinitionWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
+                .style = funcNameMatchingStyle(self.options.func_name_matching_style),
+            });
         }
         if (self.options.react_no_typos) {
             try react_no_typos.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, ctx, self.react_no_typos_state);

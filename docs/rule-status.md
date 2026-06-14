@@ -19,7 +19,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`eol-last`](https://eslint.org/docs/latest/rules/eol-last) | Implemented |
 | [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Implemented |
 | [`for-direction`](https://eslint.org/docs/latest/rules/for-direction) | Implemented |
-| [`func-name-matching`](https://eslint.org/docs/latest/rules/func-name-matching) | Implemented for ESLint's default `always` behavior |
+| [`func-name-matching`](https://eslint.org/docs/latest/rules/func-name-matching) | Implemented for `always` and optional `never` behavior |
 | [`func-names`](https://eslint.org/docs/latest/rules/func-names) | Implemented for `always` and optional `as-needed` options |
 | [`getter-return`](https://eslint.org/docs/latest/rules/getter-return) | Implemented |
 | [`grouped-accessor-pairs`](https://eslint.org/docs/latest/rules/grouped-accessor-pairs) | Implemented for `anyOrder`, `getBeforeSet`, and `setBeforeGet` options |

@@ -7,6 +7,15 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "func-name-matching";
 
+pub const Style = enum {
+    always,
+    never,
+};
+
+pub const Options = struct {
+    style: Style = .always,
+};
+
 pub fn checkVariableDeclarator(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -16,7 +25,20 @@ pub fn checkVariableDeclarator(
     if (declarator.init == .null) return;
 
     const target = bindingIdentifierName(tree, declarator.id) orelse return;
-    try checkFunctionName(allocator, diagnostics, tree, declarator.init, target);
+    try checkFunctionName(allocator, diagnostics, tree, declarator.init, target, .{});
+}
+
+pub fn checkVariableDeclaratorWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    declarator: ast.VariableDeclarator,
+    options: Options,
+) Allocator.Error!void {
+    if (declarator.init == .null) return;
+
+    const target = bindingIdentifierName(tree, declarator.id) orelse return;
+    try checkFunctionName(allocator, diagnostics, tree, declarator.init, target, options);
 }
 
 pub fn checkAssignmentExpression(
@@ -28,7 +50,20 @@ pub fn checkAssignmentExpression(
     if (expression.operator != .assign) return;
 
     const target = assignmentTargetName(tree, expression.left) orelse return;
-    try checkFunctionName(allocator, diagnostics, tree, expression.right, target);
+    try checkFunctionName(allocator, diagnostics, tree, expression.right, target, .{});
+}
+
+pub fn checkAssignmentExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+    options: Options,
+) Allocator.Error!void {
+    if (expression.operator != .assign) return;
+
+    const target = assignmentTargetName(tree, expression.left) orelse return;
+    try checkFunctionName(allocator, diagnostics, tree, expression.right, target, options);
 }
 
 pub fn checkObjectProperty(
@@ -40,7 +75,20 @@ pub fn checkObjectProperty(
     if (property.method or property.value == .null) return;
 
     const target = propertyName(tree, property.key, property.computed) orelse return;
-    try checkFunctionName(allocator, diagnostics, tree, property.value, target);
+    try checkFunctionName(allocator, diagnostics, tree, property.value, target, .{});
+}
+
+pub fn checkObjectPropertyWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    property: ast.ObjectProperty,
+    options: Options,
+) Allocator.Error!void {
+    if (property.method or property.value == .null) return;
+
+    const target = propertyName(tree, property.key, property.computed) orelse return;
+    try checkFunctionName(allocator, diagnostics, tree, property.value, target, options);
 }
 
 pub fn checkPropertyDefinition(
@@ -52,7 +100,20 @@ pub fn checkPropertyDefinition(
     if (property.value == .null) return;
 
     const target = propertyName(tree, property.key, property.computed) orelse return;
-    try checkFunctionName(allocator, diagnostics, tree, property.value, target);
+    try checkFunctionName(allocator, diagnostics, tree, property.value, target, .{});
+}
+
+pub fn checkPropertyDefinitionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    property: ast.PropertyDefinition,
+    options: Options,
+) Allocator.Error!void {
+    if (property.value == .null) return;
+
+    const target = propertyName(tree, property.key, property.computed) orelse return;
+    try checkFunctionName(allocator, diagnostics, tree, property.value, target, options);
 }
 
 fn checkFunctionName(
@@ -61,6 +122,7 @@ fn checkFunctionName(
     tree: *const ast.Tree,
     value: ast.NodeIndex,
     target: []const u8,
+    options: Options,
 ) Allocator.Error!void {
     const function = switch (tree.data(unwrapTransparent(tree, value))) {
         .function => |function| function,
@@ -69,17 +131,29 @@ fn checkFunctionName(
     if (function.type != .function_expression) return;
 
     const actual = bindingIdentifierName(tree, function.id) orelse return;
-    if (std.mem.eql(u8, actual, target)) return;
+    const matches = std.mem.eql(u8, actual, target);
+    if (matches == (options.style == .always)) return;
 
-    try core.addDiagnosticFmt(
-        allocator,
-        diagnostics,
-        .warning,
-        id,
-        tree.span(value),
-        "Function name `{s}` should match target name `{s}`.",
-        .{ actual, target },
-    );
+    switch (options.style) {
+        .always => try core.addDiagnosticFmt(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            tree.span(value),
+            "Function name `{s}` should match target name `{s}`.",
+            .{ actual, target },
+        ),
+        .never => try core.addDiagnosticFmt(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            tree.span(value),
+            "Function name `{s}` should not match target name `{s}`.",
+            .{ actual, target },
+        ),
+    }
 }
 
 fn assignmentTargetName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {

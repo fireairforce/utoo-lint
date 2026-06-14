@@ -83,6 +83,37 @@ test "does not report func-name-matching for matching or unsupported cases" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.func_name_matching.id));
 }
 
+test "reports func-name-matching for matching names in never mode" {
+    const source =
+        \\const first = function first() {};
+        \\object.value = function value() {};
+        \\const object = {
+        \\  prop: function prop() {},
+        \\};
+        \\class Example {
+        \\  field = function field() {};
+        \\}
+        \\const mismatch = function other() {};
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .func_name_matching_style = .never,
+        .func_names = false,
+        .no_empty_function = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.func_name_matching.id));
+    try std.testing.expectEqualStrings(
+        "Function name `first` should not match target name `first`.",
+        result.diagnostics[0].message,
+    );
+}
+
 test "can disable func-name-matching" {
     const source =
         \\const first = function second() {};
