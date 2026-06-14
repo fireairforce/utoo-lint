@@ -75,7 +75,9 @@ checked files with no messages, and filters inputs with the same ignore rules.
 `calculateConfigForFile()` and `CLIEngine#getConfigForFile()` merge
 `baseConfig`, default `utoo.json` or `utoo-lint.json` files, explicit
 `overrideConfigFile`, and `overrideConfig` rules. The `CLIEngine` export
-provides a synchronous legacy facade for older ESLint integrations. Set
+provides a synchronous legacy facade for older ESLint integrations.
+`ESLint` and `CLIEngine` constructor options also accept `quiet: true` to return
+only error messages, matching ESLint's warning filtering behavior. Set
 `UTOO_LINT_BIN=/path/to/utoo-lint` to force the JS API and CLI wrapper to use a
 specific native binary during local development.
 
