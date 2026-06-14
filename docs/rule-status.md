@@ -136,6 +136,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-trailing-spaces`](https://eslint.org/docs/latest/rules/no-trailing-spaces) | Implemented |
 | [`no-undef`](https://eslint.org/docs/latest/rules/no-undef) | Implemented |
 | [`no-undef-init`](https://eslint.org/docs/latest/rules/no-undef-init) | Implemented |
+| [`no-underscore-dangle`](https://eslint.org/docs/latest/rules/no-underscore-dangle) | Implemented for default declaration and member-property checks |
 | [`no-unneeded-ternary`](https://eslint.org/docs/latest/rules/no-unneeded-ternary) | Implemented |
 | [`no-unreachable`](https://eslint.org/docs/latest/rules/no-unreachable) | Implemented |
 | [`no-unsafe-finally`](https://eslint.org/docs/latest/rules/no-unsafe-finally) | Implemented |

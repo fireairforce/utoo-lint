@@ -204,6 +204,7 @@ pub const Options = struct {
     no_trailing_spaces: bool = true,
     no_unreachable: bool = true,
     no_undef_init: bool = true,
+    no_underscore_dangle: bool = true,
     unicode_bom: bool = true,
     no_unneeded_ternary: bool = true,
     no_unused_labels: bool = true,

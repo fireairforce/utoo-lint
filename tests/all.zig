@@ -727,6 +727,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_underscore_dangle.zig");
+}
+
+comptime {
     _ = @import("rules/no_shadow_restricted_names.zig");
 }
 

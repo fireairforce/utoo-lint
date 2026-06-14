@@ -197,6 +197,7 @@ pub const no_this_before_super = @import("no_this_before_super.zig");
 pub const no_trailing_spaces = @import("no_trailing_spaces.zig");
 pub const no_unreachable = @import("no_unreachable.zig");
 pub const no_undef_init = @import("no_undef_init.zig");
+pub const no_underscore_dangle = @import("no_underscore_dangle.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
@@ -919,6 +920,9 @@ const BasicVisitor = struct {
         if (self.options.no_dupe_args) {
             try no_dupe_args.check(self.allocator, self.diagnostics, ctx.tree, function);
         }
+        if (self.options.no_underscore_dangle) {
+            try no_underscore_dangle.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
+        }
         if (self.options.consistent_return) {
             try consistent_return.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
         }
@@ -960,6 +964,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.constructor_super) {
             try constructor_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
+        }
+        if (self.options.no_underscore_dangle) {
+            try no_underscore_dangle.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
         if (self.options.react_require_render_return) {
             try react_require_render_return.checkClass(self.allocator, self.diagnostics, ctx.tree, class, self.react_require_render_return_state);
@@ -1241,6 +1248,9 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_inferrable_types) {
             try typescript_eslint_no_inferrable_types.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
+        }
+        if (self.options.no_underscore_dangle) {
+            try no_underscore_dangle.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
         }
         if (self.options.func_name_matching) {
             try func_name_matching.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
@@ -2204,6 +2214,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_proto) {
             try no_proto.check(self.allocator, self.diagnostics, ctx.tree, member, index);
+        }
+        if (self.options.no_underscore_dangle) {
+            try no_underscore_dangle.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member);
         }
         if (self.options.no_iterator) {
             try no_iterator.check(self.allocator, self.diagnostics, ctx.tree, member, index);
