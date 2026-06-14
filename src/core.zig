@@ -53,6 +53,11 @@ pub const AccessorPairsGetWithoutSet = enum {
     no,
 };
 
+pub const AccessorPairsSetWithoutGet = enum {
+    yes,
+    no,
+};
+
 pub const GroupedAccessorPairsStyle = enum {
     any_order,
     get_before_set,
@@ -107,6 +112,7 @@ pub const CapitalizedCommentsMode = enum {
 pub const Options = struct {
     accessor_pairs: bool = true,
     accessor_pairs_get_without_set: AccessorPairsGetWithoutSet = .no,
+    accessor_pairs_set_without_get: AccessorPairsSetWithoutGet = .yes,
     array_callback_return: bool = true,
     array_callback_return_allow_implicit: ArrayCallbackReturnAllowImplicit = .yes,
     array_callback_return_check_for_each: ArrayCallbackReturnCheckForEach = .no,

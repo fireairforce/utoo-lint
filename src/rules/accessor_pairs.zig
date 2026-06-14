@@ -9,6 +9,7 @@ pub const id = "accessor-pairs";
 
 pub const Options = struct {
     get_without_set: bool = false,
+    set_without_get: bool = true,
 };
 
 const Accessor = struct {
@@ -177,7 +178,7 @@ fn checkPropertyDescriptor(
         }
     }
 
-    if (!has_get and set_index != .null) {
+    if (options.set_without_get and !has_get and set_index != .null) {
         try addSetterDiagnostic(allocator, diagnostics, tree, report_index);
     }
     if (options.get_without_set and has_get and !has_set and get_index != .null) {
@@ -225,7 +226,7 @@ fn reportMissingCounterparts(
     options: Options,
 ) Allocator.Error!void {
     for (accessors) |accessor| {
-        if (accessor.set and !accessor.get) {
+        if (options.set_without_get and accessor.set and !accessor.get) {
             try addSetterDiagnostic(allocator, diagnostics, tree, accessor.set_index);
         }
         if (options.get_without_set and accessor.get and !accessor.set) {
