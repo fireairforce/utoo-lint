@@ -152,7 +152,7 @@ export class SourceCode {
   getFirstTokensBetween(left: SourceRange, right: SourceRange, countOrOptions?: SourceCodeTokenCountOrOptions): SourceRange[];
   getLastTokenBetween(left: SourceRange, right: SourceRange, skipOrOptions?: SourceCodeTokenCountOrOptions): SourceRange | null;
   getLastTokensBetween(left: SourceRange, right: SourceRange, countOrOptions?: SourceCodeTokenCountOrOptions): SourceRange[];
-  getTokenByRangeStart(index: number): SourceRange | null;
+  getTokenByRangeStart(index: number, options?: Pick<SourceCodeTokenOptions, "includeComments">): SourceRange | null;
   getTokenOrCommentBefore(nodeOrToken: SourceRange): SourceRange | null;
   getTokenOrCommentAfter(nodeOrToken: SourceRange): SourceRange | null;
   getCommentsBefore(nodeOrToken: SourceRange): SourceRange[];
