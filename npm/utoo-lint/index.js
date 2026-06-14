@@ -84,6 +84,7 @@ if (json === undefined) {
 process.stdout.write(json);
 `;
 const BUILTIN_RULE_IDS = [
+  "accessor-pairs",
   "array-callback-return",
   "block-scoped-var",
   "consistent-return",
