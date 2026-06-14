@@ -1334,10 +1334,12 @@ class Linter {
   }
 
   verifyAndFix(code, config = {}, options = {}) {
+    const messages = this.verify(code, config, options);
+    const output = applyRuleFixes(code, messages.flatMap((message) => ruleFixItems(message.fix)));
     return {
-      fixed: false,
-      messages: this.verify(code, config, options),
-      output: code
+      fixed: output !== code,
+      messages,
+      output
     };
   }
 
@@ -1547,6 +1549,10 @@ function customRuleMessageFromReport(ruleEntry, sourceCode, args) {
     result.endLine = location.end.line;
     result.endColumn = location.end.column + 1;
   }
+  const fix = customRuleFix(sourceCode, descriptor);
+  if (fix) {
+    result.fix = fix;
+  }
   if (Array.isArray(descriptor.suggest)) {
     result.suggestions = customRuleSuggestions(ruleEntry.rule, sourceCode, descriptor.suggest);
   }
@@ -1622,11 +1628,15 @@ function customRuleSuggestionDescription(rule, suggestion) {
 }
 
 function customRuleSuggestionFix(sourceCode, suggestion) {
-  if (typeof suggestion.fix !== "function") {
+  return customRuleFix(sourceCode, suggestion);
+}
+
+function customRuleFix(sourceCode, descriptor) {
+  if (typeof descriptor.fix !== "function") {
     return null;
   }
-  const value = suggestion.fix(customRuleFixer(sourceCode));
-  const fixes = (Array.isArray(value) ? value : [value]).filter(Boolean);
+  const value = descriptor.fix(customRuleFixer(sourceCode));
+  const fixes = ruleFixItems(value);
   if (fixes.length === 0) {
     return null;
   }
@@ -2210,9 +2220,14 @@ class RuleTester {
         for (const test of tests.invalid ?? []) {
           const testCase = normalizeRuleTesterCase(test);
           RuleTester[testCase.only ? "itOnly" : "it"](testCase.name ?? testCase.code, () => {
-            const messages = linter.verify(testCase.code, ruleTesterConfig(ruleName, this.config, testCase, "error"), ruleTesterOptions(testCase));
+            const config = ruleTesterConfig(ruleName, this.config, testCase, "error");
+            const options = ruleTesterOptions(testCase);
+            const result = Object.hasOwn(testCase, "output")
+              ? linter.verifyAndFix(testCase.code, config, options)
+              : { messages: linter.verify(testCase.code, config, options), output: testCase.code };
+            const messages = result.messages;
             assertRuleTesterErrors(testCase, messages, rule);
-            assertRuleTesterOutput(testCase, testCase.code);
+            assertRuleTesterOutput(testCase, result.output);
           });
         }
       });
@@ -2353,10 +2368,23 @@ function assertRuleTesterSuggestions(errorIndex, actualSuggestions, expectedSugg
 }
 
 function applyRuleTesterSuggestionFixes(code, fix) {
-  const fixes = (Array.isArray(fix) ? fix : [fix]).filter((item) => item?.range);
-  return fixes
+  return applyRuleFixes(code, fix);
+}
+
+function applyRuleFixes(code, fix) {
+  return ruleFixItems(fix)
     .sort((left, right) => right.range[0] - left.range[0])
     .reduce((output, item) => output.slice(0, item.range[0]) + item.text + output.slice(item.range[1]), code);
+}
+
+function ruleFixItems(fix) {
+  if (!fix) {
+    return [];
+  }
+  if (Array.isArray(fix)) {
+    return fix.flatMap((item) => ruleFixItems(item));
+  }
+  return fix.range ? [fix] : [];
 }
 
 function ruleTesterMessageForId(rule, messageId, data = {}) {
