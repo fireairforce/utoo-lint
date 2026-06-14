@@ -118,6 +118,10 @@ pub fn main(init: std.process.Init) !void {
             options.array_callback_return = false;
         } else if (std.mem.eql(u8, arg, "--array-callback-return-allow-implicit=off")) {
             options.array_callback_return_allow_implicit = .no;
+        } else if (std.mem.eql(u8, arg, "--array-callback-return-check-for-each=on")) {
+            options.array_callback_return_check_for_each = .yes;
+        } else if (std.mem.eql(u8, arg, "--array-callback-return-allow-void=on")) {
+            options.array_callback_return_allow_void = .yes;
         } else if (std.mem.eql(u8, arg, "--block-scoped-var=off")) {
             options.block_scoped_var = false;
         } else if (std.mem.eql(u8, arg, "--capitalized-comments=off")) {
@@ -1286,6 +1290,8 @@ fn printHelp() void {
         \\  --accessor-pairs-get-without-set=on Enable accessor-pairs getWithoutSet
         \\  --array-callback-return=off Disable array-callback-return
         \\  --array-callback-return-allow-implicit=off Require explicit values from array callbacks
+        \\  --array-callback-return-check-for-each=on Check forEach callbacks for return values
+        \\  --array-callback-return-allow-void=on Allow void returns in checked forEach callbacks
         \\  --block-scoped-var=off   Disable block-scoped-var
         \\  --capitalized-comments=off Disable capitalized-comments
         \\  --capitalized-comments=never Require lowercase comment starts

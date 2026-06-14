@@ -74,6 +74,16 @@ pub const ArrayCallbackReturnAllowImplicit = enum {
     no,
 };
 
+pub const ArrayCallbackReturnCheckForEach = enum {
+    yes,
+    no,
+};
+
+pub const ArrayCallbackReturnAllowVoid = enum {
+    yes,
+    no,
+};
+
 pub const CapitalizedCommentsMode = enum {
     always,
     never,
@@ -84,6 +94,8 @@ pub const Options = struct {
     accessor_pairs_get_without_set: AccessorPairsGetWithoutSet = .no,
     array_callback_return: bool = true,
     array_callback_return_allow_implicit: ArrayCallbackReturnAllowImplicit = .yes,
+    array_callback_return_check_for_each: ArrayCallbackReturnCheckForEach = .no,
+    array_callback_return_allow_void: ArrayCallbackReturnAllowVoid = .no,
     block_scoped_var: bool = true,
     capitalized_comments: bool = true,
     capitalized_comments_mode: CapitalizedCommentsMode = .always,
