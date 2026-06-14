@@ -114,6 +114,9 @@ provides a synchronous legacy facade for older ESLint integrations.
 It also exposes legacy `getRules()`, `addPlugin()`, and
 `resolveFileGlobPatterns()` facade methods for integrations that probe them
 during startup.
+The `@utoo/lint/use-at-your-own-risk` subpath exposes `builtinRules`,
+`FlatESLint`, `LegacyESLint`, `shouldUseFlatConfig()`, and `FileEnumerator`
+compatibility exports.
 `ESLint` and `CLIEngine` constructor options also accept `quiet: true` to return
 only error messages, matching ESLint's warning filtering behavior.
 `warnIgnored: false` suppresses warnings for explicit ignored file paths and
