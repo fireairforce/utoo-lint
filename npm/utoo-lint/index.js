@@ -746,7 +746,10 @@ export class SourceCode {
     return typeof this.scopeManager?.getDeclaredVariables === "function" ? this.scopeManager.getDeclaredVariables(node) : [];
   }
 
-  getScope() {
+  getScope(node) {
+    if (node && typeof this.scopeManager?.acquire === "function") {
+      return this.scopeManager.acquire(node, true) ?? this.scopeManager.acquire(node, false) ?? this.scopeManager.globalScope ?? null;
+    }
     return this.scopeManager?.globalScope ?? null;
   }
 
