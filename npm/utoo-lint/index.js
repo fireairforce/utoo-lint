@@ -758,7 +758,7 @@ export class SourceCode {
   }
 
   getDisableDirectives() {
-    return [];
+    return this.comments.flatMap((comment) => disableDirectivesFromComment(comment));
   }
 
   getInlineConfigNodes() {
@@ -964,6 +964,21 @@ function scopeVariableByName(scope, name) {
 
 function isInlineConfigComment(comment) {
   return /^(?:eslint(?:-disable|-enable|-disable-next-line|-disable-line|-env)?|global|globals|exported)(?:\s|$)/u.test(String(comment?.value ?? "").trim());
+}
+
+function disableDirectivesFromComment(comment) {
+  const match = String(comment?.value ?? "").trim().match(/^(eslint-(?:disable-next-line|disable-line|disable|enable))\b\s*(.*)$/u);
+  if (!match) {
+    return [];
+  }
+
+  const [, type, rawValue] = match;
+  const [rawRules, justification = ""] = rawValue.split(/\s--\s/u, 2).map((value) => value.trim());
+  const ruleIds = rawRules.split(",").map((ruleId) => ruleId.trim()).filter(Boolean);
+  if (ruleIds.length === 0) {
+    return [{ type, node: comment, value: null, ruleId: null, justification }];
+  }
+  return ruleIds.map((ruleId) => ({ type, node: comment, value: ruleId, ruleId, justification }));
 }
 
 export class RuleTester {
