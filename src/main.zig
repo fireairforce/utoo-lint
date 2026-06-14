@@ -116,6 +116,8 @@ pub fn main(init: std.process.Init) !void {
             options.array_callback_return = false;
         } else if (std.mem.eql(u8, arg, "--block-scoped-var=off")) {
             options.block_scoped_var = false;
+        } else if (std.mem.eql(u8, arg, "--capitalized-comments=off")) {
+            options.capitalized_comments = false;
         } else if (std.mem.eql(u8, arg, "--curly=off")) {
             options.curly = false;
         } else if (std.mem.eql(u8, arg, "--dot-notation=off")) {
@@ -1237,6 +1239,7 @@ fn printHelp() void {
         \\  --accessor-pairs=off    Disable accessor-pairs
         \\  --array-callback-return=off Disable array-callback-return
         \\  --block-scoped-var=off   Disable block-scoped-var
+        \\  --capitalized-comments=off Disable capitalized-comments
         \\  --consistent-return=off  Disable consistent-return
         \\  --constructor-super=off  Disable constructor-super
         \\  --curly=off              Disable curly

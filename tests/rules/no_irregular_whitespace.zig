@@ -10,6 +10,7 @@ test "reports no-irregular-whitespace outside strings" {
         "const second = 2;\n";
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
     });

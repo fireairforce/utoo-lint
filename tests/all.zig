@@ -11,6 +11,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/capitalized_comments.zig");
+}
+
+comptime {
     _ = @import("rules/consistent_return.zig");
 }
 

@@ -9,6 +9,7 @@ test "reports no-inline-comments for comments sharing a line with code" {
         "const third = 3; /* trailing */\n";
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
     });

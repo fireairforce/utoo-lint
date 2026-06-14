@@ -84,6 +84,7 @@ const BUILTIN_RULE_IDS = [
   "accessor-pairs",
   "array-callback-return",
   "block-scoped-var",
+  "capitalized-comments",
   "consistent-return",
   "constructor-super",
   "curly",

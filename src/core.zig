@@ -20,6 +20,7 @@ pub const Options = struct {
     accessor_pairs: bool = true,
     array_callback_return: bool = true,
     block_scoped_var: bool = true,
+    capitalized_comments: bool = true,
     consistent_return: bool = true,
     constructor_super: bool = true,
     curly: bool = true,
