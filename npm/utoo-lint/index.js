@@ -456,8 +456,10 @@ export class Linter {
     const filePath = verifyOptions.filename ?? verifyOptions.filePath ?? "input.js";
     const sourceCode = createLinterSourceCode(code);
     const normalizedFilePath = normalizeESLintFilePath(filePath, verifyOptions.cwd);
-    const customRules = customRuleEntriesForConfig(config, this.rules, normalizedFilePath, verifyOptions.cwd);
-    const nativeConfig = configWithoutCustomRules(config, this.rules);
+    const customRuleMap = customRuleMapForConfig(config, this.rules, normalizedFilePath, verifyOptions.cwd);
+    const customRuleFilterMap = customRuleMapForConfig(config, this.rules);
+    const customRules = customRuleEntriesForConfig(config, customRuleMap, normalizedFilePath, verifyOptions.cwd);
+    const nativeConfig = configWithoutCustomRules(config, customRuleFilterMap);
     const lintOptions = {
       cwd: verifyOptions.cwd,
       filePath,
@@ -559,6 +561,44 @@ function customRuleEntriesForConfig(config, rules, filePath, cwd) {
     });
   }
   return [...entries.values()];
+}
+
+function customRuleMapForConfig(config, definedRules, filePath, cwd) {
+  return new Map([
+    ...pluginRulesForConfig(config, filePath, cwd),
+    ...definedRules
+  ]);
+}
+
+function pluginRulesForConfig(config, filePath, cwd) {
+  const rules = new Map();
+  for (const entry of matchingConfigEntries(config, filePath, cwd)) {
+    if (!entry.plugins || typeof entry.plugins !== "object") {
+      continue;
+    }
+    for (const [pluginName, plugin] of Object.entries(entry.plugins)) {
+      if (!plugin?.rules || typeof plugin.rules !== "object") {
+        continue;
+      }
+      for (const [ruleName, rule] of Object.entries(plugin.rules)) {
+        rules.set(`${pluginName}/${ruleName}`, rule);
+      }
+    }
+  }
+  return rules;
+}
+
+function matchingConfigEntries(config, filePath = undefined, cwd = undefined) {
+  if (!config) {
+    return [];
+  }
+  if (Array.isArray(config)) {
+    return config.flatMap((entry) => matchingConfigEntries(entry, filePath, cwd));
+  }
+  if (typeof config !== "object" || !configAppliesToFile(config, filePath, cwd)) {
+    return [];
+  }
+  return [config];
 }
 
 function ruleConfigEntries(config, filePath = undefined, cwd = undefined) {
