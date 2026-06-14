@@ -1197,9 +1197,10 @@ function ignorePatternsFromConfig(config) {
     return config.flatMap((entry) => ignorePatternsFromConfig(entry));
   }
 
+  const flatConfigIgnores = config.files ? [] : normalizeIgnorePatterns(config.ignores);
   return [
     ...normalizeIgnorePatterns(config.ignorePatterns),
-    ...normalizeIgnorePatterns(config.ignores)
+    ...flatConfigIgnores
   ];
 }
 
