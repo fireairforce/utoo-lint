@@ -1394,63 +1394,74 @@ class SourceCode {
   }
 
   getTokens(node, beforeCount = 0, afterCount = 0) {
+    const options = sourceTokenRangeOptions(beforeCount, afterCount);
+    const items = sourceTokenItems(this, options);
     if (!node) {
-      return this.tokens;
+      return sourceApplyTokenFilter(items, options);
     }
-    const range = expandSourceRange(this.getRange(node), beforeCount, afterCount, this.text.length);
-    return sourceItemsInRange(this.tokens, range);
+    const range = expandSourceRange(this.getRange(node), options.beforeCount, options.afterCount, this.text.length);
+    return sourceApplyTokenFilter(sourceItemsInRange(items, range), options);
   }
 
-  getFirstToken(node) {
-    return this.getTokens(node)[0] ?? null;
+  getFirstToken(node, skipOrOptions = 0) {
+    return sourceForwardToken(this.getTokens(node, sourceTokenOptions(skipOrOptions, "skip")), skipOrOptions);
   }
 
-  getFirstTokens(node, count = 1) {
-    return this.getTokens(node).slice(0, count);
+  getFirstTokens(node, countOrOptions = 1) {
+    return sourceForwardTokens(this.getTokens(node, sourceTokenOptions(countOrOptions, "count")), countOrOptions);
   }
 
-  getLastToken(node) {
-    return this.getTokens(node).at(-1) ?? null;
+  getLastToken(node, skipOrOptions = 0) {
+    return sourceBackwardToken(this.getTokens(node, sourceTokenOptions(skipOrOptions, "skip")), skipOrOptions);
   }
 
-  getLastTokens(node, count = 1) {
-    return this.getTokens(node).slice(-count);
+  getLastTokens(node, countOrOptions = 1) {
+    return sourceBackwardTokens(this.getTokens(node, sourceTokenOptions(countOrOptions, "count")), countOrOptions);
   }
 
-  getTokenBefore(nodeOrToken) {
-    return sourceItemsBefore(this.tokens, this.getRange(nodeOrToken)[0]).at(-1) ?? null;
+  getTokenBefore(nodeOrToken, skipOrOptions = 0) {
+    const options = sourceTokenOptions(skipOrOptions, "skip");
+    return sourceBackwardToken(sourceApplyTokenFilter(sourceItemsBefore(sourceTokenItems(this, options), this.getRange(nodeOrToken)[0]), options), options);
   }
 
-  getTokensBefore(nodeOrToken, count = 1) {
-    return sourceItemsBefore(this.tokens, this.getRange(nodeOrToken)[0]).slice(-count);
+  getTokensBefore(nodeOrToken, countOrOptions = 1) {
+    const options = sourceTokenOptions(countOrOptions, "count");
+    return sourceBackwardTokens(sourceApplyTokenFilter(sourceItemsBefore(sourceTokenItems(this, options), this.getRange(nodeOrToken)[0]), options), options);
   }
 
-  getTokenAfter(nodeOrToken) {
-    return sourceItemsAfter(this.tokens, this.getRange(nodeOrToken)[1])[0] ?? null;
+  getTokenAfter(nodeOrToken, skipOrOptions = 0) {
+    const options = sourceTokenOptions(skipOrOptions, "skip");
+    return sourceForwardToken(sourceApplyTokenFilter(sourceItemsAfter(sourceTokenItems(this, options), this.getRange(nodeOrToken)[1]), options), options);
   }
 
-  getTokensAfter(nodeOrToken, count = 1) {
-    return sourceItemsAfter(this.tokens, this.getRange(nodeOrToken)[1]).slice(0, count);
+  getTokensAfter(nodeOrToken, countOrOptions = 1) {
+    const options = sourceTokenOptions(countOrOptions, "count");
+    return sourceForwardTokens(sourceApplyTokenFilter(sourceItemsAfter(sourceTokenItems(this, options), this.getRange(nodeOrToken)[1]), options), options);
   }
 
-  getTokensBetween(left, right) {
-    return sourceItemsBetween(this.tokens, this.getRange(left)[1], this.getRange(right)[0]);
+  getTokensBetween(left, right, optionsOrCount) {
+    const options = sourceTokenOptions(optionsOrCount, "count");
+    return sourceForwardTokens(sourceTokensBetween(this, left, right, options), options);
   }
 
-  getFirstTokenBetween(left, right) {
-    return this.getTokensBetween(left, right)[0] ?? null;
+  getFirstTokenBetween(left, right, skipOrOptions = 0) {
+    const options = sourceTokenOptions(skipOrOptions, "skip");
+    return sourceForwardToken(sourceTokensBetween(this, left, right, options), options);
   }
 
-  getFirstTokensBetween(left, right, count = 1) {
-    return this.getTokensBetween(left, right).slice(0, count);
+  getFirstTokensBetween(left, right, countOrOptions = 1) {
+    const options = sourceTokenOptions(countOrOptions, "count");
+    return sourceForwardTokens(sourceTokensBetween(this, left, right, options), options);
   }
 
-  getLastTokenBetween(left, right) {
-    return this.getTokensBetween(left, right).at(-1) ?? null;
+  getLastTokenBetween(left, right, skipOrOptions = 0) {
+    const options = sourceTokenOptions(skipOrOptions, "skip");
+    return sourceBackwardToken(sourceTokensBetween(this, left, right, options), options);
   }
 
-  getLastTokensBetween(left, right, count = 1) {
-    return this.getTokensBetween(left, right).slice(-count);
+  getLastTokensBetween(left, right, countOrOptions = 1) {
+    const options = sourceTokenOptions(countOrOptions, "count");
+    return sourceBackwardTokens(sourceTokensBetween(this, left, right, options), options);
   }
 
   getTokenByRangeStart(index) {
@@ -1585,6 +1596,78 @@ function sourceItemsBetween(items, start, end) {
 
 function sourceTokensAndComments(sourceCode) {
   return [...sourceCode.tokens, ...sourceCode.comments].sort((left, right) => (left.range?.[0] ?? 0) - (right.range?.[0] ?? 0));
+}
+
+function sourceTokensBetween(sourceCode, left, right, options) {
+  return sourceApplyTokenFilter(
+    sourceItemsBetween(sourceTokenItems(sourceCode, options), sourceCode.getRange(left)[1], sourceCode.getRange(right)[0]),
+    options
+  );
+}
+
+function sourceTokenItems(sourceCode, options) {
+  return options.includeComments ? sourceTokensAndComments(sourceCode) : sourceCode.tokens;
+}
+
+function sourceTokenRangeOptions(beforeCount, afterCount) {
+  if (beforeCount && typeof beforeCount === "object") {
+    return sourceTokenOptions(beforeCount, "count");
+  }
+  return {
+    beforeCount: sourceTokenCount(beforeCount, 0),
+    afterCount: sourceTokenCount(afterCount, 0),
+    includeComments: false,
+    filter: null,
+    skip: 0,
+    count: null
+  };
+}
+
+function sourceTokenOptions(optionsOrNumber, numericKey) {
+  const options = optionsOrNumber && typeof optionsOrNumber === "object" ? optionsOrNumber : { [numericKey]: optionsOrNumber };
+  return {
+    beforeCount: sourceTokenCount(options.beforeCount, 0),
+    afterCount: sourceTokenCount(options.afterCount, 0),
+    includeComments: Boolean(options.includeComments),
+    filter: typeof options.filter === "function" ? options.filter : null,
+    skip: sourceTokenCount(options.skip, 0),
+    count: options.count === undefined ? null : sourceTokenCount(options.count, 1)
+  };
+}
+
+function sourceTokenCount(value, defaultValue) {
+  return Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : defaultValue;
+}
+
+function sourceApplyTokenFilter(items, options) {
+  return options.filter ? items.filter((item) => options.filter(item)) : items;
+}
+
+function sourceForwardToken(items, optionsOrNumber) {
+  const options = sourceTokenOptions(optionsOrNumber, "skip");
+  return items[options.skip] ?? null;
+}
+
+function sourceForwardTokens(items, optionsOrNumber) {
+  const options = sourceTokenOptions(optionsOrNumber, "count");
+  const start = options.skip;
+  const end = options.count === null ? undefined : start + options.count;
+  return items.slice(start, end);
+}
+
+function sourceBackwardToken(items, optionsOrNumber) {
+  const options = sourceTokenOptions(optionsOrNumber, "skip");
+  return items.at(-(options.skip + 1)) ?? null;
+}
+
+function sourceBackwardTokens(items, optionsOrNumber) {
+  const options = sourceTokenOptions(optionsOrNumber, "count");
+  if (options.count === 0) {
+    return [];
+  }
+  const end = options.skip === 0 ? undefined : -options.skip;
+  const available = end === undefined ? items : items.slice(0, end);
+  return options.count === null ? available : available.slice(-options.count);
 }
 
 function sourceNodeByRangeIndex(node, index, seen = new Set()) {
