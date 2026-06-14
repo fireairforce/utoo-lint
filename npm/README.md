@@ -118,10 +118,11 @@ filters warnings from compatibility output. Explicit ignored file paths emit
 ESLint-style warnings unless `--no-warn-ignored` is set.
 Fix controls such as `--fix`, `--fix-dry-run`, and `--fix-type` are accepted
 with a warning because utoo-lint does not apply fixes yet.
-Display and reporting controls such as `--color`, `--no-color`, `--stats`, and
-`--no-warn-ignored` are accepted for the same reason. `--output-file` and `-o`
-write the native output to the requested report file. `--stdin` reads source
-from standard input, and `--stdin-filename` controls the path shown in output.
+Display and reporting controls such as `--color`, `--no-color`, `--stats`,
+`--stats=true`, and `--no-warn-ignored` are accepted for the same reason.
+`--output-file` and `-o` write the native output to the requested report file.
+`--stdin` reads source from standard input, and `--stdin-filename` controls the
+path shown in output.
 `--print-config` prints the selected utoo-lint JSON configuration for migration
 debugging.
 
