@@ -226,6 +226,7 @@ pub const Options = struct {
     no_undef: bool = true,
     prefer_const: bool = true,
     prefer_exponentiation_operator: bool = true,
+    prefer_numeric_literals: bool = true,
     prefer_promise_reject_errors: bool = true,
     prefer_destructuring: bool = true,
     prefer_regex_literals: bool = true,

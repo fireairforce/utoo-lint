@@ -807,6 +807,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_numeric_literals.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_object_spread.zig");
 }
 
