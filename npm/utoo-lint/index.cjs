@@ -1167,7 +1167,33 @@ function formatResultsByName(results, name = "stylish") {
       }
     });
   }
+  if (name === "compact") {
+    return formatCompactResults(results);
+  }
+  if (name === "unix") {
+    return formatUnixResults(results);
+  }
   return formatESLintResults(results);
+}
+
+function formatCompactResults(results) {
+  const lines = [];
+  for (const result of results) {
+    for (const message of result.messages ?? []) {
+      lines.push(`${result.filePath}: line ${message.line}, col ${message.column}, ${message.severity === 2 ? "Error" : "Warning"} - ${message.message} (${message.ruleId ?? ""})`);
+    }
+  }
+  return lines.join("\n");
+}
+
+function formatUnixResults(results) {
+  const lines = [];
+  for (const result of results) {
+    for (const message of result.messages ?? []) {
+      lines.push(`${result.filePath}:${message.line}:${message.column}: ${message.message} [${message.severity === 2 ? "Error" : "Warning"}/${message.ruleId ?? ""}]`);
+    }
+  }
+  return lines.join("\n");
 }
 
 function rulesMetaForResults(results) {
