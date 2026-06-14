@@ -217,6 +217,97 @@ export class Linter {
   }
 }
 
+export class RuleTester {
+  static get version() {
+    return version;
+  }
+
+  constructor(config = {}) {
+    this.config = config;
+  }
+
+  run(ruleName, _rule, tests = {}) {
+    const linter = new Linter();
+    for (const test of tests.valid ?? []) {
+      const testCase = normalizeRuleTesterCase(test);
+      const messages = linter.verify(testCase.code, ruleTesterConfig(ruleName, this.config, testCase, "error"), ruleTesterOptions(testCase));
+      if (messages.length > 0) {
+        throw new Error(`Should have no errors but had ${messages.length}: ${JSON.stringify(messages)}`);
+      }
+    }
+
+    for (const test of tests.invalid ?? []) {
+      const testCase = normalizeRuleTesterCase(test);
+      const messages = linter.verify(testCase.code, ruleTesterConfig(ruleName, this.config, testCase, "error"), ruleTesterOptions(testCase));
+      assertRuleTesterErrors(testCase, messages);
+    }
+  }
+}
+
+function normalizeRuleTesterCase(test) {
+  if (typeof test === "string") {
+    return { code: test };
+  }
+  if (!test || typeof test !== "object" || typeof test.code !== "string") {
+    throw new TypeError("RuleTester cases must be strings or objects with a code string");
+  }
+  return test;
+}
+
+function ruleTesterConfig(ruleName, baseConfig, testCase, defaultSeverity) {
+  return {
+    ...baseConfig,
+    ...testCase,
+    rules: {
+      [ruleName]: testCase.options ? [defaultSeverity, ...testCase.options] : defaultSeverity,
+      ...(baseConfig.rules ?? {}),
+      ...(testCase.rules ?? {})
+    }
+  };
+}
+
+function ruleTesterOptions(testCase) {
+  return {
+    filename: testCase.filename ?? testCase.filePath ?? "input.js"
+  };
+}
+
+function assertRuleTesterErrors(testCase, messages) {
+  const expected = testCase.errors;
+  if (typeof expected === "number") {
+    if (messages.length !== expected) {
+      throw new Error(`Should have ${expected} error${expected === 1 ? "" : "s"} but had ${messages.length}: ${JSON.stringify(messages)}`);
+    }
+    return;
+  }
+
+  if (!Array.isArray(expected)) {
+    if (messages.length === 0) {
+      throw new Error("Should have at least one error but had 0: []");
+    }
+    return;
+  }
+
+  if (messages.length !== expected.length) {
+    throw new Error(`Should have ${expected.length} error${expected.length === 1 ? "" : "s"} but had ${messages.length}: ${JSON.stringify(messages)}`);
+  }
+
+  expected.forEach((expectation, index) => {
+    if (typeof expectation === "number") {
+      return;
+    }
+    const message = messages[index];
+    for (const property of ["message", "line", "column", "endLine", "endColumn"]) {
+      if (expectation[property] != null && message[property] !== expectation[property]) {
+        throw new Error(`Error ${index + 1} ${property} should be ${JSON.stringify(expectation[property])} but was ${JSON.stringify(message[property])}`);
+      }
+    }
+    if (expectation.messageId != null) {
+      throw new Error("RuleTester messageId assertions are not supported by @utoo/lint");
+    }
+  });
+}
+
 function createLinterSourceCode(text) {
   return {
     text,
