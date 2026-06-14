@@ -82,8 +82,9 @@ use those calculated rule severities for `messages`, `errorCount`, and
 provides a synchronous legacy facade for older ESLint integrations.
 `ESLint` and `CLIEngine` constructor options also accept `quiet: true` to return
 only error messages, matching ESLint's warning filtering behavior.
-`warnIgnored: false` suppresses warnings for explicit ignored file paths, and
-`errorOnUnmatchedPattern: false` skips explicit missing file paths. Set
+`warnIgnored: false` suppresses warnings for explicit ignored file paths and
+skips ignored `lintText()` inputs. `errorOnUnmatchedPattern: false` skips
+explicit missing file paths. Set
 `UTOO_LINT_BIN=/path/to/utoo-lint` to force the JS API and CLI wrapper to use a
 specific native binary during local development.
 

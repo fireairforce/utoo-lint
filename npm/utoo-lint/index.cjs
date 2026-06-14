@@ -99,6 +99,7 @@ class UtooLint {
     return maybeFilterQuietResults(reportToESLintResults(report, {
       source: code,
       filePath: normalizeESLintFilePath(options.filePath ?? "<text>", mergedOptions.cwd),
+      includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0,
       ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
     }), mergedOptions);
   }
@@ -192,6 +193,7 @@ class CLIEngine {
     const results = maybeFilterQuietResults(reportToESLintResults(report, {
       source: code,
       filePath: normalizeESLintFilePath(filePath, mergedOptions.cwd),
+      includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0,
       ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
     }), mergedOptions);
     return resultsToCLIEngineReport(results);
@@ -695,7 +697,7 @@ function reportToESLintResults(report, textOptions = {}) {
     byFile.get(filePath).messages.push(diagnosticToESLintMessage(diagnostic, textOptions.ruleSeverities));
   }
 
-  if (textOptions.filePath && !byFile.has(textOptions.filePath)) {
+  if (textOptions.filePath && textOptions.includeEmptyTextResult !== false && !byFile.has(textOptions.filePath)) {
     byFile.set(textOptions.filePath, emptyESLintResult(textOptions.filePath, textOptions.source));
   }
   for (const filePath of textOptions.filePaths ?? []) {
