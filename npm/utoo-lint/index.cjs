@@ -11,6 +11,9 @@ const version = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf8")
 const LINTABLE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"]);
 const RULE_TESTER_INITIAL_CONFIG = { rules: {} };
 let ruleTesterDefaultConfig = { rules: {} };
+let ruleTesterDescribe = null;
+let ruleTesterIt = null;
+let ruleTesterItOnly = null;
 const FISHLINT_DROP_FLAGS = new Set([
   "--cache",
   "--color",
@@ -933,26 +936,87 @@ class RuleTester {
     };
   }
 
+  static get describe() {
+    return ruleTesterDescribe ?? (typeof globalThis.describe === "function" ? globalThis.describe : ruleTesterDescribeDefaultHandler);
+  }
+
+  static set describe(value) {
+    ruleTesterDescribe = value;
+  }
+
+  static get it() {
+    return ruleTesterIt ?? (typeof globalThis.it === "function" ? globalThis.it : ruleTesterItDefaultHandler);
+  }
+
+  static set it(value) {
+    ruleTesterIt = value;
+  }
+
+  static only(item) {
+    if (typeof item === "string") {
+      return { code: item, only: true };
+    }
+    return { ...item, only: true };
+  }
+
+  static get itOnly() {
+    if (typeof ruleTesterItOnly === "function") {
+      return ruleTesterItOnly;
+    }
+    if (typeof ruleTesterIt === "function" && typeof ruleTesterIt.only === "function") {
+      return Function.bind.call(ruleTesterIt.only, ruleTesterIt);
+    }
+    if (typeof globalThis.it === "function" && typeof globalThis.it.only === "function") {
+      return Function.bind.call(globalThis.it.only, globalThis.it);
+    }
+    if (typeof ruleTesterDescribe === "function" || typeof ruleTesterIt === "function") {
+      throw new Error("Set `RuleTester.itOnly` to use `only` with a custom test framework.");
+    }
+    throw new Error("To use `only`, use RuleTester with a test framework that provides `it.only()` like Mocha.");
+  }
+
+  static set itOnly(value) {
+    ruleTesterItOnly = value;
+  }
+
   constructor(config = {}) {
     this.config = mergeRuleTesterConfig(ruleTesterDefaultConfig, config);
   }
 
   run(ruleName, _rule, tests = {}) {
     const linter = new Linter();
-    for (const test of tests.valid ?? []) {
-      const testCase = normalizeRuleTesterCase(test);
-      const messages = linter.verify(testCase.code, ruleTesterConfig(ruleName, this.config, testCase, "error"), ruleTesterOptions(testCase));
-      if (messages.length > 0) {
-        throw new Error(`Should have no errors but had ${messages.length}: ${JSON.stringify(messages)}`);
-      }
-    }
+    RuleTester.describe(ruleName, () => {
+      RuleTester.describe("valid", () => {
+        for (const test of tests.valid ?? []) {
+          const testCase = normalizeRuleTesterCase(test);
+          RuleTester[testCase.only ? "itOnly" : "it"](testCase.name ?? testCase.code, () => {
+            const messages = linter.verify(testCase.code, ruleTesterConfig(ruleName, this.config, testCase, "error"), ruleTesterOptions(testCase));
+            if (messages.length > 0) {
+              throw new Error(`Should have no errors but had ${messages.length}: ${JSON.stringify(messages)}`);
+            }
+          });
+        }
+      });
 
-    for (const test of tests.invalid ?? []) {
-      const testCase = normalizeRuleTesterCase(test);
-      const messages = linter.verify(testCase.code, ruleTesterConfig(ruleName, this.config, testCase, "error"), ruleTesterOptions(testCase));
-      assertRuleTesterErrors(testCase, messages);
-    }
+      RuleTester.describe("invalid", () => {
+        for (const test of tests.invalid ?? []) {
+          const testCase = normalizeRuleTesterCase(test);
+          RuleTester[testCase.only ? "itOnly" : "it"](testCase.name ?? testCase.code, () => {
+            const messages = linter.verify(testCase.code, ruleTesterConfig(ruleName, this.config, testCase, "error"), ruleTesterOptions(testCase));
+            assertRuleTesterErrors(testCase, messages);
+          });
+        }
+      });
+    });
   }
+}
+
+function ruleTesterDescribeDefaultHandler(_text, method) {
+  return method();
+}
+
+function ruleTesterItDefaultHandler(_text, method) {
+  return method();
 }
 
 function mergeRuleTesterConfig(baseConfig, overrideConfig) {
