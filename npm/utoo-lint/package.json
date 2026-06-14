@@ -12,24 +12,30 @@
   },
   "homepage": "https://github.com/fireairforce/utoo-lint#readme",
   "type": "module",
+  "types": "./index.d.ts",
   "exports": {
     ".": {
+      "types": "./index.d.ts",
       "import": "./index.js",
       "require": "./index.cjs"
     },
     "./binary": {
+      "types": "./lib/binary.d.ts",
       "import": "./lib/binary.js",
       "require": "./lib/binary.cjs"
     },
     "./config": {
+      "types": "./config.d.ts",
       "import": "./config.js",
       "require": "./config.cjs"
     },
     "./use-at-your-own-risk": {
+      "types": "./use-at-your-own-risk.d.ts",
       "import": "./use-at-your-own-risk.js",
       "require": "./use-at-your-own-risk.cjs"
     },
     "./universal": {
+      "types": "./universal.d.ts",
       "import": "./universal.js",
       "require": "./universal.cjs"
     },
@@ -46,15 +52,19 @@
   "files": [
     "bin",
     "config.cjs",
+    "config.d.ts",
     "config.js",
     "configs",
     "index.cjs",
+    "index.d.ts",
     "index.js",
     "lib",
     "schema.json",
     "universal.cjs",
+    "universal.d.ts",
     "universal.js",
     "use-at-your-own-risk.cjs",
+    "use-at-your-own-risk.d.ts",
     "use-at-your-own-risk.js"
   ],
   "optionalDependencies": {
