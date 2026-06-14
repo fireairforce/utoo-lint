@@ -183,8 +183,18 @@ function extractIgnorePatterns(args) {
       ignorePathEnabled = false;
       continue;
     }
+    if (arg.startsWith("--no-ignore=")) {
+      ignorePathEnabled = booleanFlagValue(arg) === false;
+      continue;
+    }
     if (arg === "--no-eslintrc") {
       values.push("--no-config");
+      continue;
+    }
+    if (arg.startsWith("--no-eslintrc=")) {
+      if (booleanFlagValue(arg) !== false) {
+        values.push("--no-config");
+      }
       continue;
     }
     if (arg === "--ignore-pattern") {
@@ -362,6 +372,14 @@ function parseMaxWarnings(value) {
     process.exit(2);
   }
   return parsed;
+}
+
+function booleanFlagValue(arg) {
+  const value = arg.slice(arg.indexOf("=") + 1).trim().toLowerCase();
+  if (value === "false" || value === "0") {
+    return false;
+  }
+  return true;
 }
 
 function readIgnoreFile(path) {
