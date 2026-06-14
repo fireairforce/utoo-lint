@@ -146,6 +146,8 @@ pub fn main(init: std.process.Init) !void {
             options.for_direction = false;
         } else if (std.mem.eql(u8, arg, "--func-name-matching=off")) {
             options.func_name_matching = false;
+        } else if (std.mem.eql(u8, arg, "--func-name-matching=never")) {
+            options.func_name_matching_style = .never;
         } else if (std.mem.eql(u8, arg, "--func-names=off")) {
             options.func_names = false;
         } else if (std.mem.eql(u8, arg, "--func-names=as-needed")) {
@@ -1306,6 +1308,7 @@ fn printHelp() void {
         \\  --eslint-comments-no-restricted-disable=off Disable eslint-comments/no-restricted-disable
         \\  --for-direction=off       Disable for-direction
         \\  --func-name-matching=off Disable func-name-matching
+        \\  --func-name-matching=never Disallow matching function expression names
         \\  --func-names=off          Disable func-names
         \\  --func-names=as-needed    Allow inferable anonymous function names
         \\  --getter-return=off       Disable getter-return
