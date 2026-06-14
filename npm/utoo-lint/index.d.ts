@@ -145,6 +145,7 @@ export class SourceCode {
   getCommentsBefore(nodeOrToken: SourceRange): SourceRange[];
   getCommentsAfter(nodeOrToken: SourceRange): SourceRange[];
   getCommentsInside(node: SourceRange): SourceRange[];
+  getComments(node: SourceRange): { before: SourceRange[]; after: SourceRange[]; inside: SourceRange[] };
   getJSDocComment(node: SourceRange): SourceRange | null;
   commentsExistBetween(left: SourceRange, right: SourceRange): boolean;
   isSpaceBetween(left: SourceRange, right: SourceRange): boolean;

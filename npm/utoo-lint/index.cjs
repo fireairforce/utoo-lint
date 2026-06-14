@@ -1477,6 +1477,14 @@ class SourceCode {
     return sourceItemsInRange(this.comments, this.getRange(node));
   }
 
+  getComments(node) {
+    return {
+      before: this.getCommentsBefore(node),
+      after: this.getCommentsAfter(node),
+      inside: this.getCommentsInside(node)
+    };
+  }
+
   getJSDocComment(node) {
     return this.getCommentsBefore(node).findLast((comment) => String(comment.value ?? "").startsWith("*")) ?? null;
   }
