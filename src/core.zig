@@ -343,6 +343,10 @@ pub const Options = struct {
             return true;
         }
 
+        if (std.mem.eql(u8, cli_name, "prettier/prettier")) {
+            return true;
+        }
+
         if (std.mem.startsWith(u8, cli_name, "@typescript-eslint/")) {
             const typescript_rule_name = cli_name["@typescript-eslint/".len..];
             inline for (@typeInfo(Options).@"struct".fields) |field| {
@@ -815,6 +819,8 @@ test "Options can apply ESLint-style rule config values" {
     try array.append(.{ .string = "warn" });
     try options.setByRuleConfigValue("jsx-a11y/aria-props", .{ .array = array });
     try std.testing.expect(options.jsx_a11y_aria_props);
+
+    try options.setByRuleConfigValue("prettier/prettier", .{ .string = "error" });
 
     var ivy_config = try std.json.parseFromSlice(
         std.json.Value,
