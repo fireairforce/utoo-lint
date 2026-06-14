@@ -12,6 +12,8 @@ export { platformPackageName, resolveBinary } from "./lib/binary.js";
 export const version = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version;
 
 const LINTABLE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"]);
+const RULE_TESTER_INITIAL_CONFIG = { rules: {} };
+let ruleTesterDefaultConfig = { rules: {} };
 const FISHLINT_DROP_FLAGS = new Set([
   "--cache",
   "--color",
@@ -222,8 +224,28 @@ export class RuleTester {
     return version;
   }
 
+  static setDefaultConfig(config) {
+    if (typeof config !== "object" || config === null) {
+      throw new TypeError("RuleTester.setDefaultConfig: config must be an object");
+    }
+    ruleTesterDefaultConfig = config;
+    ruleTesterDefaultConfig.rules = ruleTesterDefaultConfig.rules || {};
+  }
+
+  static getDefaultConfig() {
+    return ruleTesterDefaultConfig;
+  }
+
+  static resetDefaultConfig() {
+    ruleTesterDefaultConfig = {
+      rules: {
+        ...RULE_TESTER_INITIAL_CONFIG.rules
+      }
+    };
+  }
+
   constructor(config = {}) {
-    this.config = config;
+    this.config = mergeRuleTesterConfig(ruleTesterDefaultConfig, config);
   }
 
   run(ruleName, _rule, tests = {}) {
@@ -242,6 +264,17 @@ export class RuleTester {
       assertRuleTesterErrors(testCase, messages);
     }
   }
+}
+
+function mergeRuleTesterConfig(baseConfig, overrideConfig) {
+  return {
+    ...baseConfig,
+    ...overrideConfig,
+    rules: {
+      ...(baseConfig.rules ?? {}),
+      ...(overrideConfig.rules ?? {})
+    }
+  };
 }
 
 function normalizeRuleTesterCase(test) {
