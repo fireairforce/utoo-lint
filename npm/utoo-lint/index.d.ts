@@ -190,6 +190,7 @@ export interface RuleTesterValidCase extends ConfigObject {
 
 export interface RuleTesterInvalidCase extends RuleTesterValidCase {
   errors?: number | Array<number | Partial<LintMessage> & { messageId?: string }>;
+  output?: string | null;
 }
 
 export class RuleTester {
