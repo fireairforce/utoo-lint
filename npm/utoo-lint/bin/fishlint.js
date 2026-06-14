@@ -21,13 +21,15 @@ if (command && command !== "eslint") {
 
 let args;
 const output = extractOutputFile(values);
-const printConfig = extractPrintConfig(output.args);
+const ignored = extractIgnorePatterns(output.args);
+const printConfig = extractPrintConfig(ignored.args);
 if (printConfig.enabled) {
   writeOutput(JSON.stringify(loadPrintableConfig(printConfig.args), null, 2) + "\n", output.file);
   process.exit(0);
 }
 
-const input = extractStdin(printConfig.args);
+const filtered = filterIgnoredTargets(printConfig.args, ignored.patterns);
+const input = extractStdin(filtered.args);
 const nativeValues = input.file ? [...input.args, input.file] : input.args;
 try {
   args = translateFishlintArgs(nativeValues, {
@@ -38,6 +40,16 @@ try {
 } catch (error) {
   console.error(error.message);
   process.exit(2);
+}
+if (args.length === 0) {
+  writeOutput(emptyLintOutput(nativeValues), output.file);
+  cleanupStdinInput(input);
+  process.exit(0);
+}
+if (filtered.removedTarget && !hasLintTarget(nativeValues)) {
+  writeOutput(emptyLintOutput(nativeValues), output.file);
+  cleanupStdinInput(input);
+  process.exit(0);
 }
 
 let binary;
@@ -91,6 +103,172 @@ function extractOutputFile(args) {
   }
 
   return { args: values, file };
+}
+
+function extractIgnorePatterns(args) {
+  const values = [];
+  const patterns = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--ignore-pattern") {
+      const value = args[index + 1];
+      if (!value) {
+        console.error("utoo-lint: fishlint --ignore-pattern requires a pattern");
+        process.exit(2);
+      }
+      patterns.push(value);
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--ignore-pattern=")) {
+      patterns.push(arg.slice("--ignore-pattern=".length));
+      continue;
+    }
+    values.push(arg);
+  }
+
+  return { args: values, patterns };
+}
+
+function filterIgnoredTargets(args, patterns) {
+  if (patterns.length === 0) {
+    return { args, removedTarget: false };
+  }
+
+  const values = [];
+  let removedTarget = false;
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--glob") {
+      const value = args[index + 1];
+      if (!value) {
+        console.error("utoo-lint: fishlint --glob requires a path");
+        process.exit(2);
+      }
+      if (!isIgnoredTarget(value, patterns)) {
+        values.push(arg, value);
+      } else {
+        removedTarget = true;
+      }
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--glob=")) {
+      const value = arg.slice("--glob=".length);
+      if (!isIgnoredTarget(value, patterns)) {
+        values.push(arg);
+      } else {
+        removedTarget = true;
+      }
+      continue;
+    }
+    if (!arg.startsWith("-") && isIgnoredTarget(arg, patterns)) {
+      removedTarget = true;
+      continue;
+    }
+    values.push(arg);
+  }
+  return { args: values, removedTarget };
+}
+
+function hasLintTarget(args) {
+  const valueFlags = new Set([
+    "--cache-location",
+    "--cache-strategy",
+    "--config",
+    "--env",
+    "--fix-type",
+    "--format",
+    "--global",
+    "--ignore-path",
+    "--ignore-pattern",
+    "--max-warnings",
+    "--output-file",
+    "--parser",
+    "--parser-options",
+    "--plugin",
+    "--print-config",
+    "--resolve-plugins-relative-to",
+    "--rule",
+    "--rules",
+    "--rulesdir",
+    "--stdin-filename",
+    "--threads",
+    "-f",
+    "-o"
+  ]);
+
+  for (let index = 1; index < args.length; index += 1) {
+    const arg = args[index];
+    if (valueFlags.has(arg)) {
+      index += 1;
+      continue;
+    }
+    if (arg === "--glob") {
+      return Boolean(args[index + 1]);
+    }
+    if (arg.startsWith("--glob=")) {
+      return arg.length > "--glob=".length;
+    }
+    if (arg.includes("=")) {
+      continue;
+    }
+    if (!arg.startsWith("-")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isIgnoredTarget(target, patterns) {
+  const normalized = normalizePath(target);
+  return patterns.some((pattern) => matchesIgnorePattern(normalized, normalizePath(pattern)));
+}
+
+function matchesIgnorePattern(target, pattern) {
+  if (pattern.endsWith("/**")) {
+    const prefix = pattern.slice(0, -3);
+    return target === prefix || target.startsWith(`${prefix}/`) || target.includes(`/${prefix}/`);
+  }
+  if (pattern.startsWith("**/")) {
+    const suffix = pattern.slice(3);
+    return target.endsWith(suffix) || target.includes(`/${suffix}`);
+  }
+  if (!pattern.includes("*")) {
+    return target === pattern || target.endsWith(`/${pattern}`) || target.startsWith(`${pattern}/`);
+  }
+
+  const expression = new RegExp(`(^|/)${escapeRegExp(pattern).replaceAll("\\*\\*", ".*").replaceAll("\\*", "[^/]*")}$`);
+  return expression.test(target);
+}
+
+function normalizePath(path) {
+  return path.replaceAll("\\", "/").replace(/^\.\//, "");
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
+}
+
+function emptyLintOutput(args) {
+  if (usesJsonFormat(args)) {
+    return JSON.stringify({ files: 0, filePaths: [], diagnostics: [] }) + "\n";
+  }
+  return "0 file(s) checked, 0 diagnostic(s)\n";
+}
+
+function usesJsonFormat(args) {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--json" || arg === "--format=json" || arg === "-f=json") {
+      return true;
+    }
+    if ((arg === "--format" || arg === "-f") && args[index + 1] === "json") {
+      return true;
+    }
+  }
+  return false;
 }
 
 function extractPrintConfig(args) {
