@@ -1201,14 +1201,20 @@ function matchesIgnorePattern(target, pattern) {
   }
   if (pattern.startsWith("**/")) {
     const suffix = pattern.slice(3);
-    return target.endsWith(suffix) || target.includes(`/${suffix}`);
+    if (!hasGlobSyntax(suffix)) {
+      return target.endsWith(suffix) || target.includes(`/${suffix}`);
+    }
   }
-  if (!pattern.includes("*")) {
+  if (!hasGlobSyntax(pattern)) {
     return target === pattern || target.endsWith(`/${pattern}`) || target.startsWith(`${pattern}/`);
   }
 
   const expression = new RegExp(`(^|/)${globPatternRegExpSource(pattern)}$`);
   return expression.test(target);
+}
+
+function hasGlobSyntax(pattern) {
+  return /[*?[\]{}]/.test(pattern);
 }
 
 function normalizePath(path) {
