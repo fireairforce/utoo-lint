@@ -62,6 +62,11 @@ pub const NoImplicitCoercionString = enum {
     no,
 };
 
+pub const NoPlusplusAllowForLoopAfterthoughts = enum {
+    yes,
+    no,
+};
+
 pub const WrapIifeStyle = enum {
     outside,
     inside,
@@ -314,6 +319,7 @@ pub const Options = struct {
     no_param_reassign: bool = true,
     no_path_concat: bool = true,
     no_plusplus: bool = true,
+    no_plusplus_allow_for_loop_afterthoughts: NoPlusplusAllowForLoopAfterthoughts = .no,
     no_promise_executor_return: bool = true,
     no_proto: bool = true,
     no_process_env: bool = true,

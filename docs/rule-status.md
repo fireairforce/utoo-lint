@@ -114,7 +114,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-octal-escape`](https://eslint.org/docs/latest/rules/no-octal-escape) | Implemented |
 | [`no-param-reassign`](https://eslint.org/docs/latest/rules/no-param-reassign) | Implemented |
 | [`no-path-concat`](https://eslint.org/docs/latest/rules/no-path-concat) | Implemented |
-| [`no-plusplus`](https://eslint.org/docs/latest/rules/no-plusplus) | Implemented |
+| [`no-plusplus`](https://eslint.org/docs/latest/rules/no-plusplus) | Implemented with optional `allowForLoopAfterthoughts` behavior |
 | [`no-process-env`](https://eslint.org/docs/latest/rules/no-process-env) | Implemented |
 | [`no-process-exit`](https://eslint.org/docs/latest/rules/no-process-exit) | Implemented |
 | [`no-promise-executor-return`](https://eslint.org/docs/latest/rules/no-promise-executor-return) | Implemented |

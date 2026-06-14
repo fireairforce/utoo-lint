@@ -2105,7 +2105,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_plusplus) {
-            try no_plusplus.check(self.allocator, self.diagnostics, ctx.tree, index);
+            try no_plusplus.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, index, ctx, .{
+                .allow_for_loop_afterthoughts = self.options.no_plusplus_allow_for_loop_afterthoughts == .yes,
+            });
         }
         return .proceed;
     }

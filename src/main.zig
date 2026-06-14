@@ -452,6 +452,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_path_concat = false;
         } else if (std.mem.eql(u8, arg, "--no-plusplus=off")) {
             options.no_plusplus = false;
+        } else if (std.mem.eql(u8, arg, "--no-plusplus-allow-for-loop-afterthoughts=on")) {
+            options.no_plusplus_allow_for_loop_afterthoughts = .yes;
         } else if (std.mem.eql(u8, arg, "--no-promise-executor-return=off")) {
             options.no_promise_executor_return = false;
         } else if (std.mem.eql(u8, arg, "--no-proto=off")) {
@@ -1480,6 +1482,7 @@ fn printHelp() void {
         \\  --no-param-reassign=off   Disable no-param-reassign
         \\  --no-path-concat=off      Disable no-path-concat
         \\  --no-plusplus=off         Disable no-plusplus
+        \\  --no-plusplus-allow-for-loop-afterthoughts=on Allow ++/-- in for afterthoughts
         \\  --no-promise-executor-return=off Disable no-promise-executor-return
         \\  --no-proto=off            Disable no-proto
         \\  --no-process-env=off      Disable no-process-env
