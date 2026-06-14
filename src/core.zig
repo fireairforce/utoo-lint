@@ -32,6 +32,11 @@ pub const AccessorPairsGetWithoutSet = enum {
     no,
 };
 
+pub const LogicalAssignmentOperatorsEnforceForIfStatements = enum {
+    yes,
+    no,
+};
+
 pub const ArrayCallbackReturnAllowImplicit = enum {
     yes,
     no,
@@ -63,6 +68,7 @@ pub const Options = struct {
     guard_for_in: bool = true,
     linebreak_style: bool = true,
     logical_assignment_operators: bool = true,
+    logical_assignment_operators_enforce_for_if_statements: LogicalAssignmentOperatorsEnforceForIfStatements = .no,
     new_cap: bool = true,
     new_parens: bool = true,
     no_async_promise_executor: bool = true,

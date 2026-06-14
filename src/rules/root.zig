@@ -1062,6 +1062,9 @@ const BasicVisitor = struct {
         if (self.options.no_negated_condition) {
             try no_negated_condition.checkIfStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
+        if (self.options.logical_assignment_operators and self.options.logical_assignment_operators_enforce_for_if_statements == .yes) {
+            try logical_assignment_operators.checkIfStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
         if (self.options.alipay_ant_prefer_elseif_end_with_else) {
             try alipay_ant_prefer_elseif_end_with_else.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }

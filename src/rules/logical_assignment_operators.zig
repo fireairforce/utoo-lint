@@ -65,6 +65,34 @@ pub fn checkLogicalExpression(
     try addDiagnostic(allocator, diagnostics, tree, index, expression.operator);
 }
 
+pub fn checkIfStatement(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    statement: ast.IfStatement,
+    index: ast.NodeIndex,
+) Allocator.Error!void {
+    if (statement.alternate != .null) return;
+
+    const assignment = assignmentFromStatement(tree, statement.consequent) orelse return;
+    if (assignment.operator != .assign) return;
+
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const arena_allocator = arena.allocator();
+
+    const test_reference = (try conditionReference(arena_allocator, tree, statement.@"test")) orelse return;
+    const assignment_left = (try referenceFromExpression(arena_allocator, tree, assignment.left)) orelse return;
+    if (!referencesEqual(test_reference.reference, assignment_left)) return;
+
+    try addDiagnostic(allocator, diagnostics, tree, index, test_reference.operator);
+}
+
+const ConditionReference = struct {
+    reference: *const Reference,
+    operator: ast.LogicalOperator,
+};
+
 fn addDiagnostic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -81,6 +109,76 @@ fn addDiagnostic(
         "Assignment can be replaced with `{s}=`.",
         .{operator.toString()},
     );
+}
+
+fn conditionReference(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+) Allocator.Error!?ConditionReference {
+    const unwrapped = unwrapTransparent(tree, index);
+    switch (tree.data(unwrapped)) {
+        .unary_expression => |expression| {
+            if (expression.operator != .logical_not) return null;
+            const reference = (try referenceFromExpression(allocator, tree, expression.argument)) orelse return null;
+            return .{
+                .reference = reference,
+                .operator = .@"or",
+            };
+        },
+        .binary_expression => |expression| {
+            if (expression.operator != .equal) return null;
+            if (isNullLiteral(tree, expression.left)) {
+                const reference = (try referenceFromExpression(allocator, tree, expression.right)) orelse return null;
+                return .{
+                    .reference = reference,
+                    .operator = .nullish_coalescing,
+                };
+            }
+            if (isNullLiteral(tree, expression.right)) {
+                const reference = (try referenceFromExpression(allocator, tree, expression.left)) orelse return null;
+                return .{
+                    .reference = reference,
+                    .operator = .nullish_coalescing,
+                };
+            }
+            return null;
+        },
+        else => {
+            const reference = (try referenceFromExpression(allocator, tree, unwrapped)) orelse return null;
+            return .{
+                .reference = reference,
+                .operator = .@"and",
+            };
+        },
+    }
+}
+
+fn assignmentFromStatement(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.AssignmentExpression {
+    const unwrapped = unwrapTransparent(tree, index);
+    switch (tree.data(unwrapped)) {
+        .expression_statement => |statement| return assignmentFromExpression(tree, statement.expression),
+        .block_statement => |block| {
+            const statements = tree.extra(block.body);
+            if (statements.len != 1) return null;
+            return assignmentFromStatement(tree, statements[0]);
+        },
+        else => return null,
+    }
+}
+
+fn assignmentFromExpression(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.AssignmentExpression {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .assignment_expression => |assignment| assignment,
+        else => null,
+    };
+}
+
+fn isNullLiteral(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .null_literal => true,
+        else => false,
+    };
 }
 
 fn referenceFromExpression(
