@@ -7,6 +7,7 @@ export interface LintMessage {
   endLine?: number;
   endColumn?: number;
   nodeType?: string | null;
+  fix?: LintFix | LintFix[];
   suggestions?: LintSuggestion[];
 }
 
