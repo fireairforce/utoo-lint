@@ -108,9 +108,7 @@ class UtooLint {
   }
 
   async calculateConfigForFile() {
-    return {
-      rules: this.options.overrideConfig?.rules ?? {}
-    };
+    return calculatedConfig(eslintConstructorOptions(this.options));
   }
 
   getRulesMetaForResults(results) {
@@ -213,9 +211,7 @@ class CLIEngine {
   }
 
   getConfigForFile() {
-    return {
-      rules: this.options.overrideConfig?.rules ?? this.options.baseConfig?.rules ?? {}
-    };
+    return calculatedConfig(eslintConstructorOptions(this.options));
   }
 }
 
@@ -522,7 +518,9 @@ function eslintConstructorOptions(options) {
     extraArgs: options.extraArgs,
     ignorePath: options.ignorePath,
     ignorePatterns: options.ignorePatterns,
-    noIgnore: options.noIgnore ?? options.ignore === false
+    noIgnore: options.noIgnore ?? options.ignore === false,
+    baseConfig: options.baseConfig,
+    noConfig: options.noConfig
   };
 
   if (options.useEslintrc === false || options.overrideConfigFile === true) {
@@ -536,6 +534,57 @@ function eslintConstructorOptions(options) {
     mapped.overrideConfig = { rules };
   }
   return mapped;
+}
+
+function calculatedConfig(options = {}) {
+  return {
+    rules: {
+      ...rulesFromConfig(options.baseConfig),
+      ...rulesFromFileConfig(options),
+      ...rulesFromConfig(options.overrideConfig)
+    }
+  };
+}
+
+function rulesFromConfig(config) {
+  return config?.rules && typeof config.rules === "object" ? config.rules : {};
+}
+
+function rulesFromFileConfig(options) {
+  if (options.noConfig) {
+    return {};
+  }
+
+  const configPath = configPathForOptions(options);
+  if (!configPath) {
+    return {};
+  }
+
+  const config = readJsonConfig(configPath);
+  return rulesFromConfig(config);
+}
+
+function configPathForOptions(options) {
+  if (options.config) {
+    return resolvePath(options.cwd ?? process.cwd(), options.config);
+  }
+
+  const cwd = options.cwd ?? process.cwd();
+  for (const candidate of ["utoo.json", "utoo-lint.json"]) {
+    const path = resolvePath(cwd, candidate);
+    if (existsSync(path)) {
+      return path;
+    }
+  }
+  return undefined;
+}
+
+function readJsonConfig(path) {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    throw new Error(`utoo-lint unable to read config ${path}: ${error.message}`);
+  }
 }
 
 function withTemporaryConfig(options, callback) {
