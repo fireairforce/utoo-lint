@@ -119,6 +119,33 @@ test "does not report logical-assignment-operators when shorthand would change m
     try std.testing.expect(!helpers.hasRule(result, lint.rules.logical_assignment_operators.id));
 }
 
+test "reports logical-assignment-operators for logical assignments in never mode" {
+    const source =
+        \\first ||= fallback;
+        \\second &&= fallback;
+        \\third ??= fallback;
+        \\fourth = fourth || fallback;
+        \\fourth || (fourth = fallback);
+        \\if (fourth) fourth = fallback;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
+        .eol_last = false,
+        .logical_assignment_operators_style = .never,
+        .logical_assignment_operators_enforce_for_if_statements = .yes,
+        .no_unused_expressions = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.logical_assignment_operators.id));
+    try std.testing.expectEqualStrings("Unexpected logical assignment operator `||=`.", result.diagnostics[0].message);
+    try std.testing.expectEqualStrings("Unexpected logical assignment operator `&&=`.", result.diagnostics[1].message);
+    try std.testing.expectEqualStrings("Unexpected logical assignment operator `??=`.", result.diagnostics[2].message);
+}
+
 test "can disable logical-assignment-operators" {
     const source =
         \\let value;
