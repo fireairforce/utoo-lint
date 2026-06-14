@@ -49,6 +49,7 @@ const FISHLINT_DROP_VALUE_FLAGS = new Set([
   "--rule",
   "--rulesdir",
   "--stdin-filename",
+  "-E",
   "-o"
 ]);
 
