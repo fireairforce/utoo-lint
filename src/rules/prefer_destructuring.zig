@@ -36,6 +36,26 @@ pub fn checkVariableDeclaration(
     }
 }
 
+pub fn checkAssignmentExpression(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+) Allocator.Error!void {
+    if (expression.operator != .assign) return;
+
+    const kind = preferredAssignmentDestructuringKind(tree, expression) orelse return;
+
+    try core.addDiagnostic(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        diagnosticMessage(kind),
+        tree.span(expression.left),
+    );
+}
+
 fn preferredDestructuringKind(tree: *const ast.Tree, declarator: ast.VariableDeclarator) ?DestructuringKind {
     if (declarator.init == .null) return null;
 
@@ -53,6 +73,21 @@ fn preferredDestructuringKind(tree: *const ast.Tree, declarator: ast.VariableDec
     return if (std.mem.eql(u8, local_name, property_name)) .object else null;
 }
 
+fn preferredAssignmentDestructuringKind(tree: *const ast.Tree, expression: ast.AssignmentExpression) ?DestructuringKind {
+    const target_name = identifierReferenceName(tree, expression.left) orelse return null;
+
+    const member = switch (tree.data(unwrapTransparent(tree, expression.right))) {
+        .member_expression => |member| member,
+        else => return null,
+    };
+    if (member.optional) return null;
+
+    if (isArrayIndexProperty(tree, member)) return .array;
+
+    const property_name = propertyName(tree, member) orelse return null;
+    return if (std.mem.eql(u8, target_name, property_name)) .object else null;
+}
+
 fn diagnosticMessage(kind: DestructuringKind) []const u8 {
     return switch (kind) {
         .object => "Use object destructuring.",
@@ -63,6 +98,13 @@ fn diagnosticMessage(kind: DestructuringKind) []const u8 {
 fn bindingIdentifierName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
     return switch (tree.data(unwrapTransparent(tree, index))) {
         .binding_identifier => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn identifierReferenceName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .identifier_reference => |identifier| tree.string(identifier.name),
         else => null,
     };
 }
