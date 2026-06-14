@@ -66,7 +66,8 @@ the fishlint wrapper and per-file flat config handling.
 `lintFiles()` and `lintText()` return an object with `files`, `filePaths`,
 `diagnostics`, and `exitCode`. Each diagnostic includes `filePath`, `line`,
 `column`, `severity`, `message`, and `ruleId`, with disabled per-file rules
-filtered from the diagnostics. The `ESLint` export is an alias for `UtooLint`
+filtered from the diagnostics. `exitCode` is recalculated from the filtered
+diagnostics. The `ESLint` export is an alias for `UtooLint`
 and supports the common `lintFiles()`, `lintText()`,
 `loadFormatter()`, `isPathIgnored()`, and `calculateConfigForFile()` methods for
 low-friction replacements. It also provides ESLint-compatible `version`,
