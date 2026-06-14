@@ -476,6 +476,8 @@ export function lintFiles(paths = ["."], options = {}) {
       ...ignoredDiagnostics
     ];
     if (!resolvedOptions.deferDiagnosticConfigFiltering) {
+      report.filePaths = normalizeReportFilePaths(report.filePaths, resolvedOptions);
+      report.diagnostics = normalizeDiagnosticFilePaths(report.diagnostics, resolvedOptions);
       report.diagnostics = normalizeReportDiagnostics(report.diagnostics, resolvedOptions);
     }
     if (stderr) {
@@ -817,6 +819,17 @@ function normalizeReportDiagnostics(diagnostics, options = {}) {
     }
     return [diagnostic];
   });
+}
+
+function normalizeReportFilePaths(filePaths, options = {}) {
+  return (filePaths ?? []).map((filePath) => normalizeESLintFilePath(filePath, options.cwd));
+}
+
+function normalizeDiagnosticFilePaths(diagnostics, options = {}) {
+  return (diagnostics ?? []).map((diagnostic) => ({
+    ...diagnostic,
+    filePath: normalizeESLintFilePath(diagnostic.filePath, options.cwd)
+  }));
 }
 
 function normalizeESLintFilePath(filePath, cwd) {
