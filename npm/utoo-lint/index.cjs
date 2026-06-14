@@ -18,6 +18,7 @@ const FISHLINT_DROP_FLAGS = new Set([
   "--no-cache",
   "--no-color",
   "--no-error-on-unmatched-pattern",
+  "--no-eslintrc",
   "--no-ignore",
   "--no-inline-config",
   "--no-warn-ignored",
@@ -250,6 +251,9 @@ function translateFishlintArgs(args = [], options = {}) {
       continue;
     }
     if (FISHLINT_DROP_FLAGS.has(arg)) {
+      if (arg === "--no-eslintrc") {
+        translated.push("--no-config");
+      }
       index += 1;
       continue;
     }
@@ -331,10 +335,10 @@ function translateFishlintArgs(args = [], options = {}) {
       index += 1;
       continue;
     }
-    if (arg === "--config") {
+    if (arg === "--config" || arg === "-c") {
       const value = rest[index + 1];
       if (!value) {
-        throw new Error("utoo-lint: fishlint --config requires a path");
+        throw new Error(`utoo-lint: fishlint ${arg} requires a path`);
       }
       translated.push(`--config=${value}`);
       index += 2;

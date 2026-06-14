@@ -95,10 +95,11 @@ specific native binary during local development.
 
 The package also installs a `fishlint` compatibility command for projects that
 currently run `fishlint eslint ...`. It supports the common eslint subcommand
-shape, forwards `--config`, maps `--glob` values to native lint targets, and
-normalizes split value flags such as `--format json`, `-f json`, `--threads 4`,
-and `--rules no-debugger`. Non-JSON ESLint formatter names are accepted and use
-native text output. `--rule` accepts JSON objects such as
+shape, forwards `--config` and `-c`, maps `--glob` values to native lint
+targets, and normalizes split value flags such as `--format json`, `-f json`,
+`--threads 4`, and `--rules no-debugger`. `--no-eslintrc` maps to native
+`--no-config`. Non-JSON ESLint formatter names are accepted and use native text
+output. `--rule` accepts JSON objects such as
 `{"no-console":"warn"}` and simple `rule: severity` pairs, merging them into the
 selected utoo-lint config for the run. It ignores fishlint-only setup/debug
 flags. `--ext` is accepted for compatibility; native directory traversal already
