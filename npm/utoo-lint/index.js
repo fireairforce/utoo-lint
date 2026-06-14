@@ -185,11 +185,18 @@ export class CLIEngine {
   }
 
   executeOnText(code, filePathOrOptions = "input.js") {
+    const textOptions =
+      typeof filePathOrOptions === "object" && filePathOrOptions !== null
+        ? filePathOrOptions
+        : {};
     const filePath =
       typeof filePathOrOptions === "object" && filePathOrOptions !== null
         ? filePathOrOptions.filePath ?? filePathOrOptions.filename ?? "input.js"
         : filePathOrOptions;
-    const mergedOptions = eslintConstructorOptions(this.options);
+    const mergedOptions = {
+      ...eslintConstructorOptions(this.options),
+      ...textOptions
+    };
     const report = lintText(code, {
       ...mergedOptions,
       filePath

@@ -80,6 +80,8 @@ same config discovery as file linting unless `noConfig` is set.
 use those calculated rule severities for `messages`, `errorCount`, and
 `warningCount`. The `CLIEngine` export
 provides a synchronous legacy facade for older ESLint integrations.
+`CLIEngine#executeOnText()` accepts a string path or an options object with
+`filePath`, `filename`, and text lint options.
 `ESLint` and `CLIEngine` constructor options also accept `quiet: true` to return
 only error messages, matching ESLint's warning filtering behavior.
 `warnIgnored: false` suppresses warnings for explicit ignored file paths and
