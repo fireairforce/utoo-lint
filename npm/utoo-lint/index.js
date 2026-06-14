@@ -413,9 +413,10 @@ function startsWithFlagValue(arg, flags) {
 
 export function lintFiles(paths = ["."], options = {}) {
   return withTemporaryConfig(options, (resolvedOptions) => {
+    const ignoredDiagnostics = ignoredLintPathDiagnostics(paths, resolvedOptions);
     const lintPaths = filteredLintPaths(paths, resolvedOptions);
     if (lintPaths.length === 0) {
-      return { files: 0, filePaths: [], diagnostics: [], exitCode: 0 };
+      return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, exitCode: ignoredDiagnostics.length > 0 ? 1 : 0 };
     }
 
     const cliArgs = buildLintArgs(lintPaths, resolvedOptions);
@@ -441,6 +442,10 @@ export function lintFiles(paths = ["."], options = {}) {
     }
 
     report.exitCode = status;
+    report.diagnostics = [
+      ...(report.diagnostics ?? []),
+      ...ignoredDiagnostics
+    ];
     if (stderr) {
       Object.defineProperty(report, "stderr", {
         value: stderr,
@@ -468,11 +473,12 @@ export function lintText(code, options = {}) {
 
   try {
     if (isPathIgnored(requestedPath, options)) {
+      const diagnostics = options.warnIgnored === false ? [] : [ignoredFileDiagnostic(normalizeESLintFilePath(requestedPath, options.cwd))];
       return {
         files: 0,
         filePaths: [],
-        diagnostics: [],
-        exitCode: 0
+        diagnostics,
+        exitCode: diagnostics.length > 0 ? 1 : 0
       };
     }
 
@@ -542,7 +548,8 @@ function eslintConstructorOptions(options) {
     baseConfig: options.baseConfig,
     noConfig: options.noConfig,
     quiet: options.quiet,
-    errorOnUnmatchedPattern: options.errorOnUnmatchedPattern
+    errorOnUnmatchedPattern: options.errorOnUnmatchedPattern,
+    warnIgnored: options.warnIgnored
   };
 
   if (options.useEslintrc === false || options.overrideConfigFile === true) {
@@ -789,6 +796,48 @@ function filteredLintPaths(paths, options = {}) {
     }
   }
   return [...filtered];
+}
+
+function ignoredLintPathDiagnostics(paths, options = {}) {
+  if (options.noIgnore || options.warnIgnored === false) {
+    return [];
+  }
+
+  const cwd = options.cwd ?? process.cwd();
+  const patterns = ignorePatternsForOptions(options, cwd);
+  if (patterns.length === 0) {
+    return [];
+  }
+
+  const diagnostics = [];
+  for (const target of normalizeStringArray(Array.isArray(paths) ? paths : [paths], "paths")) {
+    if (hasGlobMagic(target)) continue;
+
+    const filePath = normalizeESLintFilePath(target, cwd);
+    if (!isLintableFilePath(filePath)) continue;
+
+    try {
+      if (!statSync(filePath).isFile()) continue;
+    } catch {
+      continue;
+    }
+
+    if (pathIgnoredByPatterns(normalizeIgnoredPath(target, cwd), patterns)) {
+      diagnostics.push(ignoredFileDiagnostic(filePath));
+    }
+  }
+  return diagnostics;
+}
+
+function ignoredFileDiagnostic(filePath) {
+  return {
+    filePath,
+    line: 0,
+    column: 0,
+    severity: "warning",
+    message: "File ignored because of a matching ignore pattern. Use noIgnore to override.",
+    ruleId: null
+  };
 }
 
 function expandLintTarget(target, cwd, patterns) {
