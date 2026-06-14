@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, w
 import { writeFile as writeFileAsync } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, isAbsolute, join, resolve as resolvePath } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { resolveBinary } from "./lib/binary.js";
 
@@ -229,7 +230,18 @@ export function run(args = [], options = {}) {
 }
 
 export function runFishlint(args = [], options = {}) {
-  return run(translateFishlintArgs(args, options), options);
+  const cliArgs = normalizeStringArray(args, "args");
+  const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+  if (options.binary) {
+    env.UTOO_LINT_BIN = options.binary;
+  }
+
+  return spawnSync(process.execPath, [fileURLToPath(new URL("./bin/fishlint.js", import.meta.url)), ...cliArgs], {
+    cwd: options.cwd,
+    env,
+    encoding: options.encoding ?? "utf8",
+    stdio: options.stdio
+  });
 }
 
 export function translateFishlintArgs(args = [], options = {}) {
