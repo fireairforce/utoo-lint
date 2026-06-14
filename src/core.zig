@@ -26,6 +26,11 @@ pub const NoUnderscoreDangleAllowFunctionParams = enum {
     no,
 };
 
+pub const NoUnderscoreDangleAllowDestructuring = enum {
+    yes,
+    no,
+};
+
 pub const WrapIifeStyle = enum {
     outside,
     inside,
@@ -259,6 +264,8 @@ pub const Options = struct {
     no_underscore_dangle_allow_after_super: bool = false,
     no_underscore_dangle_allow_after_this_constructor: bool = false,
     no_underscore_dangle_allow_function_params: NoUnderscoreDangleAllowFunctionParams = .yes,
+    no_underscore_dangle_allow_in_array_destructuring: NoUnderscoreDangleAllowDestructuring = .yes,
+    no_underscore_dangle_allow_in_object_destructuring: NoUnderscoreDangleAllowDestructuring = .yes,
     no_undefined: bool = true,
     unicode_bom: bool = true,
     no_unneeded_ternary: bool = true,

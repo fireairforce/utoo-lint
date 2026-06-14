@@ -12,6 +12,8 @@ pub const Options = struct {
     allow_after_super: bool = false,
     allow_after_this_constructor: bool = false,
     allow_function_params: bool = true,
+    allow_in_array_destructuring: bool = true,
+    allow_in_object_destructuring: bool = true,
 };
 
 pub fn checkVariableDeclarator(
@@ -20,8 +22,30 @@ pub fn checkVariableDeclarator(
     tree: *const ast.Tree,
     declarator: ast.VariableDeclarator,
 ) Allocator.Error!void {
-    const name = bindingName(tree, declarator.id) orelse return;
-    try checkName(allocator, diagnostics, tree, declarator.id, name, false);
+    return checkVariableDeclaratorWithOptions(allocator, diagnostics, tree, declarator, .{});
+}
+
+pub fn checkVariableDeclaratorWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    declarator: ast.VariableDeclarator,
+    options: Options,
+) Allocator.Error!void {
+    switch (tree.data(declarator.id)) {
+        .binding_identifier => |identifier| try checkName(allocator, diagnostics, tree, declarator.id, tree.string(identifier.name), false),
+        .array_pattern => {
+            if (!options.allow_in_array_destructuring) {
+                try checkBinding(allocator, diagnostics, tree, declarator.id);
+            }
+        },
+        .object_pattern => {
+            if (!options.allow_in_object_destructuring) {
+                try checkBinding(allocator, diagnostics, tree, declarator.id);
+            }
+        },
+        else => {},
+    }
 }
 
 pub fn checkFunction(

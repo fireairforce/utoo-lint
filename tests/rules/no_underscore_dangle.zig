@@ -126,6 +126,24 @@ test "reports no-underscore-dangle for function params when configured" {
     try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_underscore_dangle.id));
 }
 
+test "reports no-underscore-dangle for destructuring when configured" {
+    const source =
+        \\const [_array, value_, ..._rest] = values;
+        \\const { _object, nested: { child_ }, _alias: alias } = record;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_underscore_dangle_allow_in_array_destructuring = .no,
+        .no_underscore_dangle_allow_in_object_destructuring = .no,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_underscore_dangle.id));
+}
+
 test "can disable no-underscore-dangle" {
     const source =
         \\const _value = 1;
