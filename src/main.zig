@@ -476,6 +476,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_undef_init = false;
         } else if (std.mem.eql(u8, arg, "--no-underscore-dangle=off")) {
             options.no_underscore_dangle = false;
+        } else if (std.mem.eql(u8, arg, "--no-undefined=off")) {
+            options.no_undefined = false;
         } else if (std.mem.eql(u8, arg, "--unicode-bom=off")) {
             options.unicode_bom = false;
         } else if (std.mem.eql(u8, arg, "--no-unneeded-ternary=off")) {
@@ -1422,6 +1424,7 @@ fn printHelp() void {
         \\  --no-unreachable=off      Disable no-unreachable
         \\  --no-undef-init=off       Disable no-undef-init
         \\  --no-underscore-dangle=off Disable no-underscore-dangle
+        \\  --no-undefined=off        Disable no-undefined
         \\  --unicode-bom=off         Disable unicode-bom
         \\  --no-unneeded-ternary=off Disable no-unneeded-ternary
         \\  --no-unused-labels=off   Disable no-unused-labels

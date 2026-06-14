@@ -739,6 +739,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_undefined.zig");
+}
+
+comptime {
     _ = @import("rules/no_shadow_restricted_names.zig");
 }
 

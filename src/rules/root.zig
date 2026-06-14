@@ -200,6 +200,7 @@ pub const no_trailing_spaces = @import("no_trailing_spaces.zig");
 pub const no_unreachable = @import("no_unreachable.zig");
 pub const no_undef_init = @import("no_undef_init.zig");
 pub const no_underscore_dangle = @import("no_underscore_dangle.zig");
+pub const no_undefined = @import("no_undefined.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
@@ -829,6 +830,12 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.alipay_ant_no_negative_conditionals) {
             try alipay_ant_no_negative_conditionals.checkNode(self.allocator, self.diagnostics, ctx.tree, data, index);
+        }
+        if (self.options.no_undefined) {
+            switch (data) {
+                .identifier_reference => |identifier| try no_undefined.checkIdentifierReference(self.allocator, self.diagnostics, ctx.tree, identifier, index),
+                else => {},
+            }
         }
         return .proceed;
     }
