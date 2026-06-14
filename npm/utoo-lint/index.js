@@ -260,6 +260,10 @@ export class SourceCode {
     if (typeof textOrConfig === "string") {
       this.text = textOrConfig;
       this.ast = astIfNoConfig;
+      this.parserServices = {};
+      this.scopeManager = null;
+      this.visitorKeys = null;
+      this.hasBOM = false;
     } else if (textOrConfig && typeof textOrConfig === "object" && typeof textOrConfig.text === "string") {
       this.text = textOrConfig.text;
       this.ast = textOrConfig.ast ?? null;
@@ -271,6 +275,9 @@ export class SourceCode {
       throw new TypeError("SourceCode requires source text");
     }
     this.lines = this.text.split(/\r\n|\r|\n/);
+    this.comments = Array.isArray(this.ast?.comments) ? this.ast.comments : [];
+    this.tokens = Array.isArray(this.ast?.tokens) ? this.ast.tokens : [];
+    this.lineStartIndices = sourceLineStartIndices(this.text);
   }
 
   getText(node, beforeCount = 0, afterCount = 0) {
@@ -283,6 +290,256 @@ export class SourceCode {
   getLines() {
     return this.lines;
   }
+
+  getAllComments() {
+    return this.comments;
+  }
+
+  getIndexFromLoc(loc) {
+    return this.lineStartIndices[Math.max(loc.line - 1, 0)] + loc.column;
+  }
+
+  getLocFromIndex(index) {
+    const clamped = Math.max(0, Math.min(index, this.text.length));
+    let line = 0;
+    while (line + 1 < this.lineStartIndices.length && this.lineStartIndices[line + 1] <= clamped) {
+      line += 1;
+    }
+    return {
+      line: line + 1,
+      column: clamped - this.lineStartIndices[line]
+    };
+  }
+
+  getRange(node) {
+    if (node?.range) {
+      return [node.range[0], node.range[1]];
+    }
+    if (node?.loc) {
+      return [this.getIndexFromLoc(node.loc.start), this.getIndexFromLoc(node.loc.end)];
+    }
+    return [0, this.text.length];
+  }
+
+  getLoc(node) {
+    if (node?.loc) {
+      return node.loc;
+    }
+    const range = this.getRange(node);
+    return {
+      start: this.getLocFromIndex(range[0]),
+      end: this.getLocFromIndex(range[1])
+    };
+  }
+
+  getAllTokens() {
+    return this.tokens;
+  }
+
+  getTokens(node, beforeCount = 0, afterCount = 0) {
+    if (!node) {
+      return this.tokens;
+    }
+    const range = expandSourceRange(this.getRange(node), beforeCount, afterCount, this.text.length);
+    return sourceItemsInRange(this.tokens, range);
+  }
+
+  getFirstToken(node) {
+    return this.getTokens(node)[0] ?? null;
+  }
+
+  getFirstTokens(node, count = 1) {
+    return this.getTokens(node).slice(0, count);
+  }
+
+  getLastToken(node) {
+    return this.getTokens(node).at(-1) ?? null;
+  }
+
+  getLastTokens(node, count = 1) {
+    return this.getTokens(node).slice(-count);
+  }
+
+  getTokenBefore(nodeOrToken) {
+    return sourceItemsBefore(this.tokens, this.getRange(nodeOrToken)[0]).at(-1) ?? null;
+  }
+
+  getTokensBefore(nodeOrToken, count = 1) {
+    return sourceItemsBefore(this.tokens, this.getRange(nodeOrToken)[0]).slice(-count);
+  }
+
+  getTokenAfter(nodeOrToken) {
+    return sourceItemsAfter(this.tokens, this.getRange(nodeOrToken)[1])[0] ?? null;
+  }
+
+  getTokensAfter(nodeOrToken, count = 1) {
+    return sourceItemsAfter(this.tokens, this.getRange(nodeOrToken)[1]).slice(0, count);
+  }
+
+  getTokensBetween(left, right) {
+    return sourceItemsBetween(this.tokens, this.getRange(left)[1], this.getRange(right)[0]);
+  }
+
+  getFirstTokenBetween(left, right) {
+    return this.getTokensBetween(left, right)[0] ?? null;
+  }
+
+  getFirstTokensBetween(left, right, count = 1) {
+    return this.getTokensBetween(left, right).slice(0, count);
+  }
+
+  getLastTokenBetween(left, right) {
+    return this.getTokensBetween(left, right).at(-1) ?? null;
+  }
+
+  getLastTokensBetween(left, right, count = 1) {
+    return this.getTokensBetween(left, right).slice(-count);
+  }
+
+  getTokenByRangeStart(index) {
+    return this.tokens.find((token) => token.range?.[0] === index) ?? null;
+  }
+
+  getTokenOrCommentBefore(nodeOrToken) {
+    return sourceItemsBefore(sourceTokensAndComments(this), this.getRange(nodeOrToken)[0]).at(-1) ?? null;
+  }
+
+  getTokenOrCommentAfter(nodeOrToken) {
+    return sourceItemsAfter(sourceTokensAndComments(this), this.getRange(nodeOrToken)[1])[0] ?? null;
+  }
+
+  getCommentsBefore(nodeOrToken) {
+    return sourceItemsBefore(this.comments, this.getRange(nodeOrToken)[0]);
+  }
+
+  getCommentsAfter(nodeOrToken) {
+    return sourceItemsAfter(this.comments, this.getRange(nodeOrToken)[1]);
+  }
+
+  getCommentsInside(node) {
+    return sourceItemsInRange(this.comments, this.getRange(node));
+  }
+
+  getJSDocComment(node) {
+    return this.getCommentsBefore(node).findLast((comment) => String(comment.value ?? "").startsWith("*")) ?? null;
+  }
+
+  commentsExistBetween(left, right) {
+    return sourceItemsBetween(this.comments, this.getRange(left)[1], this.getRange(right)[0]).length > 0;
+  }
+
+  isSpaceBetween(left, right) {
+    return /\s/u.test(this.text.slice(this.getRange(left)[1], this.getRange(right)[0]));
+  }
+
+  isSpaceBetweenTokens(left, right) {
+    return this.isSpaceBetween(left, right);
+  }
+
+  getNodeByRangeIndex(index) {
+    return sourceNodeByRangeIndex(this.ast, index);
+  }
+
+  getAncestors() {
+    return [];
+  }
+
+  getDeclaredVariables() {
+    return [];
+  }
+
+  getScope() {
+    return this.scopeManager?.globalScope ?? null;
+  }
+
+  markVariableAsUsed() {
+    return false;
+  }
+
+  getDisableDirectives() {
+    return [];
+  }
+
+  getInlineConfigNodes() {
+    return [];
+  }
+
+  applyInlineConfig() {
+    return undefined;
+  }
+
+  applyLanguageOptions() {
+    return undefined;
+  }
+
+  finalize() {
+    return undefined;
+  }
+
+  traverse() {
+    return [];
+  }
+
+  isGlobalReference() {
+    return false;
+  }
+}
+
+function sourceLineStartIndices(text) {
+  const indices = [0];
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] === "\n") {
+      indices.push(index + 1);
+    }
+  }
+  return indices;
+}
+
+function expandSourceRange(range, beforeCount, afterCount, textLength) {
+  return [
+    Math.max(range[0] - beforeCount, 0),
+    Math.min(range[1] + afterCount, textLength)
+  ];
+}
+
+function sourceItemsInRange(items, range) {
+  return items.filter((item) => item.range && item.range[0] >= range[0] && item.range[1] <= range[1]);
+}
+
+function sourceItemsBefore(items, index) {
+  return items.filter((item) => item.range && item.range[1] <= index);
+}
+
+function sourceItemsAfter(items, index) {
+  return items.filter((item) => item.range && item.range[0] >= index);
+}
+
+function sourceItemsBetween(items, start, end) {
+  return items.filter((item) => item.range && item.range[0] >= start && item.range[1] <= end);
+}
+
+function sourceTokensAndComments(sourceCode) {
+  return [...sourceCode.tokens, ...sourceCode.comments].sort((left, right) => (left.range?.[0] ?? 0) - (right.range?.[0] ?? 0));
+}
+
+function sourceNodeByRangeIndex(node, index, seen = new Set()) {
+  if (!node || typeof node !== "object" || seen.has(node)) {
+    return null;
+  }
+  seen.add(node);
+  if (!node.range || index < node.range[0] || index > node.range[1]) {
+    return null;
+  }
+  for (const value of Object.values(node)) {
+    const children = Array.isArray(value) ? value : [value];
+    for (const child of children) {
+      const match = sourceNodeByRangeIndex(child, index, seen);
+      if (match) {
+        return match;
+      }
+    }
+  }
+  return node;
 }
 
 export class RuleTester {

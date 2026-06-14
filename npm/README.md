@@ -80,7 +80,8 @@ utoo-lint's built-in ESLint-compatible rules, plus `getRules()` and explicit
 unsupported custom rule definition methods. The `RuleTester` export can run
 basic valid/invalid cases for those built-in rules and supports the
 default-config and test-framework static helpers. The `SourceCode` export
-provides basic source text access helpers used by `Linter#getSourceCode()`.
+provides basic text, location, token, and comment helpers used by
+`Linter#getSourceCode()`.
 Rule meta includes best-effort `docs.url` values for common ESLint-compatible
 rule IDs. `loadFormatter()` and `CLIEngine#getFormatter()` support `json`,
 `json-with-metadata`, `compact`, `unix`, and the native text formatter shape.
