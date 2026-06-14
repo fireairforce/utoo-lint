@@ -84,7 +84,9 @@ supported JavaScript and TypeScript extensions. ESLint cache controls and
 `--max-warnings` are consumed for compatibility because utoo-lint does not keep
 an ESLint-style result cache. ESLint runtime config flags such as `--env`,
 `--global`, `--parser`, `--parser-options`, `--plugin`, and ignore-pattern flags
-are also consumed so existing wrapper scripts do not pass them as file targets.
+are accepted so existing wrapper scripts do not pass them as file targets. The
+wrapper applies simple `--ignore-pattern` filters such as `dist/**` to explicit
+and `--glob` targets before invoking native lint.
 Fix controls such as `--fix`, `--fix-dry-run`, and `--fix-type` are accepted
 with a warning because utoo-lint does not apply fixes yet.
 Display and reporting controls such as `--color`, `--no-color`, `--stats`, and
