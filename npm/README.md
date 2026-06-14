@@ -72,7 +72,8 @@ and supports the common `lintFiles()`, `lintText()`,
 `loadFormatter()`, `isPathIgnored()`, and `calculateConfigForFile()` methods for
 low-friction replacements. It also provides ESLint-compatible `version`,
 `configType`, `defaultConfig`, `fromOptionsModule()`, `outputFixes()`,
-`getErrorResults()`, and `getRulesMetaForResults()` surfaces. The top-level
+`getErrorResults()`, `getRulesMetaForResults()`, `findConfigFile()`, and
+`hasFlag()` surfaces. The top-level
 `loadESLint()` helper resolves to the compatibility `ESLint` class.
 The `Linter` export supports in-memory `verify()` and `verifyAndFix()` calls for
 utoo-lint's built-in ESLint-compatible rules; custom rule definition APIs are
