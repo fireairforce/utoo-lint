@@ -21,7 +21,13 @@ if (command && command !== "eslint") {
 
 let args;
 const output = extractOutputFile(values);
-const input = extractStdin(output.args);
+const printConfig = extractPrintConfig(output.args);
+if (printConfig.enabled) {
+  writeOutput(JSON.stringify(loadPrintableConfig(printConfig.args), null, 2) + "\n", output.file);
+  process.exit(0);
+}
+
+const input = extractStdin(printConfig.args);
 const nativeValues = input.file ? [...input.args, input.file] : input.args;
 try {
   args = translateFishlintArgs(nativeValues, {
@@ -56,11 +62,7 @@ if (shouldCapture) {
   if (stderr) {
     process.stderr.write(stderr);
   }
-  if (output.file) {
-    writeFileSync(output.file, stdout);
-  } else if (stdout) {
-    process.stdout.write(stdout);
-  }
+  writeOutput(stdout, output.file);
 }
 
 cleanupStdinInput(input);
@@ -89,6 +91,97 @@ function extractOutputFile(args) {
   }
 
   return { args: values, file };
+}
+
+function extractPrintConfig(args) {
+  const values = [];
+  let enabled = false;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--print-config") {
+      if (!args[index + 1]) {
+        console.error("utoo-lint: fishlint --print-config requires a file path");
+        process.exit(2);
+      }
+      enabled = true;
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--print-config=")) {
+      enabled = true;
+      continue;
+    }
+    values.push(arg);
+  }
+
+  return { args: values, enabled };
+}
+
+function loadPrintableConfig(args) {
+  const configPath = findConfigPath(args);
+  if (!configPath) {
+    return { rules: {} };
+  }
+
+  try {
+    const config = JSON.parse(readFileSync(configPath, "utf8"));
+    return {
+      ...config,
+      rules: config.rules ?? {}
+    };
+  } catch (error) {
+    console.error(`utoo-lint: unable to read config ${configPath}: ${error.message}`);
+    process.exit(2);
+  }
+}
+
+function findConfigPath(args) {
+  let configEnabled = true;
+  let configPath;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--no-config") {
+      configEnabled = false;
+      configPath = undefined;
+      continue;
+    }
+    if (arg === "--config") {
+      configPath = args[index + 1];
+      if (!configPath) {
+        console.error("utoo-lint: fishlint --config requires a path");
+        process.exit(2);
+      }
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--config=")) {
+      configPath = arg.slice("--config=".length);
+    }
+  }
+
+  if (!configEnabled) {
+    return undefined;
+  }
+  if (configPath) {
+    return configPath;
+  }
+  if (existsSync("utoo.json")) {
+    return "utoo.json";
+  }
+  if (existsSync("utoo-lint.json")) {
+    return "utoo-lint.json";
+  }
+  return undefined;
+}
+
+function writeOutput(text, file) {
+  if (file) {
+    writeFileSync(file, text);
+  } else if (text) {
+    process.stdout.write(text);
+  }
 }
 
 function extractStdin(args) {
