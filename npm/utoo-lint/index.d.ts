@@ -166,7 +166,7 @@ export class SourceCode {
   getNodeByRangeIndex(index: number): SourceRange | null;
   getAncestors(node?: SourceRange): SourceRange[];
   getDeclaredVariables(node?: SourceRange): unknown[];
-  getScope(): unknown;
+  getScope(node?: SourceRange): unknown;
   markVariableAsUsed(name: string): boolean;
   getDisableDirectives(): unknown[];
   getInlineConfigNodes(): unknown[];
