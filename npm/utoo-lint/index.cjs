@@ -9,6 +9,7 @@ const { platformPackageName, resolveBinary } = require("./lib/binary.cjs");
 const version = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf8")).version;
 
 const LINTABLE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"]);
+const MAX_AUTOFIX_PASSES = 10;
 const RULE_TESTER_INITIAL_CONFIG = { rules: {} };
 let ruleTesterDefaultConfig = { rules: {} };
 let ruleTesterDescribe = null;
@@ -1363,10 +1364,28 @@ class Linter {
   }
 
   verifyAndFix(code, config = {}, options = {}) {
-    const messages = this.verify(code, config, options);
-    const output = applyRuleFixes(code, messages.flatMap((message) => ruleFixItems(message.fix)));
+    let output = code;
+    let fixed = false;
+    let fixPassCount = 0;
+    for (let pass = 0; pass < MAX_AUTOFIX_PASSES; pass += 1) {
+      const messages = this.verify(output, config, options);
+      const fixedOutput = applyRuleFixes(output, messages.flatMap((message) => ruleFixItems(message.fix)));
+      if (fixedOutput === output) {
+        this.fixPassCount = fixPassCount;
+        return {
+          fixed,
+          messages,
+          output
+        };
+      }
+      fixed = true;
+      fixPassCount += 1;
+      output = fixedOutput;
+    }
+    const messages = this.verify(output, config, options);
+    this.fixPassCount = fixPassCount;
     return {
-      fixed: output !== code,
+      fixed,
       messages,
       output
     };
