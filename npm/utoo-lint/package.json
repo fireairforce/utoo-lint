@@ -50,6 +50,7 @@
     "utoo-lint": "./bin/utoo-lint.js"
   },
   "files": [
+    "assets",
     "bin",
     "config.cjs",
     "config.d.ts",
@@ -59,6 +60,7 @@
     "index.d.ts",
     "index.js",
     "lib",
+    "README.md",
     "schema.json",
     "universal.cjs",
     "universal.d.ts",
