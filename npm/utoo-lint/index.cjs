@@ -56,6 +56,22 @@ class UtooLint {
     return version;
   }
 
+  static get configType() {
+    return "flat";
+  }
+
+  static get defaultConfig() {
+    return [];
+  }
+
+  static async fromOptionsModule(optionsURL) {
+    if (!(optionsURL instanceof URL)) {
+      throw new TypeError("Argument must be a URL object");
+    }
+    const loaded = await import(optionsURL.href);
+    return new UtooLint(loaded.default ?? loaded);
+  }
+
   static async outputFixes(results) {
     if (!Array.isArray(results)) {
       throw new Error("'results' must be an array");
@@ -777,6 +793,10 @@ function enabledRuleNamesFromConfig(config) {
 
 function hasRuleOptions(rules) {
   return Object.values(rules).some((value) => Array.isArray(value) && value.length > 1);
+}
+
+async function loadESLint() {
+  return UtooLint;
 }
 
 function normalizeStringArray(values, name) {
@@ -1596,6 +1616,7 @@ module.exports = {
   default: UtooLint,
   lintFiles,
   lintText,
+  loadESLint,
   platformPackageName,
   resolveBinary,
   run,
