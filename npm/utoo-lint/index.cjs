@@ -1971,7 +1971,91 @@ function assertRuleTesterOutput(testCase, actualOutput) {
 }
 
 function createLinterSourceCode(text) {
-  return new SourceCode(text, null);
+  return new SourceCode({
+    text,
+    ast: {
+      type: "Program",
+      range: [0, text.length],
+      comments: sourceCommentsFromText(text),
+      tokens: []
+    }
+  });
+}
+
+function sourceCommentsFromText(text) {
+  const comments = [];
+  const lineStarts = sourceLineStartIndices(text);
+  let index = 0;
+
+  while (index < text.length) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (char === "\"" || char === "'" || char === "`") {
+      index = skipQuotedSourceText(text, index, char);
+      continue;
+    }
+    if (char === "/" && next === "/") {
+      const start = index;
+      const valueStart = index + 2;
+      let end = valueStart;
+      while (end < text.length && text[end] !== "\n" && text[end] !== "\r") {
+        end += 1;
+      }
+      comments.push(sourceCommentNode("Line", text.slice(valueStart, end), start, end, lineStarts));
+      index = end;
+      continue;
+    }
+    if (char === "/" && next === "*") {
+      const start = index;
+      const valueStart = index + 2;
+      const close = text.indexOf("*/", valueStart);
+      const valueEnd = close === -1 ? text.length : close;
+      const end = close === -1 ? text.length : close + 2;
+      comments.push(sourceCommentNode("Block", text.slice(valueStart, valueEnd), start, end, lineStarts));
+      index = end;
+      continue;
+    }
+    index += 1;
+  }
+  return comments;
+}
+
+function skipQuotedSourceText(text, start, quote) {
+  let index = start + 1;
+  while (index < text.length) {
+    if (text[index] === "\\") {
+      index += 2;
+      continue;
+    }
+    if (text[index] === quote) {
+      return index + 1;
+    }
+    index += 1;
+  }
+  return text.length;
+}
+
+function sourceCommentNode(type, value, start, end, lineStarts) {
+  return {
+    type,
+    value,
+    range: [start, end],
+    loc: {
+      start: sourceLocFromIndex(lineStarts, start),
+      end: sourceLocFromIndex(lineStarts, end)
+    }
+  };
+}
+
+function sourceLocFromIndex(lineStarts, index) {
+  let line = 0;
+  while (line + 1 < lineStarts.length && lineStarts[line + 1] <= index) {
+    line += 1;
+  }
+  return {
+    line: line + 1,
+    column: index - lineStarts[line]
+  };
 }
 
 function normalizeStringArray(values, name) {
