@@ -54,6 +54,12 @@ const cli = new CLIEngine({
 console.log(cli.executeOnFiles(["src"]).results);
 ```
 
+CommonJS scripts can use the same surface through `require()`:
+
+```js
+const { ESLint, lintFiles } = require("@utoo/lint");
+```
+
 `lintFiles()` and `lintText()` return an object with `files`, `filePaths`,
 `diagnostics`, and `exitCode`. Each diagnostic includes `filePath`, `line`,
 `column`, `severity`, `message`, and `ruleId`. The `ESLint` export is an alias
