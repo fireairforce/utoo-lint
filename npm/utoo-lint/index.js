@@ -481,6 +481,7 @@ export function lintFiles(paths = ["."], options = {}) {
       report.filePaths = normalizeReportFilePaths(report.filePaths, resolvedOptions);
       report.diagnostics = normalizeDiagnosticFilePaths(report.diagnostics, resolvedOptions);
       report.diagnostics = normalizeReportDiagnostics(report.diagnostics, resolvedOptions);
+      report.exitCode = exitCodeForDiagnostics(report.diagnostics);
     }
     if (stderr) {
       Object.defineProperty(report, "stderr", {
@@ -532,6 +533,7 @@ export function lintText(code, options = {}) {
       filePath: requestedPath
     }));
     report.diagnostics = normalizeReportDiagnostics(report.diagnostics, options);
+    report.exitCode = exitCodeForDiagnostics(report.diagnostics);
     return report;
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -832,6 +834,10 @@ function normalizeDiagnosticFilePaths(diagnostics, options = {}) {
     ...diagnostic,
     filePath: normalizeESLintFilePath(diagnostic.filePath, options.cwd)
   }));
+}
+
+function exitCodeForDiagnostics(diagnostics) {
+  return (diagnostics?.length ?? 0) > 0 ? 1 : 0;
 }
 
 function normalizeESLintFilePath(filePath, cwd) {
