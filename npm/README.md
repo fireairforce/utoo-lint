@@ -145,7 +145,9 @@ For non-eslint fishlint commands, the compatibility command delegates to
 project-local tools when they are installed: `fishlint format` runs `prettier`,
 `fishlint stylelint` runs `stylelint`, `fishlint commitlint` runs `commitlint`,
 and `fishlint projectlint` runs `projectlint`. This keeps existing scripts
-working without treating those tools as native `utoo-lint` checks.
+working without treating those tools as native `utoo-lint` checks. Delegated
+commands also consume fishlint-only setup and verbose flags, including
+`--disable-setup=true` and similar value forms.
 `fishlint setup` and `fishlint setuplint` are accepted as no-ops so existing
 install hooks do not fail after replacing the package.
 

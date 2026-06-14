@@ -37,6 +37,12 @@ const TARGET_VALUE_FLAGS = new Set([
   "-f",
   "-o"
 ]);
+const FISHLINT_PASSTHROUGH_DROP_FLAGS = new Set([
+  "--disable-legacy",
+  "--disable-setup",
+  "--verbose",
+  "-v"
+]);
 
 if (command === "setup" || command === "setuplint") {
   console.warn(`utoo-lint: fishlint ${command} is treated as a no-op; configure utoo-lint with utoo.json.`);
@@ -997,7 +1003,8 @@ function translatePassthroughArgs(args, options = {}) {
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--") continue;
-    if (arg === "--disable-setup" || arg === "--disable-legacy" || arg === "--verbose" || arg === "-v") continue;
+    if (FISHLINT_PASSTHROUGH_DROP_FLAGS.has(arg)) continue;
+    if (isBooleanValueFlag(arg, FISHLINT_PASSTHROUGH_DROP_FLAGS)) continue;
     if (arg === "--glob") {
       const value = args[index + 1];
       if (!value) {
@@ -1028,6 +1035,14 @@ function translatePassthroughArgs(args, options = {}) {
 
   translated.push(...targets);
   return translated;
+}
+
+function isBooleanValueFlag(arg, flags) {
+  const separator = arg.indexOf("=");
+  if (separator === -1) {
+    return false;
+  }
+  return flags.has(arg.slice(0, separator));
 }
 
 function translateCommitlintArgs(args) {
