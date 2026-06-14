@@ -109,6 +109,23 @@ test "allows default names and skipped forms" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_underscore_dangle.id));
 }
 
+test "reports no-underscore-dangle for function params when configured" {
+    const source =
+        \\function run(_value, value_, _default = 1, ..._rest) {}
+        \\const arrow = ({ _object }, [_item]) => _object + _item;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_underscore_dangle_allow_function_params = .no,
+        .no_empty_function = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_underscore_dangle.id));
+}
+
 test "can disable no-underscore-dangle" {
     const source =
         \\const _value = 1;

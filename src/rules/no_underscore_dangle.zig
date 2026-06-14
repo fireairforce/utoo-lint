@@ -11,6 +11,7 @@ pub const Options = struct {
     allow_after_this: bool = false,
     allow_after_super: bool = false,
     allow_after_this_constructor: bool = false,
+    allow_function_params: bool = true,
 };
 
 pub fn checkVariableDeclarator(
@@ -29,10 +30,43 @@ pub fn checkFunction(
     tree: *const ast.Tree,
     function: ast.Function,
 ) Allocator.Error!void {
-    if (function.id == .null) return;
+    return checkFunctionWithOptions(allocator, diagnostics, tree, function, .{});
+}
 
-    const name = bindingName(tree, function.id) orelse return;
-    try checkName(allocator, diagnostics, tree, function.id, name, false);
+pub fn checkFunctionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    function: ast.Function,
+    options: Options,
+) Allocator.Error!void {
+    if (function.id != .null) {
+        if (bindingName(tree, function.id)) |name| {
+            try checkName(allocator, diagnostics, tree, function.id, name, false);
+        }
+    }
+    try checkFormalParametersWithOptions(allocator, diagnostics, tree, function.params, options);
+}
+
+pub fn checkFormalParametersWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    params_index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (options.allow_function_params) return;
+
+    const params = formalParameters(tree, params_index) orelse return;
+    for (tree.extra(params.items)) |item_index| {
+        switch (tree.data(item_index)) {
+            .formal_parameter => |parameter| try checkBinding(allocator, diagnostics, tree, parameter.pattern),
+            .ts_parameter_property => |property| try checkBinding(allocator, diagnostics, tree, property.parameter),
+            else => {},
+        }
+    }
+
+    try checkBinding(allocator, diagnostics, tree, params.rest);
 }
 
 pub fn checkClass(
@@ -77,6 +111,38 @@ fn isAllowedMemberAccess(tree: *const ast.Tree, member: ast.MemberExpression, op
     return false;
 }
 
+fn checkBinding(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+) Allocator.Error!void {
+    if (index == .null) return;
+
+    switch (tree.data(index)) {
+        .binding_identifier => |identifier| try checkName(allocator, diagnostics, tree, index, tree.string(identifier.name), false),
+        .assignment_pattern => |pattern| try checkBinding(allocator, diagnostics, tree, pattern.left),
+        .binding_rest_element => |element| try checkBinding(allocator, diagnostics, tree, element.argument),
+        .array_pattern => |pattern| {
+            for (tree.extra(pattern.elements)) |element| {
+                try checkBinding(allocator, diagnostics, tree, element);
+            }
+            try checkBinding(allocator, diagnostics, tree, pattern.rest);
+        },
+        .object_pattern => |pattern| {
+            for (tree.extra(pattern.properties)) |property_index| {
+                const property = switch (tree.data(property_index)) {
+                    .binding_property => |property| property,
+                    else => continue,
+                };
+                try checkBinding(allocator, diagnostics, tree, property.value);
+            }
+            try checkBinding(allocator, diagnostics, tree, pattern.rest);
+        },
+        else => {},
+    }
+}
+
 fn checkName(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -116,6 +182,14 @@ fn bindingName(tree: *const ast.Tree, node: ast.NodeIndex) ?[]const u8 {
 
     return switch (tree.data(node)) {
         .binding_identifier => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn formalParameters(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.FormalParameters {
+    if (index == .null) return null;
+    return switch (tree.data(index)) {
+        .formal_parameters => |params| params,
         else => null,
     };
 }
