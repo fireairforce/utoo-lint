@@ -757,6 +757,9 @@ function reportToESLintResults(report, textOptions = {}) {
       byFile.set(filePath, emptyESLintResult(filePath, textOptions.source));
     }
     const ruleSeverities = textOptions.ruleSeverityForFile?.(filePath) ?? textOptions.ruleSeverities;
+    if (diagnostic.ruleId && ruleSeverities?.get(diagnostic.ruleId) === 0) {
+      continue;
+    }
     byFile.get(filePath).messages.push(diagnosticToESLintMessage(diagnostic, ruleSeverities));
   }
 
@@ -1315,9 +1318,7 @@ function ruleSeverityMap(rules) {
   const severities = new Map();
   for (const [rule, config] of Object.entries(rules)) {
     const severity = ruleConfigSeverity(config);
-    if (severity > 0) {
-      severities.set(rule, severity);
-    }
+    severities.set(rule, severity);
   }
   return severities;
 }

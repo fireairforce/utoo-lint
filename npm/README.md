@@ -83,6 +83,7 @@ same config discovery as file linting unless `noConfig` is set.
 provided, flat config `files` and `ignores` entries are applied before merging.
 ESLint-compatible results use those calculated rule severities for `messages`,
 `errorCount`, and `warningCount`, including per-file flat config matches. The
+JS API filters diagnostics for rules disabled by the matched file config. The
 `CLIEngine` export
 provides a synchronous legacy facade for older ESLint integrations.
 `CLIEngine#executeOnText()` accepts a string path or an options object with
