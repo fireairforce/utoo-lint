@@ -155,6 +155,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`prefer-const`](https://eslint.org/docs/latest/rules/prefer-const) | Implemented for fishlint's `destructuring: any, ignoreReadBeforeAssign: true` configuration |
 | [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Implemented for fishlint's object variable declarator configuration |
 | [`prefer-exponentiation-operator`](https://eslint.org/docs/latest/rules/prefer-exponentiation-operator) | Implemented |
+| [`prefer-object-spread`](https://eslint.org/docs/latest/rules/prefer-object-spread) | Implemented for `Object.assign` calls with a new object literal target |
 | [`prefer-promise-reject-errors`](https://eslint.org/docs/latest/rules/prefer-promise-reject-errors) | Implemented |
 | [`prefer-regex-literals`](https://eslint.org/docs/latest/rules/prefer-regex-literals) | Implemented |
 | [`prefer-rest-params`](https://eslint.org/docs/latest/rules/prefer-rest-params) | Implemented |

@@ -166,6 +166,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_use_before_define or
         options.prefer_const or
         options.prefer_exponentiation_operator or
+        options.prefer_object_spread or
         options.prefer_promise_reject_errors or
         options.prefer_regex_literals or
         options.radix or

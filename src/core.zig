@@ -230,6 +230,7 @@ pub const Options = struct {
     prefer_destructuring: bool = true,
     prefer_regex_literals: bool = true,
     prefer_rest_params: bool = true,
+    prefer_object_spread: bool = true,
     prefer_spread: bool = true,
     prefer_template: bool = true,
     react_default_props_match_prop_types: bool = true,
