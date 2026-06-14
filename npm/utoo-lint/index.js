@@ -738,8 +738,8 @@ export class SourceCode {
     return sourceNodeByRangeIndex(this.ast, index);
   }
 
-  getAncestors() {
-    return [];
+  getAncestors(node) {
+    return node ? sourceAncestorsForNode(this.ast, node) ?? [] : [];
   }
 
   getDeclaredVariables() {
@@ -910,6 +910,30 @@ function sourceNodeByRangeIndex(node, index, seen = new Set()) {
     }
   }
   return node;
+}
+
+function sourceAncestorsForNode(root, target, ancestors = [], seen = new Set()) {
+  if (!root || typeof root !== "object" || seen.has(root)) {
+    return null;
+  }
+  if (root === target) {
+    return ancestors;
+  }
+  seen.add(root);
+
+  for (const value of Object.values(root)) {
+    const children = Array.isArray(value) ? value : [value];
+    for (const child of children) {
+      if (!child || typeof child !== "object") {
+        continue;
+      }
+      const result = sourceAncestorsForNode(child, target, [...ancestors, root], seen);
+      if (result) {
+        return result;
+      }
+    }
+  }
+  return null;
 }
 
 export class RuleTester {
