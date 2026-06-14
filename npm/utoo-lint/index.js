@@ -66,6 +66,81 @@ export function run(args = [], options = {}) {
   });
 }
 
+export function runFishlint(args = [], options = {}) {
+  return run(translateFishlintArgs(args, options), options);
+}
+
+export function translateFishlintArgs(args = [], options = {}) {
+  const values = normalizeStringArray(args, "args");
+  const warn = options.warn ?? (() => {});
+
+  if (values.length === 0) {
+    return ["--help"];
+  }
+
+  const [command, ...rest] = values;
+  if (command !== "eslint") {
+    throw new Error(`utoo-lint fishlint compatibility only supports the eslint command, received: ${command}`);
+  }
+
+  const translated = [];
+  const globTargets = [];
+  let index = 0;
+
+  while (index < rest.length) {
+    const arg = rest[index];
+    if (arg === "--") {
+      index += 1;
+      continue;
+    }
+    if (arg === "--disable-setup" || arg === "--disable-legacy" || arg === "--debug" || arg === "--verbose" || arg === "-v" || arg === "--quiet") {
+      index += 1;
+      continue;
+    }
+    if (arg === "--fix") {
+      warn("utoo-lint: fishlint --fix is ignored because utoo-lint does not apply fixes yet.");
+      index += 1;
+      continue;
+    }
+    if (arg === "--config") {
+      const value = rest[index + 1];
+      if (!value) {
+        throw new Error("utoo-lint: fishlint --config requires a path");
+      }
+      translated.push(`--config=${value}`);
+      index += 2;
+      continue;
+    }
+    if (arg.startsWith("--config=")) {
+      translated.push(arg);
+      index += 1;
+      continue;
+    }
+    if (arg === "--glob") {
+      const value = rest[index + 1];
+      if (!value) {
+        throw new Error("utoo-lint: fishlint --glob requires a path");
+      }
+      globTargets.push(value);
+      index += 2;
+      continue;
+    }
+    if (arg.startsWith("--glob=")) {
+      globTargets.push(arg.slice("--glob=".length));
+      index += 1;
+      continue;
+    }
+    translated.push(arg);
+    index += 1;
+  }
+
+  if (globTargets.length > 0) {
+    translated.push(...globTargets);
+  }
+
+  return translated;
+}
+
 export function lintFiles(paths = ["."], options = {}) {
   return withTemporaryConfig(options, (resolvedOptions) => {
     const cliArgs = buildLintArgs(paths, resolvedOptions);

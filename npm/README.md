@@ -12,7 +12,7 @@ This directory contains the npm CLI wrapper for `@utoo/lint` and the native plat
 The CLI package also exposes a small ESM API:
 
 ```js
-import { ESLint, lintFiles, lintText, resolveBinary, run } from "@utoo/lint";
+import { ESLint, lintFiles, lintText, resolveBinary, run, runFishlint } from "@utoo/lint";
 
 const report = lintFiles(["src", "test"], {
   config: "utoo.json",
@@ -22,6 +22,7 @@ const report = lintFiles(["src", "test"], {
 console.log(report.diagnostics);
 console.log(resolveBinary());
 console.log(run(["--help"]).stdout);
+console.log(runFishlint(["eslint", "--disable-setup", "--glob", "src"]).status);
 
 const textReport = lintText("debugger;\n", {
   filePath: "inline.js",
@@ -48,6 +49,18 @@ diagnostic includes `filePath`, `line`, `column`, `severity`, `message`, and
 `calculateConfigForFile()` methods for low-friction replacements. Set
 `UTOO_LINT_BIN=/path/to/utoo-lint` to force the JS API and CLI wrapper to use a
 specific native binary during local development.
+
+The package also installs a `fishlint` compatibility command for projects that
+currently run `fishlint eslint ...`. It supports the common eslint subcommand
+shape, forwards `--config`, maps `--glob` values to native lint targets, and
+ignores fishlint-only setup/debug flags:
+
+```bash
+npx fishlint eslint --disable-setup --config utoo.json --glob src
+```
+
+For programmatic replacements, `runFishlint()` applies the same argument
+translation before invoking the native binary.
 
 Use the packaged frontend config in an app:
 
