@@ -265,6 +265,7 @@ pub const react_self_closing_comp = @import("react_self_closing_comp.zig");
 pub const react_void_dom_elements_no_children = @import("react_void_dom_elements_no_children.zig");
 pub const react_hooks_rules_of_hooks = @import("react_hooks_rules_of_hooks.zig");
 pub const radix = @import("radix.zig");
+pub const require_await = @import("require_await.zig");
 pub const require_atomic_updates = @import("require_atomic_updates.zig");
 const reassignment_rules = @import("reassignment_rules.zig");
 pub const require_yield = @import("require_yield.zig");
@@ -385,6 +386,9 @@ pub fn runBasic(
     }
     if (options.react_hooks_rules_of_hooks) {
         try react_hooks_rules_of_hooks.run(allocator, diagnostics, tree);
+    }
+    if (options.require_await) {
+        try require_await.run(allocator, diagnostics, tree);
     }
     if (options.react_prop_types) {
         try react_prop_types.run(allocator, diagnostics, tree);

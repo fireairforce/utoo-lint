@@ -614,6 +614,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_hooks_rules_of_hooks = false;
         } else if (std.mem.eql(u8, arg, "--radix=off")) {
             options.radix = false;
+        } else if (std.mem.eql(u8, arg, "--require-await=off")) {
+            options.require_await = false;
         } else if (std.mem.eql(u8, arg, "--require-atomic-updates=off")) {
             options.require_atomic_updates = false;
         } else if (std.mem.eql(u8, arg, "--require-yield=off")) {
@@ -1464,6 +1466,7 @@ fn printHelp() void {
         \\  --react-void-dom-elements-no-children=off Disable react/void-dom-elements-no-children
         \\  --react-hooks-rules-of-hooks=off Disable react-hooks/rules-of-hooks
         \\  --radix=off               Disable radix
+        \\  --require-await=off      Disable require-await
         \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield
         \\  --spaced-comment=off      Disable spaced-comment

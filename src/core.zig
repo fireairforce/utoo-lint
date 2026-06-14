@@ -276,6 +276,7 @@ pub const Options = struct {
     react_void_dom_elements_no_children: bool = true,
     react_hooks_rules_of_hooks: bool = true,
     radix: bool = true,
+    require_await: bool = true,
     require_atomic_updates: bool = true,
     require_yield: bool = true,
     spaced_comment: bool = true,
