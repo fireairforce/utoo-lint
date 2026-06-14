@@ -748,6 +748,12 @@ pub fn main(init: std.process.Init) !void {
             options.vars_on_top = false;
         } else if (std.mem.eql(u8, arg, "--wrap-iife=off")) {
             options.wrap_iife = false;
+        } else if (std.mem.eql(u8, arg, "--wrap-iife=outside")) {
+            options.wrap_iife_style = .outside;
+        } else if (std.mem.eql(u8, arg, "--wrap-iife=inside")) {
+            options.wrap_iife_style = .inside;
+        } else if (std.mem.eql(u8, arg, "--wrap-iife=any")) {
+            options.wrap_iife_style = .any;
         } else if (std.mem.eql(u8, arg, "--semantic-errors=off")) {
             options.parser_semantic_errors = false;
         } else if (std.mem.eql(u8, arg, "--yoda=off")) {
@@ -1555,7 +1561,7 @@ fn printHelp() void {
         \\  --typescript-eslint-restrict-plus-operands=off Disable @typescript-eslint/restrict-plus-operands
         \\  --valid-typeof=off        Disable valid-typeof
         \\  --vars-on-top=off         Disable vars-on-top
-        \\  --wrap-iife=off           Disable wrap-iife
+        \\  --wrap-iife=off|outside|inside|any Configure wrap-iife
         \\  --semantic-errors=off     Disable parser semantic errors
         \\  --yoda=off                Disable yoda
         \\

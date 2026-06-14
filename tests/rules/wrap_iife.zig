@@ -47,6 +47,51 @@ test "allows outside-wrapped IIFEs and non-IIFE calls" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.wrap_iife.id));
 }
 
+test "supports inside style" {
+    const source =
+        \\const outside = (function () {
+        \\  return value;
+        \\}());
+        \\const inside = (function () {
+        \\  return value;
+        \\})();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .wrap_iife_style = .inside,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.wrap_iife.id));
+}
+
+test "supports any style" {
+    const source =
+        \\const unwrapped = function () {
+        \\  return value;
+        \\}();
+        \\const outside = (function () {
+        \\  return value;
+        \\}());
+        \\const inside = (function () {
+        \\  return value;
+        \\})();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .wrap_iife_style = .any,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.wrap_iife.id));
+}
+
 test "can disable wrap-iife" {
     const source = "const value = function () { return 1; }();\n";
 
