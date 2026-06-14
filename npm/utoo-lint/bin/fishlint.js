@@ -23,10 +23,11 @@ let args;
 const output = extractOutputFile(values);
 const ignored = extractIgnorePatterns(output.args);
 const maxWarnings = extractMaxWarnings(ignored.args);
-const quiet = extractQuiet(maxWarnings.args);
+const ruleOverrides = extractRuleOverrides(maxWarnings.args);
+const quiet = extractQuiet(ruleOverrides.args);
 const printConfig = extractPrintConfig(quiet.args);
 if (printConfig.enabled) {
-  writeOutput(JSON.stringify(loadPrintableConfig(printConfig.args), null, 2) + "\n", output.file);
+  writeOutput(JSON.stringify(loadPrintableConfig(printConfig.args, ruleOverrides.rules), null, 2) + "\n", output.file);
   process.exit(0);
 }
 
@@ -62,10 +63,12 @@ try {
   process.exit(1);
 }
 
-const result = spawnSync(binary, quiet.enabled ? withJsonFormat(args) : args, { encoding: "utf8" });
+const ruleConfig = materializeRuleOverrideConfig(nativeValues, args, ruleOverrides.rules);
+const result = spawnSync(binary, quiet.enabled ? withJsonFormat(ruleConfig.args) : ruleConfig.args, { encoding: "utf8" });
 
 if (result.error) {
   console.error(`utoo-lint: failed to run native binary: ${result.error.message}`);
+  cleanupRuleConfig(ruleConfig);
   cleanupStdinInput(input);
   process.exit(1);
 }
@@ -88,8 +91,9 @@ if (quiet.enabled) {
   }
 } else {
   writeOutput(rewriteStdinPath(rawStdout, input), output.file);
-  exitStatus = eslintExitStatus(binary, args, result.status ?? 1, rawStdout, maxWarnings.value);
+  exitStatus = eslintExitStatus(binary, ruleConfig.args, result.status ?? 1, rawStdout, maxWarnings.value);
 }
+cleanupRuleConfig(ruleConfig);
 cleanupStdinInput(input);
 process.exit(exitStatus);
 
@@ -206,6 +210,78 @@ function extractQuiet(args) {
   }
 
   return { args: values, enabled };
+}
+
+function extractRuleOverrides(args) {
+  const values = [];
+  const rules = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--rule") {
+      const value = args[index + 1];
+      if (!value) {
+        console.error("utoo-lint: fishlint --rule requires a rule configuration");
+        process.exit(2);
+      }
+      Object.assign(rules, parseRuleOverride(value));
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--rule=")) {
+      Object.assign(rules, parseRuleOverride(arg.slice("--rule=".length)));
+      continue;
+    }
+    values.push(arg);
+  }
+
+  return { args: values, rules };
+}
+
+function parseRuleOverride(value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    console.error("utoo-lint: fishlint --rule requires a non-empty rule configuration");
+    process.exit(2);
+  }
+
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch {}
+    console.error(`utoo-lint: fishlint --rule must be a JSON object or rule: severity pair: ${value}`);
+    process.exit(2);
+  }
+
+  const separator = trimmed.indexOf(":");
+  if (separator === -1) {
+    console.error(`utoo-lint: fishlint --rule must include a ':' separator: ${value}`);
+    process.exit(2);
+  }
+
+  const rule = trimmed.slice(0, separator).trim();
+  const rawConfig = trimmed.slice(separator + 1).trim();
+  if (!rule || !rawConfig) {
+    console.error(`utoo-lint: fishlint --rule must include both rule name and severity: ${value}`);
+    process.exit(2);
+  }
+
+  return { [rule]: parseRuleValue(rawConfig) };
+}
+
+function parseRuleValue(value) {
+  if (value.startsWith("[") || value.startsWith("{") || value.startsWith('"')) {
+    try {
+      return JSON.parse(value);
+    } catch {}
+  }
+  if (/^-?\d+$/.test(value)) {
+    return Number(value);
+  }
+  return value;
 }
 
 function parseMaxWarnings(value) {
@@ -393,22 +469,53 @@ function extractPrintConfig(args) {
   return { args: values, enabled };
 }
 
-function loadPrintableConfig(args) {
+function loadPrintableConfig(args, ruleOverrides = {}) {
   const configPath = findConfigPath(args);
   if (!configPath) {
-    return { rules: {} };
+    return { rules: { ...ruleOverrides } };
   }
 
   try {
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     return {
       ...config,
-      rules: config.rules ?? {}
+      rules: {
+        ...(config.rules ?? {}),
+        ...ruleOverrides
+      }
     };
   } catch (error) {
     console.error(`utoo-lint: unable to read config ${configPath}: ${error.message}`);
     process.exit(2);
   }
+}
+
+function materializeRuleOverrideConfig(args, translatedArgs, ruleOverrides) {
+  if (Object.keys(ruleOverrides).length === 0) {
+    return { args: translatedArgs };
+  }
+
+  const config = loadPrintableConfig(args, ruleOverrides);
+  const directory = mkdtempSync(join(tmpdir(), "utoo-fishlint-rule-"));
+  const file = join(directory, "utoo.json");
+  writeFileSync(file, JSON.stringify(config));
+
+  return {
+    args: withConfigArg(translatedArgs, file),
+    directory
+  };
+}
+
+function withConfigArg(args, file) {
+  const values = [];
+  for (const arg of args) {
+    if (arg === "--no-config" || arg.startsWith("--config=")) {
+      continue;
+    }
+    values.push(arg);
+  }
+  values.unshift(`--config=${file}`);
+  return values;
 }
 
 function findConfigPath(args) {
@@ -507,6 +614,12 @@ function rewriteStdinPath(text, input) {
 function cleanupStdinInput(input) {
   if (input.directory) {
     rmSync(input.directory, { recursive: true, force: true });
+  }
+}
+
+function cleanupRuleConfig(config) {
+  if (config.directory) {
+    rmSync(config.directory, { recursive: true, force: true });
   }
 }
 
