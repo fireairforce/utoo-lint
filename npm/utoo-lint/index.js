@@ -288,12 +288,12 @@ export function translateFishlintArgs(args = [], options = {}) {
       if (!value) {
         throw new Error(`utoo-lint: fishlint ${arg} requires a formatter name`);
       }
-      translated.push(`--format=${translateFishlintFormat(value)}`);
+      translated.push(`--format=${translateFishlintFormat(value, warn)}`);
       index += 2;
       continue;
     }
     if (arg.startsWith("--format=")) {
-      translated.push(`--format=${translateFishlintFormat(arg.slice("--format=".length))}`);
+      translated.push(`--format=${translateFishlintFormat(arg.slice("--format=".length), warn)}`);
       index += 1;
       continue;
     }
@@ -376,8 +376,14 @@ export function translateFishlintArgs(args = [], options = {}) {
   return translated;
 }
 
-function translateFishlintFormat(format) {
-  return format === "stylish" ? "text" : format;
+function translateFishlintFormat(format, warn) {
+  if (format === "json" || format === "text") {
+    return format;
+  }
+  if (format !== "stylish") {
+    warn(`utoo-lint: fishlint formatter '${format}' is not implemented; using native text output.`);
+  }
+  return "text";
 }
 
 function startsWithFlagValue(arg, flags) {

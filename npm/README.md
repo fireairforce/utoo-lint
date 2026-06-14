@@ -71,8 +71,9 @@ The package also installs a `fishlint` compatibility command for projects that
 currently run `fishlint eslint ...`. It supports the common eslint subcommand
 shape, forwards `--config`, maps `--glob` values to native lint targets, and
 normalizes split value flags such as `--format json`, `-f json`, `--threads 4`,
-and `--rules no-debugger`. It ignores fishlint-only setup/debug flags. `--ext`
-is accepted for compatibility; native directory traversal already filters to
+and `--rules no-debugger`. Non-JSON ESLint formatter names are accepted and use
+native text output. It ignores fishlint-only setup/debug flags. `--ext` is
+accepted for compatibility; native directory traversal already filters to
 supported JavaScript and TypeScript extensions. ESLint cache controls and
 `--max-warnings` are consumed for compatibility because utoo-lint does not keep
 an ESLint-style result cache. ESLint runtime config flags such as `--env`,
