@@ -257,6 +257,10 @@ function extractQuiet(args) {
       enabled = true;
       continue;
     }
+    if (arg.startsWith("--quiet=")) {
+      enabled = booleanFlagValue(arg) !== false;
+      continue;
+    }
     values.push(arg);
   }
 
@@ -272,6 +276,10 @@ function extractUnmatchedPatternOption(args) {
       enabled = true;
       continue;
     }
+    if (arg.startsWith("--no-error-on-unmatched-pattern=")) {
+      enabled = booleanFlagValue(arg) !== false;
+      continue;
+    }
     values.push(arg);
   }
 
@@ -285,6 +293,10 @@ function extractWarnIgnoredOption(args) {
   for (const arg of args) {
     if (arg === "--no-warn-ignored") {
       enabled = false;
+      continue;
+    }
+    if (arg.startsWith("--no-warn-ignored=")) {
+      enabled = booleanFlagValue(arg) === false;
       continue;
     }
     values.push(arg);

@@ -114,10 +114,11 @@ as file targets. The wrapper applies simple `.eslintignore`, `--ignore-path`,
 and `--ignore-pattern` filters such as `dist/**` to explicit and `--glob`
 targets before invoking native lint, including `!pattern` negation entries.
 `--no-ignore` and `--no-ignore=true` disable those wrapper-side ignore filters.
-`--no-error-on-unmatched-pattern` skips
+`--no-error-on-unmatched-pattern` and `--no-error-on-unmatched-pattern=true` skip
 missing explicit and `--glob` targets before invoking native lint. `--quiet`
-filters warnings from compatibility output. Explicit ignored file paths emit
-ESLint-style warnings unless `--no-warn-ignored` is set.
+and `--quiet=true` filter warnings from compatibility output. Explicit ignored
+file paths emit ESLint-style warnings unless `--no-warn-ignored` or
+`--no-warn-ignored=true` is set.
 Fix controls such as `--fix`, `--fix-dry-run`, and `--fix-type` are accepted
 with a warning because utoo-lint does not apply fixes yet.
 Display and reporting controls such as `--color`, `--no-color`, `--stats`,
