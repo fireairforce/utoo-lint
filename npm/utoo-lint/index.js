@@ -222,6 +222,36 @@ export class Linter {
   }
 }
 
+export class SourceCode {
+  constructor(textOrConfig, astIfNoConfig = null) {
+    if (typeof textOrConfig === "string") {
+      this.text = textOrConfig;
+      this.ast = astIfNoConfig;
+    } else if (textOrConfig && typeof textOrConfig === "object" && typeof textOrConfig.text === "string") {
+      this.text = textOrConfig.text;
+      this.ast = textOrConfig.ast ?? null;
+      this.parserServices = textOrConfig.parserServices ?? {};
+      this.scopeManager = textOrConfig.scopeManager ?? null;
+      this.visitorKeys = textOrConfig.visitorKeys ?? null;
+      this.hasBOM = Boolean(textOrConfig.hasBOM);
+    } else {
+      throw new TypeError("SourceCode requires source text");
+    }
+    this.lines = this.text.split(/\r\n|\r|\n/);
+  }
+
+  getText(node, beforeCount = 0, afterCount = 0) {
+    if (node?.range) {
+      return this.text.slice(Math.max(node.range[0] - beforeCount, 0), node.range[1] + afterCount);
+    }
+    return this.text;
+  }
+
+  getLines() {
+    return this.lines;
+  }
+}
+
 export class RuleTester {
   static get version() {
     return version;
@@ -406,14 +436,7 @@ function assertRuleTesterErrors(testCase, messages) {
 }
 
 function createLinterSourceCode(text) {
-  return {
-    text,
-    ast: null,
-    lines: text.split(/\r\n|\r|\n/),
-    getText() {
-      return text;
-    }
-  };
+  return new SourceCode(text, null);
 }
 
 export class CLIEngine {
