@@ -26,6 +26,7 @@ pub const default_param_last = @import("default_param_last.zig");
 pub const eol_last = @import("eol_last.zig");
 pub const eslint_comments_no_restricted_disable = @import("eslint_comments_no_restricted_disable.zig");
 pub const for_direction = @import("for_direction.zig");
+pub const func_name_matching = @import("func_name_matching.zig");
 pub const func_names = @import("func_names.zig");
 pub const getter_return = @import("getter_return.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
@@ -1241,6 +1242,9 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_no_inferrable_types) {
             try typescript_eslint_no_inferrable_types.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
         }
+        if (self.options.func_name_matching) {
+            try func_name_matching.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
+        }
         if (self.options.react_no_children_prop) {
             react_no_children_prop.checkVariableDeclarator(ctx.tree, declarator, &self.react_no_children_prop_bindings);
         }
@@ -1874,6 +1878,9 @@ const BasicVisitor = struct {
         if (self.options.logical_assignment_operators) {
             try logical_assignment_operators.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
+        if (self.options.func_name_matching) {
+            try func_name_matching.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
         if (self.options.no_self_assign) {
             try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
@@ -2456,6 +2463,9 @@ const BasicVisitor = struct {
         if (self.options.object_shorthand) {
             try object_shorthand.check(self.allocator, self.diagnostics, ctx.tree, property, index);
         }
+        if (self.options.func_name_matching) {
+            try func_name_matching.checkObjectProperty(self.allocator, self.diagnostics, ctx.tree, property);
+        }
         if (self.options.react_no_unused_state) {
             try react_no_unused_state.enterObjectProperty(self.allocator, ctx.tree, property, index, ctx.path.parent(), &self.react_no_unused_state_state);
         }
@@ -2570,6 +2580,9 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_inferrable_types) {
             try typescript_eslint_no_inferrable_types.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
+        }
+        if (self.options.func_name_matching) {
+            try func_name_matching.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
         }
         if (self.options.react_no_typos) {
             try react_no_typos.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, ctx, self.react_no_typos_state);

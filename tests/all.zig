@@ -55,6 +55,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/func_name_matching.zig");
+}
+
+comptime {
     _ = @import("rules/getter_return.zig");
 }
 

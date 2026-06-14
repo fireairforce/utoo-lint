@@ -32,6 +32,7 @@ pub const Options = struct {
     eslint_comments_no_restricted_disable: bool = true,
     eslint_comments_no_restricted_disable_no_nested_ternary: bool = false,
     for_direction: bool = true,
+    func_name_matching: bool = true,
     func_names: bool = true,
     getter_return: bool = true,
     guard_for_in: bool = true,
