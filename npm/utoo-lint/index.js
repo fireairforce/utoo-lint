@@ -756,6 +756,7 @@ export class CLIEngine {
 
   constructor(options = {}) {
     this.options = { ...options };
+    this.plugins = new Map();
   }
 
   executeOnFiles(patterns) {
@@ -800,6 +801,18 @@ export class CLIEngine {
     return (results) => {
       return formatResultsByName(results, name);
     };
+  }
+
+  getRules() {
+    return new Linter().getRules();
+  }
+
+  addPlugin(name, pluginObject) {
+    this.plugins.set(name, pluginObject);
+  }
+
+  resolveFileGlobPatterns(patterns) {
+    return normalizeStringArray(Array.isArray(patterns) ? patterns : [patterns], "patterns");
   }
 
   isPathIgnored(filePath) {
