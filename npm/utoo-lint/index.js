@@ -525,6 +525,13 @@ export class Linter {
 }
 
 export class SourceCode {
+  static splitLines(text) {
+    if (typeof text !== "string") {
+      throw new TypeError("SourceCode.splitLines requires source text");
+    }
+    return text.split(/\r\n|\r|\n/u);
+  }
+
   constructor(textOrConfig, astIfNoConfig = null) {
     if (typeof textOrConfig === "string") {
       this.text = textOrConfig;
@@ -543,7 +550,7 @@ export class SourceCode {
     } else {
       throw new TypeError("SourceCode requires source text");
     }
-    this.lines = this.text.split(/\r\n|\r|\n/);
+    this.lines = SourceCode.splitLines(this.text);
     this.comments = Array.isArray(this.ast?.comments) ? this.ast.comments : [];
     this.tokens = Array.isArray(this.ast?.tokens) ? this.ast.tokens : [];
     this.lineStartIndices = sourceLineStartIndices(this.text);
