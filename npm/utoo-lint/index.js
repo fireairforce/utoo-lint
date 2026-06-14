@@ -13,14 +13,19 @@ export const version = JSON.parse(readFileSync(new URL("./package.json", import.
 const LINTABLE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"]);
 const FISHLINT_DROP_FLAGS = new Set([
   "--cache",
+  "--color",
   "--debug",
   "--disable-legacy",
   "--disable-setup",
   "--no-cache",
+  "--no-color",
   "--no-error-on-unmatched-pattern",
   "--no-inline-config",
+  "--no-warn-ignored",
+  "--pass-on-no-patterns",
   "--quiet",
   "--report-unused-disable-directives",
+  "--stats",
   "--verbose",
   "-v"
 ]);
