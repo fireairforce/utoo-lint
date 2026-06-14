@@ -944,6 +944,11 @@ function customRuleSelectorMatches(selector, node, exit, ancestors = []) {
       && customRuleSimpleSelectorMatches(childSelector[1].trim(), parent)
       && customRuleSimpleSelectorMatches(childSelector[2].trim(), node);
   }
+  const descendantSelector = expression.match(/^(.+?)\s+(.+)$/u);
+  if (descendantSelector) {
+    return ancestors.some((ancestor) => customRuleSimpleSelectorMatches(descendantSelector[1].trim(), ancestor))
+      && customRuleSimpleSelectorMatches(descendantSelector[2].trim(), node);
+  }
   return customRuleSimpleSelectorMatches(expression, node);
 }
 
