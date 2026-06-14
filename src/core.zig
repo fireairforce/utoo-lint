@@ -42,6 +42,11 @@ pub const NoWarningCommentsDecoration = enum {
     slash_asterisk,
 };
 
+pub const NoVoidAllowAsStatement = enum {
+    yes,
+    no,
+};
+
 pub const WrapIifeStyle = enum {
     outside,
     inside,
@@ -345,6 +350,7 @@ pub const Options = struct {
     no_warning_comments_location: NoWarningCommentsLocation = .start,
     no_warning_comments_decoration: NoWarningCommentsDecoration = .none,
     no_void: bool = true,
+    no_void_allow_as_statement: NoVoidAllowAsStatement = .no,
     no_with: bool = true,
     no_var: bool = true,
     object_shorthand: bool = true,

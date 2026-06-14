@@ -156,7 +156,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-useless-rename`](https://eslint.org/docs/latest/rules/no-useless-rename) | Implemented |
 | [`no-useless-return`](https://eslint.org/docs/latest/rules/no-useless-return) | Implemented |
 | [`no-var`](https://eslint.org/docs/latest/rules/no-var) | Implemented |
-| [`no-void`](https://eslint.org/docs/latest/rules/no-void) | Implemented |
+| [`no-void`](https://eslint.org/docs/latest/rules/no-void) | Implemented with optional `allowAsStatement` behavior |
 | [`no-warning-comments`](https://eslint.org/docs/latest/rules/no-warning-comments) | Implemented for default `location: start`, optional `location: anywhere`, and common `decoration` behavior |
 | [`no-with`](https://eslint.org/docs/latest/rules/no-with) | Implemented |
 | [`object-shorthand`](https://eslint.org/docs/latest/rules/object-shorthand) | Implemented |
