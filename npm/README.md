@@ -185,7 +185,8 @@ install hooks do not fail after replacing the package.
 `fishlint-lint-staged` is also provided for generated fishlint pre-commit hooks.
 If a project has its own `lint-staged` install, the wrapper delegates to it.
 Otherwise it lints staged JavaScript and TypeScript files directly with
-`utoo-lint`.
+the same `fishlint eslint` compatibility wrapper, preserving flags such as
+`--config`, `--rules`, and `--quiet`.
 
 Use the packaged frontend config in an app:
 
