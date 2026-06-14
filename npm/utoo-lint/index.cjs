@@ -279,6 +279,25 @@ function translateFishlintArgs(args = [], options = {}) {
       index += 1;
       continue;
     }
+    if (arg === "--fix-dry-run") {
+      warn("utoo-lint: fishlint --fix-dry-run is ignored because utoo-lint does not apply fixes yet.");
+      index += 1;
+      continue;
+    }
+    if (arg === "--fix-type") {
+      const value = rest[index + 1];
+      if (!value) {
+        throw new Error("utoo-lint: fishlint --fix-type requires a value");
+      }
+      warn("utoo-lint: fishlint --fix-type is ignored because utoo-lint does not apply fixes yet.");
+      index += 2;
+      continue;
+    }
+    if (arg.startsWith("--fix-type=")) {
+      warn("utoo-lint: fishlint --fix-type is ignored because utoo-lint does not apply fixes yet.");
+      index += 1;
+      continue;
+    }
     if (arg === "--format" || arg === "-f") {
       const value = rest[index + 1];
       if (!value) {
