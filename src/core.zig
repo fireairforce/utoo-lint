@@ -26,6 +26,7 @@ pub const Options = struct {
     typescript_eslint_dot_notation: bool = true,
     default_case: bool = true,
     default_case_last: bool = true,
+    default_param_last: bool = true,
     eol_last: bool = true,
     eslint_comments_no_restricted_disable: bool = true,
     eslint_comments_no_restricted_disable_no_nested_ternary: bool = false,

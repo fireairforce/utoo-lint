@@ -21,6 +21,7 @@ pub const constructor_super = @import("constructor_super.zig");
 pub const dot_notation = @import("dot_notation.zig");
 pub const default_case = @import("default_case.zig");
 pub const default_case_last = @import("default_case_last.zig");
+pub const default_param_last = @import("default_param_last.zig");
 pub const eol_last = @import("eol_last.zig");
 pub const eslint_comments_no_restricted_disable = @import("eslint_comments_no_restricted_disable.zig");
 pub const for_direction = @import("for_direction.zig");
@@ -919,6 +920,9 @@ const BasicVisitor = struct {
         }
         if (self.options.func_names) {
             try func_names.check(self.allocator, self.diagnostics, ctx.tree, function, index, ctx);
+        }
+        if (self.options.default_param_last) {
+            try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, function.params);
         }
         if (self.options.no_param_reassign) {
             try no_param_reassign.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
@@ -1830,6 +1834,9 @@ const BasicVisitor = struct {
         }
         if (self.options.consistent_return) {
             try consistent_return.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
+        if (self.options.default_param_last) {
+            try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, expression.params);
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkFormalParameters(self.allocator, self.diagnostics, ctx.tree, expression.params);
