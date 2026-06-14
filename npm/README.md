@@ -115,7 +115,8 @@ It also exposes legacy `getRules()`, `addPlugin()`, and
 `resolveFileGlobPatterns()` facade methods for integrations that probe them
 during startup.
 The `@utoo/lint/config` subpath exposes `defineConfig()` and `globalIgnores()`,
-and `@utoo/lint/universal` exposes `Linter` for browser-oriented integrations.
+including basic flat config `extends` expansion, and `@utoo/lint/universal`
+exposes `Linter` for browser-oriented integrations.
 The `@utoo/lint/use-at-your-own-risk` subpath exposes `builtinRules`,
 `FlatESLint`, `LegacyESLint`, `shouldUseFlatConfig()`, and `FileEnumerator`
 compatibility exports.
