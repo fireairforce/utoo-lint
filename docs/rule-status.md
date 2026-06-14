@@ -25,7 +25,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`grouped-accessor-pairs`](https://eslint.org/docs/latest/rules/grouped-accessor-pairs) | Implemented for the default `anyOrder` option |
 | [`guard-for-in`](https://eslint.org/docs/latest/rules/guard-for-in) | Implemented |
 | [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Implemented |
-| [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for ESLint's default `always` expression behavior |
+| [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for ESLint's default `always` expression behavior and optional `enforceForIfStatements: true` |
 | [`new-cap`](https://eslint.org/docs/latest/rules/new-cap) | Implemented |
 | [`new-parens`](https://eslint.org/docs/latest/rules/new-parens) | Implemented |
 | [`no-alert`](https://eslint.org/docs/latest/rules/no-alert) | Implemented |

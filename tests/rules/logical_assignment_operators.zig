@@ -47,6 +47,47 @@ test "reports logical-assignment-operators for short-circuit assignment expressi
     try std.testing.expectEqualStrings("Assignment can be replaced with `||=`.", result.diagnostics[0].message);
 }
 
+test "reports logical-assignment-operators for if statements when enabled" {
+    const source =
+        \\if (first) first = fallback;
+        \\if (!second) {
+        \\  second = fallback;
+        \\}
+        \\if (third == null) third = fallback;
+        \\if (null == fourth) fourth = fallback;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
+        .eol_last = false,
+        .logical_assignment_operators_enforce_for_if_statements = .yes,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.logical_assignment_operators.id));
+    try std.testing.expectEqualStrings("Assignment can be replaced with `&&=`.", result.diagnostics[0].message);
+    try std.testing.expectEqualStrings("Assignment can be replaced with `||=`.", result.diagnostics[1].message);
+    try std.testing.expectEqualStrings("Assignment can be replaced with `??=`.", result.diagnostics[2].message);
+}
+
+test "does not report logical-assignment-operators for if statements by default" {
+    const source =
+        \\if (value) value = fallback;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
+        .eol_last = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.logical_assignment_operators.id));
+}
+
 test "does not report logical-assignment-operators when shorthand would change meaning" {
     const source =
         \\let value;
@@ -56,9 +97,18 @@ test "does not report logical-assignment-operators when shorthand would change m
         \\value || (other = fallback);
         \\object[getKey()] = object[getKey()] || fallback;
         \\object.value = other.value || fallback;
+        \\if (value) other = fallback;
+        \\if (value != null) value = fallback;
+        \\if (value === null) value = fallback;
+        \\if (value) {
+        \\  value = fallback;
+        \\  other = fallback;
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
+        .logical_assignment_operators_enforce_for_if_statements = .yes,
         .no_unused_expressions = false,
         .no_unused_vars = false,
         .no_undef = false,
