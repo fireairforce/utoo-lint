@@ -228,6 +228,7 @@ pub const Options = struct {
     prefer_const: bool = true,
     prefer_exponentiation_operator: bool = true,
     prefer_numeric_literals: bool = true,
+    prefer_object_has_own: bool = true,
     prefer_promise_reject_errors: bool = true,
     prefer_destructuring: bool = true,
     prefer_regex_literals: bool = true,

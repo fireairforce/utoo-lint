@@ -218,6 +218,7 @@ pub const prefer_const = @import("prefer_const.zig");
 pub const prefer_destructuring = @import("prefer_destructuring.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
 pub const prefer_numeric_literals = @import("prefer_numeric_literals.zig");
+pub const prefer_object_has_own = @import("prefer_object_has_own.zig");
 pub const prefer_object_spread = @import("prefer_object_spread.zig");
 pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
@@ -729,6 +730,10 @@ pub fn runSemantic(
 
     if (options.prefer_numeric_literals) {
         try prefer_numeric_literals.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.prefer_object_has_own) {
+        try prefer_object_has_own.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.prefer_object_spread) {

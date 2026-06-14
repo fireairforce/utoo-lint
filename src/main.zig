@@ -524,6 +524,8 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_destructuring = false;
         } else if (std.mem.eql(u8, arg, "--prefer-regex-literals=off")) {
             options.prefer_regex_literals = false;
+        } else if (std.mem.eql(u8, arg, "--prefer-object-has-own=off")) {
+            options.prefer_object_has_own = false;
         } else if (std.mem.eql(u8, arg, "--prefer-object-spread=off")) {
             options.prefer_object_spread = false;
         } else if (std.mem.eql(u8, arg, "--prefer-rest-params=off")) {
@@ -1426,6 +1428,7 @@ fn printHelp() void {
         \\  --prefer-numeric-literals=off Disable prefer-numeric-literals
         \\  --prefer-promise-reject-errors=off Disable prefer-promise-reject-errors
         \\  --prefer-destructuring=off Disable prefer-destructuring
+        \\  --prefer-object-has-own=off Disable prefer-object-has-own
         \\  --prefer-object-spread=off Disable prefer-object-spread
         \\  --prefer-regex-literals=off Disable prefer-regex-literals
         \\  --prefer-rest-params=off  Disable prefer-rest-params
