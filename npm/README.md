@@ -86,8 +86,13 @@ from standard input, and `--stdin-filename` controls the path shown in output.
 `--print-config` prints the selected utoo-lint JSON configuration for migration
 debugging.
 
+The package also exposes an `eslint` compatibility bin that routes directly
+through the same wrapper, so package scripts such as `eslint src -f json` can be
+tested without adding the `fishlint eslint` prefix.
+
 ```bash
 npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
+npx eslint --config utoo.json --ext .js,.ts src
 ```
 
 For programmatic replacements, `runFishlint()` applies the same argument
