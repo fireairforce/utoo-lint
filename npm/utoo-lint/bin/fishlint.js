@@ -43,6 +43,18 @@ const FISHLINT_PASSTHROUGH_DROP_FLAGS = new Set([
   "--verbose",
   "-v"
 ]);
+const FORMAT_VALUE_FLAGS = new Set(["--config", "--ignore-path", "--parser", "--plugin"]);
+const STYLELINT_VALUE_FLAGS = new Set([
+  "--cache-location",
+  "--config",
+  "--custom-syntax",
+  "--formatter",
+  "--ignore-path",
+  "--output-file",
+  "-c",
+  "-f",
+  "-o"
+]);
 
 if (command === "setup" || command === "setuplint") {
   console.warn(`utoo-lint: fishlint ${command} is treated as a no-op; configure utoo-lint with utoo.json.`);
@@ -964,13 +976,19 @@ function delegatedCommand(command, args) {
           translatePassthroughArgs(args, {
             passthroughFlags: new Set(["--fix", "--quiet"])
           }),
-          ["**/*.{less,css,acss}"]
+          ["**/*.{less,css,acss}"],
+          { valueFlags: STYLELINT_VALUE_FLAGS }
         )
       };
     case "format":
       return {
         bin: "prettier",
-        args: ["--write", ...withDefaultTargets(translatePassthroughArgs(args), ["**/*.{js,jsx,ts,tsx,less,css,vue}"])]
+        args: [
+          "--write",
+          ...withDefaultTargets(translatePassthroughArgs(args), ["**/*.{js,jsx,ts,tsx,less,css,vue}"], {
+            valueFlags: FORMAT_VALUE_FLAGS
+          })
+        ]
       };
     case "commitlint":
       return {
@@ -987,11 +1005,31 @@ function delegatedCommand(command, args) {
   }
 }
 
-function withDefaultTargets(args, defaults) {
-  if (args.some((arg) => !arg.startsWith("-"))) {
+function withDefaultTargets(args, defaults, options = {}) {
+  if (hasPassthroughTarget(args, options.valueFlags ?? new Set())) {
     return args;
   }
   return [...args, ...defaults];
+}
+
+function hasPassthroughTarget(args, valueFlags) {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--") {
+      continue;
+    }
+    if (valueFlags.has(arg)) {
+      index += 1;
+      continue;
+    }
+    if (startsWithValueFlag(arg, valueFlags)) {
+      continue;
+    }
+    if (!arg.startsWith("-")) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function translatePassthroughArgs(args, options = {}) {
@@ -1038,6 +1076,10 @@ function translatePassthroughArgs(args, options = {}) {
 }
 
 function isBooleanValueFlag(arg, flags) {
+  return startsWithValueFlag(arg, flags);
+}
+
+function startsWithValueFlag(arg, flags) {
   const separator = arg.indexOf("=");
   if (separator === -1) {
     return false;

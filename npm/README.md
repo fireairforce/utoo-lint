@@ -150,6 +150,8 @@ commands also consume fishlint-only setup and verbose flags, including
 `--disable-setup=true` and similar value forms.
 `fishlint commitlint -E=GIT_PARAMS` is normalized like `--env GIT_PARAMS`,
 falling back to `--edit` when the environment variable is not set.
+Default delegated targets are still added when the command only contains
+configuration value flags such as `fishlint format --config .prettierrc`.
 `fishlint setup` and `fishlint setuplint` are accepted as no-ops so existing
 install hooks do not fail after replacing the package.
 
