@@ -120,6 +120,9 @@ exposes `Linter` for browser-oriented integrations.
 The `@utoo/lint/use-at-your-own-risk` subpath exposes `builtinRules`,
 `FlatESLint`, `LegacyESLint`, `shouldUseFlatConfig()`, and `FileEnumerator`
 compatibility exports.
+The package ships TypeScript declarations for the main entrypoint and
+compatibility subpaths, so typed ESLint integrations do not need a separate
+`@types` package.
 `ESLint` and `CLIEngine` constructor options also accept `quiet: true` to return
 only error messages, matching ESLint's warning filtering behavior.
 `warnIgnored: false` suppresses warnings for explicit ignored file paths and
