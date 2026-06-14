@@ -41,6 +41,25 @@ test "allows parenthesized conditional expression bodies and block bodies" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_confusing_arrow.id));
 }
 
+test "reports parenthesized conditional expression bodies when allowParens is false" {
+    const source =
+        \\const first = value => (value ? firstValue : secondValue);
+        \\const second = value => {
+        \\  return value ? firstValue : secondValue;
+        \\};
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_confusing_arrow_allow_parens = .no,
+        .no_undef = false,
+        .no_unused_vars = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_confusing_arrow.id));
+}
+
 test "can disable no-confusing-arrow" {
     const source = "const first = value => value ? firstValue : secondValue;\n";
 

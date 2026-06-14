@@ -1869,7 +1869,9 @@ const BasicVisitor = struct {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, expression.params);
         }
         if (self.options.no_confusing_arrow) {
-            try no_confusing_arrow.check(self.allocator, self.diagnostics, ctx.tree, expression);
+            try no_confusing_arrow.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
+                .allow_parens = self.options.no_confusing_arrow_allow_parens == .yes,
+            });
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkFormalParameters(self.allocator, self.diagnostics, ctx.tree, expression.params);

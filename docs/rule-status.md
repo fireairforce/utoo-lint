@@ -37,7 +37,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-caller`](https://eslint.org/docs/latest/rules/no-caller) | Implemented |
 | [`no-case-declarations`](https://eslint.org/docs/latest/rules/no-case-declarations) | Implemented |
 | [`no-class-assign`](https://eslint.org/docs/latest/rules/no-class-assign) | Implemented |
-| [`no-confusing-arrow`](https://eslint.org/docs/latest/rules/no-confusing-arrow) | Implemented for the default `allowParens: true` option |
+| [`no-confusing-arrow`](https://eslint.org/docs/latest/rules/no-confusing-arrow) | Implemented for `allowParens: true` and `allowParens: false` |
 | [`no-comma-operator`](https://eslint.org/docs/latest/rules/no-comma-operator) | Implemented |
 | [`no-compare-neg-zero`](https://eslint.org/docs/latest/rules/no-compare-neg-zero) | Implemented |
 | [`no-cond-assign`](https://eslint.org/docs/latest/rules/no-cond-assign) | Implemented |
