@@ -21,6 +21,10 @@
       "import": "./lib/binary.js",
       "require": "./lib/binary.cjs"
     },
+    "./use-at-your-own-risk": {
+      "import": "./use-at-your-own-risk.js",
+      "require": "./use-at-your-own-risk.cjs"
+    },
     "./configs/frontend": "./configs/frontend.json",
     "./schema": "./schema.json",
     "./package.json": "./package.json"
@@ -37,7 +41,9 @@
     "index.cjs",
     "index.js",
     "lib",
-    "schema.json"
+    "schema.json",
+    "use-at-your-own-risk.cjs",
+    "use-at-your-own-risk.js"
   ],
   "optionalDependencies": {
     "@utoo/lint-darwin-arm64": "0.1.0",
