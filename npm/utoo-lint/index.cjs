@@ -128,7 +128,7 @@ class UtooLint {
   }
 
   async calculateConfigForFile(filePath) {
-    return calculatedConfig(eslintConstructorOptions(this.options), filePath);
+    return publicCalculatedConfig(eslintConstructorOptions(this.options), filePath);
   }
 
   getRulesMetaForResults(results) {
@@ -227,7 +227,7 @@ class CLIEngine {
   }
 
   getConfigForFile(filePath) {
-    return calculatedConfig(eslintConstructorOptions(this.options), filePath);
+    return publicCalculatedConfig(eslintConstructorOptions(this.options), filePath);
   }
 }
 
@@ -636,6 +636,24 @@ function calculatedConfig(options = {}, filePath) {
   };
 }
 
+function publicCalculatedConfig(options = {}, filePath) {
+  const config = calculatedConfig(options, filePath);
+  return {
+    ...config,
+    rules: Object.fromEntries(
+      Object.entries(config.rules ?? {}).map(([rule, value]) => [rule, publicRuleConfigValue(value)])
+    )
+  };
+}
+
+function publicRuleConfigValue(value) {
+  if (Array.isArray(value)) {
+    const [severity, ...rest] = value;
+    return [ruleConfigSeverity(severity), ...rest];
+  }
+  return [ruleConfigSeverity(value)];
+}
+
 function rulesFromNativeRuleList(rules) {
   if (!rules) {
     return {};
@@ -741,7 +759,7 @@ function withTemporaryConfig(options, callback) {
     return callback(options);
   }
 
-  const rules = calculatedConfig(options).rules;
+  const rules = runtimeRulesFromConfigs(options.baseConfig, options.overrideConfig);
   const enabledRules = enabledRuleNamesFromConfigs(options.baseConfig, options.overrideConfig);
   if (!hasRuleOptions(rules)) {
     return callback({
@@ -769,6 +787,34 @@ function enabledRuleNames(rules) {
   return Object.entries(rules)
     .filter(([, value]) => ruleConfigSeverity(value) > 0)
     .map(([rule]) => rule);
+}
+
+function runtimeRulesFromConfigs(...configs) {
+  const rules = {};
+  for (const config of configs) {
+    Object.assign(rules, runtimeRulesFromConfig(config));
+  }
+  return rules;
+}
+
+function runtimeRulesFromConfig(config) {
+  if (!config) {
+    return {};
+  }
+  if (Array.isArray(config)) {
+    return config.reduce((rules, entry) => ({
+      ...rules,
+      ...runtimeRulesFromConfig(entry)
+    }), {});
+  }
+
+  const rules = {};
+  for (const [rule, value] of Object.entries(rulesFromConfig(config))) {
+    if (ruleConfigSeverity(value) > 0) {
+      rules[rule] = value;
+    }
+  }
+  return rules;
 }
 
 function enabledRuleNamesFromConfigs(...configs) {
