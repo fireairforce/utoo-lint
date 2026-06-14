@@ -699,8 +699,8 @@ function withTemporaryConfig(options, callback) {
   }
 
   const rules = calculatedConfig(options).rules;
-  const enabledRules = enabledRuleNames(rules);
-  if (!hasRuleOptions(rules) && !hasDisabledRules(rules)) {
+  const enabledRules = enabledRuleNamesFromConfigs(options.baseConfig, options.overrideConfig);
+  if (!hasRuleOptions(rules)) {
     return callback({
       ...options,
       noConfig: options.noConfig ?? true,
@@ -728,12 +728,28 @@ function enabledRuleNames(rules) {
     .map(([rule]) => rule);
 }
 
-function hasRuleOptions(rules) {
-  return Object.values(rules).some((value) => Array.isArray(value) && value.length > 1);
+function enabledRuleNamesFromConfigs(...configs) {
+  const rules = new Set();
+  for (const config of configs) {
+    for (const rule of enabledRuleNamesFromConfig(config)) {
+      rules.add(rule);
+    }
+  }
+  return [...rules];
 }
 
-function hasDisabledRules(rules) {
-  return Object.values(rules).some((value) => ruleConfigSeverity(value) === 0);
+function enabledRuleNamesFromConfig(config) {
+  if (!config) {
+    return [];
+  }
+  if (Array.isArray(config)) {
+    return config.flatMap((entry) => enabledRuleNamesFromConfig(entry));
+  }
+  return enabledRuleNames(rulesFromConfig(config));
+}
+
+function hasRuleOptions(rules) {
+  return Object.values(rules).some((value) => Array.isArray(value) && value.length > 1);
 }
 
 function normalizeStringArray(values, name) {
