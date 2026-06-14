@@ -44,6 +44,20 @@ const FISHLINT_PASSTHROUGH_DROP_FLAGS = new Set([
   "-v"
 ]);
 const FORMAT_VALUE_FLAGS = new Set(["--config", "--ignore-path", "--parser", "--plugin"]);
+const CONFIG_FILENAMES = ["utoo.json", "utoo-lint.json", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"];
+const JAVASCRIPT_CONFIG_EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
+const JAVASCRIPT_CONFIG_LOADER_SCRIPT = `
+import { pathToFileURL } from "node:url";
+
+const configPath = process.argv[1];
+const loaded = await import(pathToFileURL(configPath).href);
+const value = loaded.default ?? loaded;
+const json = JSON.stringify(value);
+if (json === undefined) {
+  throw new TypeError("config did not export a JSON-serializable value");
+}
+process.stdout.write(json);
+`;
 const STYLELINT_VALUE_FLAGS = new Set([
   "--cache-location",
   "--config",
@@ -131,7 +145,7 @@ try {
 
 const printableConfig = loadPrintableConfig(nativeValues, ruleOverrides.rules);
 const ruleSeverities = ruleSeverityMap(printableConfig.rules);
-const ruleConfig = materializeRuleOverrideConfig(nativeValues, args, ruleOverrides.rules, printableConfig);
+const ruleConfig = materializeRuntimeConfig(nativeValues, args, ruleOverrides.rules);
 const needsReportOutput =
   quiet.enabled ||
   ignoredFiltered.diagnostics.length > 0 ||
@@ -927,38 +941,100 @@ function extractPrintConfig(args) {
 
 function loadPrintableConfig(args, ruleOverrides = {}) {
   const configPath = findConfigPath(args);
-  if (!configPath) {
-    return { rules: { ...ruleOverrides } };
-  }
-
-  try {
-    const config = JSON.parse(readFileSync(configPath, "utf8"));
-    return {
-      ...config,
-      rules: {
-        ...(config.rules ?? {}),
-        ...ruleOverrides
-      }
-    };
-  } catch (error) {
-    console.error(`utoo-lint: unable to read config ${configPath}: ${error.message}`);
-    process.exit(2);
-  }
+  const config = configPath ? readConfig(configPath) : {};
+  return {
+    ...(Array.isArray(config) ? {} : config),
+    rules: {
+      ...rulesFromConfig(config),
+      ...ruleOverrides
+    }
+  };
 }
 
-function materializeRuleOverrideConfig(args, translatedArgs, ruleOverrides, config) {
-  if (Object.keys(ruleOverrides).length === 0) {
+function materializeRuntimeConfig(args, translatedArgs, ruleOverrides) {
+  const configPath = findConfigPath(args);
+  const shouldMaterialize = isJavaScriptConfigPath(configPath) || Object.keys(ruleOverrides).length > 0;
+  if (!shouldMaterialize) {
     return { args: translatedArgs };
   }
 
   const directory = mkdtempSync(join(tmpdir(), "utoo-fishlint-rule-"));
   const file = join(directory, "utoo.json");
-  writeFileSync(file, JSON.stringify(config));
+  writeFileSync(file, JSON.stringify(loadRuntimeConfig(configPath, ruleOverrides)));
 
   return {
     args: withConfigArg(translatedArgs, file),
     directory
   };
+}
+
+function loadRuntimeConfig(configPath, ruleOverrides = {}) {
+  const config = configPath ? readConfig(configPath) : {};
+  if (Array.isArray(config)) {
+    return {
+      rules: {
+        ...rulesFromConfig(config),
+        ...ruleOverrides
+      }
+    };
+  }
+  return {
+    ...config,
+    rules: {
+      ...(config.rules ?? {}),
+      ...ruleOverrides
+    }
+  };
+}
+
+function readConfig(path) {
+  if (isJavaScriptConfigPath(path)) {
+    return readJavaScriptConfig(path);
+  }
+
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    console.error(`utoo-lint: unable to read config ${path}: ${error.message}`);
+    process.exit(2);
+  }
+}
+
+function readJavaScriptConfig(path) {
+  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", JAVASCRIPT_CONFIG_LOADER_SCRIPT, path], {
+    encoding: "utf8"
+  });
+  if (result.error) {
+    console.error(`utoo-lint: unable to read config ${path}: ${result.error.message}`);
+    process.exit(2);
+  }
+  if (result.status !== 0) {
+    console.error(`utoo-lint: unable to read config ${path}: ${(result.stderr ?? "").trim() || "JavaScript config loader failed"}`);
+    process.exit(2);
+  }
+  try {
+    return JSON.parse(result.stdout);
+  } catch (error) {
+    console.error(`utoo-lint: unable to read config ${path}: ${error.message}`);
+    process.exit(2);
+  }
+}
+
+function isJavaScriptConfigPath(path) {
+  return typeof path === "string" && JAVASCRIPT_CONFIG_EXTENSIONS.has(extname(path));
+}
+
+function rulesFromConfig(config) {
+  if (!config) {
+    return {};
+  }
+  if (Array.isArray(config)) {
+    return config.reduce((rules, entry) => ({
+      ...rules,
+      ...rulesFromConfig(entry)
+    }), {});
+  }
+  return config.rules && typeof config.rules === "object" ? config.rules : {};
 }
 
 function withConfigArg(args, file) {
@@ -1009,11 +1085,10 @@ function findConfigPath(args) {
   if (configPath) {
     return configPath;
   }
-  if (existsSync("utoo.json")) {
-    return "utoo.json";
-  }
-  if (existsSync("utoo-lint.json")) {
-    return "utoo-lint.json";
+  for (const candidate of CONFIG_FILENAMES) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
   }
   return undefined;
 }
