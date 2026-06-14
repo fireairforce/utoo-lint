@@ -17,6 +17,30 @@ For a focused first pass, run only rules that already exist in both projects:
 npx utoo-lint --rules=no-debugger,no-unused-vars,@typescript-eslint/no-unused-vars src
 ```
 
+## Generate a utoo Config
+
+Use the migration command to turn an existing ESLint config into `utoo.json`:
+
+```bash
+npx utoo-lint migrate eslint --from eslint.config.js --output utoo.json
+```
+
+The generated config is a native `utoo-lint` config, not an ESLint config
+executed through a compatibility layer. The migrator copies supported rule
+severities, keeps `files` and `ignores` patterns, skips formatter-only rules
+such as `prettier/prettier`, and reports unsupported rules that still need a
+native utoo rule or a deliberate replacement.
+
+For a preview without writing a file:
+
+```bash
+npx utoo-lint migrate eslint --print --report=json
+```
+
+Rule-specific ESLint options are not interpreted by `utoo-lint` yet. When a rule
+uses an array config, the migrator keeps the severity and reports that the rule
+options were dropped.
+
 ## Add a Config File
 
 Create `utoo.json` in the project root, or copy the packaged frontend template:
@@ -41,7 +65,9 @@ Minimal config:
 }
 ```
 
-`utoo-lint` also reads `utoo-lint.json` and `eslint.config.js`/`eslint.config.mjs`/`eslint.config.cjs` from the current directory or its ancestors. Use `--config=path/to/file.json` to select a file explicitly, or `--no-config` to ignore local config.
+`utoo-lint` reads native `utoo.json` and `utoo-lint.json` files from the current
+directory or its ancestors. Use `--config=path/to/file.json` to select a file
+explicitly, or `--no-config` to ignore local config.
 
 Rule values support the common ESLint forms:
 
@@ -55,7 +81,7 @@ CLI flags are applied after config files, so command-line toggles override confi
 npx utoo-lint --config=utoo.json --no-console=off src
 ```
 
-## Translate ESLint Rules
+## Translate ESLint Rules Manually
 
 Move rules from `eslint.config.js` or `.eslintrc` into `utoo.json` by keeping the same canonical rule names:
 

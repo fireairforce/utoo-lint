@@ -69,16 +69,15 @@ utoo-lint --format=json src
 
 ## Configuration
 
-By default, `utoo-lint` reads `utoo.json`, `utoo-lint.json`, or
-`eslint.config.js`/`eslint.config.mjs`/`eslint.config.cjs` from the current
+By default, `utoo-lint` reads `utoo.json` or `utoo-lint.json` from the current
 directory or its ancestors. Use `--config=path/to/utoo.json` for an explicit file or
-`--no-config` to ignore local config. JavaScript flat config files are supported
-by the JavaScript API for JSON-serializable `rules`, `files`, and `ignores`
-entries.
+`--no-config` to ignore local config.
 
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/fireairforce/utoo-lint/main/npm/utoo-lint/schema.json",
+  "files": ["src/**/*.{js,jsx,ts,tsx}"],
+  "ignores": ["dist", "node_modules"],
   "rules": {
     "no-console": "off",
     "no-debugger": "error",
@@ -89,6 +88,12 @@ entries.
 
 Rule values may be `off`, `warn`, `error`, `0`, `1`, `2`, booleans, or an
 ESLint-style array whose first item is the severity.
+
+To migrate an existing ESLint config into the native utoo format:
+
+```bash
+npx utoo-lint migrate eslint --from eslint.config.js --output utoo.json
+```
 
 ## JavaScript API
 

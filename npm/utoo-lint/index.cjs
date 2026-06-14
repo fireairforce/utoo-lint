@@ -66,7 +66,7 @@ const FISHLINT_DROP_VALUE_FLAGS = new Set([
   "-E",
   "-o"
 ]);
-const CONFIG_FILENAMES = ["utoo.json", "utoo-lint.json", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"];
+const CONFIG_FILENAMES = ["utoo.json", "utoo-lint.json"];
 const JAVASCRIPT_CONFIG_EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
 const JAVASCRIPT_CONFIG_LOADER_SCRIPT = `
 import { pathToFileURL } from "node:url";

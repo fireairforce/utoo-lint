@@ -6,12 +6,16 @@ Supported config file names:
 
 - `utoo.json`
 - `utoo-lint.json`
-- `eslint.config.js`
-- `eslint.config.mjs`
-- `eslint.config.cjs`
 
 Use `--config=path/to/utoo.json` to select a config explicitly, or `--no-config` to ignore local config.
 JavaScript flat config files are supported by the JavaScript API for JSON-serializable `rules`, `files`, and `ignores` entries.
+
+ESLint config files are a migration input, not the recommended long-term
+configuration format. Generate a native config with:
+
+```bash
+npx utoo-lint migrate eslint --from eslint.config.js --output utoo.json
+```
 
 ## Frontend Project Config
 
@@ -27,6 +31,8 @@ The template includes a `$schema` entry for editor validation and a focused set 
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/fireairforce/utoo-lint/main/npm/utoo-lint/schema.json",
+  "files": ["src/**/*.{js,jsx,ts,tsx}"],
+  "ignores": ["dist", "node_modules"],
   "rules": {
     "no-debugger": "error",
     "no-console": "warn",

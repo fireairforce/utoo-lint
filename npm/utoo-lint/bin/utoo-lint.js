@@ -3,6 +3,11 @@ import { spawnSync } from "node:child_process";
 
 import { resolveBinary } from "../lib/binary.js";
 
+if (process.argv[2] === "migrate") {
+  const { runMigrate } = await import("./migrate.js");
+  process.exit(await runMigrate(process.argv.slice(3)));
+}
+
 let binary;
 try {
   binary = resolveBinary();

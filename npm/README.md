@@ -120,6 +120,16 @@ exposes `Linter` for browser-oriented integrations.
 The `@utoo/lint/use-at-your-own-risk` subpath exposes `builtinRules`,
 `FlatESLint`, `LegacyESLint`, `shouldUseFlatConfig()`, and `FileEnumerator`
 compatibility exports.
+The CLI includes a native migration path for projects replacing ESLint config
+files:
+
+```bash
+utoo-lint migrate eslint --from eslint.config.js --output utoo.json
+```
+
+The migrator writes a utoo config, reports unsupported rules, skips
+formatter-only rules such as `prettier/prettier`, and keeps supported rule
+severities without treating ESLint as the long-term runtime API.
 The package ships TypeScript declarations for the main entrypoint and
 compatibility subpaths, so typed ESLint integrations do not need a separate
 `@types` package.
