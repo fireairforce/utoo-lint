@@ -136,11 +136,23 @@ class UtooLint {
     return publicCalculatedConfig(eslintConstructorOptions(this.options), filePath);
   }
 
+  async findConfigFile(_filePath) {
+    const options = eslintConstructorOptions(this.options);
+    if (options.noConfig) {
+      return undefined;
+    }
+    return configPathForOptions(options);
+  }
+
   getRulesMetaForResults(results) {
     if (!Array.isArray(results)) {
       throw new Error("'results' must be an array");
     }
     return rulesMetaForResults(results);
+  }
+
+  hasFlag(flag) {
+    return hasFlagInOptions(this.options, flag);
   }
 
   async loadFormatter(name = "stylish") {
@@ -630,6 +642,14 @@ function eslintConstructorOptions(options) {
   return mapped;
 }
 
+function flagsFromOptions(options = {}) {
+  return Array.isArray(options.flags) ? [...options.flags] : [];
+}
+
+function hasFlagInOptions(options, flag) {
+  return flagsFromOptions(options).includes(flag);
+}
+
 function calculatedConfig(options = {}, filePath) {
   return {
     rules: {
@@ -855,7 +875,8 @@ class Linter {
     return version;
   }
 
-  constructor() {
+  constructor(options = {}) {
+    this.flags = flagsFromOptions(options);
     this.sourceCode = null;
     this.suppressedMessages = [];
     this.times = { passes: [] };
@@ -908,6 +929,10 @@ class Linter {
 
   getFixPassCount() {
     return this.fixPassCount;
+  }
+
+  hasFlag(flag) {
+    return this.flags.includes(flag);
   }
 }
 
