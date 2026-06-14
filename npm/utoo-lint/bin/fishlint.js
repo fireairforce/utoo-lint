@@ -115,7 +115,7 @@ try {
 }
 
 const ruleConfig = materializeRuleOverrideConfig(nativeValues, args, ruleOverrides.rules);
-const needsReportOutput = quiet.enabled || ignoredFiltered.diagnostics.length > 0;
+const needsReportOutput = quiet.enabled || ignoredFiltered.diagnostics.length > 0 || usesJsonWithMetadataFormat(nativeValues);
 const result = spawnSync(binary, needsReportOutput ? withJsonFormat(ruleConfig.args) : ruleConfig.args, { encoding: "utf8" });
 
 if (result.error) {
@@ -627,10 +627,29 @@ function ignoredTargetDiagnostic(target) {
 function usesJsonFormat(args) {
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    if (arg === "--json" || arg === "--format=json" || arg === "-f=json") {
+    if (
+      arg === "--json" ||
+      arg === "--format=json" ||
+      arg === "--format=json-with-metadata" ||
+      arg === "-f=json" ||
+      arg === "-f=json-with-metadata"
+    ) {
       return true;
     }
-    if ((arg === "--format" || arg === "-f") && args[index + 1] === "json") {
+    if ((arg === "--format" || arg === "-f") && (args[index + 1] === "json" || args[index + 1] === "json-with-metadata")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function usesJsonWithMetadataFormat(args) {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--format=json-with-metadata" || arg === "-f=json-with-metadata") {
+      return true;
+    }
+    if ((arg === "--format" || arg === "-f") && args[index + 1] === "json-with-metadata") {
       return true;
     }
   }
@@ -930,10 +949,62 @@ function rewriteReportStdinPaths(report, input) {
 }
 
 function formatReportOutput(report, args) {
+  if (usesJsonWithMetadataFormat(args)) {
+    return JSON.stringify(reportWithMetadata(report)) + "\n";
+  }
   if (usesJsonFormat(args)) {
     return JSON.stringify(report) + "\n";
   }
   return formatTextReport(report);
+}
+
+function reportWithMetadata(report) {
+  return {
+    ...report,
+    metadata: {
+      rulesMeta: rulesMetaForReport(report)
+    }
+  };
+}
+
+function rulesMetaForReport(report) {
+  const meta = {};
+  for (const diagnostic of report.diagnostics ?? []) {
+    if (diagnostic?.ruleId && !meta[diagnostic.ruleId]) {
+      meta[diagnostic.ruleId] = ruleMetaForRuleId(diagnostic.ruleId);
+    }
+  }
+  return meta;
+}
+
+function ruleMetaForRuleId(ruleId) {
+  return {
+    docs: {
+      url: ruleDocsUrl(ruleId)
+    }
+  };
+}
+
+function ruleDocsUrl(ruleId) {
+  if (ruleId.startsWith("@typescript-eslint/")) {
+    return `https://typescript-eslint.io/rules/${ruleId.slice("@typescript-eslint/".length)}/`;
+  }
+  if (ruleId.startsWith("eslint-comments/")) {
+    return `https://mysticatea.github.io/eslint-plugin-eslint-comments/rules/${ruleId.slice("eslint-comments/".length)}.html`;
+  }
+  if (ruleId.startsWith("import/")) {
+    return `https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/${ruleId.slice("import/".length)}.md`;
+  }
+  if (ruleId.startsWith("jsx-a11y/")) {
+    return `https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/main/docs/rules/${ruleId.slice("jsx-a11y/".length)}.md`;
+  }
+  if (ruleId.startsWith("react-hooks/")) {
+    return `https://react.dev/reference/eslint-plugin-react-hooks/lints/${ruleId.slice("react-hooks/".length)}`;
+  }
+  if (ruleId.startsWith("react/")) {
+    return `https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/${ruleId.slice("react/".length)}.md`;
+  }
+  return `https://eslint.org/docs/latest/rules/${ruleId}`;
 }
 
 function formatTextReport(report) {

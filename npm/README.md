@@ -99,8 +99,10 @@ currently run `fishlint eslint ...`. It supports the common eslint subcommand
 shape, forwards `--config` and `-c`, maps `--glob` values to native lint
 targets, and normalizes split value flags such as `--format json`, `-f json`,
 `--threads 4`, and `--rules no-debugger`. `--no-eslintrc` maps to native
-`--no-config`, and `--no-eslintrc=true` is accepted for compatibility. Non-JSON
-ESLint formatter names are accepted and use native text output. `--rule`
+`--no-config`, and `--no-eslintrc=true` is accepted for compatibility.
+`json-with-metadata` emits the native JSON report with a `metadata.rulesMeta`
+section. Other non-JSON ESLint formatter names are accepted and use native text
+output. `--rule`
 accepts JSON objects such as
 `{"no-console":"warn"}` and simple `rule: severity` pairs, merging them into the
 selected utoo-lint config for the run. It ignores fishlint-only setup/debug
