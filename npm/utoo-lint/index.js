@@ -455,9 +455,12 @@ export class UtooLint {
   }
 
   async loadFormatter(name = "stylish") {
+    const eslint = this;
     return {
       format(results) {
-        return formatResultsByName(results, name);
+        return formatResultsByName(results, name, {
+          rulesMeta: (results) => eslint.getRulesMetaForResults(results)
+        });
       }
     };
   }
@@ -3766,7 +3769,7 @@ function formatESLintResults(results) {
   return lines.join("\n");
 }
 
-function formatResultsByName(input, name = "stylish") {
+function formatResultsByName(input, name = "stylish", metadata = {}) {
   const results = formatterResults(input);
   if (name === "json") {
     return JSON.stringify(input);
@@ -3775,7 +3778,7 @@ function formatResultsByName(input, name = "stylish") {
     return JSON.stringify({
       results,
       metadata: {
-        rulesMeta: rulesMetaForResults(results)
+        rulesMeta: typeof metadata.rulesMeta === "function" ? metadata.rulesMeta(results) : rulesMetaForResults(results)
       }
     });
   }
