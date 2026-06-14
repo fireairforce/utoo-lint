@@ -816,18 +816,77 @@ function traverseCustomRuleAst(node, listeners, context, visitorKeys, seen = new
     return;
   }
   seen.add(node);
-  if (typeof listeners[node.type] === "function") {
+  for (const listener of customRuleMatchingListeners(listeners, node, false)) {
     context.setCurrentNode(node);
-    listeners[node.type](node);
+    listener(node);
   }
   for (const child of customRuleChildNodes(node, visitorKeys)) {
     traverseCustomRuleAst(child, listeners, context, visitorKeys, seen);
   }
-  const exitListener = listeners[`${node.type}:exit`];
-  if (typeof exitListener === "function") {
+  for (const listener of customRuleMatchingListeners(listeners, node, true)) {
     context.setCurrentNode(node);
-    exitListener(node);
+    listener(node);
   }
+}
+
+function customRuleMatchingListeners(listeners, node, exit) {
+  const matches = [];
+  for (const [selector, listener] of Object.entries(listeners)) {
+    if (typeof listener !== "function" || !customRuleSelectorMatches(selector, node, exit)) {
+      continue;
+    }
+    matches.push(listener);
+  }
+  return matches;
+}
+
+function customRuleSelectorMatches(selector, node, exit) {
+  const suffix = ":exit";
+  const isExit = selector.endsWith(suffix);
+  if (isExit !== exit) {
+    return false;
+  }
+  const expression = isExit ? selector.slice(0, -suffix.length) : selector;
+  if (expression === node.type) {
+    return true;
+  }
+  const match = expression.match(/^([A-Za-z_$][\w$-]*|\*)?(?:\[([^\]]+)\])?$/u);
+  if (!match) {
+    return false;
+  }
+  const [, type = "*", attribute] = match;
+  if (type !== "*" && type !== node.type) {
+    return false;
+  }
+  return attribute ? customRuleAttributeSelectorMatches(node, attribute.trim()) : type === "*" || type === node.type;
+}
+
+function customRuleAttributeSelectorMatches(node, attribute) {
+  const match = attribute.match(/^([\w$.-]+)\s*(!=|=)\s*(.+)$/u);
+  if (!match) {
+    return customRuleValueByPath(node, attribute) != null;
+  }
+  const [, path, operator, rawExpected] = match;
+  const actual = customRuleValueByPath(node, path);
+  const expected = customRuleSelectorValue(rawExpected);
+  return operator === "="
+    ? String(actual) === expected
+    : String(actual) !== expected;
+}
+
+function customRuleSelectorValue(raw) {
+  const value = raw.trim();
+  const quote = value[0];
+  if ((quote === "\"" || quote === "'") && value.at(-1) === quote) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+function customRuleValueByPath(node, path) {
+  return path.split(".").reduce((value, key) => (
+    value && typeof value === "object" ? value[key] : undefined
+  ), node);
 }
 
 function customRuleChildNodes(node, visitorKeys) {
