@@ -20,6 +20,7 @@ const FISHLINT_DROP_FLAGS = new Set([
   "--no-cache",
   "--no-color",
   "--no-error-on-unmatched-pattern",
+  "--no-ignore",
   "--no-inline-config",
   "--no-warn-ignored",
   "--pass-on-no-patterns",
