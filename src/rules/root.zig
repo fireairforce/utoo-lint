@@ -834,6 +834,7 @@ const BasicVisitor = struct {
         if (self.options.no_undefined) {
             switch (data) {
                 .identifier_reference => |identifier| try no_undefined.checkIdentifierReference(self.allocator, self.diagnostics, ctx.tree, identifier, index),
+                .binding_identifier => |identifier| try no_undefined.checkBindingIdentifier(self.allocator, self.diagnostics, ctx.tree, identifier, index),
                 else => {},
             }
         }

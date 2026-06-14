@@ -22,6 +22,31 @@ test "reports no-undefined for identifier references" {
     try std.testing.expectEqualStrings("Unexpected use of undefined.", result.diagnostics[0].message);
 }
 
+test "reports no-undefined for bindings" {
+    const source =
+        \\const undefined = 1;
+        \\let { value: undefined } = object;
+        \\function run(undefined) {
+        \\  return 1;
+        \\}
+        \\const arrow = (undefined) => undefined;
+        \\try {} catch (undefined) {}
+        \\class undefined {}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_empty_function = false,
+        .no_shadow_restricted_names = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_undefined.id));
+}
+
 test "allows void 0 and typeof other identifiers" {
     const source =
         \\const value = void 0;
