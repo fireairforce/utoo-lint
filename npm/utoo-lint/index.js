@@ -424,7 +424,19 @@ export class UtooLint {
     if (!Array.isArray(results)) {
       throw new Error("'results' must be an array");
     }
-    return rulesMetaForResults(results);
+    const options = eslintConstructorOptions(this.options);
+    const customRuleConfig = [options.baseConfig, options.overrideConfig].filter(Boolean);
+    const rulesByFilePath = new Map();
+    return rulesMetaForResults(results, (ruleId, result) => {
+      if (customRuleConfig.length === 0 || typeof result.filePath !== "string") {
+        return undefined;
+      }
+      const filePath = normalizeESLintFilePath(result.filePath, options.cwd);
+      if (!rulesByFilePath.has(filePath)) {
+        rulesByFilePath.set(filePath, customRuleMapForConfig(customRuleConfig, new Map(), filePath, options.cwd));
+      }
+      return rulesByFilePath.get(filePath).get(ruleId)?.meta;
+    });
   }
 
   hasFlag(flag) {
@@ -3513,7 +3525,7 @@ function formatUnixResults(results) {
   return lines.join("\n");
 }
 
-function rulesMetaForResults(results) {
+function rulesMetaForResults(results, ruleMetaForMessage) {
   if (!Array.isArray(results)) {
     throw new Error("'results' must be an array");
   }
@@ -3522,7 +3534,7 @@ function rulesMetaForResults(results) {
   for (const result of results) {
     for (const message of [...(result.messages ?? []), ...(result.suppressedMessages ?? [])]) {
       if (message.ruleId) {
-        meta[message.ruleId] = ruleMetaForRuleId(message.ruleId);
+        meta[message.ruleId] = ruleMetaForMessage?.(message.ruleId, result, message) ?? ruleMetaForRuleId(message.ruleId);
       }
     }
   }
