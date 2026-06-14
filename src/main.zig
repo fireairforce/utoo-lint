@@ -560,6 +560,8 @@ pub fn main(init: std.process.Init) !void {
             options.object_shorthand = false;
         } else if (std.mem.eql(u8, arg, "--logical-assignment-operators=off")) {
             options.logical_assignment_operators = false;
+        } else if (std.mem.eql(u8, arg, "--logical-assignment-operators=never")) {
+            options.logical_assignment_operators_style = .never;
         } else if (std.mem.eql(u8, arg, "--logical-assignment-operators-enforce-for-if-statements=on")) {
             options.logical_assignment_operators_enforce_for_if_statements = .yes;
         } else if (std.mem.eql(u8, arg, "--operator-assignment=off")) {
@@ -1434,6 +1436,7 @@ fn printHelp() void {
         \\  --no-lone-blocks=off      Disable no-lone-blocks
         \\  --no-lonely-if=off        Disable no-lonely-if
         \\  --logical-assignment-operators=off Disable logical-assignment-operators
+        \\  --logical-assignment-operators=never Disallow logical assignment operators
         \\  --logical-assignment-operators-enforce-for-if-statements=on Enable logical-assignment-operators if-statement checks
         \\  --no-loop-func=off        Disable no-loop-func
         \\  --no-loss-of-precision=off Disable no-loss-of-precision

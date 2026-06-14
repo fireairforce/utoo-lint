@@ -64,6 +64,11 @@ pub const LogicalAssignmentOperatorsEnforceForIfStatements = enum {
     no,
 };
 
+pub const LogicalAssignmentOperatorsStyle = enum {
+    always,
+    never,
+};
+
 pub const FuncNamesStyle = enum {
     always,
     as_needed,
@@ -131,6 +136,7 @@ pub const Options = struct {
     guard_for_in: bool = true,
     linebreak_style: bool = true,
     logical_assignment_operators: bool = true,
+    logical_assignment_operators_style: LogicalAssignmentOperatorsStyle = .always,
     logical_assignment_operators_enforce_for_if_statements: LogicalAssignmentOperatorsEnforceForIfStatements = .no,
     new_cap: bool = true,
     new_parens: bool = true,

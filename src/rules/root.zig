@@ -1102,7 +1102,10 @@ const BasicVisitor = struct {
         if (self.options.no_negated_condition) {
             try no_negated_condition.checkIfStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
-        if (self.options.logical_assignment_operators and self.options.logical_assignment_operators_enforce_for_if_statements == .yes) {
+        if (self.options.logical_assignment_operators and
+            self.options.logical_assignment_operators_style == .always and
+            self.options.logical_assignment_operators_enforce_for_if_statements == .yes)
+        {
             try logical_assignment_operators.checkIfStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
         if (self.options.alipay_ant_prefer_elseif_end_with_else) {
@@ -1958,7 +1961,12 @@ const BasicVisitor = struct {
             try operator_assignment.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.logical_assignment_operators) {
-            try logical_assignment_operators.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try logical_assignment_operators.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .style = switch (self.options.logical_assignment_operators_style) {
+                    .always => .always,
+                    .never => .never,
+                },
+            });
         }
         if (self.options.func_name_matching) {
             try func_name_matching.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
@@ -1998,7 +2006,7 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.options.logical_assignment_operators) {
+        if (self.options.logical_assignment_operators and self.options.logical_assignment_operators_style == .always) {
             try logical_assignment_operators.checkLogicalExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;

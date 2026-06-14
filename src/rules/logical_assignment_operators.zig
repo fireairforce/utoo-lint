@@ -7,6 +7,15 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "logical-assignment-operators";
 
+pub const Style = enum {
+    always,
+    never,
+};
+
+pub const Options = struct {
+    style: Style = .always,
+};
+
 const Reference = union(enum) {
     this,
     identifier: []const u8,
@@ -23,6 +32,22 @@ pub fn checkAssignmentExpression(
     expression: ast.AssignmentExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkAssignmentExpressionWithOptions(allocator, diagnostics, tree, expression, index, .{});
+}
+
+pub fn checkAssignmentExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (options.style == .never) {
+        try checkLogicalAssignmentOperator(allocator, diagnostics, tree, expression, index);
+        return;
+    }
+
     if (expression.operator != .assign) return;
 
     const logical = switch (tree.data(unwrapTransparent(tree, expression.right))) {
@@ -39,6 +64,25 @@ pub fn checkAssignmentExpression(
     if (!referencesEqual(left, right_left)) return;
 
     try addDiagnostic(allocator, diagnostics, tree, index, logical.operator);
+}
+
+fn checkLogicalAssignmentOperator(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+    index: ast.NodeIndex,
+) Allocator.Error!void {
+    const operator = logicalOperatorFromAssignment(expression.operator) orelse return;
+    try core.addDiagnosticFmt(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        tree.span(index),
+        "Unexpected logical assignment operator `{s}=`.",
+        .{operator.toString()},
+    );
 }
 
 pub fn checkLogicalExpression(
@@ -109,6 +153,15 @@ fn addDiagnostic(
         "Assignment can be replaced with `{s}=`.",
         .{operator.toString()},
     );
+}
+
+fn logicalOperatorFromAssignment(operator: ast.AssignmentOperator) ?ast.LogicalOperator {
+    return switch (operator) {
+        .logical_or_assign => .@"or",
+        .logical_and_assign => .@"and",
+        .nullish_assign => .nullish_coalescing,
+        else => null,
+    };
 }
 
 fn conditionReference(
