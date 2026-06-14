@@ -461,6 +461,10 @@ export function lintText(code, options = {}) {
   const requestedPath = options.filePath ?? "text.js";
   const extension = extname(requestedPath) || ".js";
   const tempFile = join(tmp, `input${extension}`);
+  const discoveredConfig =
+    !options.noConfig && !options.config && !options.overrideConfig
+      ? configPathForOptions(options)
+      : undefined;
 
   try {
     if (isPathIgnored(requestedPath, options)) {
@@ -476,7 +480,8 @@ export function lintText(code, options = {}) {
     const report = lintFiles([tempFile], {
       ...options,
       cwd: options.cwd,
-      noConfig: options.noConfig ?? !(options.config || options.overrideConfig)
+      config: options.config ?? discoveredConfig,
+      noConfig: options.noConfig
     });
     report.diagnostics = report.diagnostics.map((diagnostic) => ({
       ...diagnostic,
