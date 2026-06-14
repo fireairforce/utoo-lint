@@ -890,9 +890,13 @@ function filteredLintPaths(paths, options = {}) {
   if (patterns.length === 0 && options.errorOnUnmatchedPattern !== false && !values.some(hasGlobMagic)) {
     return values;
   }
+  const excludedPatterns = negatedLintPatterns(values);
 
   const filtered = new Set();
   for (const target of values) {
+    if (isNegatedLintPattern(target)) {
+      continue;
+    }
     if (hasGlobMagic(target)) {
       const expanded = expandGlobTarget(target, cwd, patterns);
       if (expanded.length > 0) {
@@ -924,7 +928,18 @@ function filteredLintPaths(paths, options = {}) {
       filtered.add(filePath);
     }
   }
-  return [...filtered];
+  return [...filtered].filter((filePath) => !pathIgnoredByPatterns(normalizeIgnoredPath(filePath, cwd), excludedPatterns));
+}
+
+function negatedLintPatterns(values) {
+  return values
+    .filter(isNegatedLintPattern)
+    .map((value) => value.slice(1))
+    .filter((value) => value.length > 0);
+}
+
+function isNegatedLintPattern(value) {
+  return value.startsWith("!") && value.length > 1;
 }
 
 function expandGlobTarget(target, cwd, patterns) {
