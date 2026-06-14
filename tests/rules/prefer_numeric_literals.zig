@@ -1,0 +1,64 @@
+const std = @import("std");
+const lint = @import("utoo_lint");
+const helpers = @import("../helpers.zig");
+
+test "reports prefer-numeric-literals for parseInt calls that can be numeric literals" {
+    const source =
+        \\parseInt("101", 2);
+        \\parseInt("755", 8);
+        \\Number.parseInt("ff", 16);
+        \\parseInt(`a0`, 16);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.prefer_numeric_literals.id));
+    try std.testing.expectEqualStrings("Use a binary literal instead of parseInt().", result.diagnostics[0].message);
+}
+
+test "allows parseInt calls that cannot be safely represented as numeric literals" {
+    const source =
+        \\parseInt("101", 10);
+        \\parseInt("102", 2);
+        \\parseInt("89", 8);
+        \\parseInt("10px", 16);
+        \\parseInt(value, 16);
+        \\parseInt(`a${value}`, 16);
+        \\parseInt("101", radix);
+        \\parseInt("101", 2, extra);
+        \\Number["parseInt"]("ff", 16);
+        \\function local(parseInt, Number) {
+        \\  parseInt("101", 2);
+        \\  Number.parseInt("ff", 16);
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_empty_function = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.prefer_numeric_literals.id));
+}
+
+test "can disable prefer-numeric-literals" {
+    const source = "parseInt(\"101\", 2);\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .prefer_numeric_literals = false,
+        .no_undef = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.prefer_numeric_literals.id));
+}
