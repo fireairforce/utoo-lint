@@ -115,8 +115,14 @@ try {
   process.exit(1);
 }
 
-const ruleConfig = materializeRuleOverrideConfig(nativeValues, args, ruleOverrides.rules);
-const needsReportOutput = quiet.enabled || ignoredFiltered.diagnostics.length > 0 || usesJsonWithMetadataFormat(nativeValues);
+const printableConfig = loadPrintableConfig(nativeValues, ruleOverrides.rules);
+const ruleSeverities = ruleSeverityMap(printableConfig.rules);
+const ruleConfig = materializeRuleOverrideConfig(nativeValues, args, ruleOverrides.rules, printableConfig);
+const needsReportOutput =
+  quiet.enabled ||
+  ignoredFiltered.diagnostics.length > 0 ||
+  usesJsonWithMetadataFormat(nativeValues) ||
+  ruleSeverities.size > 0;
 const result = spawnSync(binary, needsReportOutput ? withJsonFormat(ruleConfig.args) : ruleConfig.args, { encoding: "utf8" });
 
 if (result.error) {
@@ -138,7 +144,8 @@ if (needsReportOutput) {
     writeOutput(rewriteStdinPath(rawStdout, input), output.file);
     exitStatus = result.status ?? 1;
   } else {
-    const reportWithIgnored = appendDiagnostics(report, ignoredFiltered.diagnostics);
+    const reportWithSeverity = normalizeReportSeverities(report, ruleSeverities);
+    const reportWithIgnored = appendDiagnostics(reportWithSeverity, ignoredFiltered.diagnostics);
     const filteredReport = quiet.enabled ? filterQuietReport(reportWithIgnored) : reportWithIgnored;
     const rewrittenReport = rewriteReportStdinPaths(filteredReport, input);
     writeOutput(formatReportOutput(rewrittenReport, nativeValues), output.file);
@@ -394,6 +401,42 @@ function parseRuleValue(value) {
     return Number(value);
   }
   return value;
+}
+
+function ruleSeverityMap(rules) {
+  const severities = new Map();
+  if (!rules || typeof rules !== "object") {
+    return severities;
+  }
+
+  for (const [rule, config] of Object.entries(rules)) {
+    severities.set(rule, ruleConfigSeverity(config));
+  }
+  return severities;
+}
+
+function ruleConfigSeverity(config) {
+  const severity = Array.isArray(config) ? config[0] : config;
+  if (severity === false || severity === 0) return 0;
+  if (severity === true || severity === 2) return 2;
+  if (severity === 1) return 1;
+  if (typeof severity === "string") {
+    switch (severity.toLowerCase()) {
+      case "off":
+      case "0":
+        return 0;
+      case "warn":
+      case "warning":
+      case "1":
+        return 1;
+      case "error":
+      case "2":
+        return 2;
+      default:
+        return 1;
+    }
+  }
+  return 1;
 }
 
 function parseMaxWarnings(value) {
@@ -887,12 +930,11 @@ function loadPrintableConfig(args, ruleOverrides = {}) {
   }
 }
 
-function materializeRuleOverrideConfig(args, translatedArgs, ruleOverrides) {
+function materializeRuleOverrideConfig(args, translatedArgs, ruleOverrides, config) {
   if (Object.keys(ruleOverrides).length === 0) {
     return { args: translatedArgs };
   }
 
-  const config = loadPrintableConfig(args, ruleOverrides);
   const directory = mkdtempSync(join(tmpdir(), "utoo-fishlint-rule-"));
   const file = join(directory, "utoo.json");
   writeFileSync(file, JSON.stringify(config));
@@ -1115,6 +1157,30 @@ function filterQuietReport(report) {
   return {
     ...report,
     diagnostics: (report.diagnostics ?? []).filter((diagnostic) => diagnostic?.severity === "error")
+  };
+}
+
+function normalizeReportSeverities(report, ruleSeverities) {
+  if (ruleSeverities.size === 0) {
+    return report;
+  }
+
+  return {
+    ...report,
+    diagnostics: (report.diagnostics ?? []).flatMap((diagnostic) => {
+      if (!diagnostic?.ruleId) {
+        return [diagnostic];
+      }
+
+      const severity = ruleSeverities.get(diagnostic.ruleId);
+      if (severity === 0) {
+        return [];
+      }
+      if (severity === 1 || severity === 2) {
+        return [{ ...diagnostic, severity: severity === 2 ? "error" : "warning" }];
+      }
+      return [diagnostic];
+    })
   };
 }
 

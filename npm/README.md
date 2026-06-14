@@ -122,7 +122,8 @@ section. Other non-JSON ESLint formatter names are accepted and use native text
 output. `--rule`
 accepts JSON objects such as
 `{"no-console":"warn"}` and simple `rule: severity` pairs, merging them into the
-selected utoo-lint config for the run. It ignores fishlint-only setup/debug
+selected utoo-lint config for the run. Compatibility output and exit status are
+normalized from the selected config severity. It ignores fishlint-only setup/debug
 flags. `--ext` is accepted for compatibility; native directory traversal already
 filters to supported JavaScript and TypeScript extensions. ESLint cache controls and
 other cache flags are consumed for compatibility because utoo-lint does not keep
