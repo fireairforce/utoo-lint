@@ -56,8 +56,9 @@ if (printConfig.enabled) {
   process.exit(0);
 }
 
-const unmatched = extractUnmatchedPatternOption(printConfig.args);
-const ignoredFiltered = filterIgnoredTargets(unmatched.args, ignored.patterns);
+const warnIgnored = extractWarnIgnoredOption(printConfig.args);
+const unmatched = extractUnmatchedPatternOption(warnIgnored.args);
+const ignoredFiltered = filterIgnoredTargets(unmatched.args, ignored.patterns, warnIgnored.enabled);
 const filtered = filterUnmatchedTargets(ignoredFiltered.args, unmatched.enabled);
 const input = extractStdin(filtered.args);
 const nativeValues = input.file ? [...input.args, input.file] : input.args;
@@ -72,14 +73,16 @@ try {
   process.exit(2);
 }
 if (args.length === 0) {
-  writeOutput(emptyLintOutput(nativeValues), output.file);
+  const report = emptyLintReport(ignoredFiltered.diagnostics);
+  writeOutput(formatReportOutput(report, nativeValues), output.file);
   cleanupStdinInput(input);
-  process.exit(0);
+  process.exit(eslintExitStatusFromCounts(diagnosticCountsFromReport(report), maxWarnings.value));
 }
 if ((ignoredFiltered.removedTarget || filtered.removedTarget) && !hasLintTarget(nativeValues)) {
-  writeOutput(emptyLintOutput(nativeValues), output.file);
+  const report = emptyLintReport(ignoredFiltered.diagnostics);
+  writeOutput(formatReportOutput(report, nativeValues), output.file);
   cleanupStdinInput(input);
-  process.exit(0);
+  process.exit(eslintExitStatusFromCounts(diagnosticCountsFromReport(report), maxWarnings.value));
 }
 
 let binary;
@@ -91,7 +94,8 @@ try {
 }
 
 const ruleConfig = materializeRuleOverrideConfig(nativeValues, args, ruleOverrides.rules);
-const result = spawnSync(binary, quiet.enabled ? withJsonFormat(ruleConfig.args) : ruleConfig.args, { encoding: "utf8" });
+const needsReportOutput = quiet.enabled || ignoredFiltered.diagnostics.length > 0;
+const result = spawnSync(binary, needsReportOutput ? withJsonFormat(ruleConfig.args) : ruleConfig.args, { encoding: "utf8" });
 
 if (result.error) {
   console.error(`utoo-lint: failed to run native binary: ${result.error.message}`);
@@ -106,15 +110,17 @@ if (stderr) {
 }
 
 let exitStatus;
-if (quiet.enabled) {
+if (needsReportOutput) {
   const report = parseJsonReport(rawStdout);
   if (!report) {
     writeOutput(rewriteStdinPath(rawStdout, input), output.file);
     exitStatus = result.status ?? 1;
   } else {
-    const filteredReport = rewriteReportStdinPaths(filterQuietReport(report), input);
-    writeOutput(formatReportOutput(filteredReport, nativeValues), output.file);
-    exitStatus = eslintExitStatusFromCounts(diagnosticCountsFromReport(filteredReport), maxWarnings.value);
+    const reportWithIgnored = appendDiagnostics(report, ignoredFiltered.diagnostics);
+    const filteredReport = quiet.enabled ? filterQuietReport(reportWithIgnored) : reportWithIgnored;
+    const rewrittenReport = rewriteReportStdinPaths(filteredReport, input);
+    writeOutput(formatReportOutput(rewrittenReport, nativeValues), output.file);
+    exitStatus = eslintExitStatusFromCounts(diagnosticCountsFromReport(rewrittenReport), maxWarnings.value);
   }
 } else {
   writeOutput(rewriteStdinPath(rawStdout, input), output.file);
@@ -254,6 +260,21 @@ function extractUnmatchedPatternOption(args) {
   return { args: values, enabled };
 }
 
+function extractWarnIgnoredOption(args) {
+  const values = [];
+  let enabled = true;
+
+  for (const arg of args) {
+    if (arg === "--no-warn-ignored") {
+      enabled = false;
+      continue;
+    }
+    values.push(arg);
+  }
+
+  return { args: values, enabled };
+}
+
 function extractRuleOverrides(args) {
   const values = [];
   const rules = {};
@@ -346,12 +367,13 @@ function readIgnoreFile(path) {
     .filter((line) => line && !line.startsWith("#"));
 }
 
-function filterIgnoredTargets(args, patterns) {
+function filterIgnoredTargets(args, patterns, warnIgnored) {
   if (patterns.length === 0) {
-    return { args, removedTarget: false };
+    return { args, removedTarget: false, diagnostics: [] };
   }
 
   const values = [];
+  const diagnostics = [];
   let removedTarget = false;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -378,13 +400,16 @@ function filterIgnoredTargets(args, patterns) {
       }
       continue;
     }
-    if (!arg.startsWith("-") && isIgnoredTarget(arg, patterns)) {
+    if (index > 0 && !arg.startsWith("-") && isIgnoredTarget(arg, patterns)) {
       removedTarget = true;
+      if (warnIgnored && isExistingLintFile(arg)) {
+        diagnostics.push(ignoredTargetDiagnostic(arg));
+      }
       continue;
     }
     values.push(arg);
   }
-  return { args: values, removedTarget };
+  return { args: values, removedTarget, diagnostics };
 }
 
 function filterUnmatchedTargets(args, enabled) {
@@ -492,10 +517,36 @@ function escapeRegExp(value) {
 }
 
 function emptyLintOutput(args) {
-  if (usesJsonFormat(args)) {
-    return JSON.stringify({ files: 0, filePaths: [], diagnostics: [] }) + "\n";
+  return formatReportOutput(emptyLintReport(), args);
+}
+
+function emptyLintReport(diagnostics = []) {
+  return { files: 0, filePaths: [], diagnostics };
+}
+
+function appendDiagnostics(report, diagnostics) {
+  if (diagnostics.length === 0) {
+    return report;
   }
-  return "0 file(s) checked, 0 diagnostic(s)\n";
+  return {
+    ...report,
+    diagnostics: [...(report.diagnostics ?? []), ...diagnostics]
+  };
+}
+
+function isExistingLintFile(target) {
+  return existsSync(target) && [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"].includes(extname(target));
+}
+
+function ignoredTargetDiagnostic(target) {
+  return {
+    filePath: target,
+    line: 0,
+    column: 0,
+    severity: "warning",
+    message: "File ignored because of a matching ignore pattern. Use --no-ignore to override.",
+    ruleId: null
+  };
 }
 
 function usesJsonFormat(args) {
@@ -807,10 +858,10 @@ function formatReportOutput(report, args) {
 
 function formatTextReport(report) {
   const diagnostics = report.diagnostics ?? [];
-  const lines = diagnostics.map(
-    (diagnostic) =>
-      `${diagnostic.filePath}:${diagnostic.line}:${diagnostic.column}: ${diagnostic.severity}: ${diagnostic.message} [${diagnostic.ruleId}]`
-  );
+  const lines = diagnostics.map((diagnostic) => {
+    const rule = diagnostic.ruleId ? ` [${diagnostic.ruleId}]` : "";
+    return `${diagnostic.filePath}:${diagnostic.line}:${diagnostic.column}: ${diagnostic.severity}: ${diagnostic.message}${rule}`;
+  });
   lines.push(`${report.files ?? 0} file(s) checked, ${diagnostics.length} diagnostic(s)`);
   return `${lines.join("\n")}\n`;
 }
