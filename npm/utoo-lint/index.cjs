@@ -804,6 +804,13 @@ class Linter {
     return version;
   }
 
+  constructor() {
+    this.sourceCode = null;
+    this.suppressedMessages = [];
+    this.times = { passes: [] };
+    this.fixPassCount = 0;
+  }
+
   verify(code, config = {}, options = {}) {
     if (typeof code !== "string") {
       throw new TypeError("code must be a string");
@@ -821,6 +828,10 @@ class Linter {
     };
     const report = lintText(code, lintOptions);
     const ruleSeverities = ruleSeverityMapForOptions(lintOptions, normalizeESLintFilePath(filePath, verifyOptions.cwd));
+    this.sourceCode = createLinterSourceCode(code);
+    this.suppressedMessages = [];
+    this.times = { passes: [] };
+    this.fixPassCount = 0;
     return (report.diagnostics ?? []).map((diagnostic) => diagnosticToESLintMessage(diagnostic, ruleSeverities));
   }
 
@@ -831,6 +842,33 @@ class Linter {
       output: code
     };
   }
+
+  getSourceCode() {
+    return this.sourceCode;
+  }
+
+  getSuppressedMessages() {
+    return this.suppressedMessages;
+  }
+
+  getTimes() {
+    return this.times;
+  }
+
+  getFixPassCount() {
+    return this.fixPassCount;
+  }
+}
+
+function createLinterSourceCode(text) {
+  return {
+    text,
+    ast: null,
+    lines: text.split(/\r\n|\r|\n/),
+    getText() {
+      return text;
+    }
+  };
 }
 
 function normalizeStringArray(values, name) {
