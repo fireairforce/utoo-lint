@@ -75,8 +75,9 @@ same config discovery as file linting unless `noConfig` is set.
 `ignorePatterns`, `noIgnore`, and `baseConfig`/`overrideConfig` ignore entries.
 `calculateConfigForFile()` and `CLIEngine#getConfigForFile()` merge
 `baseConfig`, default `utoo.json` or `utoo-lint.json` files, explicit
-`overrideConfigFile`, and `overrideConfig` rules. ESLint-compatible results use
-those calculated rule severities for `messages`, `errorCount`, and
+`overrideConfigFile`, and `overrideConfig` rules. `baseConfig` and
+`overrideConfig` may be objects or flat config arrays. ESLint-compatible results
+use those calculated rule severities for `messages`, `errorCount`, and
 `warningCount`. The `CLIEngine` export
 provides a synchronous legacy facade for older ESLint integrations.
 `ESLint` and `CLIEngine` constructor options also accept `quiet: true` to return
