@@ -102,6 +102,7 @@ export interface SourceRange {
 }
 
 export class SourceCode {
+  static splitLines(text: string): string[];
   constructor(text: string, ast?: SourceRange | null);
   constructor(config: {
     text: string;
