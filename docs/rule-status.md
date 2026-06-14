@@ -138,7 +138,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-trailing-spaces`](https://eslint.org/docs/latest/rules/no-trailing-spaces) | Implemented |
 | [`no-undef`](https://eslint.org/docs/latest/rules/no-undef) | Implemented |
 | [`no-undef-init`](https://eslint.org/docs/latest/rules/no-undef-init) | Implemented |
-| [`no-underscore-dangle`](https://eslint.org/docs/latest/rules/no-underscore-dangle) | Implemented for default declaration/member-property checks and optional `allowAfterThis`, `allowAfterSuper`, `allowAfterThisConstructor`, `allowFunctionParams`, `allowInArrayDestructuring`, `allowInObjectDestructuring`, and `enforceInMethodNames` behavior |
+| [`no-underscore-dangle`](https://eslint.org/docs/latest/rules/no-underscore-dangle) | Implemented for default declaration/member-property checks and optional `allowAfterThis`, `allowAfterSuper`, `allowAfterThisConstructor`, `allowFunctionParams`, `allowInArrayDestructuring`, `allowInObjectDestructuring`, `enforceInMethodNames`, and `enforceInClassFields` behavior |
 | [`no-undefined`](https://eslint.org/docs/latest/rules/no-undefined) | Implemented for identifier references and binding names |
 | [`no-unneeded-ternary`](https://eslint.org/docs/latest/rules/no-unneeded-ternary) | Implemented |
 | [`no-unreachable`](https://eslint.org/docs/latest/rules/no-unreachable) | Implemented |

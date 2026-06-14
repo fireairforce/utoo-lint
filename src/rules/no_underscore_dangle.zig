@@ -15,6 +15,7 @@ pub const Options = struct {
     allow_in_array_destructuring: bool = true,
     allow_in_object_destructuring: bool = true,
     enforce_in_method_names: bool = false,
+    enforce_in_class_fields: bool = false,
 };
 
 pub fn checkVariableDeclarator(
@@ -151,6 +152,19 @@ pub fn checkObjectPropertyWithOptions(
 ) Allocator.Error!void {
     if (!options.enforce_in_method_names) return;
     if (!property.method and property.kind == .init) return;
+
+    const name = staticName(tree, property.key, property.computed) orelse return;
+    try checkName(allocator, diagnostics, tree, property.key, name, false);
+}
+
+pub fn checkPropertyDefinitionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    property: ast.PropertyDefinition,
+    options: Options,
+) Allocator.Error!void {
+    if (!options.enforce_in_class_fields) return;
 
     const name = staticName(tree, property.key, property.computed) orelse return;
     try checkName(allocator, diagnostics, tree, property.key, name, false);

@@ -267,6 +267,7 @@ pub const Options = struct {
     no_underscore_dangle_allow_in_array_destructuring: NoUnderscoreDangleAllowDestructuring = .yes,
     no_underscore_dangle_allow_in_object_destructuring: NoUnderscoreDangleAllowDestructuring = .yes,
     no_underscore_dangle_enforce_in_method_names: bool = false,
+    no_underscore_dangle_enforce_in_class_fields: bool = false,
     no_undefined: bool = true,
     unicode_bom: bool = true,
     no_unneeded_ternary: bool = true,
