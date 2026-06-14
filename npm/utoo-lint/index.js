@@ -87,6 +87,7 @@ export class UtooLint {
   async lintFiles(patterns = ["."], options = {}) {
     const mergedOptions = mergeLintOptions(this.options, options);
     const report = lintFiles(patterns, mergedOptions);
+    throwOnUnmatchedPatternDiagnostics(report, mergedOptions);
     return maybeFilterQuietResults(reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
@@ -167,6 +168,7 @@ export class CLIEngine {
   executeOnFiles(patterns) {
     const mergedOptions = eslintConstructorOptions(this.options);
     const report = lintFiles(patterns, mergedOptions);
+    throwOnUnmatchedPatternDiagnostics(report, mergedOptions);
     const results = maybeFilterQuietResults(reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
@@ -829,6 +831,9 @@ function normalizeReportDiagnostics(diagnostics, options = {}) {
     if (!diagnostic?.ruleId) {
       return [diagnostic];
     }
+    if (diagnostic.ruleId === "io") {
+      return [diagnostic];
+    }
 
     const filePath = normalizeESLintFilePath(diagnostic.filePath, options.cwd);
     const ruleSeverities = ruleSeverityMapForOptions(options, filePath);
@@ -866,6 +871,24 @@ function hasRuleConfigSource(options = {}) {
 
 function exitCodeForDiagnostics(diagnostics) {
   return (diagnostics?.length ?? 0) > 0 ? 1 : 0;
+}
+
+function throwOnUnmatchedPatternDiagnostics(report, options = {}) {
+  if (options.errorOnUnmatchedPattern === false) {
+    return;
+  }
+  const diagnostic = (report.diagnostics ?? []).find((item) => item?.ruleId === "io" && /unable to stat path/i.test(item.message ?? ""));
+  if (diagnostic) {
+    throw new Error(`No files matching '${unmatchedPatternDisplayPath(diagnostic.filePath, options.cwd)}' were found.`);
+  }
+}
+
+function unmatchedPatternDisplayPath(filePath, cwd) {
+  const root = resolvePath(cwd ?? process.cwd());
+  if (typeof filePath === "string" && filePath.startsWith(`${root}/`)) {
+    return filePath.slice(root.length + 1);
+  }
+  return filePath;
 }
 
 function normalizeESLintFilePath(filePath, cwd) {
