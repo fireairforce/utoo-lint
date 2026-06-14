@@ -7,6 +7,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/consistent_return.zig");
+}
+
+comptime {
     _ = @import("rules/constructor_super.zig");
 }
 

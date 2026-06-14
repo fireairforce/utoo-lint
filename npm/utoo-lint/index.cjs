@@ -83,6 +83,7 @@ process.stdout.write(json);
 const BUILTIN_RULE_IDS = [
   "array-callback-return",
   "block-scoped-var",
+  "consistent-return",
   "constructor-super",
   "curly",
   "default-case",
