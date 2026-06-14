@@ -153,7 +153,25 @@ export function translateFishlintArgs(args = [], options = {}) {
       arg === "--verbose" ||
       arg === "-v" ||
       arg === "--quiet" ||
-      arg === "--no-error-on-unmatched-pattern"
+      arg === "--no-error-on-unmatched-pattern" ||
+      arg === "--cache" ||
+      arg === "--no-cache"
+    ) {
+      index += 1;
+      continue;
+    }
+    if (arg === "--cache-location" || arg === "--cache-strategy" || arg === "--max-warnings") {
+      const value = rest[index + 1];
+      if (!value) {
+        throw new Error(`utoo-lint: fishlint ${arg} requires a value`);
+      }
+      index += 2;
+      continue;
+    }
+    if (
+      arg.startsWith("--cache-location=") ||
+      arg.startsWith("--cache-strategy=") ||
+      arg.startsWith("--max-warnings=")
     ) {
       index += 1;
       continue;
