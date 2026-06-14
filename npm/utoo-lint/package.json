@@ -20,6 +20,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
+    "eslint": "./bin/eslint.js",
     "fishlint": "./bin/fishlint.js",
     "fishlint-lint-staged": "./bin/fishlint-lint-staged.js",
     "utoo-lint": "./bin/utoo-lint.js"
