@@ -1693,6 +1693,7 @@ class RuleTester {
           RuleTester[testCase.only ? "itOnly" : "it"](testCase.name ?? testCase.code, () => {
             const messages = linter.verify(testCase.code, ruleTesterConfig(ruleName, this.config, testCase, "error"), ruleTesterOptions(testCase));
             assertRuleTesterErrors(testCase, messages);
+            assertRuleTesterOutput(testCase, testCase.code);
           });
         }
       });
@@ -1781,6 +1782,18 @@ function assertRuleTesterErrors(testCase, messages) {
       throw new Error("RuleTester messageId assertions are not supported by @utoo/lint");
     }
   });
+}
+
+function assertRuleTesterOutput(testCase, actualOutput) {
+  if (!Object.hasOwn(testCase, "output")) {
+    return;
+  }
+  if (testCase.output == null) {
+    return;
+  }
+  if (testCase.output !== actualOutput) {
+    throw new Error(`Output is incorrect. Expected ${JSON.stringify(testCase.output)} but was ${JSON.stringify(actualOutput)}.`);
+  }
 }
 
 function createLinterSourceCode(text) {
