@@ -2659,6 +2659,11 @@ const BasicVisitor = struct {
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, index);
         }
+        if (self.options.no_underscore_dangle) {
+            try no_underscore_dangle.checkPropertyDefinitionWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
+                .enforce_in_class_fields = self.options.no_underscore_dangle_enforce_in_class_fields,
+            });
+        }
         if (self.options.typescript_eslint_explicit_member_accessibility) {
             try typescript_eslint_explicit_member_accessibility.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, index);
         }

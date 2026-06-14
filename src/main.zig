@@ -502,6 +502,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_underscore_dangle_allow_in_object_destructuring = .no;
         } else if (std.mem.eql(u8, arg, "--no-underscore-dangle-enforce-in-method-names=on")) {
             options.no_underscore_dangle_enforce_in_method_names = true;
+        } else if (std.mem.eql(u8, arg, "--no-underscore-dangle-enforce-in-class-fields=on")) {
+            options.no_underscore_dangle_enforce_in_class_fields = true;
         } else if (std.mem.eql(u8, arg, "--no-undefined=off")) {
             options.no_undefined = false;
         } else if (std.mem.eql(u8, arg, "--unicode-bom=off")) {
@@ -1472,6 +1474,7 @@ fn printHelp() void {
         \\  --no-underscore-dangle-allow-in-array-destructuring=off Report dangling underscores in array destructuring
         \\  --no-underscore-dangle-allow-in-object-destructuring=off Report dangling underscores in object destructuring
         \\  --no-underscore-dangle-enforce-in-method-names=on Report dangling underscores in method names
+        \\  --no-underscore-dangle-enforce-in-class-fields=on Report dangling underscores in class fields
         \\  --no-undefined=off        Disable no-undefined
         \\  --unicode-bom=off         Disable unicode-bom
         \\  --no-unneeded-ternary=off Disable no-unneeded-ternary
