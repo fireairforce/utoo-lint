@@ -163,6 +163,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`prefer-spread`](https://eslint.org/docs/latest/rules/prefer-spread) | Implemented |
 | [`prefer-template`](https://eslint.org/docs/latest/rules/prefer-template) | Implemented |
 | [`radix`](https://eslint.org/docs/latest/rules/radix) | Implemented |
+| [`require-await`](https://eslint.org/docs/latest/rules/require-await) | Implemented |
 | [`require-atomic-updates`](https://eslint.org/docs/latest/rules/require-atomic-updates) | Implemented |
 | [`require-yield`](https://eslint.org/docs/latest/rules/require-yield) | Implemented |
 | [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Implemented |

@@ -239,6 +239,7 @@ const BUILTIN_RULE_IDS = [
   "prefer-spread",
   "prefer-template",
   "radix",
+  "require-await",
   "require-atomic-updates",
   "require-yield",
   "spaced-comment",
