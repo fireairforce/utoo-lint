@@ -7,6 +7,12 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-underscore-dangle";
 
+pub const Options = struct {
+    allow_after_this: bool = false,
+    allow_after_super: bool = false,
+    allow_after_this_constructor: bool = false,
+};
+
 pub fn checkVariableDeclarator(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -47,10 +53,28 @@ pub fn checkMemberExpression(
     tree: *const ast.Tree,
     member: ast.MemberExpression,
 ) Allocator.Error!void {
+    return checkMemberExpressionWithOptions(allocator, diagnostics, tree, member, .{});
+}
+
+pub fn checkMemberExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    member: ast.MemberExpression,
+    options: Options,
+) Allocator.Error!void {
     if (member.computed) return;
 
     const name = propertyName(tree, member) orelse return;
+    if (isAllowedMemberAccess(tree, member, options)) return;
     try checkName(allocator, diagnostics, tree, member.property, name, true);
+}
+
+fn isAllowedMemberAccess(tree: *const ast.Tree, member: ast.MemberExpression, options: Options) bool {
+    if (options.allow_after_this and isThisExpression(tree, member.object)) return true;
+    if (options.allow_after_super and isSuperExpression(tree, member.object)) return true;
+    if (options.allow_after_this_constructor and isThisConstructorExpression(tree, member.object)) return true;
+    return false;
 }
 
 fn checkName(
@@ -103,4 +127,45 @@ fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8
         .identifier_name => |identifier| tree.string(identifier.name),
         else => null,
     };
+}
+
+fn isThisExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .this_expression => true,
+        else => false,
+    };
+}
+
+fn isSuperExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .super => true,
+        else => false,
+    };
+}
+
+fn isThisConstructorExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    const unwrapped = unwrapTransparent(tree, index);
+    return switch (tree.data(unwrapped)) {
+        .member_expression => |member| isThisExpression(tree, member.object) and isPropertyNamed(tree, member, "constructor"),
+        else => false,
+    };
+}
+
+fn isPropertyNamed(tree: *const ast.Tree, member: ast.MemberExpression, expected: []const u8) bool {
+    const name = propertyName(tree, member) orelse return false;
+    return std.mem.eql(u8, name, expected);
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+
+    return current;
 }

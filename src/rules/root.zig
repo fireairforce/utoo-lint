@@ -2256,7 +2256,11 @@ const BasicVisitor = struct {
             try no_proto.check(self.allocator, self.diagnostics, ctx.tree, member, index);
         }
         if (self.options.no_underscore_dangle) {
-            try no_underscore_dangle.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member);
+            try no_underscore_dangle.checkMemberExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, member, .{
+                .allow_after_this = self.options.no_underscore_dangle_allow_after_this,
+                .allow_after_super = self.options.no_underscore_dangle_allow_after_super,
+                .allow_after_this_constructor = self.options.no_underscore_dangle_allow_after_this_constructor,
+            });
         }
         if (self.options.no_iterator) {
             try no_iterator.check(self.allocator, self.diagnostics, ctx.tree, member, index);
