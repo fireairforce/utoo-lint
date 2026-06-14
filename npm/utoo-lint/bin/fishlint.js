@@ -31,6 +31,7 @@ const TARGET_VALUE_FLAGS = new Set([
   "--rulesdir",
   "--stdin-filename",
   "--threads",
+  "-c",
   "-f",
   "-o"
 ]);
@@ -178,6 +179,10 @@ function extractIgnorePatterns(args) {
     }
     if (arg === "--no-ignore") {
       ignorePathEnabled = false;
+      continue;
+    }
+    if (arg === "--no-eslintrc") {
+      values.push("--no-config");
       continue;
     }
     if (arg === "--ignore-pattern") {
@@ -626,7 +631,12 @@ function materializeRuleOverrideConfig(args, translatedArgs, ruleOverrides) {
 
 function withConfigArg(args, file) {
   const values = [];
-  for (const arg of args) {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "-c") {
+      index += 1;
+      continue;
+    }
     if (arg === "--no-config" || arg.startsWith("--config=")) {
       continue;
     }
@@ -642,15 +652,15 @@ function findConfigPath(args) {
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    if (arg === "--no-config") {
+    if (arg === "--no-config" || arg === "--no-eslintrc") {
       configEnabled = false;
       configPath = undefined;
       continue;
     }
-    if (arg === "--config") {
+    if (arg === "--config" || arg === "-c") {
       configPath = args[index + 1];
       if (!configPath) {
-        console.error("utoo-lint: fishlint --config requires a path");
+        console.error(`utoo-lint: fishlint ${arg} requires a path`);
         process.exit(2);
       }
       index += 1;
