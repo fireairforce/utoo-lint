@@ -13,8 +13,14 @@
   "homepage": "https://github.com/fireairforce/utoo-lint#readme",
   "type": "module",
   "exports": {
-    ".": "./index.js",
-    "./binary": "./lib/binary.js",
+    ".": {
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./binary": {
+      "import": "./lib/binary.js",
+      "require": "./lib/binary.cjs"
+    },
     "./configs/frontend": "./configs/frontend.json",
     "./schema": "./schema.json",
     "./package.json": "./package.json"
@@ -28,6 +34,7 @@
   "files": [
     "bin",
     "configs",
+    "index.cjs",
     "index.js",
     "lib",
     "schema.json"
