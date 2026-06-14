@@ -1521,8 +1521,8 @@ class SourceCode {
     return node ? sourceAncestorsForNode(this.ast, node) ?? [] : [];
   }
 
-  getDeclaredVariables() {
-    return [];
+  getDeclaredVariables(node) {
+    return typeof this.scopeManager?.getDeclaredVariables === "function" ? this.scopeManager.getDeclaredVariables(node) : [];
   }
 
   getScope() {

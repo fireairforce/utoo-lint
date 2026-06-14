@@ -165,7 +165,7 @@ export class SourceCode {
   isSpaceBetweenTokens(left: SourceRange, right: SourceRange): boolean;
   getNodeByRangeIndex(index: number): SourceRange | null;
   getAncestors(node?: SourceRange): SourceRange[];
-  getDeclaredVariables(): unknown[];
+  getDeclaredVariables(node?: SourceRange): unknown[];
   getScope(): unknown;
   markVariableAsUsed(name: string): boolean;
   getDisableDirectives(): unknown[];
