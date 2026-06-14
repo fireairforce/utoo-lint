@@ -68,7 +68,8 @@ an ESLint-style result cache. ESLint runtime config flags such as `--env`,
 `--global`, `--parser`, `--parser-options`, `--plugin`, and ignore-pattern flags
 are also consumed so existing wrapper scripts do not pass them as file targets.
 Display and reporting controls such as `--color`, `--no-color`, `--stats`, and
-`--no-warn-ignored` are accepted for the same reason.
+`--no-warn-ignored` are accepted for the same reason. `--output-file` and `-o`
+write the native output to the requested report file.
 
 ```bash
 npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src

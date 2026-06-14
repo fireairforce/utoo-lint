@@ -37,12 +37,14 @@ const FISHLINT_DROP_VALUE_FLAGS = new Set([
   "--ignore-path",
   "--ignore-pattern",
   "--max-warnings",
+  "--output-file",
   "--parser",
   "--parser-options",
   "--plugin",
   "--resolve-plugins-relative-to",
   "--rule",
-  "--rulesdir"
+  "--rulesdir",
+  "-o"
 ]);
 
 export class UtooLint {

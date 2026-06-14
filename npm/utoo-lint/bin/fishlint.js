@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { resolveBinary } from "../lib/binary.js";
@@ -19,8 +19,9 @@ if (command && command !== "eslint") {
 }
 
 let args;
+const output = extractOutputFile(values);
 try {
-  args = translateFishlintArgs(values, {
+  args = translateFishlintArgs(output.args, {
     warn(message) {
       console.warn(message);
     }
@@ -38,14 +39,45 @@ try {
   process.exit(1);
 }
 
-const result = spawnSync(binary, args, { stdio: "inherit" });
+const result = spawnSync(binary, args, output.file ? { encoding: "utf8" } : { stdio: "inherit" });
 
 if (result.error) {
   console.error(`utoo-lint: failed to run native binary: ${result.error.message}`);
   process.exit(1);
 }
+if (output.file) {
+  if (result.stderr) {
+    process.stderr.write(result.stderr);
+  }
+  writeFileSync(output.file, result.stdout ?? "");
+}
 
 process.exit(result.status ?? 1);
+
+function extractOutputFile(args) {
+  const values = [];
+  let file;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--output-file" || arg === "-o") {
+      file = args[index + 1];
+      if (!file) {
+        console.error(`utoo-lint: fishlint ${arg} requires a path`);
+        process.exit(2);
+      }
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--output-file=")) {
+      file = arg.slice("--output-file=".length);
+      continue;
+    }
+    values.push(arg);
+  }
+
+  return { args: values, file };
+}
 
 function runDelegatedCommand(command, args) {
   const delegated = delegatedCommand(command, args);
