@@ -1789,22 +1789,37 @@ function customRuleSelectorMatches(selector, node, exit, ancestors = []) {
     return false;
   }
   const expression = isExit ? selector.slice(0, -suffix.length) : selector;
-  const childSelector = expression.match(/^(.+?)\s*>\s*(.+)$/u);
+  const childSelector = customRuleSplitTopLevelSelector(expression, ">");
   if (childSelector) {
     const parent = ancestors.at(-1);
     return Boolean(parent)
-      && customRuleSimpleSelectorMatches(childSelector[1].trim(), parent)
-      && customRuleSimpleSelectorMatches(childSelector[2].trim(), node);
+      && customRuleSimpleSelectorMatches(childSelector[0].trim(), parent)
+      && customRuleSimpleSelectorMatches(childSelector[1].trim(), node);
   }
-  const descendantSelector = expression.match(/^(.+?)\s+(.+)$/u);
+  const descendantSelector = customRuleSplitTopLevelDescendantSelector(expression);
   if (descendantSelector) {
-    return ancestors.some((ancestor) => customRuleSimpleSelectorMatches(descendantSelector[1].trim(), ancestor))
-      && customRuleSimpleSelectorMatches(descendantSelector[2].trim(), node);
+    return ancestors.some((ancestor) => customRuleSimpleSelectorMatches(descendantSelector[0].trim(), ancestor))
+      && customRuleSimpleSelectorMatches(descendantSelector[1].trim(), node);
   }
   return customRuleSimpleSelectorMatches(expression, node);
 }
 
 function customRuleSimpleSelectorMatches(expression, node) {
+  const notSelector = expression.match(/^(.+?):not\((.+)\)$/u);
+  if (notSelector) {
+    return customRuleSimpleSelectorMatches(notSelector[1].trim(), node)
+      && !customRuleSimpleSelectorMatches(notSelector[2].trim(), node);
+  }
+  const matchesSelector = expression.match(/^(.*?):matches\((.+)\)$/u);
+  if (matchesSelector) {
+    const prefix = matchesSelector[1].trim();
+    if (prefix && !customRuleSimpleSelectorMatches(prefix, node)) {
+      return false;
+    }
+    return customRuleSplitSelectorList(matchesSelector[2]).some((selector) => (
+      customRuleSimpleSelectorMatches(selector.trim(), node)
+    ));
+  }
   if (expression === node.type) {
     return true;
   }
@@ -1817,6 +1832,71 @@ function customRuleSimpleSelectorMatches(expression, node) {
     return false;
   }
   return attribute ? customRuleAttributeSelectorMatches(node, attribute.trim()) : type === "*" || type === node.type;
+}
+
+function customRuleSplitTopLevelSelector(expression, separator) {
+  let state = customRuleSelectorScanState();
+  for (let index = 0; index < expression.length; index += 1) {
+    state = customRuleUpdateSelectorScanState(state, expression[index]);
+    if (state.depth === 0 && !state.quote && expression[index] === separator) {
+      return [expression.slice(0, index), expression.slice(index + 1)];
+    }
+  }
+  return null;
+}
+
+function customRuleSplitTopLevelDescendantSelector(expression) {
+  let state = customRuleSelectorScanState();
+  for (let index = 0; index < expression.length; index += 1) {
+    state = customRuleUpdateSelectorScanState(state, expression[index]);
+    if (state.depth === 0 && !state.quote && /\s/u.test(expression[index])) {
+      const left = expression.slice(0, index).trim();
+      const right = expression.slice(index).trim();
+      return left && right ? [left, right] : null;
+    }
+  }
+  return null;
+}
+
+function customRuleSplitSelectorList(value) {
+  const selectors = [];
+  let state = customRuleSelectorScanState();
+  let start = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    state = customRuleUpdateSelectorScanState(state, value[index]);
+    if (state.depth === 0 && !state.quote && value[index] === ",") {
+      selectors.push(value.slice(start, index));
+      start = index + 1;
+    }
+  }
+  selectors.push(value.slice(start));
+  return selectors.filter((selector) => selector.trim());
+}
+
+function customRuleSelectorScanState() {
+  return { depth: 0, quote: null, escaped: false };
+}
+
+function customRuleUpdateSelectorScanState(state, char) {
+  if (state.escaped) {
+    return { ...state, escaped: false };
+  }
+  if (char === "\\") {
+    return { ...state, escaped: true };
+  }
+  if (state.quote) {
+    return char === state.quote ? { ...state, quote: null } : state;
+  }
+  if (char === "\"" || char === "'") {
+    return { ...state, quote: char };
+  }
+  if (char === "[" || char === "(") {
+    return { ...state, depth: state.depth + 1 };
+  }
+  if ((char === "]" || char === ")") && state.depth > 0) {
+    return { ...state, depth: state.depth - 1 };
+  }
+  return state;
 }
 
 function customRuleAttributeSelectorMatches(node, attribute) {
