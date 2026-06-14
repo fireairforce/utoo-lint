@@ -402,6 +402,9 @@ function translateFishlintFormat(format, warn) {
   if (format === "json" || format === "text") {
     return format;
   }
+  if (format === "json-with-metadata") {
+    return "json";
+  }
   if (format !== "stylish") {
     warn(`utoo-lint: fishlint formatter '${format}' is not implemented; using native text output.`);
   }
