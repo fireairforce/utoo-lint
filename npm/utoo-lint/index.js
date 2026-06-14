@@ -58,6 +58,20 @@ const FISHLINT_DROP_VALUE_FLAGS = new Set([
   "-E",
   "-o"
 ]);
+const CONFIG_FILENAMES = ["utoo.json", "utoo-lint.json", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"];
+const JAVASCRIPT_CONFIG_EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
+const JAVASCRIPT_CONFIG_LOADER_SCRIPT = `
+import { pathToFileURL } from "node:url";
+
+const configPath = process.argv[1];
+const loaded = await import(pathToFileURL(configPath).href);
+const value = loaded.default ?? loaded;
+const json = JSON.stringify(value);
+if (json === undefined) {
+  throw new TypeError("config did not export a JSON-serializable value");
+}
+process.stdout.write(json);
+`;
 
 export class UtooLint {
   static get version() {
@@ -1296,7 +1310,7 @@ function rulesFromFileConfig(options, filePath) {
     return {};
   }
 
-  const config = readJsonConfig(configPath);
+  const config = readConfig(configPath, options.cwd);
   return rulesFromConfig(config, filePath, options.cwd);
 }
 
@@ -1334,7 +1348,7 @@ function configPathForOptions(options) {
   }
 
   const cwd = options.cwd ?? process.cwd();
-  for (const candidate of ["utoo.json", "utoo-lint.json"]) {
+  for (const candidate of CONFIG_FILENAMES) {
     const path = resolvePath(cwd, candidate);
     if (existsSync(path)) {
       return path;
@@ -1343,7 +1357,11 @@ function configPathForOptions(options) {
   return undefined;
 }
 
-function readJsonConfig(path) {
+function readConfig(path, cwd) {
+  if (isJavaScriptConfigPath(path)) {
+    return readJavaScriptConfig(path, cwd);
+  }
+
   try {
     return JSON.parse(readFileSync(path, "utf8"));
   } catch (error) {
@@ -1351,21 +1369,55 @@ function readJsonConfig(path) {
   }
 }
 
+function readJavaScriptConfig(path, cwd) {
+  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", JAVASCRIPT_CONFIG_LOADER_SCRIPT, path], {
+    cwd: cwd ?? process.cwd(),
+    encoding: "utf8"
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error(`utoo-lint unable to read config ${path}: ${(result.stderr ?? "").trim() || "JavaScript config loader failed"}`);
+  }
+  try {
+    return JSON.parse(result.stdout);
+  } catch (error) {
+    throw new Error(`utoo-lint unable to read config ${path}: ${error.message}`);
+  }
+}
+
+function isJavaScriptConfigPath(path) {
+  return JAVASCRIPT_CONFIG_EXTENSIONS.has(extname(path));
+}
+
 function withTemporaryConfig(options, callback) {
+  const fileConfigPath = !options.noConfig ? configPathForOptions(options) : undefined;
+  const shouldMaterializeFileConfig = fileConfigPath && isJavaScriptConfigPath(fileConfigPath);
+  const fileConfig = shouldMaterializeFileConfig ? readConfig(fileConfigPath, options.cwd) : undefined;
   const inlineRules = {
+    ...rulesFromConfig(fileConfig),
     ...rulesFromConfig(options.baseConfig),
     ...rulesFromConfig(options.overrideConfig)
   };
   if (Object.keys(inlineRules).length === 0) {
+    if (shouldMaterializeFileConfig) {
+      return callback({
+        ...options,
+        config: undefined,
+        noConfig: true
+      });
+    }
     return callback(options);
   }
 
-  const rules = runtimeRulesFromConfigs(options.baseConfig, options.overrideConfig);
-  const enabledRules = enabledRuleNamesFromConfigs(options.baseConfig, options.overrideConfig);
+  const rules = runtimeRulesFromConfigs(fileConfig, options.baseConfig, options.overrideConfig);
+  const enabledRules = enabledRuleNamesFromConfigs(fileConfig, options.baseConfig, options.overrideConfig);
   if (!hasRuleOptions(rules)) {
     return callback({
       ...options,
-      noConfig: options.noConfig ?? true,
+      config: shouldMaterializeFileConfig ? undefined : options.config,
+      noConfig: shouldMaterializeFileConfig ? true : options.noConfig ?? true,
       rules: options.rules ?? enabledRules
     });
   }
@@ -1376,7 +1428,7 @@ function withTemporaryConfig(options, callback) {
     writeFileSync(configPath, JSON.stringify({ rules }));
     return callback({
       ...options,
-      config: options.config ?? configPath,
+      config: shouldMaterializeFileConfig ? configPath : options.config ?? configPath,
       noConfig: false
     });
   } finally {
@@ -1846,7 +1898,7 @@ function ignorePatternsFromFileConfig(options) {
     return [];
   }
 
-  return ignorePatternsFromConfig(readJsonConfig(configPath));
+  return ignorePatternsFromConfig(readConfig(configPath, options.cwd));
 }
 
 function ignorePatternsFromConfig(config) {
