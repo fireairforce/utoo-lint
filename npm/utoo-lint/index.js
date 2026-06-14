@@ -613,11 +613,27 @@ function eslintConstructorOptions(options) {
 function calculatedConfig(options = {}, filePath) {
   return {
     rules: {
+      ...rulesFromNativeRuleList(options.rules),
       ...rulesFromConfig(options.baseConfig, filePath, options.cwd),
       ...rulesFromFileConfig(options, filePath),
       ...rulesFromConfig(options.overrideConfig, filePath, options.cwd)
     }
   };
+}
+
+function rulesFromNativeRuleList(rules) {
+  if (!rules) {
+    return {};
+  }
+  const values = Array.isArray(rules) ? rules : String(rules).split(",");
+  const result = {};
+  for (const rule of values) {
+    const name = String(rule).trim();
+    if (name) {
+      result[name] = "warn";
+    }
+  }
+  return result;
 }
 
 function rulesFromConfig(config, filePath, cwd) {
@@ -842,7 +858,7 @@ function normalizeDiagnosticFilePaths(diagnostics, options = {}) {
 }
 
 function hasRuleConfigSource(options = {}) {
-  if (options.baseConfig || options.overrideConfig) {
+  if (options.noConfig || options.baseConfig || options.overrideConfig || options.rules) {
     return true;
   }
   return !options.noConfig && Boolean(configPathForOptions(options));
