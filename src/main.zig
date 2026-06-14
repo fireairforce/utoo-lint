@@ -720,6 +720,8 @@ pub fn main(init: std.process.Init) !void {
             options.typescript_eslint_restrict_plus_operands = false;
         } else if (std.mem.eql(u8, arg, "--valid-typeof=off")) {
             options.valid_typeof = false;
+        } else if (std.mem.eql(u8, arg, "--wrap-iife=off")) {
+            options.wrap_iife = false;
         } else if (std.mem.eql(u8, arg, "--semantic-errors=off")) {
             options.parser_semantic_errors = false;
         } else if (std.mem.eql(u8, arg, "--yoda=off")) {
@@ -1514,6 +1516,7 @@ fn printHelp() void {
         \\  --typescript-eslint-prefer-namespace-keyword=off Disable @typescript-eslint/prefer-namespace-keyword
         \\  --typescript-eslint-restrict-plus-operands=off Disable @typescript-eslint/restrict-plus-operands
         \\  --valid-typeof=off        Disable valid-typeof
+        \\  --wrap-iife=off           Disable wrap-iife
         \\  --semantic-errors=off     Disable parser semantic errors
         \\  --yoda=off                Disable yoda
         \\

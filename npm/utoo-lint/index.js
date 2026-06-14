@@ -250,6 +250,7 @@ const BUILTIN_RULE_IDS = [
   "unicode-bom",
   "use-isnan",
   "valid-typeof",
+  "wrap-iife",
   "yoda",
   "import/default",
   "import/export",
