@@ -710,6 +710,21 @@ function globPatternRegExpSource(pattern) {
         continue;
       }
     }
+    if (char === "[") {
+      const end = pattern.indexOf("]", index + 1);
+      if (end !== -1) {
+        const raw = pattern.slice(index + 1, end);
+        if (raw.length > 0) {
+          const negated = raw[0] === "!" || raw[0] === "^";
+          const body = raw.slice(negated ? 1 : 0);
+          if (body.length > 0) {
+            source += `[${negated ? "^" : ""}${escapeCharacterClass(body)}]`;
+            index = end;
+            continue;
+          }
+        }
+      }
+    }
     source += escapeRegExp(char);
   }
   return source;
@@ -717,6 +732,10 @@ function globPatternRegExpSource(pattern) {
 
 function escapeRegExp(value) {
   return value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
+}
+
+function escapeCharacterClass(value) {
+  return value.replace(/[\\\]]/g, "\\$&");
 }
 
 function emptyLintOutput(args) {
