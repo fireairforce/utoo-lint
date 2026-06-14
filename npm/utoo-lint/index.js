@@ -163,6 +163,48 @@ export function translateFishlintArgs(args = [], options = {}) {
       index += 1;
       continue;
     }
+    if (arg === "--format" || arg === "-f") {
+      const value = rest[index + 1];
+      if (!value) {
+        throw new Error(`utoo-lint: fishlint ${arg} requires a formatter name`);
+      }
+      translated.push(`--format=${translateFishlintFormat(value)}`);
+      index += 2;
+      continue;
+    }
+    if (arg.startsWith("--format=")) {
+      translated.push(`--format=${translateFishlintFormat(arg.slice("--format=".length))}`);
+      index += 1;
+      continue;
+    }
+    if (arg === "--threads") {
+      const value = rest[index + 1];
+      if (!value) {
+        throw new Error("utoo-lint: fishlint --threads requires a number");
+      }
+      translated.push(`--threads=${value}`);
+      index += 2;
+      continue;
+    }
+    if (arg.startsWith("--threads=")) {
+      translated.push(arg);
+      index += 1;
+      continue;
+    }
+    if (arg === "--rules") {
+      const value = rest[index + 1];
+      if (!value) {
+        throw new Error("utoo-lint: fishlint --rules requires a comma-separated rule list");
+      }
+      translated.push(`--rules=${value}`);
+      index += 2;
+      continue;
+    }
+    if (arg.startsWith("--rules=")) {
+      translated.push(arg);
+      index += 1;
+      continue;
+    }
     if (arg === "--config") {
       const value = rest[index + 1];
       if (!value) {
@@ -212,6 +254,10 @@ export function translateFishlintArgs(args = [], options = {}) {
   }
 
   return translated;
+}
+
+function translateFishlintFormat(format) {
+  return format === "stylish" ? "text" : format;
 }
 
 export function lintFiles(paths = ["."], options = {}) {

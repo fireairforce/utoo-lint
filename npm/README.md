@@ -59,9 +59,10 @@ specific native binary during local development.
 The package also installs a `fishlint` compatibility command for projects that
 currently run `fishlint eslint ...`. It supports the common eslint subcommand
 shape, forwards `--config`, maps `--glob` values to native lint targets, and
-ignores fishlint-only setup/debug flags. `--ext` is accepted for compatibility;
-native directory traversal already filters to supported JavaScript and
-TypeScript extensions.
+normalizes split value flags such as `--format json`, `-f json`, `--threads 4`,
+and `--rules no-debugger`. It ignores fishlint-only setup/debug flags. `--ext`
+is accepted for compatibility; native directory traversal already filters to
+supported JavaScript and TypeScript extensions.
 
 ```bash
 npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
