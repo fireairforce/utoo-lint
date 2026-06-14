@@ -14,6 +14,7 @@ const promise_checks = @import("promise_checks.zig");
 const symbol_checks = @import("symbol_checks.zig");
 
 pub const curly = @import("curly.zig");
+pub const accessor_pairs = @import("accessor_pairs.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
 pub const block_scoped_var = @import("block_scoped_var.zig");
 pub const consistent_return = @import("consistent_return.zig");
@@ -2004,6 +2005,9 @@ const BasicVisitor = struct {
         if (self.options.array_callback_return) {
             try array_callback_return.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
+        if (self.options.accessor_pairs) {
+            try accessor_pairs.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
+        }
         if (self.options.import_no_amd) {
             try import_no_amd.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
@@ -2389,6 +2393,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.accessor_pairs) {
+            try accessor_pairs.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
         if (self.options.no_dupe_keys) {
             try no_dupe_keys.check(self.allocator, self.diagnostics, ctx.tree, expression);
         }
@@ -2474,6 +2481,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.accessor_pairs) {
+            try accessor_pairs.checkClassBody(self.allocator, self.diagnostics, ctx.tree, body);
+        }
         if (self.options.no_dupe_class_members and !self.options.typescript_eslint_no_dupe_class_members) {
             try no_dupe_class_members.check(self.allocator, self.diagnostics, ctx.tree, body);
         }

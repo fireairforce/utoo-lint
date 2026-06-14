@@ -1,4 +1,8 @@
 comptime {
+    _ = @import("rules/accessor_pairs.zig");
+}
+
+comptime {
     _ = @import("rules/array_callback_return.zig");
 }
 
