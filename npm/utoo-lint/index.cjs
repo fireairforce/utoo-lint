@@ -1532,8 +1532,8 @@ class SourceCode {
     return this.scopeManager?.globalScope ?? null;
   }
 
-  markVariableAsUsed() {
-    return false;
+  markVariableAsUsed(name, node) {
+    return markScopeVariableAsUsed(this.getScope(node), name);
   }
 
   getDisableDirectives() {
@@ -1714,6 +1714,29 @@ function sourceAncestorsForNode(root, target, ancestors = [], seen = new Set()) 
         return result;
       }
     }
+  }
+  return null;
+}
+
+function markScopeVariableAsUsed(scope, name) {
+  let current = scope;
+  while (current) {
+    const variable = scopeVariableByName(current, name);
+    if (variable) {
+      variable.eslintUsed = true;
+      return true;
+    }
+    current = current.upper ?? null;
+  }
+  return false;
+}
+
+function scopeVariableByName(scope, name) {
+  if (scope?.set instanceof Map && scope.set.has(name)) {
+    return scope.set.get(name);
+  }
+  if (Array.isArray(scope?.variables)) {
+    return scope.variables.find((variable) => variable?.name === name) ?? null;
   }
   return null;
 }
