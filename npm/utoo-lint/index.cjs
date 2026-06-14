@@ -1233,21 +1233,30 @@ class Linter {
 
     const verifyOptions = typeof options === "string" ? { filename: options } : { ...options };
     const filePath = verifyOptions.filename ?? verifyOptions.filePath ?? "input.js";
+    const sourceCode = createLinterSourceCode(code);
+    const customRules = customRuleEntriesForConfig(config, this.rules);
+    const nativeConfig = configWithoutCustomRules(config, this.rules);
     const lintOptions = {
       cwd: verifyOptions.cwd,
       filePath,
       noConfig: true,
       noIgnore: true,
       warnIgnored: false,
-      overrideConfig: config
+      overrideConfig: nativeConfig
     };
     const report = lintText(code, lintOptions);
     const ruleSeverities = ruleSeverityMapForOptions(lintOptions, normalizeESLintFilePath(filePath, verifyOptions.cwd));
-    this.sourceCode = createLinterSourceCode(code);
+    this.sourceCode = sourceCode;
     this.suppressedMessages = [];
     this.times = { passes: [] };
     this.fixPassCount = 0;
-    return (report.diagnostics ?? []).map((diagnostic) => diagnosticToESLintMessage(diagnostic, ruleSeverities));
+    return [
+      ...(report.diagnostics ?? []).map((diagnostic) => diagnosticToESLintMessage(diagnostic, ruleSeverities)),
+      ...runCustomLinterRules(customRules, sourceCode, {
+        cwd: verifyOptions.cwd,
+        filename: filePath
+      })
+    ];
   }
 
   verifyAndFix(code, config = {}, options = {}) {
@@ -1304,6 +1313,177 @@ class Linter {
     }
     this.parsers.set(parserId, parser);
   }
+}
+
+function customRuleEntriesForConfig(config, rules) {
+  const entries = new Map();
+  for (const [ruleId, ruleConfig] of ruleConfigEntries(config)) {
+    if (!rules.has(ruleId)) {
+      continue;
+    }
+    const severity = ruleConfigSeverity(ruleConfig);
+    if (severity === 0) {
+      entries.delete(ruleId);
+      continue;
+    }
+    entries.set(ruleId, {
+      ruleId,
+      rule: rules.get(ruleId),
+      severity,
+      options: Array.isArray(ruleConfig) ? ruleConfig.slice(1) : []
+    });
+  }
+  return [...entries.values()];
+}
+
+function ruleConfigEntries(config) {
+  if (Array.isArray(config)) {
+    return config.flatMap((item) => ruleConfigEntries(item));
+  }
+  if (!config || typeof config !== "object" || !config.rules || typeof config.rules !== "object") {
+    return [];
+  }
+  return Object.entries(config.rules);
+}
+
+function configWithoutCustomRules(config, rules) {
+  if (Array.isArray(config)) {
+    return config.map((item) => configWithoutCustomRules(item, rules));
+  }
+  if (!config || typeof config !== "object" || !config.rules || typeof config.rules !== "object") {
+    return config;
+  }
+
+  let removedCustomRule = false;
+  const nativeRules = {};
+  for (const [ruleId, ruleConfig] of Object.entries(config.rules)) {
+    if (rules.has(ruleId)) {
+      removedCustomRule = true;
+      continue;
+    }
+    nativeRules[ruleId] = ruleConfig;
+  }
+  return removedCustomRule ? { ...config, rules: nativeRules } : config;
+}
+
+function runCustomLinterRules(ruleEntries, sourceCode, options) {
+  if (ruleEntries.length === 0) {
+    return [];
+  }
+
+  const messages = [];
+  const program = sourceCode.ast ?? { type: "Program", range: [0, sourceCode.text.length] };
+  for (const ruleEntry of ruleEntries) {
+    const context = createCustomRuleContext(ruleEntry, sourceCode, options, messages);
+    const listeners = customRuleListeners(ruleEntry.rule, context);
+    if (typeof listeners.Program === "function") {
+      listeners.Program(program);
+    }
+    if (typeof listeners["Program:exit"] === "function") {
+      listeners["Program:exit"](program);
+    }
+  }
+  return messages;
+}
+
+function createCustomRuleContext(ruleEntry, sourceCode, options, messages) {
+  const filename = options.filename ?? "<input>";
+  const cwd = options.cwd ?? "";
+  return {
+    id: ruleEntry.ruleId,
+    options: ruleEntry.options,
+    filename,
+    physicalFilename: filename,
+    cwd,
+    sourceCode,
+    getCwd() {
+      return cwd;
+    },
+    getFilename() {
+      return filename;
+    },
+    getPhysicalFilename() {
+      return filename;
+    },
+    getSourceCode() {
+      return sourceCode;
+    },
+    report(...args) {
+      messages.push(customRuleMessageFromReport(ruleEntry, sourceCode, args));
+    }
+  };
+}
+
+function customRuleListeners(rule, context) {
+  if (typeof rule === "function") {
+    return rule(context) ?? {};
+  }
+  if (typeof rule?.create === "function") {
+    return rule.create(context) ?? {};
+  }
+  return {};
+}
+
+function customRuleMessageFromReport(ruleEntry, sourceCode, args) {
+  const descriptor = customRuleReportDescriptor(args);
+  const node = descriptor.node ?? null;
+  const location = customRuleReportLocation(sourceCode, descriptor, node);
+  const message = customRuleReportMessage(ruleEntry.rule, descriptor);
+  const result = {
+    ruleId: ruleEntry.ruleId,
+    severity: ruleEntry.severity,
+    message,
+    line: location.start.line,
+    column: location.start.column + 1,
+    nodeType: node?.type ?? null
+  };
+  if (location.end) {
+    result.endLine = location.end.line;
+    result.endColumn = location.end.column + 1;
+  }
+  return result;
+}
+
+function customRuleReportDescriptor(args) {
+  const [first, second, third, fourth] = args;
+  if (first && typeof first === "object" && (
+    Object.hasOwn(first, "message")
+    || Object.hasOwn(first, "messageId")
+    || Object.hasOwn(first, "node")
+    || Object.hasOwn(first, "loc")
+  )) {
+    return first;
+  }
+  if (typeof second === "string") {
+    return { node: first, message: second, data: third };
+  }
+  return { node: first, loc: second, message: third, data: fourth };
+}
+
+function customRuleReportMessage(rule, descriptor) {
+  if (descriptor.messageId != null) {
+    return ruleTesterMessageForId(rule, descriptor.messageId, descriptor.data);
+  }
+  if (typeof descriptor.message === "string") {
+    return replaceRuleMessageData(descriptor.message, descriptor.data);
+  }
+  return "";
+}
+
+function customRuleReportLocation(sourceCode, descriptor, node) {
+  const loc = descriptor.loc ?? node?.loc ?? sourceCode.getLoc(node);
+  const start = loc?.start ?? loc ?? { line: 1, column: 0 };
+  const end = loc?.end ?? null;
+  return {
+    start: {
+      line: start.line ?? 1,
+      column: start.column ?? 0
+    },
+    end: end ? {
+      line: end.line ?? start.line ?? 1,
+      column: end.column ?? start.column ?? 0
+    } : null
+  };
 }
 
 class SourceCode {
@@ -1953,6 +2133,10 @@ function ruleTesterMessageForId(rule, messageId, data = {}) {
   if (typeof template !== "string") {
     throw new Error(`RuleTester messageId ${JSON.stringify(messageId)} was not found in rule.meta.messages`);
   }
+  return replaceRuleMessageData(template, data);
+}
+
+function replaceRuleMessageData(template, data = {}) {
   return template.replace(/\{\{\s*([^{}]+?)\s*\}\}/gu, (placeholder, key) => (
     Object.hasOwn(data, key) ? String(data[key]) : placeholder
   ));
