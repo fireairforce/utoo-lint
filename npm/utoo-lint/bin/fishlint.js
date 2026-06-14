@@ -23,7 +23,8 @@ let args;
 const output = extractOutputFile(values);
 const ignored = extractIgnorePatterns(output.args);
 const maxWarnings = extractMaxWarnings(ignored.args);
-const printConfig = extractPrintConfig(maxWarnings.args);
+const quiet = extractQuiet(maxWarnings.args);
+const printConfig = extractPrintConfig(quiet.args);
 if (printConfig.enabled) {
   writeOutput(JSON.stringify(loadPrintableConfig(printConfig.args), null, 2) + "\n", output.file);
   process.exit(0);
@@ -61,7 +62,7 @@ try {
   process.exit(1);
 }
 
-const result = spawnSync(binary, args, { encoding: "utf8" });
+const result = spawnSync(binary, quiet.enabled ? withJsonFormat(args) : args, { encoding: "utf8" });
 
 if (result.error) {
   console.error(`utoo-lint: failed to run native binary: ${result.error.message}`);
@@ -69,14 +70,26 @@ if (result.error) {
   process.exit(1);
 }
 const rawStdout = result.stdout ?? "";
-const stdout = rewriteStdinPath(rawStdout, input);
 const stderr = rewriteStdinPath(result.stderr ?? "", input);
 if (stderr) {
   process.stderr.write(stderr);
 }
-writeOutput(stdout, output.file);
 
-const exitStatus = eslintExitStatus(binary, args, result.status ?? 1, rawStdout, maxWarnings.value);
+let exitStatus;
+if (quiet.enabled) {
+  const report = parseJsonReport(rawStdout);
+  if (!report) {
+    writeOutput(rewriteStdinPath(rawStdout, input), output.file);
+    exitStatus = result.status ?? 1;
+  } else {
+    const filteredReport = rewriteReportStdinPaths(filterQuietReport(report), input);
+    writeOutput(formatReportOutput(filteredReport, nativeValues), output.file);
+    exitStatus = eslintExitStatusFromCounts(diagnosticCountsFromReport(filteredReport), maxWarnings.value);
+  }
+} else {
+  writeOutput(rewriteStdinPath(rawStdout, input), output.file);
+  exitStatus = eslintExitStatus(binary, args, result.status ?? 1, rawStdout, maxWarnings.value);
+}
 cleanupStdinInput(input);
 process.exit(exitStatus);
 
@@ -178,6 +191,21 @@ function extractMaxWarnings(args) {
   }
 
   return { args: values, value: maxWarnings };
+}
+
+function extractQuiet(args) {
+  const values = [];
+  let enabled = false;
+
+  for (const arg of args) {
+    if (arg === "--quiet") {
+      enabled = true;
+      continue;
+    }
+    values.push(arg);
+  }
+
+  return { args: values, enabled };
 }
 
 function parseMaxWarnings(value) {
@@ -491,6 +519,10 @@ function eslintExitStatus(binary, args, status, stdout, maxWarnings) {
   if (!counts) {
     return status;
   }
+  return eslintExitStatusFromCounts(counts, maxWarnings);
+}
+
+function eslintExitStatusFromCounts(counts, maxWarnings) {
   if (counts.errors > 0) {
     return 1;
   }
@@ -504,13 +536,10 @@ function eslintExitStatus(binary, args, status, stdout, maxWarnings) {
 }
 
 function diagnosticCounts(stdout) {
-  let report;
-  try {
-    report = JSON.parse(stdout);
-  } catch {
-    return null;
-  }
+  return diagnosticCountsFromReport(parseJsonReport(stdout));
+}
 
+function diagnosticCountsFromReport(report) {
   if (!Array.isArray(report?.diagnostics)) {
     return null;
   }
@@ -525,6 +554,14 @@ function diagnosticCounts(stdout) {
     }
   }
   return { errors, warnings };
+}
+
+function parseJsonReport(stdout) {
+  try {
+    return JSON.parse(stdout);
+  } catch {
+    return null;
+  }
 }
 
 function jsonDiagnosticCounts(binary, args) {
@@ -557,6 +594,45 @@ function withJsonFormat(args) {
     values.unshift("--format=json");
   }
   return values;
+}
+
+function filterQuietReport(report) {
+  return {
+    ...report,
+    diagnostics: (report.diagnostics ?? []).filter((diagnostic) => diagnostic?.severity === "error")
+  };
+}
+
+function rewriteReportStdinPaths(report, input) {
+  if (!input.file || !input.displayPath) {
+    return report;
+  }
+
+  return {
+    ...report,
+    filePaths: (report.filePaths ?? []).map((filePath) => (filePath === input.file ? input.displayPath : filePath)),
+    diagnostics: (report.diagnostics ?? []).map((diagnostic) => ({
+      ...diagnostic,
+      filePath: diagnostic.filePath === input.file ? input.displayPath : diagnostic.filePath
+    }))
+  };
+}
+
+function formatReportOutput(report, args) {
+  if (usesJsonFormat(args)) {
+    return JSON.stringify(report) + "\n";
+  }
+  return formatTextReport(report);
+}
+
+function formatTextReport(report) {
+  const diagnostics = report.diagnostics ?? [];
+  const lines = diagnostics.map(
+    (diagnostic) =>
+      `${diagnostic.filePath}:${diagnostic.line}:${diagnostic.column}: ${diagnostic.severity}: ${diagnostic.message} [${diagnostic.ruleId}]`
+  );
+  lines.push(`${report.files ?? 0} file(s) checked, ${diagnostics.length} diagnostic(s)`);
+  return `${lines.join("\n")}\n`;
 }
 
 function runDelegatedCommand(command, args) {
