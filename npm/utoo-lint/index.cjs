@@ -1,5 +1,5 @@
 const { spawnSync } = require("node:child_process");
-const { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } = require("node:fs");
+const { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } = require("node:fs");
 const { writeFile: writeFileAsync } = require("node:fs/promises");
 const { tmpdir } = require("node:os");
 const { extname, isAbsolute, join, resolve: resolvePath } = require("node:path");
@@ -103,8 +103,8 @@ class UtooLint {
     });
   }
 
-  async isPathIgnored() {
-    return false;
+  async isPathIgnored(filePath) {
+    return isPathIgnored(filePath, mergeLintOptions(this.options, {}));
   }
 
   async calculateConfigForFile() {
@@ -208,8 +208,8 @@ class CLIEngine {
     };
   }
 
-  isPathIgnored() {
-    return false;
+  isPathIgnored(filePath) {
+    return isPathIgnored(filePath, eslintConstructorOptions(this.options));
   }
 
   getConfigForFile() {
@@ -514,7 +514,10 @@ function eslintConstructorOptions(options) {
     threads: options.threads,
     binary: options.binary,
     env: options.env,
-    extraArgs: options.extraArgs
+    extraArgs: options.extraArgs,
+    ignorePath: options.ignorePath,
+    ignorePatterns: options.ignorePatterns,
+    noIgnore: options.noIgnore ?? options.ignore === false
   };
 
   if (options.useEslintrc === false || options.overrideConfigFile === true) {
@@ -651,6 +654,107 @@ function hasGlobMagic(pattern) {
 
 function isLintableFilePath(filePath) {
   return LINTABLE_EXTENSIONS.has(extname(filePath));
+}
+
+function isPathIgnored(filePath, options = {}) {
+  if (typeof filePath !== "string") {
+    throw new TypeError("filePath must be a string");
+  }
+  if (options.noIgnore) {
+    return false;
+  }
+
+  const cwd = options.cwd ?? process.cwd();
+  const normalized = normalizeIgnoredPath(filePath, cwd);
+  const patterns = ignorePatternsForOptions(options, cwd);
+  return pathIgnoredByPatterns(normalized, patterns);
+}
+
+function ignorePatternsForOptions(options, cwd) {
+  const patterns = [];
+  for (const pattern of normalizeIgnorePatterns(options.ignorePatterns)) {
+    patterns.push(pattern);
+  }
+
+  const ignorePath = options.ignorePath ?? ".eslintignore";
+  if (ignorePath) {
+    patterns.push(...readIgnoreFile(resolvePath(cwd, ignorePath)));
+  }
+  return patterns;
+}
+
+function normalizeIgnorePatterns(patterns) {
+  if (!patterns) {
+    return [];
+  }
+  const values = Array.isArray(patterns) ? patterns : [patterns];
+  for (const value of values) {
+    if (typeof value !== "string") {
+      throw new TypeError("ignorePatterns must be a string or an array of strings");
+    }
+  }
+  return values;
+}
+
+function readIgnoreFile(path) {
+  if (!existsSync(path)) {
+    return [];
+  }
+
+  return readFileSync(path, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
+}
+
+function normalizeIgnoredPath(filePath, cwd) {
+  const root = resolvePath(cwd);
+  const absolute = normalizeESLintFilePath(filePath, root);
+  const relative =
+    absolute === root || absolute.startsWith(`${root}/`) || absolute.startsWith(`${root}\\`)
+      ? absolute.slice(root.length).replace(/^[/\\]/, "")
+      : absolute;
+  return normalizePath(relative);
+}
+
+function normalizeIgnoredPattern(pattern) {
+  return normalizePath(pattern.replace(/^!/, "").replace(/^\//, ""));
+}
+
+function pathIgnoredByPatterns(target, patterns) {
+  let ignored = false;
+  for (const pattern of patterns) {
+    const negated = pattern.startsWith("!");
+    if (matchesIgnorePattern(target, normalizeIgnoredPattern(pattern))) {
+      ignored = !negated;
+    }
+  }
+  return ignored;
+}
+
+function matchesIgnorePattern(target, pattern) {
+  if (pattern.endsWith("/**")) {
+    const prefix = pattern.slice(0, -3);
+    return target === prefix || target.startsWith(`${prefix}/`) || target.includes(`/${prefix}/`);
+  }
+  if (pattern.startsWith("**/")) {
+    const suffix = pattern.slice(3);
+    return target.endsWith(suffix) || target.includes(`/${suffix}`);
+  }
+  if (!pattern.includes("*")) {
+    return target === pattern || target.endsWith(`/${pattern}`) || target.startsWith(`${pattern}/`);
+  }
+
+  const expression = new RegExp(`(^|/)${escapeRegExp(pattern).replaceAll("\\*\\*", ".*").replaceAll("\\*", "[^/]*")}$`);
+  return expression.test(target);
+}
+
+function normalizePath(path) {
+  return path.replaceAll("\\", "/").replace(/^\.\//, "");
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
 }
 
 function getErrorResults(results) {

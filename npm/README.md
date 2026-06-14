@@ -68,8 +68,10 @@ for `UtooLint` and supports the common `lintFiles()`, `lintText()`,
 low-friction replacements. It also provides ESLint-compatible `version`,
 `outputFixes()`, `getErrorResults()`, and `getRulesMetaForResults()` surfaces.
 `lintFiles()` returns absolute `filePath` values and includes empty results for
-checked files with no messages. The `CLIEngine` export provides a synchronous
-legacy facade for older ESLint integrations. Set
+checked files with no messages. `isPathIgnored()` reads default `.eslintignore`
+entries plus `ignorePath`, `ignorePatterns`, and `noIgnore` constructor options.
+The `CLIEngine` export provides a synchronous legacy facade for older ESLint
+integrations. Set
 `UTOO_LINT_BIN=/path/to/utoo-lint` to force the JS API and CLI wrapper to use a
 specific native binary during local development.
 
