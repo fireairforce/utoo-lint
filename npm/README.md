@@ -85,6 +85,8 @@ supported JavaScript and TypeScript extensions. ESLint cache controls and
 an ESLint-style result cache. ESLint runtime config flags such as `--env`,
 `--global`, `--parser`, `--parser-options`, `--plugin`, and ignore-pattern flags
 are also consumed so existing wrapper scripts do not pass them as file targets.
+Fix controls such as `--fix`, `--fix-dry-run`, and `--fix-type` are accepted
+with a warning because utoo-lint does not apply fixes yet.
 Display and reporting controls such as `--color`, `--no-color`, `--stats`, and
 `--no-warn-ignored` are accepted for the same reason. `--output-file` and `-o`
 write the native output to the requested report file. `--stdin` reads source
