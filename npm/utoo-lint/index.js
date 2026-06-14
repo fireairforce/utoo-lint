@@ -1592,7 +1592,7 @@ function rulesFromFileConfig(options, filePath) {
     return {};
   }
 
-  const configPath = configPathForOptions(options);
+  const configPath = filePath ? configPathForFile(options, filePath) : configPathForOptions(options);
   if (!configPath) {
     return {};
   }
@@ -2185,7 +2185,7 @@ function isPathIgnored(filePath, options = {}) {
 
   const cwd = options.cwd ?? process.cwd();
   const normalized = normalizeIgnoredPath(filePath, cwd);
-  const patterns = ignorePatternsForOptions(options, cwd);
+  const patterns = ignorePatternsForOptions(options, cwd, filePath);
   return pathIgnoredByPatterns(normalized, patterns);
 }
 
@@ -2193,7 +2193,7 @@ function ignoreDisabled(options = {}) {
   return options.noIgnore || options.ignore === false;
 }
 
-function ignorePatternsForOptions(options, cwd) {
+function ignorePatternsForOptions(options, cwd, filePath) {
   const patterns = [];
   for (const pattern of normalizeIgnorePatterns(options.ignorePatterns)) {
     patterns.push(pattern);
@@ -2204,17 +2204,17 @@ function ignorePatternsForOptions(options, cwd) {
   if (ignorePath) {
     patterns.push(...readIgnoreFile(resolvePath(cwd, ignorePath)));
   }
-  patterns.push(...ignorePatternsFromFileConfig(options));
+  patterns.push(...ignorePatternsFromFileConfig(options, filePath));
   patterns.push(...ignorePatternsFromConfig(options.overrideConfig));
   return patterns;
 }
 
-function ignorePatternsFromFileConfig(options) {
+function ignorePatternsFromFileConfig(options, filePath) {
   if (options.noConfig) {
     return [];
   }
 
-  const configPath = configPathForOptions(options);
+  const configPath = filePath ? configPathForFile(options, filePath) : configPathForOptions(options);
   if (!configPath) {
     return [];
   }
