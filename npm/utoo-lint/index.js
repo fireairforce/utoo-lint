@@ -548,9 +548,13 @@ function eslintConstructorOptions(options) {
   if (typeof options.overrideConfigFile === "string") {
     mapped.config = options.overrideConfigFile;
   }
-  const rules = options.overrideConfig?.rules ?? options.baseConfig?.rules;
-  if (rules) {
-    mapped.overrideConfig = { rules };
+  if (options.overrideConfig) {
+    mapped.overrideConfig = Array.isArray(options.overrideConfig) ? options.overrideConfig : { ...options.overrideConfig };
+    if (!Array.isArray(mapped.overrideConfig) && !mapped.overrideConfig.rules && options.baseConfig?.rules) {
+      mapped.overrideConfig.rules = options.baseConfig.rules;
+    }
+  } else if (options.baseConfig?.rules) {
+    mapped.overrideConfig = { rules: options.baseConfig.rules };
   }
   return mapped;
 }
@@ -831,12 +835,42 @@ function ignorePatternsForOptions(options, cwd) {
   for (const pattern of normalizeIgnorePatterns(options.ignorePatterns)) {
     patterns.push(pattern);
   }
+  patterns.push(...ignorePatternsFromConfig(options.baseConfig));
 
   const ignorePath = options.ignorePath ?? ".eslintignore";
   if (ignorePath) {
     patterns.push(...readIgnoreFile(resolvePath(cwd, ignorePath)));
   }
+  patterns.push(...ignorePatternsFromFileConfig(options));
+  patterns.push(...ignorePatternsFromConfig(options.overrideConfig));
   return patterns;
+}
+
+function ignorePatternsFromFileConfig(options) {
+  if (options.noConfig) {
+    return [];
+  }
+
+  const configPath = configPathForOptions(options);
+  if (!configPath) {
+    return [];
+  }
+
+  return ignorePatternsFromConfig(readJsonConfig(configPath));
+}
+
+function ignorePatternsFromConfig(config) {
+  if (!config) {
+    return [];
+  }
+  if (Array.isArray(config)) {
+    return config.flatMap((entry) => ignorePatternsFromConfig(entry));
+  }
+
+  return [
+    ...normalizeIgnorePatterns(config.ignorePatterns),
+    ...normalizeIgnorePatterns(config.ignores)
+  ];
 }
 
 function normalizeIgnorePatterns(patterns) {

@@ -72,7 +72,7 @@ checked files with no messages, and filters inputs with the same ignore rules.
 `lintText()` applies those ignore rules to the supplied `filePath` and uses the
 same config discovery as file linting unless `noConfig` is set.
 `isPathIgnored()` reads default `.eslintignore` entries plus `ignorePath`,
-`ignorePatterns`, and `noIgnore` constructor options.
+`ignorePatterns`, `noIgnore`, and `baseConfig`/`overrideConfig` ignore entries.
 `calculateConfigForFile()` and `CLIEngine#getConfigForFile()` merge
 `baseConfig`, default `utoo.json` or `utoo-lint.json` files, explicit
 `overrideConfigFile`, and `overrideConfig` rules. ESLint-compatible results use
