@@ -762,7 +762,7 @@ export class SourceCode {
   }
 
   getInlineConfigNodes() {
-    return [];
+    return this.comments.filter((comment) => isInlineConfigComment(comment));
   }
 
   applyInlineConfig() {
@@ -960,6 +960,10 @@ function scopeVariableByName(scope, name) {
     return scope.variables.find((variable) => variable?.name === name) ?? null;
   }
   return null;
+}
+
+function isInlineConfigComment(comment) {
+  return /^(?:eslint(?:-disable|-enable|-disable-next-line|-disable-line|-env)?|global|globals|exported)(?:\s|$)/u.test(String(comment?.value ?? "").trim());
 }
 
 export class RuleTester {
