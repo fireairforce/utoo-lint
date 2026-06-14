@@ -142,6 +142,8 @@ pub fn main(init: std.process.Init) !void {
             options.func_name_matching = false;
         } else if (std.mem.eql(u8, arg, "--func-names=off")) {
             options.func_names = false;
+        } else if (std.mem.eql(u8, arg, "--func-names=as-needed")) {
+            options.func_names_style = .as_needed;
         } else if (std.mem.eql(u8, arg, "--getter-return=off")) {
             options.getter_return = false;
         } else if (std.mem.eql(u8, arg, "--grouped-accessor-pairs=off")) {
@@ -1274,6 +1276,7 @@ fn printHelp() void {
         \\  --for-direction=off       Disable for-direction
         \\  --func-name-matching=off Disable func-name-matching
         \\  --func-names=off          Disable func-names
+        \\  --func-names=as-needed    Allow inferable anonymous function names
         \\  --getter-return=off       Disable getter-return
         \\  --grouped-accessor-pairs=off Disable grouped-accessor-pairs
         \\  --grouped-accessor-pairs=get-before-set Require getters before setters

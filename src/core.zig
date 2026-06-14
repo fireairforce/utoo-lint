@@ -43,6 +43,11 @@ pub const LogicalAssignmentOperatorsEnforceForIfStatements = enum {
     no,
 };
 
+pub const FuncNamesStyle = enum {
+    always,
+    as_needed,
+};
+
 pub const ArrayCallbackReturnAllowImplicit = enum {
     yes,
     no,
@@ -69,6 +74,7 @@ pub const Options = struct {
     for_direction: bool = true,
     func_name_matching: bool = true,
     func_names: bool = true,
+    func_names_style: FuncNamesStyle = .always,
     getter_return: bool = true,
     grouped_accessor_pairs: bool = true,
     grouped_accessor_pairs_style: GroupedAccessorPairsStyle = .any_order,

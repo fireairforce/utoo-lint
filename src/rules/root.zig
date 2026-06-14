@@ -952,7 +952,10 @@ const BasicVisitor = struct {
             try consistent_return.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
         }
         if (self.options.func_names) {
-            try func_names.check(self.allocator, self.diagnostics, ctx.tree, function, index, ctx);
+            try func_names.checkWithStyle(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, switch (self.options.func_names_style) {
+                .always => .always,
+                .as_needed => .as_needed,
+            });
         }
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, function.params);
