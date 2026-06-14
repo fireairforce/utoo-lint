@@ -108,9 +108,28 @@ function extractOutputFile(args) {
 function extractIgnorePatterns(args) {
   const values = [];
   const patterns = [];
+  let ignorePath = ".eslintignore";
+  let ignorePathEnabled = true;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
+    if (arg === "--ignore-path") {
+      ignorePath = args[index + 1];
+      if (!ignorePath) {
+        console.error("utoo-lint: fishlint --ignore-path requires a path");
+        process.exit(2);
+      }
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--ignore-path=")) {
+      ignorePath = arg.slice("--ignore-path=".length);
+      continue;
+    }
+    if (arg === "--no-ignore") {
+      ignorePathEnabled = false;
+      continue;
+    }
     if (arg === "--ignore-pattern") {
       const value = args[index + 1];
       if (!value) {
@@ -128,7 +147,22 @@ function extractIgnorePatterns(args) {
     values.push(arg);
   }
 
+  if (ignorePathEnabled) {
+    patterns.push(...readIgnoreFile(ignorePath));
+  }
+
   return { args: values, patterns };
+}
+
+function readIgnoreFile(path) {
+  if (!path || !existsSync(path)) {
+    return [];
+  }
+
+  return readFileSync(path, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
 }
 
 function filterIgnoredTargets(args, patterns) {
