@@ -2632,9 +2632,10 @@ function formatESLintResults(results) {
   return lines.join("\n");
 }
 
-function formatResultsByName(results, name = "stylish") {
+function formatResultsByName(input, name = "stylish") {
+  const results = formatterResults(input);
   if (name === "json") {
-    return JSON.stringify(results);
+    return JSON.stringify(input);
   }
   if (name === "json-with-metadata") {
     return JSON.stringify({
@@ -2651,6 +2652,21 @@ function formatResultsByName(results, name = "stylish") {
     return formatUnixResults(results);
   }
   return formatESLintResults(results);
+}
+
+function formatterResults(input) {
+  if (Array.isArray(input)) {
+    return input;
+  }
+  if (input && typeof input === "object" && Array.isArray(input.results)) {
+    return input.results;
+  }
+  if (input && typeof input === "object" && Array.isArray(input.diagnostics)) {
+    return reportToESLintResults(input, {
+      filePaths: (input.filePaths ?? []).map((filePath) => normalizeESLintFilePath(filePath))
+    });
+  }
+  throw new Error("'results' must be an array or lint report");
 }
 
 function formatCompactResults(results) {
