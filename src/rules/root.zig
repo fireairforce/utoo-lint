@@ -349,9 +349,6 @@ pub fn runBasic(
     if (options.no_warning_comments) {
         try no_warning_comments.run(allocator, diagnostics, tree);
     }
-    if (options.no_undefined) {
-        try no_undefined.run(allocator, diagnostics, tree);
-    }
     if (options.no_trailing_spaces) {
         try no_trailing_spaces.run(allocator, diagnostics, tree);
     }
@@ -833,6 +830,12 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.alipay_ant_no_negative_conditionals) {
             try alipay_ant_no_negative_conditionals.checkNode(self.allocator, self.diagnostics, ctx.tree, data, index);
+        }
+        if (self.options.no_undefined) {
+            switch (data) {
+                .identifier_reference => |identifier| try no_undefined.checkIdentifierReference(self.allocator, self.diagnostics, ctx.tree, identifier, index),
+                else => {},
+            }
         }
         return .proceed;
     }
