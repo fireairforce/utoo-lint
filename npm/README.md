@@ -76,7 +76,8 @@ low-friction replacements. It also provides ESLint-compatible `version`,
 `loadESLint()` helper resolves to the compatibility `ESLint` class.
 The `Linter` export supports in-memory `verify()` and `verifyAndFix()` calls for
 utoo-lint's built-in ESLint-compatible rules; custom rule definition APIs are
-not implemented.
+not implemented. The `RuleTester` export can run basic valid/invalid cases for
+those built-in rules.
 Rule meta includes best-effort `docs.url` values for common ESLint-compatible
 rule IDs. `loadFormatter()` and `CLIEngine#getFormatter()` support `json`,
 `json-with-metadata`, `compact`, `unix`, and the native text formatter shape.
