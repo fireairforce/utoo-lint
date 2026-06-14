@@ -1465,8 +1465,8 @@ class SourceCode {
     return sourceBackwardTokens(sourceTokensBetween(this, left, right, options), options);
   }
 
-  getTokenByRangeStart(index) {
-    return this.tokens.find((token) => token.range?.[0] === index) ?? null;
+  getTokenByRangeStart(index, options = {}) {
+    return sourceTokenItems(this, sourceTokenOptions(options, "skip")).find((token) => token.range?.[0] === index) ?? null;
   }
 
   getTokenOrCommentBefore(nodeOrToken) {
