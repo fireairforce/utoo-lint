@@ -18,6 +18,7 @@ test "reports @alipay/spmLint/valid-manual-click invalid calls" {
         .alipay_spmlint_use_labeled_spm = false,
         .eol_last = false,
         .no_undef = false,
+        .no_undefined = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
     });

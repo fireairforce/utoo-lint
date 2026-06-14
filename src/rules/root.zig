@@ -200,6 +200,7 @@ pub const no_trailing_spaces = @import("no_trailing_spaces.zig");
 pub const no_unreachable = @import("no_unreachable.zig");
 pub const no_undef_init = @import("no_undef_init.zig");
 pub const no_underscore_dangle = @import("no_underscore_dangle.zig");
+pub const no_undefined = @import("no_undefined.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
@@ -347,6 +348,9 @@ pub fn runBasic(
     }
     if (options.no_warning_comments) {
         try no_warning_comments.run(allocator, diagnostics, tree);
+    }
+    if (options.no_undefined) {
+        try no_undefined.run(allocator, diagnostics, tree);
     }
     if (options.no_trailing_spaces) {
         try no_trailing_spaces.run(allocator, diagnostics, tree);

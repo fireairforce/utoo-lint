@@ -12,6 +12,7 @@ test "reports no-global-assign for assignments to read-only globals" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .eol_last = false,
         .no_undef = false,
+        .no_undefined = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

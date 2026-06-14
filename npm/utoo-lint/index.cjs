@@ -215,6 +215,7 @@ const BUILTIN_RULE_IDS = [
   "no-undef",
   "no-undef-init",
   "no-underscore-dangle",
+  "no-undefined",
   "no-unneeded-ternary",
   "no-unreachable",
   "no-unsafe-finally",
