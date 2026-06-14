@@ -906,7 +906,7 @@ function traverseCustomRuleAst(node, listeners, context, visitorKeys, seen = new
     return;
   }
   seen.add(node);
-  for (const listener of customRuleMatchingListeners(listeners, node, false, ancestors, siblings)) {
+  for (const listener of customRuleMatchingListeners(listeners, node, false, ancestors, siblings, visitorKeys)) {
     context.setCurrentNode(node);
     listener(node);
   }
@@ -917,16 +917,16 @@ function traverseCustomRuleAst(node, listeners, context, visitorKeys, seen = new
       previousAll: children.slice(0, index)
     });
   }
-  for (const listener of customRuleMatchingListeners(listeners, node, true, ancestors, siblings)) {
+  for (const listener of customRuleMatchingListeners(listeners, node, true, ancestors, siblings, visitorKeys)) {
     context.setCurrentNode(node);
     listener(node);
   }
 }
 
-function customRuleMatchingListeners(listeners, node, exit, ancestors = [], siblings = {}) {
+function customRuleMatchingListeners(listeners, node, exit, ancestors = [], siblings = {}, visitorKeys = null) {
   const matches = [];
   for (const [selector, listener] of Object.entries(listeners)) {
-    if (typeof listener !== "function" || !customRuleSelectorMatches(selector, node, exit, ancestors, siblings)) {
+    if (typeof listener !== "function" || !customRuleSelectorMatches(selector, node, exit, ancestors, siblings, visitorKeys)) {
       continue;
     }
     matches.push(listener);
@@ -934,7 +934,7 @@ function customRuleMatchingListeners(listeners, node, exit, ancestors = [], sibl
   return matches;
 }
 
-function customRuleSelectorMatches(selector, node, exit, ancestors = [], siblings = {}) {
+function customRuleSelectorMatches(selector, node, exit, ancestors = [], siblings = {}, visitorKeys = null) {
   const suffix = ":exit";
   const isExit = selector.endsWith(suffix);
   if (isExit !== exit) {
@@ -945,42 +945,49 @@ function customRuleSelectorMatches(selector, node, exit, ancestors = [], sibling
   if (childSelector) {
     const parent = ancestors.at(-1);
     return Boolean(parent)
-      && customRuleSimpleSelectorMatches(childSelector[0].trim(), parent)
-      && customRuleSimpleSelectorMatches(childSelector[1].trim(), node);
+      && customRuleSimpleSelectorMatches(childSelector[0].trim(), parent, visitorKeys)
+      && customRuleSimpleSelectorMatches(childSelector[1].trim(), node, visitorKeys);
   }
   const adjacentSelector = customRuleSplitTopLevelSelector(expression, "+");
   if (adjacentSelector) {
     return Boolean(siblings.previous)
-      && customRuleSimpleSelectorMatches(adjacentSelector[0].trim(), siblings.previous)
-      && customRuleSimpleSelectorMatches(adjacentSelector[1].trim(), node);
+      && customRuleSimpleSelectorMatches(adjacentSelector[0].trim(), siblings.previous, visitorKeys)
+      && customRuleSimpleSelectorMatches(adjacentSelector[1].trim(), node, visitorKeys);
   }
   const siblingSelector = customRuleSplitTopLevelSelector(expression, "~");
   if (siblingSelector) {
-    return (siblings.previousAll ?? []).some((sibling) => customRuleSimpleSelectorMatches(siblingSelector[0].trim(), sibling))
-      && customRuleSimpleSelectorMatches(siblingSelector[1].trim(), node);
+    return (siblings.previousAll ?? []).some((sibling) => customRuleSimpleSelectorMatches(siblingSelector[0].trim(), sibling, visitorKeys))
+      && customRuleSimpleSelectorMatches(siblingSelector[1].trim(), node, visitorKeys);
   }
   const descendantSelector = customRuleSplitTopLevelDescendantSelector(expression);
   if (descendantSelector) {
-    return ancestors.some((ancestor) => customRuleSimpleSelectorMatches(descendantSelector[0].trim(), ancestor))
-      && customRuleSimpleSelectorMatches(descendantSelector[1].trim(), node);
+    return ancestors.some((ancestor) => customRuleSimpleSelectorMatches(descendantSelector[0].trim(), ancestor, visitorKeys))
+      && customRuleSimpleSelectorMatches(descendantSelector[1].trim(), node, visitorKeys);
   }
-  return customRuleSimpleSelectorMatches(expression, node);
+  return customRuleSimpleSelectorMatches(expression, node, visitorKeys);
 }
 
-function customRuleSimpleSelectorMatches(expression, node) {
+function customRuleSimpleSelectorMatches(expression, node, visitorKeys = null) {
+  const hasSelector = expression.match(/^(.+?):has\((.+)\)$/u);
+  if (hasSelector) {
+    return customRuleSimpleSelectorMatches(hasSelector[1].trim(), node, visitorKeys)
+      && customRuleDescendants(node, visitorKeys).some((descendant) => (
+        customRuleSplitSelectorList(hasSelector[2]).some((selector) => customRuleSimpleSelectorMatches(selector.trim(), descendant, visitorKeys))
+      ));
+  }
   const notSelector = expression.match(/^(.+?):not\((.+)\)$/u);
   if (notSelector) {
-    return customRuleSimpleSelectorMatches(notSelector[1].trim(), node)
-      && !customRuleSimpleSelectorMatches(notSelector[2].trim(), node);
+    return customRuleSimpleSelectorMatches(notSelector[1].trim(), node, visitorKeys)
+      && !customRuleSimpleSelectorMatches(notSelector[2].trim(), node, visitorKeys);
   }
   const matchesSelector = expression.match(/^(.*?):matches\((.+)\)$/u);
   if (matchesSelector) {
     const prefix = matchesSelector[1].trim();
-    if (prefix && !customRuleSimpleSelectorMatches(prefix, node)) {
+    if (prefix && !customRuleSimpleSelectorMatches(prefix, node, visitorKeys)) {
       return false;
     }
     return customRuleSplitSelectorList(matchesSelector[2]).some((selector) => (
-      customRuleSimpleSelectorMatches(selector.trim(), node)
+      customRuleSimpleSelectorMatches(selector.trim(), node, visitorKeys)
     ));
   }
   if (expression === node.type) {
@@ -995,6 +1002,18 @@ function customRuleSimpleSelectorMatches(expression, node) {
     return false;
   }
   return attribute ? customRuleAttributeSelectorMatches(node, attribute.trim()) : type === "*" || type === node.type;
+}
+
+function customRuleDescendants(node, visitorKeys, seen = new Set()) {
+  const descendants = [];
+  for (const child of customRuleChildNodes(node, visitorKeys)) {
+    if (seen.has(child)) {
+      continue;
+    }
+    seen.add(child);
+    descendants.push(child, ...customRuleDescendants(child, visitorKeys, seen));
+  }
+  return descendants;
 }
 
 function customRuleSplitTopLevelSelector(expression, separator) {
