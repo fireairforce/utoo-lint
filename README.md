@@ -71,7 +71,7 @@ utoo-lint --format=json src
 
 By default, `utoo-lint` reads `utoo.json`, `utoo-lint.json`, or
 `eslint.config.js`/`eslint.config.mjs`/`eslint.config.cjs` from the current
-directory. Use `--config=path/to/utoo.json` for an explicit file or
+directory or its ancestors. Use `--config=path/to/utoo.json` for an explicit file or
 `--no-config` to ignore local config. JavaScript flat config files are supported
 by the JavaScript API for JSON-serializable `rules`, `files`, and `ignores`
 entries.

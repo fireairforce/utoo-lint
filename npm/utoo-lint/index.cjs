@@ -2,7 +2,7 @@ const { spawnSync } = require("node:child_process");
 const { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } = require("node:fs");
 const { writeFile: writeFileAsync } = require("node:fs/promises");
 const { tmpdir } = require("node:os");
-const { extname, isAbsolute, join, resolve: resolvePath } = require("node:path");
+const { dirname, extname, isAbsolute, join, resolve: resolvePath } = require("node:path");
 
 const { platformPackageName, resolveBinary } = require("./lib/binary.cjs");
 
@@ -392,10 +392,13 @@ class UtooLint {
     return publicCalculatedConfig(eslintConstructorOptions(this.options), filePath);
   }
 
-  async findConfigFile(_filePath) {
+  async findConfigFile(filePath) {
     const options = eslintConstructorOptions(this.options);
     if (options.noConfig) {
       return undefined;
+    }
+    if (filePath) {
+      return configPathForFile(options, filePath);
     }
     return configPathForOptions(options);
   }
@@ -1027,13 +1030,43 @@ function configPathForOptions(options) {
   }
 
   const cwd = options.cwd ?? process.cwd();
-  for (const candidate of CONFIG_FILENAMES) {
-    const path = resolvePath(cwd, candidate);
-    if (existsSync(path)) {
-      return path;
-    }
+  return configPathFromDirectory(cwd);
+}
+
+function configPathForFile(options, filePath) {
+  if (options.config) {
+    return resolvePath(options.cwd ?? process.cwd(), options.config);
   }
-  return undefined;
+  return configPathFromDirectory(configSearchDirectoryForFile(filePath, options.cwd));
+}
+
+function configSearchDirectoryForFile(filePath, cwd) {
+  const absolute = normalizeESLintFilePath(filePath, cwd);
+  try {
+    if (statSync(absolute).isDirectory()) {
+      return absolute;
+    }
+  } catch {
+    // Non-existent filenames are common for editor integrations.
+  }
+  return dirname(absolute);
+}
+
+function configPathFromDirectory(directory) {
+  let current = resolvePath(directory);
+  while (true) {
+    for (const candidate of CONFIG_FILENAMES) {
+      const path = resolvePath(current, candidate);
+      if (existsSync(path)) {
+        return path;
+      }
+    }
+    const parent = dirname(current);
+    if (parent === current) {
+      return undefined;
+    }
+    current = parent;
+  }
 }
 
 function readConfig(path, cwd) {

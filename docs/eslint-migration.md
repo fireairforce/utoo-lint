@@ -41,7 +41,7 @@ Minimal config:
 }
 ```
 
-`utoo-lint` also reads `utoo-lint.json`. Use `--config=path/to/file.json` to select a file explicitly, or `--no-config` to ignore local config.
+`utoo-lint` also reads `utoo-lint.json` and `eslint.config.js`/`eslint.config.mjs`/`eslint.config.cjs` from the current directory or its ancestors. Use `--config=path/to/file.json` to select a file explicitly, or `--no-config` to ignore local config.
 
 Rule values support the common ESLint forms:
 
