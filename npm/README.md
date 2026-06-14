@@ -111,6 +111,9 @@ so later `off` entries do not suppress diagnostics for other files. Raw
 provides a synchronous legacy facade for older ESLint integrations.
 `CLIEngine#executeOnText()` accepts a string path or an options object with
 `filePath`, `filename`, and text lint options.
+It also exposes legacy `getRules()`, `addPlugin()`, and
+`resolveFileGlobPatterns()` facade methods for integrations that probe them
+during startup.
 `ESLint` and `CLIEngine` constructor options also accept `quiet: true` to return
 only error messages, matching ESLint's warning filtering behavior.
 `warnIgnored: false` suppresses warnings for explicit ignored file paths and
