@@ -378,7 +378,7 @@ class UtooLint {
     const report = lintText(code, mergedOptions);
     return maybeFilterQuietResults(reportToESLintResults(report, {
       source: code,
-      filePath: normalizeESLintFilePath(options.filePath ?? "<text>", mergedOptions.cwd),
+      filePath: normalizeESLintFilePath(textFilePathForOptions(options, "<text>"), mergedOptions.cwd),
       includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0,
       ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
     }), mergedOptions);
@@ -801,7 +801,7 @@ function lintText(code, options = {}) {
   }
 
   const tmp = mkdtempSync(join(tmpdir(), "utoo-lint-"));
-  const requestedPath = options.filePath ?? "text.js";
+  const requestedPath = textFilePathForOptions(options, "text.js");
   const extension = extname(requestedPath) || ".js";
   const tempFile = join(tmp, `input${extension}`);
   const discoveredConfig =
@@ -1860,6 +1860,10 @@ function normalizeESLintFilePath(filePath, cwd) {
   if (filePath === "<text>") return filePath;
   if (isAbsolute(filePath)) return filePath;
   return resolvePath(cwd ?? process.cwd(), filePath);
+}
+
+function textFilePathForOptions(options = {}, fallback) {
+  return options.filePath ?? options.filename ?? fallback;
 }
 
 function reportFilePaths(report, cwd, fallbackFilePaths = []) {
