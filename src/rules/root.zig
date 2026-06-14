@@ -79,6 +79,7 @@ pub const jsx_a11y_role_has_required_aria_props = @import("jsx_a11y_role_has_req
 pub const jsx_a11y_role_supports_aria_props = @import("jsx_a11y_role_supports_aria_props.zig");
 pub const jsx_a11y_scope = @import("jsx_a11y_scope.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
+pub const logical_assignment_operators = @import("logical_assignment_operators.zig");
 pub const new_cap = @import("new_cap.zig");
 pub const new_parens = @import("new_parens.zig");
 pub const no_async_promise_executor = @import("no_async_promise_executor.zig");
@@ -1870,6 +1871,9 @@ const BasicVisitor = struct {
         if (self.options.operator_assignment) {
             try operator_assignment.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
+        if (self.options.logical_assignment_operators) {
+            try logical_assignment_operators.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
         if (self.options.no_self_assign) {
             try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
@@ -1890,6 +1894,18 @@ const BasicVisitor = struct {
         }
         if (self.options.react_forbid_prop_types) {
             try react_forbid_prop_types.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_logical_expression(
+        self: *BasicVisitor,
+        expression: ast.LogicalExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.logical_assignment_operators) {
+            try logical_assignment_operators.checkLogicalExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         return .proceed;
     }

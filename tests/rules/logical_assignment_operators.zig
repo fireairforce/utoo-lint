@@ -1,0 +1,87 @@
+const std = @import("std");
+const lint = @import("utoo_lint");
+const helpers = @import("../helpers.zig");
+
+test "reports logical-assignment-operators for self logical assignments" {
+    const source =
+        \\let first;
+        \\let second;
+        \\let third;
+        \\first = first || fallback;
+        \\second = second && fallback;
+        \\third = third ?? fallback;
+        \\object.value = object.value || fallback;
+        \\this.ready = this.ready && fallback;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.logical_assignment_operators.id));
+}
+
+test "reports logical-assignment-operators for short-circuit assignment expressions" {
+    const source =
+        \\let first;
+        \\let second;
+        \\let third;
+        \\first || (first = fallback);
+        \\second && (second = fallback);
+        \\third ?? (third = fallback);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_unused_expressions = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.logical_assignment_operators.id));
+    try std.testing.expectEqualStrings("Assignment can be replaced with `||=`.", result.diagnostics[0].message);
+}
+
+test "does not report logical-assignment-operators when shorthand would change meaning" {
+    const source =
+        \\let value;
+        \\value = fallback || value;
+        \\value = value + fallback;
+        \\value ||= fallback;
+        \\value || (other = fallback);
+        \\object[getKey()] = object[getKey()] || fallback;
+        \\object.value = other.value || fallback;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_expressions = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.logical_assignment_operators.id));
+}
+
+test "can disable logical-assignment-operators" {
+    const source =
+        \\let value;
+        \\value = value || fallback;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .logical_assignment_operators = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.logical_assignment_operators.id));
+}

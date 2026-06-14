@@ -259,6 +259,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/logical_assignment_operators.zig");
+}
+
+comptime {
     _ = @import("rules/new_cap.zig");
 }
 

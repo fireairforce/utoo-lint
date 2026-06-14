@@ -36,6 +36,7 @@ pub const Options = struct {
     getter_return: bool = true,
     guard_for_in: bool = true,
     linebreak_style: bool = true,
+    logical_assignment_operators: bool = true,
     new_cap: bool = true,
     new_parens: bool = true,
     no_async_promise_executor: bool = true,

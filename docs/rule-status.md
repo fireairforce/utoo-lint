@@ -22,6 +22,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`getter-return`](https://eslint.org/docs/latest/rules/getter-return) | Implemented |
 | [`guard-for-in`](https://eslint.org/docs/latest/rules/guard-for-in) | Implemented |
 | [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Implemented |
+| [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for ESLint's default `always` expression behavior |
 | [`new-cap`](https://eslint.org/docs/latest/rules/new-cap) | Implemented |
 | [`new-parens`](https://eslint.org/docs/latest/rules/new-parens) | Implemented |
 | [`no-alert`](https://eslint.org/docs/latest/rules/no-alert) | Implemented |
