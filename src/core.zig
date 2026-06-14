@@ -36,6 +36,12 @@ pub const NoWarningCommentsLocation = enum {
     anywhere,
 };
 
+pub const NoWarningCommentsDecoration = enum {
+    none,
+    asterisk,
+    slash_asterisk,
+};
+
 pub const WrapIifeStyle = enum {
     outside,
     inside,
@@ -290,6 +296,7 @@ pub const Options = struct {
     typescript_eslint_no_unused_expressions: bool = true,
     no_warning_comments: bool = true,
     no_warning_comments_location: NoWarningCommentsLocation = .start,
+    no_warning_comments_decoration: NoWarningCommentsDecoration = .none,
     no_void: bool = true,
     no_with: bool = true,
     no_var: bool = true,

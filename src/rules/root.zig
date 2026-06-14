@@ -360,6 +360,11 @@ pub fn runBasic(
                 .start => .start,
                 .anywhere => .anywhere,
             },
+            .decoration = switch (options.no_warning_comments_decoration) {
+                .none => .none,
+                .asterisk => .asterisk,
+                .slash_asterisk => .slash_asterisk,
+            },
         });
     }
     if (options.no_trailing_spaces) {
