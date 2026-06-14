@@ -49,12 +49,17 @@ export interface Formatter {
 export type RuleSeverity = "off" | "warn" | "warning" | "error" | 0 | 1 | 2 | false | true;
 export type RuleConfig = RuleSeverity | [RuleSeverity, ...unknown[]];
 
+export interface PluginObject {
+  rules?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface ConfigObject {
   name?: string;
   files?: Array<string | string[]>;
   ignores?: string[];
   rules?: Record<string, RuleConfig>;
-  plugins?: Record<string, unknown>;
+  plugins?: Record<string, PluginObject>;
   settings?: Record<string, unknown>;
   languageOptions?: {
     parser?: unknown;
