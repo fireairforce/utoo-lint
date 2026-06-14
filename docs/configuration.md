@@ -1,13 +1,17 @@
 # Configuration
 
-`utoo-lint` reads a JSON config file from the current working directory before applying CLI flags.
+`utoo-lint` reads a config file from the current working directory or its ancestors before applying CLI flags.
 
 Supported config file names:
 
 - `utoo.json`
 - `utoo-lint.json`
+- `eslint.config.js`
+- `eslint.config.mjs`
+- `eslint.config.cjs`
 
 Use `--config=path/to/utoo.json` to select a config explicitly, or `--no-config` to ignore local config.
+JavaScript flat config files are supported by the JavaScript API for JSON-serializable `rules`, `files`, and `ignores` entries.
 
 ## Frontend Project Config
 

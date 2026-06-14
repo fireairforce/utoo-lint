@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { writeFile as writeFileAsync } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { extname, isAbsolute, join, resolve as resolvePath } from "node:path";
+import { dirname, extname, isAbsolute, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { resolveBinary } from "./lib/binary.js";
@@ -395,10 +395,13 @@ export class UtooLint {
     return publicCalculatedConfig(eslintConstructorOptions(this.options), filePath);
   }
 
-  async findConfigFile(_filePath) {
+  async findConfigFile(filePath) {
     const options = eslintConstructorOptions(this.options);
     if (options.noConfig) {
       return undefined;
+    }
+    if (filePath) {
+      return configPathForFile(options, filePath);
     }
     return configPathForOptions(options);
   }
@@ -1611,13 +1614,43 @@ function configPathForOptions(options) {
   }
 
   const cwd = options.cwd ?? process.cwd();
-  for (const candidate of CONFIG_FILENAMES) {
-    const path = resolvePath(cwd, candidate);
-    if (existsSync(path)) {
-      return path;
-    }
+  return configPathFromDirectory(cwd);
+}
+
+function configPathForFile(options, filePath) {
+  if (options.config) {
+    return resolvePath(options.cwd ?? process.cwd(), options.config);
   }
-  return undefined;
+  return configPathFromDirectory(configSearchDirectoryForFile(filePath, options.cwd));
+}
+
+function configSearchDirectoryForFile(filePath, cwd) {
+  const absolute = normalizeESLintFilePath(filePath, cwd);
+  try {
+    if (statSync(absolute).isDirectory()) {
+      return absolute;
+    }
+  } catch {
+    // Non-existent filenames are common for editor integrations.
+  }
+  return dirname(absolute);
+}
+
+function configPathFromDirectory(directory) {
+  let current = resolvePath(directory);
+  while (true) {
+    for (const candidate of CONFIG_FILENAMES) {
+      const path = resolvePath(current, candidate);
+      if (existsSync(path)) {
+        return path;
+      }
+    }
+    const parent = dirname(current);
+    if (parent === current) {
+      return undefined;
+    }
+    current = parent;
+  }
 }
 
 function readConfig(path, cwd) {
