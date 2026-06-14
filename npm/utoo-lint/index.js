@@ -463,6 +463,15 @@ export function lintText(code, options = {}) {
   const tempFile = join(tmp, `input${extension}`);
 
   try {
+    if (isPathIgnored(requestedPath, options)) {
+      return {
+        files: 0,
+        filePaths: [],
+        diagnostics: [],
+        exitCode: 0
+      };
+    }
+
     writeFileSync(tempFile, code);
     const report = lintFiles([tempFile], {
       ...options,
