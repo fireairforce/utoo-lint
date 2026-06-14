@@ -71,8 +71,9 @@ low-friction replacements. It also provides ESLint-compatible `version`,
 Rule meta includes best-effort `docs.url` values for common ESLint-compatible
 rule IDs. `loadFormatter()` and `CLIEngine#getFormatter()` support `json`,
 `json-with-metadata`, `compact`, `unix`, and the native text formatter shape.
-`lintFiles()` returns absolute `filePath` values, includes empty results for
-checked files with no messages, and filters inputs with the same ignore rules.
+`lintFiles()` returns absolute `filePaths` and diagnostic `filePath` values,
+includes empty results for checked files with no messages, and filters inputs
+with the same ignore rules.
 `lintText()` applies those ignore rules to the supplied `filePath` and uses the
 same config discovery as file linting unless `noConfig` is set. Raw
 `lintText()` reports use the supplied `filePath` for both `filePaths` and
