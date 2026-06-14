@@ -35,6 +35,7 @@ pub const Options = struct {
     func_name_matching: bool = true,
     func_names: bool = true,
     getter_return: bool = true,
+    grouped_accessor_pairs: bool = true,
     guard_for_in: bool = true,
     linebreak_style: bool = true,
     logical_assignment_operators: bool = true,

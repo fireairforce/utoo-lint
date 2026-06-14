@@ -97,6 +97,7 @@ const BUILTIN_RULE_IDS = [
   "func-name-matching",
   "func-names",
   "getter-return",
+  "grouped-accessor-pairs",
   "guard-for-in",
   "linebreak-style",
   "logical-assignment-operators",
