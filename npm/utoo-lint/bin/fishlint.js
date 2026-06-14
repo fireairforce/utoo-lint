@@ -384,6 +384,14 @@ function filterIgnoredTargets(args, patterns, warnIgnored) {
   let removedTarget = false;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
+    if (TARGET_VALUE_FLAGS.has(arg)) {
+      values.push(arg);
+      if (index + 1 < args.length) {
+        values.push(args[index + 1]);
+        index += 1;
+      }
+      continue;
+    }
     if (arg === "--glob") {
       const value = args[index + 1];
       if (!value) {
