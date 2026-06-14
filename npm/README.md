@@ -112,6 +112,7 @@ ignore-pattern flags are accepted so existing wrapper scripts do not pass them
 as file targets. The wrapper applies simple `.eslintignore`, `--ignore-path`,
 and `--ignore-pattern` filters such as `dist/**` to explicit and `--glob`
 targets before invoking native lint, including `!pattern` negation entries.
+`--no-ignore` disables those wrapper-side ignore filters.
 `--no-error-on-unmatched-pattern` skips
 missing explicit and `--glob` targets before invoking native lint. `--quiet`
 filters warnings from compatibility output. Explicit ignored file paths emit

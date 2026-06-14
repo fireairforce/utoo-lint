@@ -204,10 +204,11 @@ function extractIgnorePatterns(args) {
     values.push(arg);
   }
 
-  if (ignorePathEnabled) {
-    patterns.push(...readIgnoreFile(ignorePath));
+  if (!ignorePathEnabled) {
+    return { args: values, patterns: [] };
   }
 
+  patterns.push(...readIgnoreFile(ignorePath));
   return { args: values, patterns };
 }
 
