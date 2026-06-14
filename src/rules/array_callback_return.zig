@@ -7,6 +7,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "array-callback-return";
 
+pub const Options = struct {
+    allow_implicit: bool = true,
+};
+
 const Completion = enum {
     continues,
     valid_terminal,
@@ -20,8 +24,18 @@ pub fn check(
     call: ast.CallExpression,
     _: ast.NodeIndex,
 ) Allocator.Error!void {
+    return checkWithOptions(allocator, diagnostics, tree, call, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    call: ast.CallExpression,
+    options: Options,
+) Allocator.Error!void {
     const callback = callbackArgument(tree, call) orelse return;
-    if (callbackReturnsValue(tree, callback)) return;
+    if (callbackReturnsValue(tree, callback, options)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -92,18 +106,18 @@ fn isArrayCallbackMethod(method: []const u8) bool {
     return false;
 }
 
-fn callbackReturnsValue(tree: *const ast.Tree, callback: ast.NodeIndex) bool {
+fn callbackReturnsValue(tree: *const ast.Tree, callback: ast.NodeIndex, options: Options) bool {
     return switch (tree.data(callback)) {
-        .function => |function| functionReturnsValue(tree, function.body),
+        .function => |function| functionReturnsValue(tree, function.body, options),
         .arrow_function_expression => |arrow| if (arrow.expression)
             !isVoidExpression(tree, arrow.body)
         else
-            functionReturnsValue(tree, arrow.body),
+            functionReturnsValue(tree, arrow.body, options),
         else => true,
     };
 }
 
-fn functionReturnsValue(tree: *const ast.Tree, body_index: ast.NodeIndex) bool {
+fn functionReturnsValue(tree: *const ast.Tree, body_index: ast.NodeIndex, options: Options) bool {
     if (body_index == .null) return true;
 
     const body = switch (tree.data(body_index)) {
@@ -111,12 +125,12 @@ fn functionReturnsValue(tree: *const ast.Tree, body_index: ast.NodeIndex) bool {
         else => return true,
     };
 
-    return rangeCompletion(tree, body.body) == .valid_terminal;
+    return rangeCompletion(tree, body.body, options) == .valid_terminal;
 }
 
-fn rangeCompletion(tree: *const ast.Tree, range: ast.IndexRange) Completion {
+fn rangeCompletion(tree: *const ast.Tree, range: ast.IndexRange, options: Options) Completion {
     for (tree.extra(range)) |statement| {
-        switch (statementCompletion(tree, statement)) {
+        switch (statementCompletion(tree, statement, options)) {
             .continues => {},
             .valid_terminal => return .valid_terminal,
             .invalid_return => return .invalid_return,
@@ -126,44 +140,47 @@ fn rangeCompletion(tree: *const ast.Tree, range: ast.IndexRange) Completion {
     return .continues;
 }
 
-fn statementCompletion(tree: *const ast.Tree, index: ast.NodeIndex) Completion {
+fn statementCompletion(tree: *const ast.Tree, index: ast.NodeIndex, options: Options) Completion {
     if (index == .null) return .continues;
 
     return switch (tree.data(index)) {
-        .return_statement => |statement| returnCompletion(tree, statement),
+        .return_statement => |statement| returnCompletion(tree, statement, options),
         .throw_statement => .valid_terminal,
-        .block_statement => |block| rangeCompletion(tree, block.body),
-        .if_statement => |statement| ifCompletion(tree, statement),
-        .try_statement => |statement| tryCompletion(tree, statement),
+        .block_statement => |block| rangeCompletion(tree, block.body, options),
+        .if_statement => |statement| ifCompletion(tree, statement, options),
+        .try_statement => |statement| tryCompletion(tree, statement, options),
         else => .continues,
     };
 }
 
-fn returnCompletion(tree: *const ast.Tree, statement: ast.ReturnStatement) Completion {
-    if (statement.argument == .null) return .valid_terminal;
+fn returnCompletion(tree: *const ast.Tree, statement: ast.ReturnStatement, options: Options) Completion {
+    if (statement.argument == .null) return if (options.allow_implicit)
+        .valid_terminal
+    else
+        .invalid_return;
     if (isVoidExpression(tree, statement.argument)) return .invalid_return;
     return .valid_terminal;
 }
 
-fn ifCompletion(tree: *const ast.Tree, statement: ast.IfStatement) Completion {
-    const consequent = statementCompletion(tree, statement.consequent);
+fn ifCompletion(tree: *const ast.Tree, statement: ast.IfStatement, options: Options) Completion {
+    const consequent = statementCompletion(tree, statement.consequent, options);
     if (consequent == .invalid_return) return .invalid_return;
 
     if (statement.alternate == .null) return .continues;
-    const alternate = statementCompletion(tree, statement.alternate);
+    const alternate = statementCompletion(tree, statement.alternate, options);
     if (alternate == .invalid_return) return .invalid_return;
 
     if (consequent == .valid_terminal and alternate == .valid_terminal) return .valid_terminal;
     return .continues;
 }
 
-fn tryCompletion(tree: *const ast.Tree, statement: ast.TryStatement) Completion {
+fn tryCompletion(tree: *const ast.Tree, statement: ast.TryStatement, options: Options) Completion {
     if (statement.finalizer != .null) {
-        const finalizer = statementCompletion(tree, statement.finalizer);
+        const finalizer = statementCompletion(tree, statement.finalizer, options);
         if (finalizer != .continues) return finalizer;
     }
 
-    const block = statementCompletion(tree, statement.block);
+    const block = statementCompletion(tree, statement.block, options);
     if (block == .invalid_return) return .invalid_return;
     if (statement.handler == .null) return block;
 
@@ -171,7 +188,7 @@ fn tryCompletion(tree: *const ast.Tree, statement: ast.TryStatement) Completion 
         .catch_clause => |handler| handler.body,
         else => return .continues,
     };
-    const handler = statementCompletion(tree, handler_node);
+    const handler = statementCompletion(tree, handler_node, options);
     if (handler == .invalid_return) return .invalid_return;
 
     if (block == .valid_terminal and handler == .valid_terminal) return .valid_terminal;

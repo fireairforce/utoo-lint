@@ -2055,7 +2055,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.array_callback_return) {
-            try array_callback_return.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+            try array_callback_return.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, .{
+                .allow_implicit = self.options.array_callback_return_allow_implicit == .yes,
+            });
         }
         if (self.options.accessor_pairs) {
             try accessor_pairs.checkCallExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, call, .{

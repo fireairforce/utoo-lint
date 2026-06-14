@@ -32,10 +32,16 @@ pub const AccessorPairsGetWithoutSet = enum {
     no,
 };
 
+pub const ArrayCallbackReturnAllowImplicit = enum {
+    yes,
+    no,
+};
+
 pub const Options = struct {
     accessor_pairs: bool = true,
     accessor_pairs_get_without_set: AccessorPairsGetWithoutSet = .no,
     array_callback_return: bool = true,
+    array_callback_return_allow_implicit: ArrayCallbackReturnAllowImplicit = .yes,
     block_scoped_var: bool = true,
     capitalized_comments: bool = true,
     consistent_return: bool = true,

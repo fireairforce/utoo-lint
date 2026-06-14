@@ -116,6 +116,8 @@ pub fn main(init: std.process.Init) !void {
             options.constructor_super = false;
         } else if (std.mem.eql(u8, arg, "--array-callback-return=off")) {
             options.array_callback_return = false;
+        } else if (std.mem.eql(u8, arg, "--array-callback-return-allow-implicit=off")) {
+            options.array_callback_return_allow_implicit = .no;
         } else if (std.mem.eql(u8, arg, "--block-scoped-var=off")) {
             options.block_scoped_var = false;
         } else if (std.mem.eql(u8, arg, "--capitalized-comments=off")) {
@@ -1251,6 +1253,7 @@ fn printHelp() void {
         \\  --accessor-pairs=off    Disable accessor-pairs
         \\  --accessor-pairs-get-without-set=on Enable accessor-pairs getWithoutSet
         \\  --array-callback-return=off Disable array-callback-return
+        \\  --array-callback-return-allow-implicit=off Require explicit values from array callbacks
         \\  --block-scoped-var=off   Disable block-scoped-var
         \\  --capitalized-comments=off Disable capitalized-comments
         \\  --consistent-return=off  Disable consistent-return
