@@ -107,7 +107,11 @@ npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
 The wrapper invokes `utoo-lint` after translating common fishlint eslint flags.
 It forwards `--config`, maps `--glob` values to lint targets, accepts `--ext`
 for compatibility, and ignores fishlint-only setup/debug flags. `--fix` is
-accepted with a warning because `utoo-lint` does not apply fixes yet.
+accepted with a warning because `utoo-lint` does not apply fixes yet. It
+discovers `utoo.json`, `utoo-lint.json`, and
+`eslint.config.js`/`eslint.config.mjs`/`eslint.config.cjs`; JavaScript flat
+config files are loaded and materialized as temporary JSON before invoking the
+native binary.
 
 Fishlint presets often include `prettier/prettier`. `utoo-lint` accepts that rule
 in config files for compatibility and ignores it because formatting remains
