@@ -95,6 +95,20 @@ npx utoo-lint --config=utoo.json src test
 
 Once diagnostics match your expectations, replace the ESLint job for that rule set or keep both while expanding rule coverage.
 
+## Replace Fishlint Commands
+
+`@utoo/lint` installs a `fishlint` compatibility command for scripts that already
+call the eslint subcommand:
+
+```bash
+npx fishlint eslint --disable-setup --config utoo.json --glob src
+```
+
+The wrapper invokes `utoo-lint` after translating common fishlint eslint flags.
+It forwards `--config`, maps `--glob` values to lint targets, and ignores
+fishlint-only setup/debug flags. `--fix` is accepted with a warning because
+`utoo-lint` does not apply fixes yet.
+
 ## Replace ESLint API Calls
 
 For scripts that already use ESLint's Node API, import `ESLint` from `@utoo/lint`
