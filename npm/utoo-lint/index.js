@@ -475,6 +475,9 @@ export function lintFiles(paths = ["."], options = {}) {
       ...(report.diagnostics ?? []),
       ...ignoredDiagnostics
     ];
+    if (!resolvedOptions.deferDiagnosticConfigFiltering) {
+      report.diagnostics = normalizeReportDiagnostics(report.diagnostics, resolvedOptions);
+    }
     if (stderr) {
       Object.defineProperty(report, "stderr", {
         value: stderr,
@@ -516,12 +519,14 @@ export function lintText(code, options = {}) {
       ...options,
       cwd: options.cwd,
       config: options.config ?? discoveredConfig,
-      noConfig: options.noConfig
+      noConfig: options.noConfig,
+      deferDiagnosticConfigFiltering: true
     });
     report.diagnostics = report.diagnostics.map((diagnostic) => ({
       ...diagnostic,
       filePath: requestedPath
     }));
+    report.diagnostics = normalizeReportDiagnostics(report.diagnostics, options);
     return report;
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -793,6 +798,24 @@ function reportToESLintResults(report, textOptions = {}) {
   }
 
   return [...byFile.values()];
+}
+
+function normalizeReportDiagnostics(diagnostics, options = {}) {
+  return (diagnostics ?? []).flatMap((diagnostic) => {
+    if (!diagnostic?.ruleId) {
+      return [diagnostic];
+    }
+
+    const filePath = normalizeESLintFilePath(diagnostic.filePath, options.cwd);
+    const severity = ruleSeverityMapForOptions(options, filePath)?.get(diagnostic.ruleId);
+    if (severity === 0) {
+      return [];
+    }
+    if (severity === 1 || severity === 2) {
+      return [{ ...diagnostic, severity: severity === 2 ? "error" : "warning" }];
+    }
+    return [diagnostic];
+  });
 }
 
 function normalizeESLintFilePath(filePath, cwd) {
