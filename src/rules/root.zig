@@ -90,6 +90,7 @@ pub const no_buffer_constructor = @import("no_buffer_constructor.zig");
 pub const no_caller = @import("no_caller.zig");
 pub const no_case_declarations = @import("no_case_declarations.zig");
 pub const no_class_assign = @import("no_class_assign.zig");
+pub const no_confusing_arrow = @import("no_confusing_arrow.zig");
 pub const no_cond_assign = @import("no_cond_assign.zig");
 pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
 pub const no_constant_condition = @import("no_constant_condition.zig");
@@ -1837,6 +1838,9 @@ const BasicVisitor = struct {
         }
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, expression.params);
+        }
+        if (self.options.no_confusing_arrow) {
+            try no_confusing_arrow.check(self.allocator, self.diagnostics, ctx.tree, expression);
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkFormalParameters(self.allocator, self.diagnostics, ctx.tree, expression.params);

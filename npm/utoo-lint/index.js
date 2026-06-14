@@ -111,6 +111,7 @@ const BUILTIN_RULE_IDS = [
   "no-caller",
   "no-case-declarations",
   "no-class-assign",
+  "no-confusing-arrow",
   "no-comma-operator",
   "no-compare-neg-zero",
   "no-cond-assign",
