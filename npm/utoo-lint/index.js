@@ -84,11 +84,11 @@ export class UtooLint {
   async lintFiles(patterns = ["."], options = {}) {
     const mergedOptions = mergeLintOptions(this.options, options);
     const report = lintFiles(patterns, mergedOptions);
-    return reportToESLintResults(report, {
+    return maybeFilterQuietResults(reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
       ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
-    });
+    }), mergedOptions);
   }
 
   async lintText(code, options = {}) {
@@ -98,11 +98,11 @@ export class UtooLint {
 
     const mergedOptions = mergeLintOptions(this.options, options);
     const report = lintText(code, mergedOptions);
-    return reportToESLintResults(report, {
+    return maybeFilterQuietResults(reportToESLintResults(report, {
       source: code,
       filePath: normalizeESLintFilePath(options.filePath ?? "<text>", mergedOptions.cwd),
       ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
-    });
+    }), mergedOptions);
   }
 
   async isPathIgnored(filePath) {
@@ -175,11 +175,11 @@ export class CLIEngine {
   executeOnFiles(patterns) {
     const mergedOptions = eslintConstructorOptions(this.options);
     const report = lintFiles(patterns, mergedOptions);
-    const results = reportToESLintResults(report, {
+    const results = maybeFilterQuietResults(reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
       ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
-    });
+    }), mergedOptions);
     return resultsToCLIEngineReport(results);
   }
 
@@ -193,11 +193,11 @@ export class CLIEngine {
       ...mergedOptions,
       filePath
     });
-    const results = reportToESLintResults(report, {
+    const results = maybeFilterQuietResults(reportToESLintResults(report, {
       source: code,
       filePath: normalizeESLintFilePath(filePath, mergedOptions.cwd),
       ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
-    });
+    }), mergedOptions);
     return resultsToCLIEngineReport(results);
   }
 
@@ -533,7 +533,8 @@ function eslintConstructorOptions(options) {
     ignorePatterns: options.ignorePatterns,
     noIgnore: options.noIgnore ?? options.ignore === false,
     baseConfig: options.baseConfig,
-    noConfig: options.noConfig
+    noConfig: options.noConfig,
+    quiet: options.quiet
   };
 
   if (options.useEslintrc === false || options.overrideConfigFile === true) {
@@ -980,6 +981,8 @@ function diagnosticToESLintMessage(diagnostic, ruleSeverities) {
 }
 
 function finalizeESLintResult(result) {
+  result.errorCount = 0;
+  result.warningCount = 0;
   for (const message of result.messages) {
     if (message.severity === 2) {
       result.errorCount += 1;
@@ -987,6 +990,20 @@ function finalizeESLintResult(result) {
       result.warningCount += 1;
     }
   }
+}
+
+function maybeFilterQuietResults(results, options = {}) {
+  if (!options.quiet) {
+    return results;
+  }
+
+  for (const result of results) {
+    result.messages = (result.messages ?? []).filter((message) => message.severity === 2);
+    result.suppressedMessages = (result.suppressedMessages ?? []).filter((message) => message.severity === 2);
+    result.fixableWarningCount = 0;
+    finalizeESLintResult(result);
+  }
+  return results;
 }
 
 function formatESLintResults(results) {
