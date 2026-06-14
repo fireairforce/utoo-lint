@@ -1339,8 +1339,12 @@ class Linter {
 
     const verifyOptions = typeof options === "string" ? { filename: options } : { ...options };
     const filePath = verifyOptions.filename ?? verifyOptions.filePath ?? "input.js";
-    const sourceCode = createLinterSourceCode(code);
     const normalizedFilePath = normalizeESLintFilePath(filePath, verifyOptions.cwd);
+    const sourceCode = createLinterSourceCode(
+      code,
+      parserForConfig(config, this.parsers, normalizedFilePath, verifyOptions.cwd),
+      parserOptionsForConfig(config, normalizedFilePath, verifyOptions.cwd)
+    );
     const customRuleMap = customRuleMapForConfig(config, this.rules, normalizedFilePath, verifyOptions.cwd);
     const customRuleFilterMap = customRuleMapForConfig(config, this.rules);
     const customRules = customRuleEntriesForConfig(config, customRuleMap, normalizedFilePath, verifyOptions.cwd);
@@ -1443,6 +1447,28 @@ class Linter {
     }
     this.parsers.set(parserId, parser);
   }
+}
+
+function parserForConfig(config, parsers, filePath, cwd) {
+  let parser = null;
+  for (const entry of matchingConfigEntries(config, filePath, cwd)) {
+    parser = entry.languageOptions?.parser ?? entry.parser ?? parser;
+  }
+  if (typeof parser === "string") {
+    return parsers.get(parser) ?? null;
+  }
+  return parser && typeof parser === "object" ? parser : null;
+}
+
+function parserOptionsForConfig(config, filePath, cwd) {
+  const configData = configDataFromConfig(config, filePath, cwd);
+  return {
+    ...(configData.parserOptions ?? {}),
+    ...(configData.languageOptions?.parserOptions ?? {}),
+    filename: filePath,
+    filePath,
+    cwd
+  };
 }
 
 function customRuleEntriesForConfig(config, rules, filePath, cwd) {
@@ -2596,7 +2622,11 @@ function assertRuleTesterOutput(testCase, actualOutput) {
   }
 }
 
-function createLinterSourceCode(text) {
+function createLinterSourceCode(text, parser = null, parserOptions = {}) {
+  const parsed = parseSourceCode(text, parser, parserOptions);
+  if (parsed) {
+    return parsed;
+  }
   return new SourceCode({
     text,
     ast: {
@@ -2606,6 +2636,29 @@ function createLinterSourceCode(text) {
       tokens: sourceTokensFromText(text)
     }
   });
+}
+
+function parseSourceCode(text, parser, parserOptions) {
+  if (!parser) {
+    return null;
+  }
+  if (typeof parser.parseForESLint === "function") {
+    const result = parser.parseForESLint(text, parserOptions) ?? {};
+    return new SourceCode({
+      text,
+      ast: result.ast ?? null,
+      parserServices: result.services ?? result.parserServices ?? {},
+      scopeManager: result.scopeManager ?? null,
+      visitorKeys: result.visitorKeys ?? null
+    });
+  }
+  if (typeof parser.parse === "function") {
+    return new SourceCode({
+      text,
+      ast: parser.parse(text, parserOptions)
+    });
+  }
+  return null;
 }
 
 function sourceTokensFromText(text) {
