@@ -12,7 +12,7 @@ This directory contains the npm CLI wrapper for `@utoo/lint` and the native plat
 The CLI package also exposes a small ESM API:
 
 ```js
-import { lintFiles, resolveBinary, run } from "@utoo/lint";
+import { ESLint, lintFiles, lintText, resolveBinary, run } from "@utoo/lint";
 
 const report = lintFiles(["src", "test"], {
   config: "utoo.json",
@@ -22,10 +22,30 @@ const report = lintFiles(["src", "test"], {
 console.log(report.diagnostics);
 console.log(resolveBinary());
 console.log(run(["--help"]).stdout);
+
+const textReport = lintText("debugger;\n", {
+  filePath: "inline.js",
+  rules: ["no-debugger"]
+});
+console.log(textReport.diagnostics);
+
+const eslint = new ESLint({
+  useEslintrc: false,
+  overrideConfig: {
+    rules: {
+      "no-debugger": "warn"
+    }
+  }
+});
+const results = await eslint.lintText("debugger;\n", { filePath: "inline.js" });
+console.log(results[0].messages);
 ```
 
-`lintFiles()` returns `{ files, diagnostics, exitCode }`. Each diagnostic includes
-`filePath`, `line`, `column`, `severity`, `message`, and `ruleId`. Set
+`lintFiles()` and `lintText()` return `{ files, diagnostics, exitCode }`. Each
+diagnostic includes `filePath`, `line`, `column`, `severity`, `message`, and
+`ruleId`. The `ESLint` export is an alias for `UtooLint` and supports the common
+`lintFiles()`, `lintText()`, `loadFormatter()`, `isPathIgnored()`, and
+`calculateConfigForFile()` methods for low-friction replacements. Set
 `UTOO_LINT_BIN=/path/to/utoo-lint` to force the JS API and CLI wrapper to use a
 specific native binary during local development.
 
