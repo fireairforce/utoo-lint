@@ -75,6 +75,7 @@ Rule meta includes best-effort `docs.url` values for common ESLint-compatible
 rule IDs. `loadFormatter()` and `CLIEngine#getFormatter()` support `json`,
 `json-with-metadata`, `compact`, `unix`, and the native text formatter shape.
 `lintFiles()` returns absolute `filePaths` and diagnostic `filePath` values,
+accepts common glob patterns such as `src/**/*.js` and `src/**/*.{js,ts}`,
 includes empty results for checked files with no messages, and filters inputs
 with the same ignore rules.
 `lintText()` applies those ignore rules to the supplied `filePath` and uses the
