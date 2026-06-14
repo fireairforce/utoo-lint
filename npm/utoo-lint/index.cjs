@@ -375,13 +375,22 @@ class UtooLint {
     }
 
     const mergedOptions = mergeLintOptions(this.options, options);
-    const report = lintText(code, mergedOptions);
-    return maybeFilterQuietResults(reportToESLintResults(report, {
+    const filePath = normalizeESLintFilePath(textFilePathForOptions(options, "<text>"), mergedOptions.cwd);
+    const customRuleConfig = [mergedOptions.baseConfig, mergedOptions.overrideConfig].filter(Boolean);
+    const customRuleMap = customRuleMapForConfig(customRuleConfig, new Map(), filePath, mergedOptions.cwd);
+    const customRuleFilterMap = customRuleMapForConfig(customRuleConfig, new Map());
+    const nativeOptions = lintOptionsWithoutCustomRules(mergedOptions, customRuleFilterMap);
+    const report = lintText(code, nativeOptions);
+    const results = reportToESLintResults(report, {
       source: code,
-      filePath: normalizeESLintFilePath(textFilePathForOptions(options, "<text>"), mergedOptions.cwd),
+      filePath,
       includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0,
-      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
-    }), mergedOptions);
+      ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(nativeOptions, filePath)
+    });
+    if (report.files !== 0) {
+      appendCustomLintTextMessages(results, code, filePath, customRuleConfig, customRuleMap, mergedOptions);
+    }
+    return maybeFilterQuietResults(results, mergedOptions);
   }
 
   async isPathIgnored(filePath) {
@@ -1483,6 +1492,42 @@ function configWithoutCustomRules(config, rules) {
     nativeRules[ruleId] = ruleConfig;
   }
   return removedCustomRule ? { ...config, rules: nativeRules } : config;
+}
+
+function lintOptionsWithoutCustomRules(options, rules) {
+  if (rules.size === 0) {
+    return options;
+  }
+  return {
+    ...options,
+    baseConfig: configWithoutCustomRules(options.baseConfig, rules),
+    overrideConfig: configWithoutCustomRules(options.overrideConfig, rules)
+  };
+}
+
+function appendCustomLintTextMessages(results, code, filePath, config, rules, options) {
+  const customRules = customRuleEntriesForConfig(config, rules, filePath, options.cwd);
+  if (customRules.length === 0) {
+    return results;
+  }
+  const sourceCode = createLinterSourceCode(code);
+  const messages = runCustomLinterRules(customRules, sourceCode, {
+    cwd: options.cwd,
+    filename: filePath,
+    config: calculatedConfig({ cwd: options.cwd, noConfig: true, baseConfig: options.baseConfig, overrideConfig: options.overrideConfig }, filePath)
+  });
+  if (messages.length === 0) {
+    return results;
+  }
+
+  let result = results.find((item) => item.filePath === filePath);
+  if (!result) {
+    result = emptyESLintResult(filePath, code);
+    results.push(result);
+  }
+  result.messages.push(...messages);
+  finalizeESLintResult(result);
+  return results;
 }
 
 function runCustomLinterRules(ruleEntries, sourceCode, options) {
