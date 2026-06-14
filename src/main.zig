@@ -146,6 +146,10 @@ pub fn main(init: std.process.Init) !void {
             options.getter_return = false;
         } else if (std.mem.eql(u8, arg, "--grouped-accessor-pairs=off")) {
             options.grouped_accessor_pairs = false;
+        } else if (std.mem.eql(u8, arg, "--grouped-accessor-pairs=get-before-set")) {
+            options.grouped_accessor_pairs_style = .get_before_set;
+        } else if (std.mem.eql(u8, arg, "--grouped-accessor-pairs=set-before-get")) {
+            options.grouped_accessor_pairs_style = .set_before_get;
         } else if (std.mem.eql(u8, arg, "--guard-for-in=off")) {
             options.guard_for_in = false;
         } else if (std.mem.eql(u8, arg, "--linebreak-style=off")) {
@@ -1272,6 +1276,8 @@ fn printHelp() void {
         \\  --func-names=off          Disable func-names
         \\  --getter-return=off       Disable getter-return
         \\  --grouped-accessor-pairs=off Disable grouped-accessor-pairs
+        \\  --grouped-accessor-pairs=get-before-set Require getters before setters
+        \\  --grouped-accessor-pairs=set-before-get Require setters before getters
         \\  --guard-for-in=off        Disable guard-for-in
         \\  --linebreak-style=off     Disable linebreak-style
         \\  --new-cap=off             Disable new-cap
