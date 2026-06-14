@@ -85,7 +85,7 @@ class UtooLint {
     return maybeFilterQuietResults(reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
-      ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
+      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
     }), mergedOptions);
   }
 
@@ -99,7 +99,7 @@ class UtooLint {
     return maybeFilterQuietResults(reportToESLintResults(report, {
       source: code,
       filePath: normalizeESLintFilePath(options.filePath ?? "<text>", mergedOptions.cwd),
-      ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
+      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
     }), mergedOptions);
   }
 
@@ -174,7 +174,7 @@ class CLIEngine {
     const results = maybeFilterQuietResults(reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
       filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
-      ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
+      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
     }), mergedOptions);
     return resultsToCLIEngineReport(results);
   }
@@ -192,7 +192,7 @@ class CLIEngine {
     const results = maybeFilterQuietResults(reportToESLintResults(report, {
       source: code,
       filePath: normalizeESLintFilePath(filePath, mergedOptions.cwd),
-      ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
+      ruleSeverities: ruleSeverityMapForOptions(mergedOptions)
     }), mergedOptions);
     return resultsToCLIEngineReport(results);
   }
@@ -1039,6 +1039,10 @@ function ruleSeverityMap(rules) {
     }
   }
   return severities;
+}
+
+function ruleSeverityMapForOptions(options) {
+  return ruleSeverityMap(calculatedConfig(options).rules);
 }
 
 function ruleConfigSeverity(config) {
