@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
 
 import { resolveBinary } from "../lib/binary.js";
-import { translateFishlintArgs } from "../index.js";
+import { translateFishlintArgs, version } from "../index.js";
 
 const values = process.argv.slice(2);
 const command = values[0];
@@ -56,6 +56,15 @@ const STYLELINT_VALUE_FLAGS = new Set([
   "-o"
 ]);
 
+if (isVersionRequest(values)) {
+  printVersion();
+  process.exit(0);
+}
+
+if (isHelpRequest(values)) {
+  runNativeHelp();
+}
+
 if (command === "setup" || command === "setuplint") {
   console.warn(`utoo-lint: fishlint ${command} is treated as a no-op; configure utoo-lint with utoo.json.`);
   process.exit(0);
@@ -63,6 +72,11 @@ if (command === "setup" || command === "setuplint") {
 
 if (command && command !== "eslint") {
   runDelegatedCommand(command, values.slice(1));
+}
+
+if (isVersionRequest(values.slice(1))) {
+  printVersion();
+  process.exit(0);
 }
 
 let args;
@@ -1426,6 +1440,34 @@ function startsWithValueFlag(arg, flags) {
     return false;
   }
   return flags.has(arg.slice(0, separator));
+}
+
+function isVersionRequest(args) {
+  return args.length === 1 && (args[0] === "--version" || args[0] === "-v");
+}
+
+function isHelpRequest(args) {
+  return args.length === 1 && (args[0] === "--help" || args[0] === "-h");
+}
+
+function printVersion() {
+  console.log(`v${version}`);
+}
+
+function runNativeHelp() {
+  let binary;
+  try {
+    binary = resolveBinary();
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+  const result = spawnSync(binary, ["--help"], { stdio: "inherit" });
+  if (result.error) {
+    console.error(`utoo-lint: failed to run native binary: ${result.error.message}`);
+    process.exit(1);
+  }
+  process.exit(result.status ?? 1);
 }
 
 function translateCommitlintArgs(args) {
