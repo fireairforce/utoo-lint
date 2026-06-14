@@ -9,7 +9,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for `allowImplicit: true` by default, with optional `allowImplicit: false`; `checkForEach: false, allowVoid: false` |
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
 | [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Implemented for the default `always` behavior |
-| [`consistent-return`](https://eslint.org/docs/latest/rules/consistent-return) | Implemented for mixed explicit value and bare return statements |
+| [`consistent-return`](https://eslint.org/docs/latest/rules/consistent-return) | Implemented for mixed explicit value/bare returns and value-returning functions that can fall through |
 | [`constructor-super`](https://eslint.org/docs/latest/rules/constructor-super) | Implemented |
 | [`curly`](https://eslint.org/docs/latest/rules/curly) | Implemented |
 | [`default-case`](https://eslint.org/docs/latest/rules/default-case) | Implemented |
