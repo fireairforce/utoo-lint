@@ -165,6 +165,9 @@ and `fishlint projectlint` runs `projectlint`. This keeps existing scripts
 working without treating those tools as native `utoo-lint` checks. Delegated
 commands also consume fishlint-only setup and verbose flags, including
 `--disable-setup=true` and similar value forms.
+`fishlint format` defaults to `prettier --write`, but keeps explicit prettier
+mode flags such as `--check`, `--list-different`, and `--debug-check` instead
+of adding `--write`.
 `fishlint commitlint -E=GIT_PARAMS` is normalized like `--env GIT_PARAMS`,
 falling back to `--edit` when the environment variable is not set.
 Default delegated targets are still added when the command only contains
