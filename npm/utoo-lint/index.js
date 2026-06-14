@@ -93,7 +93,15 @@ export function translateFishlintArgs(args = [], options = {}) {
       index += 1;
       continue;
     }
-    if (arg === "--disable-setup" || arg === "--disable-legacy" || arg === "--debug" || arg === "--verbose" || arg === "-v" || arg === "--quiet") {
+    if (
+      arg === "--disable-setup" ||
+      arg === "--disable-legacy" ||
+      arg === "--debug" ||
+      arg === "--verbose" ||
+      arg === "-v" ||
+      arg === "--quiet" ||
+      arg === "--no-error-on-unmatched-pattern"
+    ) {
       index += 1;
       continue;
     }
@@ -113,6 +121,18 @@ export function translateFishlintArgs(args = [], options = {}) {
     }
     if (arg.startsWith("--config=")) {
       translated.push(arg);
+      index += 1;
+      continue;
+    }
+    if (arg === "--ext") {
+      const value = rest[index + 1];
+      if (!value) {
+        throw new Error("utoo-lint: fishlint --ext requires an extension list");
+      }
+      index += 2;
+      continue;
+    }
+    if (arg.startsWith("--ext=")) {
       index += 1;
       continue;
     }
