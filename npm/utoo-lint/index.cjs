@@ -537,7 +537,8 @@ function eslintConstructorOptions(options) {
     noIgnore: options.noIgnore ?? options.ignore === false,
     baseConfig: options.baseConfig,
     noConfig: options.noConfig,
-    quiet: options.quiet
+    quiet: options.quiet,
+    errorOnUnmatchedPattern: options.errorOnUnmatchedPattern
   };
 
   if (options.useEslintrc === false || options.overrideConfigFile === true) {
@@ -751,13 +752,9 @@ function isLintableFilePath(filePath) {
 
 function filteredLintPaths(paths, options = {}) {
   const values = normalizeStringArray(Array.isArray(paths) ? paths : [paths], "paths");
-  if (options.noIgnore) {
-    return values;
-  }
-
   const cwd = options.cwd ?? process.cwd();
-  const patterns = ignorePatternsForOptions(options, cwd);
-  if (patterns.length === 0) {
+  const patterns = options.noIgnore ? [] : ignorePatternsForOptions(options, cwd);
+  if (patterns.length === 0 && options.errorOnUnmatchedPattern !== false) {
     return values;
   }
 
@@ -772,6 +769,9 @@ function filteredLintPaths(paths, options = {}) {
 
     const expanded = expandLintTarget(target, cwd, patterns);
     if (expanded == null) {
+      if (options.errorOnUnmatchedPattern === false) {
+        continue;
+      }
       if (!pathIgnoredByPatterns(normalizeIgnoredPath(target, cwd), patterns)) {
         filtered.add(target);
       }
