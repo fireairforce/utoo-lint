@@ -1077,12 +1077,13 @@ function delegatedCommand(command, args) {
     case "format":
       return {
         bin: "prettier",
-        args: [
-          "--write",
-          ...withDefaultTargets(translatePassthroughArgs(args), ["**/*.{js,jsx,ts,tsx,less,css,vue}"], {
+        args: withDefaultTargets(
+          withDefaultPrettierWrite(translatePassthroughArgs(args)),
+          ["**/*.{js,jsx,ts,tsx,less,css,vue}"],
+          {
             valueFlags: FORMAT_VALUE_FLAGS
-          })
-        ]
+          }
+        )
       };
     case "commitlint":
       return {
@@ -1097,6 +1098,22 @@ function delegatedCommand(command, args) {
     default:
       return null;
   }
+}
+
+function withDefaultPrettierWrite(args) {
+  if (hasPrettierMode(args)) {
+    return args;
+  }
+  return ["--write", ...args];
+}
+
+function hasPrettierMode(args) {
+  return args.some((arg) =>
+    arg === "--write" ||
+    arg === "--check" ||
+    arg === "--list-different" ||
+    arg === "--debug-check"
+  );
 }
 
 function withDefaultTargets(args, defaults, options = {}) {
