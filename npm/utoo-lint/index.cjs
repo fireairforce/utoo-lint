@@ -654,7 +654,7 @@ function configAppliesToFile(config, filePath, cwd) {
 
   const normalized = normalizeIgnoredPath(filePath, cwd ?? process.cwd());
   const files = normalizeConfigPatterns(config.files);
-  if (files.length > 0 && !files.some((pattern) => matchesIgnorePattern(normalized, normalizeIgnoredPattern(pattern)))) {
+  if (files.length > 0 && !files.some((pattern) => matchesConfigFilePattern(normalized, normalizeIgnoredPattern(pattern)))) {
     return false;
   }
 
@@ -805,13 +805,18 @@ function reportToESLintResults(report, textOptions = {}) {
 }
 
 function normalizeReportDiagnostics(diagnostics, options = {}) {
+  const filterUnconfiguredRules = hasRuleConfigSource(options);
   return (diagnostics ?? []).flatMap((diagnostic) => {
     if (!diagnostic?.ruleId) {
       return [diagnostic];
     }
 
     const filePath = normalizeESLintFilePath(diagnostic.filePath, options.cwd);
-    const severity = ruleSeverityMapForOptions(options, filePath)?.get(diagnostic.ruleId);
+    const ruleSeverities = ruleSeverityMapForOptions(options, filePath);
+    const severity = ruleSeverities?.get(diagnostic.ruleId);
+    if (filterUnconfiguredRules && !ruleSeverities?.has(diagnostic.ruleId)) {
+      return [];
+    }
     if (severity === 0) {
       return [];
     }
@@ -831,6 +836,13 @@ function normalizeDiagnosticFilePaths(diagnostics, options = {}) {
     ...diagnostic,
     filePath: normalizeESLintFilePath(diagnostic.filePath, options.cwd)
   }));
+}
+
+function hasRuleConfigSource(options = {}) {
+  if (options.baseConfig || options.overrideConfig) {
+    return true;
+  }
+  return !options.noConfig && Boolean(configPathForOptions(options));
 }
 
 function exitCodeForDiagnostics(diagnostics) {
@@ -1210,6 +1222,11 @@ function matchesIgnorePattern(target, pattern) {
   }
 
   const expression = new RegExp(`(^|/)${globPatternRegExpSource(pattern)}$`);
+  return expression.test(target);
+}
+
+function matchesConfigFilePattern(target, pattern) {
+  const expression = new RegExp(`^${globPatternRegExpSource(pattern)}$`);
   return expression.test(target);
 }
 
