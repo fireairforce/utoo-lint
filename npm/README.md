@@ -74,7 +74,9 @@ rule IDs. `loadFormatter()` and `CLIEngine#getFormatter()` support `json`,
 `lintFiles()` returns absolute `filePath` values, includes empty results for
 checked files with no messages, and filters inputs with the same ignore rules.
 `lintText()` applies those ignore rules to the supplied `filePath` and uses the
-same config discovery as file linting unless `noConfig` is set.
+same config discovery as file linting unless `noConfig` is set. Raw
+`lintText()` reports use the supplied `filePath` for both `filePaths` and
+diagnostics.
 `isPathIgnored()` reads default `.eslintignore` entries plus `ignorePath`,
 `ignorePatterns`, `noIgnore`, and `baseConfig`/`overrideConfig` ignore entries.
 `calculateConfigForFile()` and `CLIEngine#getConfigForFile()` merge

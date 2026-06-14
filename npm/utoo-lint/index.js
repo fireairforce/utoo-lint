@@ -522,6 +522,7 @@ export function lintText(code, options = {}) {
       noConfig: options.noConfig,
       deferDiagnosticConfigFiltering: true
     });
+    report.filePaths = (report.filePaths ?? []).map((filePath) => (filePath === tempFile ? requestedPath : filePath));
     report.diagnostics = report.diagnostics.map((diagnostic) => ({
       ...diagnostic,
       filePath: requestedPath
