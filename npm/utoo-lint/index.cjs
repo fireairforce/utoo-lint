@@ -887,6 +887,7 @@ function eslintConstructorOptions(options) {
     binary: options.binary,
     env: options.env,
     extraArgs: options.extraArgs,
+    config: options.config ?? options.configFile,
     ignorePath: options.ignorePath,
     ignorePatterns: options.ignorePatterns,
     noIgnore: options.noIgnore ?? options.ignore === false,

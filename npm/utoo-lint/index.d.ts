@@ -54,6 +54,7 @@ export interface LintOptions {
   threads?: number;
   rules?: string[] | string;
   config?: string;
+  configFile?: string;
   noConfig?: boolean;
   useEslintrc?: boolean;
   overrideConfigFile?: string | boolean;
