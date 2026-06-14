@@ -352,7 +352,12 @@ pub fn runBasic(
     options: core.Options,
 ) Allocator.Error!void {
     if (options.capitalized_comments) {
-        try capitalized_comments.run(allocator, diagnostics, tree);
+        try capitalized_comments.runWithOptions(allocator, diagnostics, tree, .{
+            .mode = switch (options.capitalized_comments_mode) {
+                .always => .always,
+                .never => .never,
+            },
+        });
     }
     if (options.no_warning_comments) {
         try no_warning_comments.runWithOptions(allocator, diagnostics, tree, .{

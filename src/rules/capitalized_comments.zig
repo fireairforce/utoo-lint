@@ -7,27 +7,59 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "capitalized-comments";
 
+pub const Mode = enum {
+    always,
+    never,
+};
+
+pub const Options = struct {
+    mode: Mode = .always,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+) Allocator.Error!void {
+    return runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
 ) Allocator.Error!void {
     for (tree.comments) |comment| {
         const value = trimLeftDecorations(tree.string(comment.value));
         if (isIgnoredComment(value)) continue;
 
         const first = firstAsciiLetter(value) orelse continue;
-        if (!std.ascii.isLower(first)) continue;
+        if (!violatesMode(first, options.mode)) continue;
 
         try core.addDiagnostic(
             allocator,
             diagnostics,
             .warning,
             id,
-            "Comments should start with an uppercase character.",
+            diagnosticMessage(options.mode),
             .{ .start = comment.start, .end = comment.end },
         );
     }
+}
+
+fn diagnosticMessage(mode: Mode) []const u8 {
+    return switch (mode) {
+        .always => "Comments should start with an uppercase character.",
+        .never => "Comments should not start with an uppercase character.",
+    };
+}
+
+fn violatesMode(first: u8, mode: Mode) bool {
+    return switch (mode) {
+        .always => std.ascii.isLower(first),
+        .never => std.ascii.isUpper(first),
+    };
 }
 
 fn trimLeftDecorations(value: []const u8) []const u8 {

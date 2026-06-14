@@ -74,6 +74,11 @@ pub const ArrayCallbackReturnAllowImplicit = enum {
     no,
 };
 
+pub const CapitalizedCommentsMode = enum {
+    always,
+    never,
+};
+
 pub const Options = struct {
     accessor_pairs: bool = true,
     accessor_pairs_get_without_set: AccessorPairsGetWithoutSet = .no,
@@ -81,6 +86,7 @@ pub const Options = struct {
     array_callback_return_allow_implicit: ArrayCallbackReturnAllowImplicit = .yes,
     block_scoped_var: bool = true,
     capitalized_comments: bool = true,
+    capitalized_comments_mode: CapitalizedCommentsMode = .always,
     consistent_return: bool = true,
     constructor_super: bool = true,
     curly: bool = true,
