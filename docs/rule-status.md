@@ -12,6 +12,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`curly`](https://eslint.org/docs/latest/rules/curly) | Implemented |
 | [`default-case`](https://eslint.org/docs/latest/rules/default-case) | Implemented |
 | [`default-case-last`](https://eslint.org/docs/latest/rules/default-case-last) | Implemented |
+| [`default-param-last`](https://eslint.org/docs/latest/rules/default-param-last) | Implemented |
 | [`dot-notation`](https://eslint.org/docs/latest/rules/dot-notation) | Implemented |
 | [`eol-last`](https://eslint.org/docs/latest/rules/eol-last) | Implemented |
 | [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Implemented |

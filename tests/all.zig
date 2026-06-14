@@ -31,6 +31,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/default_param_last.zig");
+}
+
+comptime {
     _ = @import("rules/eol_last.zig");
 }
 

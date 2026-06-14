@@ -88,6 +88,7 @@ const BUILTIN_RULE_IDS = [
   "curly",
   "default-case",
   "default-case-last",
+  "default-param-last",
   "dot-notation",
   "eol-last",
   "eqeqeq",
