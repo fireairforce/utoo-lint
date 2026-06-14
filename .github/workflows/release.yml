@@ -206,7 +206,6 @@ jobs:
 
       - name: Publish native npm packages
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TAG: ${{ steps.release_version.outputs.npm_tag }}
         run: |
           for package_dir in dist/native-packages/npm/@utoo/lint-*; do
@@ -215,6 +214,5 @@ jobs:
 
       - name: Publish npm CLI package
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TAG: ${{ steps.release_version.outputs.npm_tag }}
         run: npm publish ./npm/utoo-lint --access public --provenance --tag "${NPM_TAG}"
