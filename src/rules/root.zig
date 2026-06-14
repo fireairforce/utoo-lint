@@ -16,6 +16,7 @@ const symbol_checks = @import("symbol_checks.zig");
 pub const curly = @import("curly.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
 pub const block_scoped_var = @import("block_scoped_var.zig");
+pub const consistent_return = @import("consistent_return.zig");
 pub const constructor_super = @import("constructor_super.zig");
 pub const dot_notation = @import("dot_notation.zig");
 pub const default_case = @import("default_case.zig");
@@ -887,6 +888,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_dupe_args) {
             try no_dupe_args.check(self.allocator, self.diagnostics, ctx.tree, function);
+        }
+        if (self.options.consistent_return) {
+            try consistent_return.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
         }
         if (self.options.no_param_reassign) {
             try no_param_reassign.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
@@ -1792,6 +1796,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_return_assign and expression.expression) {
             try no_return_assign.check(self.allocator, self.diagnostics, ctx.tree, expression.body);
+        }
+        if (self.options.consistent_return) {
+            try consistent_return.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression);
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkFormalParameters(self.allocator, self.diagnostics, ctx.tree, expression.params);

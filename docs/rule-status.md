@@ -7,6 +7,7 @@ Each rule links to the corresponding ESLint rule reference.
 | --- | --- |
 | [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for fishlint's `allowImplicit: true, checkForEach: false, allowVoid: false` configuration |
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
+| [`consistent-return`](https://eslint.org/docs/latest/rules/consistent-return) | Implemented for mixed explicit value and bare return statements |
 | [`constructor-super`](https://eslint.org/docs/latest/rules/constructor-super) | Implemented |
 | [`curly`](https://eslint.org/docs/latest/rules/curly) | Implemented |
 | [`default-case`](https://eslint.org/docs/latest/rules/default-case) | Implemented |
