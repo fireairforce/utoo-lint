@@ -148,6 +148,8 @@ and `fishlint projectlint` runs `projectlint`. This keeps existing scripts
 working without treating those tools as native `utoo-lint` checks. Delegated
 commands also consume fishlint-only setup and verbose flags, including
 `--disable-setup=true` and similar value forms.
+`fishlint commitlint -E=GIT_PARAMS` is normalized like `--env GIT_PARAMS`,
+falling back to `--edit` when the environment variable is not set.
 `fishlint setup` and `fishlint setuplint` are accepted as no-ops so existing
 install hooks do not fail after replacing the package.
 
