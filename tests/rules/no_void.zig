@@ -40,6 +40,27 @@ test "does not report no-void for delete or property names" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_void.id));
 }
 
+test "allows void expression statements when allowAsStatement is enabled" {
+    const source =
+        \\void doSideEffect();
+        \\function f() {
+        \\  return void doSideEffect();
+        \\}
+        \\const value = void doSideEffect();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_void_allow_as_statement = .yes,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_void.id));
+}
+
 test "can disable no-void" {
     const source =
         \\void 0;

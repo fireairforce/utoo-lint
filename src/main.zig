@@ -554,6 +554,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_warning_comments_decoration = .slash_asterisk;
         } else if (std.mem.eql(u8, arg, "--no-void=off")) {
             options.no_void = false;
+        } else if (std.mem.eql(u8, arg, "--no-void-allow-as-statement=on")) {
+            options.no_void_allow_as_statement = .yes;
         } else if (std.mem.eql(u8, arg, "--no-with=off")) {
             options.no_with = false;
         } else if (std.mem.eql(u8, arg, "--no-var=off")) {
@@ -1523,6 +1525,7 @@ fn printHelp() void {
         \\  --no-warning-comments-decoration=asterisk Ignore leading * comment decorations
         \\  --no-warning-comments-decoration=slash-asterisk Ignore leading / and * comment decorations
         \\  --no-void=off             Disable no-void
+        \\  --no-void-allow-as-statement=on Allow void as expression statement
         \\  --no-with=off             Disable no-with
         \\  --no-var=off              Disable no-var
         \\  --one-var=off             Disable one-var
