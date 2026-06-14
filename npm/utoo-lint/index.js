@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { writeFile as writeFileAsync } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, isAbsolute, join, resolve as resolvePath } from "node:path";
@@ -9,6 +9,8 @@ import { resolveBinary } from "./lib/binary.js";
 export { platformPackageName, resolveBinary } from "./lib/binary.js";
 
 export const version = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version;
+
+const LINTABLE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"]);
 
 export class UtooLint {
   static get version() {
@@ -45,6 +47,7 @@ export class UtooLint {
     const report = lintFiles(patterns, mergedOptions);
     return reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
+      filePaths: explicitLintFilePaths(patterns, mergedOptions.cwd),
       ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
     });
   }
@@ -393,6 +396,11 @@ function reportToESLintResults(report, textOptions = {}) {
   if (textOptions.filePath && !byFile.has(textOptions.filePath)) {
     byFile.set(textOptions.filePath, emptyESLintResult(textOptions.filePath, textOptions.source));
   }
+  for (const filePath of textOptions.filePaths ?? []) {
+    if (!byFile.has(filePath)) {
+      byFile.set(filePath, emptyESLintResult(filePath));
+    }
+  }
 
   for (const result of byFile.values()) {
     finalizeESLintResult(result);
@@ -405,6 +413,34 @@ function normalizeESLintFilePath(filePath, cwd) {
   if (filePath === "<text>") return filePath;
   if (isAbsolute(filePath)) return filePath;
   return resolvePath(cwd ?? process.cwd(), filePath);
+}
+
+function explicitLintFilePaths(patterns, cwd) {
+  const files = [];
+  for (const pattern of normalizeStringArray(Array.isArray(patterns) ? patterns : [patterns], "patterns")) {
+    if (hasGlobMagic(pattern)) continue;
+
+    const filePath = normalizeESLintFilePath(pattern, cwd);
+    if (!isLintableFilePath(filePath)) continue;
+
+    try {
+      if (statSync(filePath).isFile()) {
+        files.push(filePath);
+      }
+    } catch {
+      // Let the native binary report missing paths. This helper only fills in
+      // empty ESLint results for files that were checked successfully.
+    }
+  }
+  return files;
+}
+
+function hasGlobMagic(pattern) {
+  return /[*?[\]{}()!+@]/.test(pattern);
+}
+
+function isLintableFilePath(filePath) {
+  return LINTABLE_EXTENSIONS.has(extname(filePath));
 }
 
 function getErrorResults(results) {
