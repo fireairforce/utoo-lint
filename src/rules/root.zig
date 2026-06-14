@@ -17,6 +17,7 @@ pub const curly = @import("curly.zig");
 pub const accessor_pairs = @import("accessor_pairs.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
 pub const block_scoped_var = @import("block_scoped_var.zig");
+pub const capitalized_comments = @import("capitalized_comments.zig");
 pub const consistent_return = @import("consistent_return.zig");
 pub const constructor_super = @import("constructor_super.zig");
 pub const dot_notation = @import("dot_notation.zig");
@@ -341,6 +342,9 @@ pub fn runBasic(
     file_path: []const u8,
     options: core.Options,
 ) Allocator.Error!void {
+    if (options.capitalized_comments) {
+        try capitalized_comments.run(allocator, diagnostics, tree);
+    }
     if (options.no_warning_comments) {
         try no_warning_comments.run(allocator, diagnostics, tree);
     }
