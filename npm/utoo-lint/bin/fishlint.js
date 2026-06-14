@@ -9,6 +9,11 @@ import { translateFishlintArgs } from "../index.js";
 const values = process.argv.slice(2);
 const command = values[0];
 
+if (command === "setup" || command === "setuplint") {
+  console.warn(`utoo-lint: fishlint ${command} is treated as a no-op; configure utoo-lint with utoo.json.`);
+  process.exit(0);
+}
+
 if (command && command !== "eslint") {
   runDelegatedCommand(command, values.slice(1));
 }
