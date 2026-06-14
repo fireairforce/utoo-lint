@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { writeFile as writeFileAsync } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, isAbsolute, join, resolve as resolvePath } from "node:path";
@@ -86,7 +86,7 @@ export class UtooLint {
     const report = lintFiles(patterns, mergedOptions);
     return reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
-      filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(patterns, mergedOptions.cwd)),
+      filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
       ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
     });
   }
@@ -179,7 +179,7 @@ export class CLIEngine {
     const report = lintFiles(patterns, mergedOptions);
     const results = reportToESLintResults(report, {
       cwd: mergedOptions.cwd,
-      filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(patterns, mergedOptions.cwd)),
+      filePaths: reportFilePaths(report, mergedOptions.cwd, explicitLintFilePaths(report.filePaths ?? patterns, mergedOptions.cwd)),
       ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
     });
     return resultsToCLIEngineReport(results);
@@ -417,7 +417,12 @@ function startsWithFlagValue(arg, flags) {
 
 export function lintFiles(paths = ["."], options = {}) {
   return withTemporaryConfig(options, (resolvedOptions) => {
-    const cliArgs = buildLintArgs(paths, resolvedOptions);
+    const lintPaths = filteredLintPaths(paths, resolvedOptions);
+    if (lintPaths.length === 0) {
+      return { files: 0, filePaths: [], diagnostics: [], exitCode: 0 };
+    }
+
+    const cliArgs = buildLintArgs(lintPaths, resolvedOptions);
     const result = run(cliArgs, { ...resolvedOptions, stdio: undefined, encoding: "utf8" });
 
     if (result.error) {
@@ -661,6 +666,86 @@ function hasGlobMagic(pattern) {
 
 function isLintableFilePath(filePath) {
   return LINTABLE_EXTENSIONS.has(extname(filePath));
+}
+
+function filteredLintPaths(paths, options = {}) {
+  const values = normalizeStringArray(Array.isArray(paths) ? paths : [paths], "paths");
+  if (options.noIgnore) {
+    return values;
+  }
+
+  const cwd = options.cwd ?? process.cwd();
+  const patterns = ignorePatternsForOptions(options, cwd);
+  if (patterns.length === 0) {
+    return values;
+  }
+
+  const filtered = new Set();
+  for (const target of values) {
+    if (hasGlobMagic(target)) {
+      if (!pathIgnoredByPatterns(normalizeIgnoredPath(target, cwd), patterns)) {
+        filtered.add(target);
+      }
+      continue;
+    }
+
+    const expanded = expandLintTarget(target, cwd, patterns);
+    if (expanded == null) {
+      if (!pathIgnoredByPatterns(normalizeIgnoredPath(target, cwd), patterns)) {
+        filtered.add(target);
+      }
+      continue;
+    }
+    for (const filePath of expanded) {
+      filtered.add(filePath);
+    }
+  }
+  return [...filtered];
+}
+
+function expandLintTarget(target, cwd, patterns) {
+  const absolute = normalizeESLintFilePath(target, cwd);
+  let stat;
+  try {
+    stat = statSync(absolute);
+  } catch {
+    return null;
+  }
+
+  if (stat.isFile()) {
+    return isLintableFilePath(target) && !pathIgnoredByPatterns(normalizeIgnoredPath(target, cwd), patterns) ? [target] : [];
+  }
+  if (!stat.isDirectory() || pathIgnoredByPatterns(normalizeIgnoredPath(target, cwd), patterns)) {
+    return [];
+  }
+
+  const files = [];
+  collectLintableFiles(target, cwd, patterns, files);
+  return files;
+}
+
+function collectLintableFiles(target, cwd, patterns, files) {
+  const absolute = normalizeESLintFilePath(target, cwd);
+  for (const entry of readdirSync(absolute, { withFileTypes: true })) {
+    if (shouldSkipDirectoryEntry(entry.name)) {
+      continue;
+    }
+
+    const child = join(target, entry.name);
+    if (entry.isDirectory()) {
+      if (!pathIgnoredByPatterns(normalizeIgnoredPath(child, cwd), patterns)) {
+        collectLintableFiles(child, cwd, patterns, files);
+      }
+      continue;
+    }
+    if (entry.isFile() && isLintableFilePath(child) && !pathIgnoredByPatterns(normalizeIgnoredPath(child, cwd), patterns)) {
+      files.push(child);
+    }
+  }
+}
+
+function shouldSkipDirectoryEntry(name) {
+  return name === ".git" || name === ".zig-cache" || name === "node_modules" || name === "vendor" || name === "zig-out";
 }
 
 function isPathIgnored(filePath, options = {}) {
