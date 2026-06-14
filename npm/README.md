@@ -73,6 +73,8 @@ project-local tools when they are installed: `fishlint format` runs `prettier`,
 `fishlint stylelint` runs `stylelint`, `fishlint commitlint` runs `commitlint`,
 and `fishlint projectlint` runs `projectlint`. This keeps existing scripts
 working without treating those tools as native `utoo-lint` checks.
+`fishlint setup` and `fishlint setuplint` are accepted as no-ops so existing
+install hooks do not fail after replacing the package.
 
 `fishlint-lint-staged` is also provided for generated fishlint pre-commit hooks.
 If a project has its own `lint-staged` install, the wrapper delegates to it.
