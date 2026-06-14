@@ -76,9 +76,9 @@ rule IDs. `loadFormatter()` and `CLIEngine#getFormatter()` support `json`,
 `json-with-metadata`, `compact`, `unix`, and the native text formatter shape.
 `lintFiles()` returns absolute `filePaths` and diagnostic `filePath` values,
 accepts common glob patterns such as `src/**/*.js` and `src/**/*.{js,ts}`,
-supports negated patterns such as `!src/generated.js`, includes empty results
-for checked files with no messages, and filters inputs with the same ignore
-rules.
+supports character classes such as `src/**/*.[jt]s` and negated patterns such
+as `!src/generated.js`, includes empty results for checked files with no
+messages, and filters inputs with the same ignore rules.
 `lintText()` applies those ignore rules to the supplied `filePath` and uses the
 same config discovery as file linting unless `noConfig` is set. Raw
 `lintText()` reports use the supplied `filePath` for both `filePaths` and
@@ -112,7 +112,8 @@ The package also installs a `fishlint` compatibility command for projects that
 currently run `fishlint eslint ...`. It supports the common eslint subcommand
 shape, forwards `--config` and `-c`, maps `--glob` values to native lint
 targets, expands common `--glob` patterns such as `src/**/*.js` and
-`src/**/*.{js,ts}`, and normalizes split value flags such as `--format json`, `-f json`,
+`src/**/*.{js,ts}` or `src/**/*.[jt]s`, and normalizes split value flags such
+as `--format json`, `-f json`,
 `--threads 4`, and `--rules no-debugger`. `--no-eslintrc` maps to native
 `--no-config`, and `--no-eslintrc=true` is accepted for compatibility.
 `json-with-metadata` emits the native JSON report with a `metadata.rulesMeta`
