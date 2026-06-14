@@ -37,6 +37,54 @@ test "reports no-underscore-dangle for member properties" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_underscore_dangle.id));
 }
 
+test "reports no-underscore-dangle for configured member contexts by default" {
+    const source =
+        \\class Child extends Parent {
+        \\  method() {
+        \\    this._value;
+        \\    super._value;
+        \\    this.constructor._value;
+        \\  }
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_undef = false,
+        .no_unused_expressions = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_underscore_dangle.id));
+}
+
+test "allows no-underscore-dangle configured member contexts" {
+    const source =
+        \\class Child extends Parent {
+        \\  method() {
+        \\    this._value;
+        \\    super._value;
+        \\    this.constructor._value;
+        \\    object._value;
+        \\  }
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_underscore_dangle_allow_after_this = true,
+        .no_underscore_dangle_allow_after_super = true,
+        .no_underscore_dangle_allow_after_this_constructor = true,
+        .no_undef = false,
+        .no_unused_expressions = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_underscore_dangle.id));
+}
+
 test "allows default names and skipped forms" {
     const source =
         \\const _ = 1;
