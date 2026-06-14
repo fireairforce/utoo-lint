@@ -2,8 +2,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-
-import { resolveBinary } from "../lib/binary.js";
+import { fileURLToPath } from "node:url";
 
 const localLintStaged = join(
   process.cwd(),
@@ -42,18 +41,13 @@ if (files.length === 0) {
   process.exit(0);
 }
 
-let binary;
-try {
-  binary = resolveBinary();
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
-}
-
-const result = spawnSync(binary, files, { stdio: "inherit" });
+const fishlint = fileURLToPath(new URL("./fishlint.js", import.meta.url));
+const result = spawnSync(process.execPath, [fishlint, "eslint", ...process.argv.slice(2), ...files], {
+  stdio: "inherit"
+});
 
 if (result.error) {
-  console.error(`utoo-lint: failed to run native binary: ${result.error.message}`);
+  console.error(`utoo-lint: failed to run fishlint-lint-staged fallback: ${result.error.message}`);
   process.exit(1);
 }
 
