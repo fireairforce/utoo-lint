@@ -9,6 +9,18 @@ pub const id = "array-callback-return";
 
 pub const Options = struct {
     allow_implicit: bool = true,
+    check_for_each: bool = false,
+    allow_void: bool = false,
+};
+
+const CallbackKind = enum {
+    value_required,
+    for_each,
+};
+
+const CallbackTarget = struct {
+    callback: ast.NodeIndex,
+    kind: CallbackKind,
 };
 
 const Completion = enum {
@@ -34,8 +46,14 @@ pub fn checkWithOptions(
     call: ast.CallExpression,
     options: Options,
 ) Allocator.Error!void {
-    const callback = callbackArgument(tree, call) orelse return;
-    if (callbackReturnsValue(tree, callback, options)) return;
+    const target = callbackTarget(tree, call, options) orelse return;
+
+    if (target.kind == .for_each) {
+        try checkForEachCallback(allocator, diagnostics, tree, target.callback, options);
+        return;
+    }
+
+    if (callbackReturnsValue(tree, target.callback, options)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -43,11 +61,11 @@ pub fn checkWithOptions(
         .warning,
         id,
         "Expected to return a value in array callback.",
-        tree.span(callback),
+        tree.span(target.callback),
     );
 }
 
-fn callbackArgument(tree: *const ast.Tree, call: ast.CallExpression) ?ast.NodeIndex {
+fn callbackTarget(tree: *const ast.Tree, call: ast.CallExpression, options: Options) ?CallbackTarget {
     const arguments = tree.extra(call.arguments);
     if (arguments.len == 0) return null;
 
@@ -58,15 +76,27 @@ fn callbackArgument(tree: *const ast.Tree, call: ast.CallExpression) ?ast.NodeIn
     };
 
     const method = propertyName(tree, member) orelse return null;
-    if (std.mem.eql(u8, method, "forEach")) return null;
+    if (std.mem.eql(u8, method, "forEach")) {
+        if (!options.check_for_each) return null;
+        return .{
+            .callback = callbackIfFunction(tree, arguments[0]) orelse return null,
+            .kind = .for_each,
+        };
+    }
 
     if (isArrayFromCall(tree, member, method)) {
         if (arguments.len < 2) return null;
-        return callbackIfFunction(tree, arguments[1]);
+        return .{
+            .callback = callbackIfFunction(tree, arguments[1]) orelse return null,
+            .kind = .value_required,
+        };
     }
 
     if (!isArrayCallbackMethod(method)) return null;
-    return callbackIfFunction(tree, arguments[0]);
+    return .{
+        .callback = callbackIfFunction(tree, arguments[0]) orelse return null,
+        .kind = .value_required,
+    };
 }
 
 fn callbackIfFunction(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.NodeIndex {
@@ -110,7 +140,7 @@ fn callbackReturnsValue(tree: *const ast.Tree, callback: ast.NodeIndex, options:
     return switch (tree.data(callback)) {
         .function => |function| functionReturnsValue(tree, function.body, options),
         .arrow_function_expression => |arrow| if (arrow.expression)
-            !isVoidExpression(tree, arrow.body)
+            expressionIsValidReturnValue(tree, arrow.body, options)
         else
             functionReturnsValue(tree, arrow.body, options),
         else => true,
@@ -158,8 +188,129 @@ fn returnCompletion(tree: *const ast.Tree, statement: ast.ReturnStatement, optio
         .valid_terminal
     else
         .invalid_return;
-    if (isVoidExpression(tree, statement.argument)) return .invalid_return;
+    if (!expressionIsValidReturnValue(tree, statement.argument, options)) return .invalid_return;
     return .valid_terminal;
+}
+
+fn checkForEachCallback(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    callback: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    switch (tree.data(callback)) {
+        .function => |function| try scanForEachFunctionBody(allocator, diagnostics, tree, function.body, options),
+        .arrow_function_expression => |arrow| if (arrow.expression) {
+            if (expressionIsForbiddenForEachReturn(tree, arrow.body, options)) {
+                try addForEachDiagnostic(allocator, diagnostics, tree, callback);
+            }
+        } else {
+            try scanForEachFunctionBody(allocator, diagnostics, tree, arrow.body, options);
+        },
+        else => {},
+    }
+}
+
+fn scanForEachFunctionBody(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    body_index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (body_index == .null) return;
+
+    const body = switch (tree.data(body_index)) {
+        .function_body => |body| body,
+        else => return,
+    };
+
+    try scanForEachRange(allocator, diagnostics, tree, body.body, options);
+}
+
+fn scanForEachRange(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    range: ast.IndexRange,
+    options: Options,
+) Allocator.Error!void {
+    for (tree.extra(range)) |statement| {
+        try scanForEachNode(allocator, diagnostics, tree, statement, options);
+    }
+}
+
+fn scanForEachNode(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (index == .null) return;
+
+    switch (tree.data(index)) {
+        .return_statement => |statement| {
+            if (statement.argument != .null and expressionIsForbiddenForEachReturn(tree, statement.argument, options)) {
+                try addForEachDiagnostic(allocator, diagnostics, tree, index);
+            }
+        },
+        .block_statement => |block| try scanForEachRange(allocator, diagnostics, tree, block.body, options),
+        .static_block => |block| try scanForEachRange(allocator, diagnostics, tree, block.body, options),
+        .if_statement => |statement| {
+            try scanForEachNode(allocator, diagnostics, tree, statement.consequent, options);
+            try scanForEachNode(allocator, diagnostics, tree, statement.alternate, options);
+        },
+        .switch_statement => |statement| {
+            for (tree.extra(statement.cases)) |case_index| {
+                const switch_case = switch (tree.data(case_index)) {
+                    .switch_case => |switch_case| switch_case,
+                    else => continue,
+                };
+                try scanForEachRange(allocator, diagnostics, tree, switch_case.consequent, options);
+            }
+        },
+        .for_statement => |statement| try scanForEachNode(allocator, diagnostics, tree, statement.body, options),
+        .for_in_statement => |statement| try scanForEachNode(allocator, diagnostics, tree, statement.body, options),
+        .for_of_statement => |statement| try scanForEachNode(allocator, diagnostics, tree, statement.body, options),
+        .while_statement => |statement| try scanForEachNode(allocator, diagnostics, tree, statement.body, options),
+        .do_while_statement => |statement| try scanForEachNode(allocator, diagnostics, tree, statement.body, options),
+        .with_statement => |statement| try scanForEachNode(allocator, diagnostics, tree, statement.body, options),
+        .labeled_statement => |statement| try scanForEachNode(allocator, diagnostics, tree, statement.body, options),
+        .try_statement => |statement| {
+            try scanForEachNode(allocator, diagnostics, tree, statement.block, options);
+            if (statement.handler != .null) {
+                const handler = switch (tree.data(statement.handler)) {
+                    .catch_clause => |handler| handler,
+                    else => return,
+                };
+                try scanForEachNode(allocator, diagnostics, tree, handler.body, options);
+            }
+            try scanForEachNode(allocator, diagnostics, tree, statement.finalizer, options);
+        },
+        .function,
+        .arrow_function_expression,
+        .class,
+        => return,
+        else => return,
+    }
+}
+
+fn addForEachDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+) Allocator.Error!void {
+    try core.addDiagnostic(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        "Array.prototype.forEach() expects no useless return value from callback.",
+        tree.span(index),
+    );
 }
 
 fn ifCompletion(tree: *const ast.Tree, statement: ast.IfStatement, options: Options) Completion {
@@ -200,6 +351,14 @@ fn isVoidExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .unary_expression => |expression| expression.operator == .void,
         else => false,
     };
+}
+
+fn expressionIsValidReturnValue(tree: *const ast.Tree, index: ast.NodeIndex, options: Options) bool {
+    return !isVoidExpression(tree, index) or options.allow_void;
+}
+
+fn expressionIsForbiddenForEachReturn(tree: *const ast.Tree, index: ast.NodeIndex, options: Options) bool {
+    return !isVoidExpression(tree, index) or !options.allow_void;
 }
 
 fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {

@@ -6,7 +6,7 @@ Each rule links to the corresponding ESLint rule reference.
 | Rule | Status |
 | --- | --- |
 | [`accessor-pairs`](https://eslint.org/docs/latest/rules/accessor-pairs) | Implemented for `setWithoutGet: true` and optional `getWithoutSet: true` behavior |
-| [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for `allowImplicit: true` by default, with optional `allowImplicit: false`; `checkForEach: false, allowVoid: false` |
+| [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for optional `allowImplicit`, `checkForEach`, and `allowVoid` behavior |
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
 | [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Implemented for `always` and optional `never` behavior |
 | [`consistent-return`](https://eslint.org/docs/latest/rules/consistent-return) | Implemented for mixed explicit value/bare returns and value-returning functions that can fall through |

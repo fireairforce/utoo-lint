@@ -22,6 +22,7 @@ test "reports array-callback-return when callbacks can fall through" {
         .no_unused_vars = false,
         .no_useless_return = false,
         .no_void = false,
+        .eol_last = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -83,6 +84,9 @@ test "reports array-callback-return for implicit returns when allowImplicit is d
 test "ignores forEach callbacks and non-function callback references" {
     const source =
         \\items.forEach((item) => {
+        \\  return item.id;
+        \\});
+        \\items.forEach((item) => {
         \\  item.toString();
         \\});
         \\items.map(callback);
@@ -96,6 +100,66 @@ test "ignores forEach callbacks and non-function callback references" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.array_callback_return.id));
+}
+
+test "reports array-callback-return for forEach return values when checkForEach is enabled" {
+    const source =
+        \\items.forEach((item) => item.id);
+        \\items.forEach(function(item) {
+        \\  if (item.ready) {
+        \\    return item.id;
+        \\  }
+        \\  return;
+        \\});
+        \\items.forEach((item) => {
+        \\  return void item.touch();
+        \\});
+        \\items.forEach((item) => {
+        \\  item.touch();
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .array_callback_return_check_for_each = .yes,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .no_useless_return = false,
+        .no_void = false,
+        .eol_last = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.array_callback_return.id));
+    try std.testing.expectEqualStrings(
+        "Array.prototype.forEach() expects no useless return value from callback.",
+        result.diagnostics[0].message,
+    );
+}
+
+test "allows void returns from forEach callbacks when allowVoid is enabled" {
+    const source =
+        \\items.forEach((item) => void item.touch());
+        \\items.forEach(function(item) {
+        \\  return void item.touch();
+        \\});
+        \\items.forEach(function(item) {
+        \\  return item.id;
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .array_callback_return_check_for_each = .yes,
+        .array_callback_return_allow_void = .yes,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .no_useless_return = false,
+        .no_void = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.array_callback_return.id));
 }
 
 test "can disable array-callback-return" {

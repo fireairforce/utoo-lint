@@ -2099,6 +2099,8 @@ const BasicVisitor = struct {
         if (self.options.array_callback_return) {
             try array_callback_return.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, .{
                 .allow_implicit = self.options.array_callback_return_allow_implicit == .yes,
+                .check_for_each = self.options.array_callback_return_check_for_each == .yes,
+                .allow_void = self.options.array_callback_return_allow_void == .yes,
             });
         }
         if (self.options.accessor_pairs) {
