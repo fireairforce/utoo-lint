@@ -426,6 +426,7 @@ function readIgnoreFile(path) {
 
 function expandGlobTargets(args) {
   const values = [];
+  const excludedPatterns = [];
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (TARGET_VALUE_FLAGS.has(arg)) {
@@ -442,18 +443,55 @@ function expandGlobTargets(args) {
         console.error("utoo-lint: fishlint --glob requires a path");
         process.exit(2);
       }
+      if (isNegatedGlobTarget(value)) {
+        excludedPatterns.push(value.slice(1));
+        index += 1;
+        continue;
+      }
       values.push(...expandedGlobOrOriginal(value, [arg, value]));
       index += 1;
       continue;
     }
     if (arg.startsWith("--glob=")) {
       const value = arg.slice("--glob=".length);
+      if (isNegatedGlobTarget(value)) {
+        excludedPatterns.push(value.slice(1));
+        continue;
+      }
       values.push(...expandedGlobOrOriginal(value, [arg]));
       continue;
     }
     values.push(arg);
   }
-  return { args: values };
+  return { args: filterExpandedGlobExclusions(values, excludedPatterns) };
+}
+
+function isNegatedGlobTarget(value) {
+  return value.startsWith("!") && value.length > 1;
+}
+
+function filterExpandedGlobExclusions(args, excludedPatterns) {
+  if (excludedPatterns.length === 0) {
+    return args;
+  }
+
+  const values = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (TARGET_VALUE_FLAGS.has(arg)) {
+      values.push(arg);
+      if (index + 1 < args.length) {
+        values.push(args[index + 1]);
+        index += 1;
+      }
+      continue;
+    }
+    if (index > 0 && !arg.startsWith("-") && isIgnoredTarget(arg, excludedPatterns)) {
+      continue;
+    }
+    values.push(arg);
+  }
+  return values;
 }
 
 function expandedGlobOrOriginal(pattern, original) {
