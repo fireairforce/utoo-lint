@@ -18,6 +18,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`eol-last`](https://eslint.org/docs/latest/rules/eol-last) | Implemented |
 | [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Implemented |
 | [`for-direction`](https://eslint.org/docs/latest/rules/for-direction) | Implemented |
+| [`func-name-matching`](https://eslint.org/docs/latest/rules/func-name-matching) | Implemented for ESLint's default `always` behavior |
 | [`func-names`](https://eslint.org/docs/latest/rules/func-names) | Implemented for the default `always` option |
 | [`getter-return`](https://eslint.org/docs/latest/rules/getter-return) | Implemented |
 | [`guard-for-in`](https://eslint.org/docs/latest/rules/guard-for-in) | Implemented |
