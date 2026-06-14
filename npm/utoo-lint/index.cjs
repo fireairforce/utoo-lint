@@ -2125,6 +2125,9 @@ function assertRuleTesterErrors(testCase, messages, rule) {
         throw new Error(`Error ${index + 1} messageId ${JSON.stringify(expectation.messageId)} should resolve to ${JSON.stringify(expectedMessage)} but message was ${JSON.stringify(message.message)}`);
       }
     }
+    if (expectation.type != null && message.nodeType !== expectation.type) {
+      throw new Error(`Error ${index + 1} type should be ${JSON.stringify(expectation.type)} but was ${JSON.stringify(message.nodeType)}`);
+    }
   });
 }
 
