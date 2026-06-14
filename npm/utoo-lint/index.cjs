@@ -10,6 +10,12 @@ const version = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf8")
 
 const LINTABLE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"]);
 const MAX_AUTOFIX_PASSES = 10;
+const JS_KEYWORDS = new Set([
+  "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete",
+  "do", "else", "export", "extends", "finally", "for", "function", "if", "import", "in",
+  "instanceof", "let", "new", "return", "super", "switch", "this", "throw", "try", "typeof",
+  "var", "void", "while", "with", "yield"
+]);
 const RULE_TESTER_INITIAL_CONFIG = { rules: {} };
 let ruleTesterDefaultConfig = { rules: {} };
 let ruleTesterDescribe = null;
@@ -1622,6 +1628,20 @@ function runCustomLinterRules(ruleEntries, sourceCode, options) {
       context.setCurrentNode(program);
       listeners.Program(program);
     }
+    for (const node of sourceCode.tokens) {
+      if (typeof listeners[node.type] === "function") {
+        context.setCurrentNode(node);
+        listeners[node.type](node);
+      }
+    }
+    for (let index = sourceCode.tokens.length - 1; index >= 0; index -= 1) {
+      const node = sourceCode.tokens[index];
+      const exitListener = listeners[`${node.type}:exit`];
+      if (typeof exitListener === "function") {
+        context.setCurrentNode(node);
+        exitListener(node);
+      }
+    }
     if (typeof listeners["Program:exit"] === "function") {
       context.setCurrentNode(program);
       listeners["Program:exit"](program);
@@ -2625,7 +2645,8 @@ function sourceTokensFromText(text) {
       while (index < text.length && isIdentifierPart(text[index])) {
         index += 1;
       }
-      tokens.push(sourceTokenNode("Identifier", text.slice(start, index), start, index, lineStarts));
+      const value = text.slice(start, index);
+      tokens.push(sourceTokenNode(JS_KEYWORDS.has(value) ? "Keyword" : "Identifier", value, start, index, lineStarts));
       continue;
     }
     if (isDigit(char)) {
