@@ -16,6 +16,10 @@ const JS_KEYWORDS = new Set([
   "instanceof", "let", "new", "return", "super", "switch", "this", "throw", "try", "typeof",
   "var", "void", "while", "with", "yield"
 ]);
+const AST_TRAVERSAL_SKIP_KEYS = new Set([
+  "type", "parent", "loc", "range", "tokens", "comments", "leadingComments", "trailingComments",
+  "innerComments", "raw", "value", "name", "regex", "bigint", "errors"
+]);
 const RULE_TESTER_INITIAL_CONFIG = { rules: {} };
 let ruleTesterDefaultConfig = { rules: {} };
 let ruleTesterDescribe = null;
@@ -1650,30 +1654,74 @@ function runCustomLinterRules(ruleEntries, sourceCode, options) {
   for (const ruleEntry of ruleEntries) {
     const context = createCustomRuleContext(ruleEntry, sourceCode, options, messages);
     const listeners = customRuleListeners(ruleEntry.rule, context);
-    if (typeof listeners.Program === "function") {
-      context.setCurrentNode(program);
-      listeners.Program(program);
-    }
-    for (const node of sourceCode.tokens) {
-      if (typeof listeners[node.type] === "function") {
-        context.setCurrentNode(node);
-        listeners[node.type](node);
-      }
-    }
-    for (let index = sourceCode.tokens.length - 1; index >= 0; index -= 1) {
-      const node = sourceCode.tokens[index];
-      const exitListener = listeners[`${node.type}:exit`];
-      if (typeof exitListener === "function") {
-        context.setCurrentNode(node);
-        exitListener(node);
-      }
-    }
-    if (typeof listeners["Program:exit"] === "function") {
-      context.setCurrentNode(program);
-      listeners["Program:exit"](program);
+    if (customRuleChildNodes(program, sourceCode.visitorKeys).length > 0) {
+      traverseCustomRuleAst(program, listeners, context, sourceCode.visitorKeys);
+    } else {
+      runCustomRuleTokenListeners(program, sourceCode.tokens, listeners, context);
     }
   }
   return messages;
+}
+
+function traverseCustomRuleAst(node, listeners, context, visitorKeys, seen = new Set()) {
+  if (!node || typeof node !== "object" || typeof node.type !== "string" || seen.has(node)) {
+    return;
+  }
+  seen.add(node);
+  if (typeof listeners[node.type] === "function") {
+    context.setCurrentNode(node);
+    listeners[node.type](node);
+  }
+  for (const child of customRuleChildNodes(node, visitorKeys)) {
+    traverseCustomRuleAst(child, listeners, context, visitorKeys, seen);
+  }
+  const exitListener = listeners[`${node.type}:exit`];
+  if (typeof exitListener === "function") {
+    context.setCurrentNode(node);
+    exitListener(node);
+  }
+}
+
+function customRuleChildNodes(node, visitorKeys) {
+  const keys = Array.isArray(visitorKeys?.[node.type])
+    ? visitorKeys[node.type]
+    : Object.keys(node).filter((key) => !AST_TRAVERSAL_SKIP_KEYS.has(key));
+  const children = [];
+  for (const key of keys) {
+    const value = node[key];
+    const values = Array.isArray(value) ? value : [value];
+    for (const child of values) {
+      if (child && typeof child === "object" && typeof child.type === "string") {
+        children.push(child);
+      }
+    }
+  }
+  return children;
+}
+
+function runCustomRuleTokenListeners(program, tokens, listeners, context) {
+  if (typeof listeners.Program === "function") {
+    context.setCurrentNode(program);
+    listeners.Program(program);
+  }
+  for (const node of tokens) {
+    if (typeof listeners[node.type] === "function") {
+      context.setCurrentNode(node);
+      listeners[node.type](node);
+    }
+  }
+  for (let index = tokens.length - 1; index >= 0; index -= 1) {
+    const node = tokens[index];
+    const exitListener = listeners[`${node.type}:exit`];
+    if (typeof exitListener === "function") {
+      context.setCurrentNode(node);
+      exitListener(node);
+    }
+  }
+  if (typeof listeners["Program:exit"] === "function") {
+    context.setCurrentNode(program);
+    listeners["Program:exit"](program);
+  }
 }
 
 function createCustomRuleContext(ruleEntry, sourceCode, options, messages) {
