@@ -504,7 +504,9 @@ function buildLintArgs(paths, options) {
   }
   if (options.rules) {
     const rules = Array.isArray(options.rules) ? options.rules.join(",") : options.rules;
-    cliArgs.push(`--rules=${rules}`);
+    if (rules) {
+      cliArgs.push(`--rules=${rules}`);
+    }
   }
   if (options.threads != null) {
     cliArgs.push(`--threads=${options.threads}`);
@@ -570,7 +572,16 @@ function calculatedConfig(options = {}) {
 }
 
 function rulesFromConfig(config) {
-  return config?.rules && typeof config.rules === "object" ? config.rules : {};
+  if (!config) {
+    return {};
+  }
+  if (Array.isArray(config)) {
+    return config.reduce((rules, entry) => ({
+      ...rules,
+      ...rulesFromConfig(entry)
+    }), {});
+  }
+  return config.rules && typeof config.rules === "object" ? config.rules : {};
 }
 
 function rulesFromFileConfig(options) {
@@ -611,12 +622,17 @@ function readJsonConfig(path) {
 }
 
 function withTemporaryConfig(options, callback) {
-  if (!options.overrideConfig?.rules) {
+  const inlineRules = {
+    ...rulesFromConfig(options.baseConfig),
+    ...rulesFromConfig(options.overrideConfig)
+  };
+  if (Object.keys(inlineRules).length === 0) {
     return callback(options);
   }
 
-  const enabledRules = enabledRuleNames(options.overrideConfig.rules);
-  if (!hasRuleOptions(options.overrideConfig.rules)) {
+  const rules = calculatedConfig(options).rules;
+  const enabledRules = enabledRuleNames(rules);
+  if (!hasRuleOptions(rules) && !hasDisabledRules(rules)) {
     return callback({
       ...options,
       noConfig: options.noConfig ?? true,
@@ -627,7 +643,7 @@ function withTemporaryConfig(options, callback) {
   const tmp = mkdtempSync(join(tmpdir(), "utoo-lint-config-"));
   const configPath = join(tmp, "utoo.json");
   try {
-    writeFileSync(configPath, JSON.stringify({ rules: options.overrideConfig.rules }));
+    writeFileSync(configPath, JSON.stringify({ rules }));
     return callback({
       ...options,
       config: options.config ?? configPath,
@@ -646,6 +662,10 @@ function enabledRuleNames(rules) {
 
 function hasRuleOptions(rules) {
   return Object.values(rules).some((value) => Array.isArray(value) && value.length > 1);
+}
+
+function hasDisabledRules(rules) {
+  return Object.values(rules).some((value) => ruleConfigSeverity(value) === 0);
 }
 
 function normalizeStringArray(values, name) {
