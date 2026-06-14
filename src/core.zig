@@ -74,6 +74,11 @@ pub const FuncNameMatchingStyle = enum {
     never,
 };
 
+pub const PreferConstDestructuring = enum {
+    any,
+    all,
+};
+
 pub const ArrayCallbackReturnAllowImplicit = enum {
     yes,
     no,
@@ -333,6 +338,7 @@ pub const Options = struct {
     no_use_before_define: bool = true,
     no_undef: bool = true,
     prefer_const: bool = true,
+    prefer_const_destructuring: PreferConstDestructuring = .any,
     prefer_exponentiation_operator: bool = true,
     prefer_numeric_literals: bool = true,
     prefer_object_has_own: bool = true,

@@ -829,7 +829,12 @@ pub fn runSemantic(
     }
 
     if (options.prefer_const) {
-        try prefer_const.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try prefer_const.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .destructuring = switch (options.prefer_const_destructuring) {
+                .any => .any,
+                .all => .all,
+            },
+        });
     }
 }
 

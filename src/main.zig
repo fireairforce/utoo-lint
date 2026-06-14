@@ -576,6 +576,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_undef = false;
         } else if (std.mem.eql(u8, arg, "--prefer-const=off")) {
             options.prefer_const = false;
+        } else if (std.mem.eql(u8, arg, "--prefer-const-destructuring=all")) {
+            options.prefer_const_destructuring = .all;
         } else if (std.mem.eql(u8, arg, "--prefer-exponentiation-operator=off")) {
             options.prefer_exponentiation_operator = false;
         } else if (std.mem.eql(u8, arg, "--prefer-numeric-literals=off")) {
@@ -1523,6 +1525,7 @@ fn printHelp() void {
         \\  --no-use-before-define=off Disable no-use-before-define
         \\  --no-undef=off            Disable no-undef
         \\  --prefer-const=off        Disable prefer-const
+        \\  --prefer-const-destructuring=all Require all destructured bindings to be const candidates
         \\  --prefer-exponentiation-operator=off Disable prefer-exponentiation-operator
         \\  --prefer-numeric-literals=off Disable prefer-numeric-literals
         \\  --prefer-promise-reject-errors=off Disable prefer-promise-reject-errors
