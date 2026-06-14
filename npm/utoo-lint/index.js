@@ -1,20 +1,52 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { writeFile as writeFileAsync } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { extname, join } from "node:path";
+import { extname, isAbsolute, join, resolve as resolvePath } from "node:path";
 
 import { resolveBinary } from "./lib/binary.js";
 
 export { platformPackageName, resolveBinary } from "./lib/binary.js";
 
+export const version = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version;
+
 export class UtooLint {
+  static get version() {
+    return version;
+  }
+
+  static async outputFixes(results) {
+    if (!Array.isArray(results)) {
+      throw new Error("'results' must be an array");
+    }
+
+    await Promise.all(
+      results
+        .filter((result) => {
+          if (typeof result !== "object" || result === null) {
+            throw new Error("'results' must include only objects");
+          }
+          return typeof result.output === "string" && isAbsolute(result.filePath);
+        })
+        .map((result) => writeFileAsync(result.filePath, result.output))
+    );
+  }
+
+  static getErrorResults(results) {
+    return getErrorResults(results);
+  }
+
   constructor(options = {}) {
     this.options = { ...options };
   }
 
   async lintFiles(patterns = ["."], options = {}) {
-    const report = lintFiles(patterns, mergeLintOptions(this.options, options));
-    return reportToESLintResults(report);
+    const mergedOptions = mergeLintOptions(this.options, options);
+    const report = lintFiles(patterns, mergedOptions);
+    return reportToESLintResults(report, {
+      cwd: mergedOptions.cwd,
+      ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
+    });
   }
 
   async lintText(code, options = {}) {
@@ -22,10 +54,12 @@ export class UtooLint {
       throw new TypeError("code must be a string");
     }
 
-    const report = lintText(code, mergeLintOptions(this.options, options));
+    const mergedOptions = mergeLintOptions(this.options, options);
+    const report = lintText(code, mergedOptions);
     return reportToESLintResults(report, {
       source: code,
-      filePath: options.filePath ?? "<text>"
+      filePath: normalizeESLintFilePath(options.filePath ?? "<text>", mergedOptions.cwd),
+      ruleSeverities: ruleSeverityMap(mergedOptions.overrideConfig?.rules)
     });
   }
 
@@ -37,6 +71,22 @@ export class UtooLint {
     return {
       rules: this.options.overrideConfig?.rules ?? {}
     };
+  }
+
+  getRulesMetaForResults(results) {
+    if (!Array.isArray(results)) {
+      throw new Error("'results' must be an array");
+    }
+
+    const meta = {};
+    for (const result of results) {
+      for (const message of [...(result.messages ?? []), ...(result.suppressedMessages ?? [])]) {
+        if (message.ruleId) {
+          meta[message.ruleId] = {};
+        }
+      }
+    }
+    return meta;
   }
 
   async loadFormatter(name = "stylish") {
@@ -309,21 +359,12 @@ function withTemporaryConfig(options, callback) {
 
 function enabledRuleNames(rules) {
   return Object.entries(rules)
-    .filter(([, value]) => ruleConfigIsEnabled(value))
+    .filter(([, value]) => ruleConfigSeverity(value) > 0)
     .map(([rule]) => rule);
 }
 
 function hasRuleOptions(rules) {
   return Object.values(rules).some((value) => Array.isArray(value) && value.length > 1);
-}
-
-function ruleConfigIsEnabled(value) {
-  const severity = Array.isArray(value) ? value[0] : value;
-  if (severity === false || severity === 0) return false;
-  if (typeof severity === "string") {
-    return !["off", "0"].includes(severity.toLowerCase());
-  }
-  return true;
 }
 
 function normalizeStringArray(values, name) {
@@ -342,11 +383,11 @@ function reportToESLintResults(report, textOptions = {}) {
   const byFile = new Map();
 
   for (const diagnostic of report.diagnostics ?? []) {
-    const filePath = textOptions.filePath ?? diagnostic.filePath;
+    const filePath = textOptions.filePath ?? normalizeESLintFilePath(diagnostic.filePath, textOptions.cwd);
     if (!byFile.has(filePath)) {
       byFile.set(filePath, emptyESLintResult(filePath, textOptions.source));
     }
-    byFile.get(filePath).messages.push(diagnosticToESLintMessage(diagnostic));
+    byFile.get(filePath).messages.push(diagnosticToESLintMessage(diagnostic, textOptions.ruleSeverities));
   }
 
   if (textOptions.filePath && !byFile.has(textOptions.filePath)) {
@@ -358,6 +399,33 @@ function reportToESLintResults(report, textOptions = {}) {
   }
 
   return [...byFile.values()];
+}
+
+function normalizeESLintFilePath(filePath, cwd) {
+  if (filePath === "<text>") return filePath;
+  if (isAbsolute(filePath)) return filePath;
+  return resolvePath(cwd ?? process.cwd(), filePath);
+}
+
+function getErrorResults(results) {
+  if (!Array.isArray(results)) {
+    throw new Error("'results' must be an array");
+  }
+
+  const filtered = [];
+  for (const result of results) {
+    const messages = (result.messages ?? []).filter((message) => message.severity === 2);
+    if (messages.length === 0) continue;
+    filtered.push({
+      ...result,
+      messages,
+      suppressedMessages: (result.suppressedMessages ?? []).filter((message) => message.severity === 2),
+      errorCount: messages.length,
+      warningCount: 0,
+      fixableWarningCount: 0
+    });
+  }
+  return filtered;
 }
 
 function emptyESLintResult(filePath, source) {
@@ -378,10 +446,10 @@ function emptyESLintResult(filePath, source) {
   return result;
 }
 
-function diagnosticToESLintMessage(diagnostic) {
+function diagnosticToESLintMessage(diagnostic, ruleSeverities) {
   return {
     ruleId: diagnostic.ruleId,
-    severity: diagnostic.severity === "error" ? 2 : 1,
+    severity: ruleSeverities?.get(diagnostic.ruleId) ?? (diagnostic.severity === "error" ? 2 : 1),
     message: diagnostic.message,
     line: diagnostic.line,
     column: diagnostic.column,
@@ -421,4 +489,41 @@ function formatESLintResults(results) {
   }
 
   return lines.join("\n");
+}
+
+function ruleSeverityMap(rules) {
+  if (!rules) return undefined;
+
+  const severities = new Map();
+  for (const [rule, config] of Object.entries(rules)) {
+    const severity = ruleConfigSeverity(config);
+    if (severity > 0) {
+      severities.set(rule, severity);
+    }
+  }
+  return severities;
+}
+
+function ruleConfigSeverity(config) {
+  const severity = Array.isArray(config) ? config[0] : config;
+  if (severity === false || severity === 0) return 0;
+  if (severity === true || severity === 2) return 2;
+  if (severity === 1) return 1;
+  if (typeof severity === "string") {
+    switch (severity.toLowerCase()) {
+      case "off":
+      case "0":
+        return 0;
+      case "warn":
+      case "warning":
+      case "1":
+        return 1;
+      case "error":
+      case "2":
+        return 2;
+      default:
+        return 1;
+    }
+  }
+  return 1;
 }

@@ -40,13 +40,17 @@ const eslint = new ESLint({
 });
 const results = await eslint.lintText("debugger;\n", { filePath: "inline.js" });
 console.log(results[0].messages);
+console.log(ESLint.version);
+console.log(ESLint.getErrorResults(results));
 ```
 
 `lintFiles()` and `lintText()` return `{ files, diagnostics, exitCode }`. Each
 diagnostic includes `filePath`, `line`, `column`, `severity`, `message`, and
 `ruleId`. The `ESLint` export is an alias for `UtooLint` and supports the common
 `lintFiles()`, `lintText()`, `loadFormatter()`, `isPathIgnored()`, and
-`calculateConfigForFile()` methods for low-friction replacements. Set
+`calculateConfigForFile()` methods for low-friction replacements. It also
+provides ESLint-compatible `version`, `outputFixes()`, `getErrorResults()`, and
+`getRulesMetaForResults()` surfaces. Set
 `UTOO_LINT_BIN=/path/to/utoo-lint` to force the JS API and CLI wrapper to use a
 specific native binary during local development.
 
