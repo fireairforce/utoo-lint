@@ -78,7 +78,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-global-assign`](https://eslint.org/docs/latest/rules/no-global-assign) | Implemented |
 | [`no-global-is-finite`](https://eslint.org/docs/latest/rules/no-global-is-finite) | Implemented |
 | [`no-global-is-nan`](https://eslint.org/docs/latest/rules/no-global-is-nan) | Implemented |
-| [`no-implicit-coercion`](https://eslint.org/docs/latest/rules/no-implicit-coercion) | Implemented |
+| [`no-implicit-coercion`](https://eslint.org/docs/latest/rules/no-implicit-coercion) | Implemented with optional `boolean`, `number`, and `string` category behavior |
 | [`no-implied-eval`](https://eslint.org/docs/latest/rules/no-implied-eval) | Implemented |
 | [`no-import-assign`](https://eslint.org/docs/latest/rules/no-import-assign) | Implemented |
 | [`no-inline-comments`](https://eslint.org/docs/latest/rules/no-inline-comments) | Implemented |

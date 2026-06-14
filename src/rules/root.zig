@@ -1981,7 +1981,7 @@ const BasicVisitor = struct {
             try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_implicit_coercion) {
-            try no_implicit_coercion.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try no_implicit_coercion.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noImplicitCoercionOptions());
         }
         if (self.options.typescript_eslint_no_confusing_non_null_assertion) {
             try typescript_eslint_no_confusing_non_null_assertion.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
@@ -2053,7 +2053,7 @@ const BasicVisitor = struct {
             try prefer_template.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_implicit_coercion) {
-            try no_implicit_coercion.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try no_implicit_coercion.checkBinaryExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noImplicitCoercionOptions());
         }
         if (self.options.no_path_concat) {
             try no_path_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
@@ -2085,9 +2085,17 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.no_implicit_coercion) {
-            try no_implicit_coercion.checkUnaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try no_implicit_coercion.checkUnaryExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noImplicitCoercionOptions());
         }
         return .proceed;
+    }
+
+    fn noImplicitCoercionOptions(self: *BasicVisitor) no_implicit_coercion.Options {
+        return .{
+            .boolean = self.options.no_implicit_coercion_boolean == .yes,
+            .number = self.options.no_implicit_coercion_number == .yes,
+            .string = self.options.no_implicit_coercion_string == .yes,
+        };
     }
 
     pub fn enter_update_expression(
