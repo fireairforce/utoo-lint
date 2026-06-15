@@ -187,9 +187,7 @@ fn templateStringValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]c
 }
 
 fn isGlobalObjectName(name: []const u8) bool {
-    return std.mem.eql(u8, name, "window") or
-        std.mem.eql(u8, name, "globalThis") or
-        std.mem.eql(u8, name, "global");
+    return std.mem.eql(u8, name, "globalThis");
 }
 
 fn isUnresolvedReference(
