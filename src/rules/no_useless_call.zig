@@ -68,6 +68,7 @@ fn isNullOrUndefined(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     return switch (tree.data(unwrapTransparent(tree, index))) {
         .null_literal => true,
         .identifier_reference => |identifier| std.mem.eql(u8, tree.string(identifier.name), "undefined"),
+        .unary_expression => |expression| expression.operator == .void,
         else => false,
     };
 }
