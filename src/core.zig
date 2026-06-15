@@ -233,6 +233,11 @@ pub const NoUnusedExpressionsAllowTaggedTemplates = enum {
     no,
 };
 
+pub const NoUseBeforeDefineCheck = enum {
+    yes,
+    no,
+};
+
 pub const NoParamReassignProps = enum {
     yes,
     no,
@@ -625,6 +630,8 @@ pub const Options = struct {
     use_isnan: bool = true,
     no_unused_vars: bool = true,
     no_use_before_define: bool = true,
+    no_use_before_define_check_functions: NoUseBeforeDefineCheck = .yes,
+    no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
     no_undef: bool = true,
     prefer_const: bool = true,
     prefer_const_destructuring: PreferConstDestructuring = .any,
@@ -725,6 +732,8 @@ pub const Options = struct {
     typescript_eslint_no_useless_empty_export: bool = true,
     typescript_eslint_no_unused_vars: bool = true,
     typescript_eslint_no_use_before_define: bool = true,
+    typescript_eslint_no_use_before_define_check_functions: NoUseBeforeDefineCheck = .no,
+    typescript_eslint_no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
     typescript_eslint_no_var_requires: bool = true,
     typescript_eslint_no_wrapper_object_types: bool = true,
     typescript_eslint_prefer_as_const: bool = true,
@@ -897,6 +906,14 @@ pub const Options = struct {
             self.no_unused_expressions_allow_short_circuit = try noUnusedExpressionsAllowShortCircuitFromConfig(value);
             self.no_unused_expressions_allow_ternary = try noUnusedExpressionsAllowTernaryFromConfig(value);
             self.no_unused_expressions_allow_tagged_templates = try noUnusedExpressionsAllowTaggedTemplatesFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-use-before-define")) {
+            self.no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", true);
+            self.no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-use-before-define")) {
+            self.typescript_eslint_no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", false);
+            self.typescript_eslint_no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
         }
         if (std.mem.eql(u8, cli_name, "no-void")) {
             self.no_void_allow_as_statement = try noVoidAllowAsStatementFromConfig(value);
@@ -1585,6 +1602,24 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (allow) .yes else .no;
+    }
+
+    fn noUseBeforeDefineCheckFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!NoUseBeforeDefineCheck {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return if (default) .yes else .no,
+        };
+        if (items.len < 2) return if (default) .yes else .no;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const enabled = switch (config.get(key) orelse return if (default) .yes else .no) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (enabled) .yes else .no;
     }
 
     fn noVoidAllowAsStatementFromConfig(value: std.json.Value) RuleConfigError!NoVoidAllowAsStatement {
@@ -2444,6 +2479,30 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUnusedExpressionsAllowShortCircuit.yes, options.no_unused_expressions_allow_short_circuit);
     try std.testing.expectEqual(NoUnusedExpressionsAllowTernary.yes, options.no_unused_expressions_allow_ternary);
     try std.testing.expectEqual(NoUnusedExpressionsAllowTaggedTemplates.no, options.no_unused_expressions_allow_tagged_templates);
+
+    var no_use_before_define_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"functions\":false,\"classes\":false}]",
+        .{},
+    );
+    defer no_use_before_define_config.deinit();
+    try options.setByRuleConfigValue("no-use-before-define", no_use_before_define_config.value);
+    try std.testing.expect(options.no_use_before_define);
+    try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_functions);
+    try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_classes);
+
+    var typescript_no_use_before_define_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"functions\":true,\"classes\":false}]",
+        .{},
+    );
+    defer typescript_no_use_before_define_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-use-before-define", typescript_no_use_before_define_config.value);
+    try std.testing.expect(options.typescript_eslint_no_use_before_define);
+    try std.testing.expectEqual(NoUseBeforeDefineCheck.yes, options.typescript_eslint_no_use_before_define_check_functions);
+    try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_classes);
 
     var no_void_config = try std.json.parseFromSlice(
         std.json.Value,

@@ -884,11 +884,17 @@ pub fn runSemantic(
     }
 
     if (options.no_use_before_define and !options.typescript_eslint_no_use_before_define) {
-        try no_use_before_define.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try no_use_before_define.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .check_functions = options.no_use_before_define_check_functions == .yes,
+            .check_classes = options.no_use_before_define_check_classes == .yes,
+        });
     }
 
     if (options.typescript_eslint_no_use_before_define) {
-        try typescript_eslint_no_use_before_define.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try typescript_eslint_no_use_before_define.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .check_functions = options.typescript_eslint_no_use_before_define_check_functions == .yes,
+            .check_classes = options.typescript_eslint_no_use_before_define_check_classes == .yes,
+        });
     }
 
     if (options.no_undef) {
