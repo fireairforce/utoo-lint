@@ -6,6 +6,8 @@ test "reports no-new for constructor calls used as statements" {
     const source =
         \\new Widget();
         \\new namespace.Widget(value);
+        \\(new Widget());
+        \\((new Widget()));
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -15,7 +17,7 @@ test "reports no-new for constructor calls used as statements" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_new.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_new.id));
 }
 
 test "does not report no-new when constructed values are used" {
