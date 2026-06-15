@@ -58,6 +58,20 @@ fn literalEnumValue(tree: *const ast.Tree, index: ast.NodeIndex) ?EnumValue {
         .string_literal => |literal| .{ .string = tree.string(literal.value) },
         .template_literal => |literal| templateLiteralValue(tree, literal),
         .numeric_literal => |literal| .{ .number = literal.value(tree) },
+        .unary_expression => |expression| signedNumericLiteralValue(tree, expression),
+        else => null,
+    };
+}
+
+fn signedNumericLiteralValue(tree: *const ast.Tree, expression: ast.UnaryExpression) ?EnumValue {
+    const number = switch (tree.data(expression.argument)) {
+        .numeric_literal => |literal| literal.value(tree),
+        else => return null,
+    };
+
+    return switch (expression.operator) {
+        .negate => .{ .number = -number },
+        .positive => .{ .number = number },
         else => null,
     };
 }

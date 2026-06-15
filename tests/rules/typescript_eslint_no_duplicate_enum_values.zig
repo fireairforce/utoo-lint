@@ -66,6 +66,27 @@ test "reports @typescript-eslint/no-duplicate-enum-values for template literal e
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_duplicate_enum_values.id));
 }
 
+test "reports @typescript-eslint/no-duplicate-enum-values for signed numeric enum values" {
+    const source =
+        \\enum Status {
+        \\  Failed = -1,
+        \\  AlsoFailed = -1,
+        \\  Started = 1,
+        \\  PositiveStarted = +1,
+        \\  NegativeTwo = -2,
+        \\  PositiveTwo = 2,
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.typescript_eslint_no_duplicate_enum_values.id));
+}
+
 test "ignores interpolated template enum initializers" {
     const source =
         \\const suffix = "ing";
