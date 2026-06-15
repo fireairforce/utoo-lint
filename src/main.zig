@@ -206,6 +206,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_control_regex = false;
         } else if (std.mem.eql(u8, arg, "--no-console=off")) {
             options.no_console = false;
+        } else if (std.mem.startsWith(u8, arg, "--no-console-allow=")) {
+            parseNoConsoleAllow(arg["--no-console-allow=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--no-comma-operator=off")) {
             options.no_comma_operator = false;
         } else if (std.mem.eql(u8, arg, "--no-continue=off")) {
@@ -1017,6 +1019,28 @@ fn parseEnabledRules(value: []const u8, options: *lint.Options) void {
     }
 }
 
+fn parseNoConsoleAllow(value: []const u8, options: *lint.Options) void {
+    if (value.len == 0) {
+        std.debug.print("utoo-lint: --no-console-allow requires a comma-separated method list\n", .{});
+        std.process.exit(2);
+    }
+
+    var allow: @TypeOf(options.no_console_allow) = .{};
+    var iter = std.mem.splitScalar(u8, value, ',');
+    while (iter.next()) |raw_method| {
+        const method = std.mem.trim(u8, raw_method, " \t\r\n");
+        if (method.len == 0) {
+            std.debug.print("utoo-lint: --no-console-allow contains an empty method name\n", .{});
+            std.process.exit(2);
+        }
+        if (!allow.enable(method)) {
+            std.debug.print("utoo-lint: unsupported --no-console-allow method: {s}\n", .{method});
+            std.process.exit(2);
+        }
+    }
+    options.no_console_allow = allow;
+}
+
 fn collectLintableDirectory(
     allocator: std.mem.Allocator,
     io: std.Io,
@@ -1359,6 +1383,7 @@ fn printHelp() void {
         \\  --no-control-regex=off   Disable no-control-regex
         \\  --no-comma-operator=off   Disable no-comma-operator
         \\  --no-console=off          Disable no-console
+        \\  --no-console-allow=warn,error Allow selected console methods
         \\  --no-continue=off         Disable no-continue
         \\  --no-constructor-return=off Disable no-constructor-return
         \\  --no-debugger=off         Disable no-debugger

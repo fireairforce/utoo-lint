@@ -2154,7 +2154,9 @@ const BasicVisitor = struct {
             try import_no_amd.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
         if (self.options.no_console) {
-            try no_console.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+            try no_console.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, index, .{
+                .allow = self.options.no_console_allow,
+            });
         }
         if (self.options.no_prototype_builtins) {
             try no_prototype_builtins.check(self.allocator, self.diagnostics, ctx.tree, call, index);
