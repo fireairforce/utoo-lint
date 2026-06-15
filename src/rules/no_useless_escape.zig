@@ -112,11 +112,18 @@ fn checkRegExpPattern(
 ) Allocator.Error!void {
     var offset: usize = 0;
     var in_class = false;
+    var class_start: ?usize = null;
 
     while (offset < pattern.len) {
         const char = pattern[offset];
-        if (char == '[') in_class = true;
-        if (char == ']' and in_class) in_class = false;
+        if (char == '[' and !in_class) {
+            in_class = true;
+            class_start = offset;
+        }
+        if (char == ']' and in_class) {
+            in_class = false;
+            class_start = null;
+        }
 
         if (char != '\\' or offset + 1 >= pattern.len) {
             offset += 1;
@@ -124,7 +131,7 @@ fn checkRegExpPattern(
         }
 
         const escaped = pattern[offset + 1];
-        if (!isNecessaryRegExpEscape(escaped, in_class)) {
+        if (!isNecessaryRegExpEscape(pattern, offset, escaped, in_class, class_start)) {
             try addDiagnostic(allocator, diagnostics, span, escaped);
         }
 
@@ -132,16 +139,22 @@ fn checkRegExpPattern(
     }
 }
 
-fn isNecessaryRegExpEscape(escaped: u8, in_class: bool) bool {
+fn isNecessaryRegExpEscape(
+    pattern: []const u8,
+    offset: usize,
+    escaped: u8,
+    in_class: bool,
+    class_start: ?usize,
+) bool {
     if (std.ascii.isAlphanumeric(escaped)) return true;
 
     if (in_class) {
         return switch (escaped) {
             '\\',
             ']',
-            '^',
-            '-',
             => true,
+            '^' => class_start != null and offset == class_start.? + 1,
+            '-' => isEscapedHyphenRangeOperator(pattern, offset, class_start),
             else => false,
         };
     }
@@ -165,6 +178,18 @@ fn isNecessaryRegExpEscape(escaped: u8, in_class: bool) bool {
         => true,
         else => false,
     };
+}
+
+fn isEscapedHyphenRangeOperator(pattern: []const u8, offset: usize, class_start: ?usize) bool {
+    const start = class_start orelse return false;
+    if (offset <= start + 1) return false;
+
+    var first_element = start + 1;
+    if (first_element < pattern.len and pattern[first_element] == '^') first_element += 1;
+    if (first_element >= offset) return false;
+
+    const after_escape = offset + 2;
+    return after_escape < pattern.len and pattern[after_escape] != ']';
 }
 
 fn addDiagnostic(
