@@ -8,6 +8,9 @@ test "reports no-prototype-builtins for direct object prototype method calls" {
         \\foo.isPrototypeOf(bar);
         \\foo.propertyIsEnumerable("bar");
         \\foo["hasOwnProperty"]("bar");
+        \\foo[`hasOwnProperty`]("bar");
+        \\foo[`isPrototypeOf`](bar);
+        \\foo[`propertyIsEnumerable`]("bar");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -17,15 +20,17 @@ test "reports no-prototype-builtins for direct object prototype method calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_prototype_builtins.id));
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_prototype_builtins.id));
 }
 
 test "does not report no-prototype-builtins for safe prototype calls or other members" {
     const source =
         \\Object.prototype.hasOwnProperty.call(foo, "bar");
         \\Object.prototype.propertyIsEnumerable.call(foo, "bar");
+        \\Object[`prototype`].hasOwnProperty.call(foo, "bar");
         \\foo.hasOwn("bar");
         \\foo[method]("bar");
+        \\foo[`has${suffix}`]("bar");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
