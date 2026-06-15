@@ -818,6 +818,10 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "func-names")) {
             self.func_names_style = try funcNamesStyleFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "logical-assignment-operators")) {
+            self.logical_assignment_operators_style = try logicalAssignmentOperatorsStyleFromConfig(value);
+            self.logical_assignment_operators_enforce_for_if_statements = try logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-console")) {
             self.no_console_allow = try noConsoleAllowFromConfig(value);
         }
@@ -975,6 +979,46 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "as-needed")) return .as_needed;
         if (std.mem.eql(u8, style, "never")) return .never;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn logicalAssignmentOperatorsStyleFromConfig(value: std.json.Value) RuleConfigError!LogicalAssignmentOperatorsStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            .object => return .always,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "always")) return .always;
+        if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value: std.json.Value) RuleConfigError!LogicalAssignmentOperatorsEnforceForIfStatements {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config_value = switch (items[1]) {
+            .object => items[1],
+            .string => if (items.len >= 3) items[2] else return .no,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const config = switch (config_value) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const enforce = switch (config.get("enforceForIfStatements") orelse return .no) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (enforce) .yes else .no;
     }
 
     fn noConsoleAllowFromConfig(value: std.json.Value) RuleConfigError!NoConsoleAllow {
@@ -1835,6 +1879,32 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("func-names", func_names_config.value);
     try std.testing.expect(options.func_names);
     try std.testing.expectEqual(FuncNamesStyle.never, options.func_names_style);
+
+    var logical_assignment_operators_never_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\"]",
+        .{},
+    );
+    defer logical_assignment_operators_never_config.deinit();
+    try options.setByRuleConfigValue("logical-assignment-operators", logical_assignment_operators_never_config.value);
+    try std.testing.expect(options.logical_assignment_operators);
+    try std.testing.expectEqual(LogicalAssignmentOperatorsStyle.never, options.logical_assignment_operators_style);
+
+    var logical_assignment_operators_if_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"always\",{\"enforceForIfStatements\":true}]",
+        .{},
+    );
+    defer logical_assignment_operators_if_config.deinit();
+    try options.setByRuleConfigValue("logical-assignment-operators", logical_assignment_operators_if_config.value);
+    try std.testing.expect(options.logical_assignment_operators);
+    try std.testing.expectEqual(LogicalAssignmentOperatorsStyle.always, options.logical_assignment_operators_style);
+    try std.testing.expectEqual(
+        LogicalAssignmentOperatorsEnforceForIfStatements.yes,
+        options.logical_assignment_operators_enforce_for_if_statements,
+    );
 
     var no_console_config = try std.json.parseFromSlice(
         std.json.Value,
