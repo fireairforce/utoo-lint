@@ -10,6 +10,8 @@ test "reports no-alert for global alert APIs" {
         \\window.alert("hello");
         \\globalThis.prompt("name");
         \\window["confirm"]("continue?");
+        \\window[`alert`]("hello");
+        \\globalThis[`prompt`]("name");
         \\(alert)("wrapped");
     ;
 
@@ -21,13 +23,30 @@ test "reports no-alert for global alert APIs" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_alert.id));
+    try std.testing.expectEqual(@as(usize, 9), helpers.countRule(result, lint.rules.no_alert.id));
 }
 
 test "does not report no-alert for shadowed alert" {
     const source =
         \\const alert = customAlert;
         \\alert("custom");
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_alert.id));
+}
+
+test "does not report no-alert for dynamic global member names" {
+    const source =
+        \\window[`al${suffix}`]("hello");
+        \\globalThis[name]("name");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
