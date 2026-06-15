@@ -41,6 +41,25 @@ test "reports no-import-assign for namespace import mutation" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_import_assign.id));
 }
 
+test "reports no-import-assign for imported bindings in destructuring assignment targets" {
+    const source =
+        \\import { a, b, c, d } from "mod";
+        \\({ x: a } = obj);
+        \\[b] = arr;
+        \\({ c = 1 } = obj);
+        \\[...d] = arr;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_import_assign.id));
+}
+
 test "does not report no-import-assign for local shadowing or imported object property writes" {
     const source =
         \\import def, { named } from "mod";
@@ -49,6 +68,9 @@ test "does not report no-import-assign for local shadowing or imported object pr
         \\named.value = replacement;
         \\function update(ns) {
         \\  ns.value = replacement;
+        \\}
+        \\function local(named) {
+        \\  ({ x: named } = obj);
         \\}
     ;
 

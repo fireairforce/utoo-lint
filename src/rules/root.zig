@@ -738,7 +738,7 @@ pub fn runSemantic(
     }
 
     if (reassignment_rules.shouldRun(options)) {
-        try reassignment_rules.run(allocator, diagnostics, tree, semantic_result.symbol_table, options);
+        try reassignment_rules.run(allocator, diagnostics, tree, semantic_result, options);
     }
 
     if (options.no_global_assign) {

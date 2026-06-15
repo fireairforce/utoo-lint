@@ -26,16 +26,17 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
+    semantic_result: traverser.semantic.Result,
     options: core.Options,
 ) Allocator.Error!void {
-    var reference_lookup = try buildReferenceLookup(allocator, symbol_table);
+    var reference_lookup = try buildReferenceLookup(allocator, semantic_result.symbol_table);
     defer reference_lookup.deinit();
 
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
-        .symbol_table = symbol_table,
+        .scope_tree = semantic_result.scope_tree,
+        .symbol_table = semantic_result.symbol_table,
         .reference_lookup = &reference_lookup,
         .options = options,
     };
@@ -47,6 +48,7 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    scope_tree: traverser.semantic.ScopeTree,
     symbol_table: traverser.semantic.SymbolTable,
     reference_lookup: *const ReferenceLookup,
     options: core.Options,
@@ -109,10 +111,7 @@ const Visitor = struct {
         diagnostic_node: ast.NodeIndex,
     ) Allocator.Error!void {
         const identifier = unwrapTransparent(tree, target);
-        const symbol_id = if (isIdentifierReference(tree, identifier))
-            self.reference_lookup.get(identifier) orelse .none
-        else
-            .none;
+        const symbol_id = self.symbolFromAssignmentTarget(tree, identifier);
 
         if (symbol_id != .none) {
             const symbol = self.symbol_table.getSymbol(symbol_id);
@@ -137,6 +136,61 @@ const Visitor = struct {
         if (self.options.no_import_assign and self.isForbiddenNamespaceMember(tree, target)) {
             try self.addDiagnostic(tree, diagnostic_node, no_import_assign.id, "Imported bindings are read-only.");
         }
+    }
+
+    fn symbolFromAssignmentTarget(self: *Visitor, tree: *const ast.Tree, target: ast.NodeIndex) traverser.semantic.SymbolId {
+        if (target == .null) return .none;
+
+        switch (tree.data(unwrapTransparent(tree, target))) {
+            .assignment_pattern => |pattern| return self.symbolFromAssignmentTarget(tree, pattern.left),
+            .binding_rest_element => |element| return self.symbolFromAssignmentTarget(tree, element.argument),
+            .array_pattern => |pattern| {
+                for (tree.extra(pattern.elements)) |element| {
+                    const symbol_id = self.symbolFromAssignmentTarget(tree, element);
+                    if (symbol_id != .none) return symbol_id;
+                }
+                return self.symbolFromAssignmentTarget(tree, pattern.rest);
+            },
+            .object_pattern => |pattern| {
+                for (tree.extra(pattern.properties)) |property_index| {
+                    const property = switch (tree.data(property_index)) {
+                        .binding_property => |property| property,
+                        else => continue,
+                    };
+                    const symbol_id = self.symbolFromAssignmentTarget(tree, property.value);
+                    if (symbol_id != .none) return symbol_id;
+                }
+                return self.symbolFromAssignmentTarget(tree, pattern.rest);
+            },
+            else => {},
+        }
+
+        if (isIdentifierReference(tree, target)) {
+            return self.reference_lookup.get(target) orelse .none;
+        }
+
+        const name = bindingIdentifierName(tree, target) orelse return .none;
+        const scope = self.innermostScopeContaining(tree, target);
+        return self.symbol_table.resolve(self.scope_tree, scope, name) orelse .none;
+    }
+
+    fn innermostScopeContaining(self: *Visitor, tree: *const ast.Tree, node: ast.NodeIndex) traverser.semantic.ScopeId {
+        const node_span = tree.span(node);
+        var best: traverser.semantic.ScopeId = if (tree.source_type == .module) .module else .root;
+        var best_len: u32 = std.math.maxInt(u32);
+
+        for (self.scope_tree.scopes, 0..) |scope, i| {
+            const scope_span = tree.span(scope.node);
+            if (scope_span.start > node_span.start or scope_span.end < node_span.end) continue;
+
+            const len = scope_span.end - scope_span.start;
+            if (len <= best_len) {
+                best = @enumFromInt(@as(u32, @intCast(i)));
+                best_len = len;
+            }
+        }
+
+        return best;
     }
 
     fn isForbiddenNamespaceMember(self: *Visitor, tree: *const ast.Tree, target: ast.NodeIndex) bool {
