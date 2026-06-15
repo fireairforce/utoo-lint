@@ -991,7 +991,9 @@ const BasicVisitor = struct {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, function.params);
         }
         if (self.options.no_param_reassign) {
-            try no_param_reassign.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
+            try no_param_reassign.checkFunctionWithOptions(self.allocator, self.diagnostics, ctx.tree, function, .{
+                .props = self.options.no_param_reassign_props == .yes,
+            });
         }
         if (self.options.no_inner_declarations) {
             try no_inner_declarations.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, ctx);
@@ -1938,7 +1940,9 @@ const BasicVisitor = struct {
             try no_shadow_restricted_names.checkFormalParameters(self.allocator, self.diagnostics, ctx.tree, expression.params);
         }
         if (self.options.no_param_reassign) {
-            try no_param_reassign.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression);
+            try no_param_reassign.checkArrowFunctionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
+                .props = self.options.no_param_reassign_props == .yes,
+            });
         }
         if (self.options.react_display_name) {
             try react_display_name.checkArrowFunction(self.allocator, ctx.tree, index, ctx.path.parent(), &self.react_display_name_state);

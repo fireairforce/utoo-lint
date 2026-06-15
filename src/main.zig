@@ -448,6 +448,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_object_constructor = false;
         } else if (std.mem.eql(u8, arg, "--no-param-reassign=off")) {
             options.no_param_reassign = false;
+        } else if (std.mem.eql(u8, arg, "--no-param-reassign-props=on")) {
+            options.no_param_reassign_props = .yes;
         } else if (std.mem.eql(u8, arg, "--no-path-concat=off")) {
             options.no_path_concat = false;
         } else if (std.mem.eql(u8, arg, "--no-plusplus=off")) {
@@ -1480,6 +1482,7 @@ fn printHelp() void {
         \\  --no-octal-escape=off     Disable no-octal-escape
         \\  --no-object-constructor=off Disable no-object-constructor
         \\  --no-param-reassign=off   Disable no-param-reassign
+        \\  --no-param-reassign-props=on Report parameter property writes
         \\  --no-path-concat=off      Disable no-path-concat
         \\  --no-plusplus=off         Disable no-plusplus
         \\  --no-plusplus-allow-for-loop-afterthoughts=on Allow ++/-- in for afterthoughts

@@ -9,11 +9,25 @@ pub const id = "no-param-reassign";
 
 const ParamSet = std.StringHashMapUnmanaged(void);
 
+pub const Options = struct {
+    props: bool = false,
+};
+
 pub fn checkFunction(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     function: ast.Function,
+) Allocator.Error!void {
+    try checkFunctionWithOptions(allocator, diagnostics, tree, function, .{});
+}
+
+pub fn checkFunctionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    function: ast.Function,
+    options: Options,
 ) Allocator.Error!void {
     var params: ParamSet = .empty;
     defer params.deinit(allocator);
@@ -21,7 +35,7 @@ pub fn checkFunction(
     try collectFormalParameters(allocator, tree, function.params, &params);
     if (params.size == 0 or function.body == .null) return;
 
-    try scanNode(allocator, diagnostics, tree, &params, function.body);
+    try scanNode(allocator, diagnostics, tree, &params, function.body, options);
 }
 
 pub fn checkArrowFunction(
@@ -30,13 +44,23 @@ pub fn checkArrowFunction(
     tree: *const ast.Tree,
     expression: ast.ArrowFunctionExpression,
 ) Allocator.Error!void {
+    try checkArrowFunctionWithOptions(allocator, diagnostics, tree, expression, .{});
+}
+
+pub fn checkArrowFunctionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.ArrowFunctionExpression,
+    options: Options,
+) Allocator.Error!void {
     var params: ParamSet = .empty;
     defer params.deinit(allocator);
 
     try collectFormalParameters(allocator, tree, expression.params, &params);
     if (params.size == 0) return;
 
-    try scanNode(allocator, diagnostics, tree, &params, expression.body);
+    try scanNode(allocator, diagnostics, tree, &params, expression.body, options);
 }
 
 fn collectFormalParameters(
@@ -101,20 +125,38 @@ fn scanNode(
     tree: *const ast.Tree,
     params: *const ParamSet,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     if (index == .null) return;
 
     switch (tree.data(index)) {
         .assignment_expression => |expression| {
-            try checkTarget(allocator, diagnostics, tree, params, expression.left);
-            try scanNode(allocator, diagnostics, tree, params, expression.right);
+            try checkTarget(allocator, diagnostics, tree, params, expression.left, options);
+            try scanNode(allocator, diagnostics, tree, params, expression.right, options);
         },
-        .update_expression => |expression| try checkTarget(allocator, diagnostics, tree, params, expression.argument),
-        .function => |function| try scanNestedFunction(allocator, diagnostics, tree, params, function),
-        .arrow_function_expression => |expression| try scanNestedArrowFunction(allocator, diagnostics, tree, params, expression),
+        .update_expression => |expression| try checkTarget(allocator, diagnostics, tree, params, expression.argument, options),
+        .unary_expression => |expression| {
+            if (expression.operator == .delete) {
+                try checkTarget(allocator, diagnostics, tree, params, expression.argument, options);
+            } else {
+                try scanNode(allocator, diagnostics, tree, params, expression.argument, options);
+            }
+        },
+        .for_in_statement => |statement| {
+            try checkTarget(allocator, diagnostics, tree, params, statement.left, options);
+            try scanNode(allocator, diagnostics, tree, params, statement.right, options);
+            try scanNode(allocator, diagnostics, tree, params, statement.body, options);
+        },
+        .for_of_statement => |statement| {
+            try checkTarget(allocator, diagnostics, tree, params, statement.left, options);
+            try scanNode(allocator, diagnostics, tree, params, statement.right, options);
+            try scanNode(allocator, diagnostics, tree, params, statement.body, options);
+        },
+        .function => |function| try scanNestedFunction(allocator, diagnostics, tree, params, function, options),
+        .arrow_function_expression => |expression| try scanNestedArrowFunction(allocator, diagnostics, tree, params, expression, options),
         .class,
         => return,
-        inline else => |node| try scanChildren(allocator, diagnostics, tree, params, @TypeOf(node), node),
+        inline else => |node| try scanChildren(allocator, diagnostics, tree, params, @TypeOf(node), node, options),
     }
 }
 
@@ -124,6 +166,7 @@ fn scanNestedFunction(
     tree: *const ast.Tree,
     params: *const ParamSet,
     function: ast.Function,
+    options: Options,
 ) Allocator.Error!void {
     if (function.body == .null) return;
 
@@ -131,7 +174,7 @@ fn scanNestedFunction(
     defer filtered.deinit(allocator);
 
     if (filtered.size == 0) return;
-    try scanNode(allocator, diagnostics, tree, &filtered, function.body);
+    try scanNode(allocator, diagnostics, tree, &filtered, function.body, options);
 }
 
 fn scanNestedArrowFunction(
@@ -140,12 +183,13 @@ fn scanNestedArrowFunction(
     tree: *const ast.Tree,
     params: *const ParamSet,
     expression: ast.ArrowFunctionExpression,
+    options: Options,
 ) Allocator.Error!void {
     var filtered = try filterShadowedParams(allocator, tree, params, expression.params, expression.body);
     defer filtered.deinit(allocator);
 
     if (filtered.size == 0) return;
-    try scanNode(allocator, diagnostics, tree, &filtered, expression.body);
+    try scanNode(allocator, diagnostics, tree, &filtered, expression.body, options);
 }
 
 fn filterShadowedParams(
@@ -231,15 +275,16 @@ fn scanChildren(
     params: *const ParamSet,
     comptime T: type,
     node: T,
+    options: Options,
 ) Allocator.Error!void {
     if (@typeInfo(T) != .@"struct") return;
 
     inline for (@typeInfo(T).@"struct".fields) |field| {
         if (field.type == ast.NodeIndex) {
-            try scanNode(allocator, diagnostics, tree, params, @field(node, field.name));
+            try scanNode(allocator, diagnostics, tree, params, @field(node, field.name), options);
         } else if (field.type == ast.IndexRange) {
             for (tree.extra(@field(node, field.name))) |child| {
-                try scanNode(allocator, diagnostics, tree, params, child);
+                try scanNode(allocator, diagnostics, tree, params, child, options);
             }
         }
     }
@@ -251,6 +296,7 @@ fn checkTarget(
     tree: *const ast.Tree,
     params: *const ParamSet,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     if (index == .null) return;
 
@@ -269,12 +315,27 @@ fn checkTarget(
                 .{name},
             );
         },
-        .assignment_pattern => |pattern| try checkTarget(allocator, diagnostics, tree, params, pattern.left),
+        .member_expression => |member| {
+            if (!options.props) return;
+            const name = rootIdentifierReferenceName(tree, member.object) orelse return;
+            if (!params.contains(name)) return;
+
+            try core.addDiagnosticFmt(
+                allocator,
+                diagnostics,
+                .warning,
+                id,
+                tree.span(index),
+                "Assignment to property of function parameter '{s}'.",
+                .{name},
+            );
+        },
+        .assignment_pattern => |pattern| try checkTarget(allocator, diagnostics, tree, params, pattern.left, options),
         .array_pattern => |pattern| {
             for (tree.extra(pattern.elements)) |element| {
-                try checkTarget(allocator, diagnostics, tree, params, element);
+                try checkTarget(allocator, diagnostics, tree, params, element, options);
             }
-            try checkTarget(allocator, diagnostics, tree, params, pattern.rest);
+            try checkTarget(allocator, diagnostics, tree, params, pattern.rest, options);
         },
         .object_pattern => |pattern| {
             for (tree.extra(pattern.properties)) |property_index| {
@@ -282,13 +343,21 @@ fn checkTarget(
                     .binding_property => |property| property,
                     else => continue,
                 };
-                try checkTarget(allocator, diagnostics, tree, params, property.value);
+                try checkTarget(allocator, diagnostics, tree, params, property.value, options);
             }
-            try checkTarget(allocator, diagnostics, tree, params, pattern.rest);
+            try checkTarget(allocator, diagnostics, tree, params, pattern.rest, options);
         },
-        .binding_rest_element => |element| try checkTarget(allocator, diagnostics, tree, params, element.argument),
+        .binding_rest_element => |element| try checkTarget(allocator, diagnostics, tree, params, element.argument, options),
         else => {},
     }
+}
+
+fn rootIdentifierReferenceName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .identifier_reference => |identifier| tree.string(identifier.name),
+        .member_expression => |member| rootIdentifierReferenceName(tree, member.object),
+        else => null,
+    };
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
