@@ -3,6 +3,7 @@ const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
+const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 pub const id = "no-void";
@@ -27,11 +28,11 @@ pub fn checkWithOptions(
     tree: *const ast.Tree,
     expression: ast.UnaryExpression,
     index: ast.NodeIndex,
-    parent: ?ast.NodeIndex,
+    path: ?*const traverser.NodePath,
     options: Options,
 ) Allocator.Error!void {
     if (expression.operator != .void) return;
-    if (options.allow_as_statement and isExpressionStatementParent(tree, index, parent)) return;
+    if (options.allow_as_statement and isExpressionStatementUse(tree, index, path)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -43,10 +44,25 @@ pub fn checkWithOptions(
     );
 }
 
-fn isExpressionStatementParent(tree: *const ast.Tree, index: ast.NodeIndex, parent: ?ast.NodeIndex) bool {
-    const parent_index = parent orelse return false;
-    return switch (tree.data(parent_index)) {
-        .expression_statement => |statement| statement.expression == index,
-        else => false,
-    };
+fn isExpressionStatementUse(
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    path: ?*const traverser.NodePath,
+) bool {
+    const node_path = path orelse return false;
+    var current = index;
+    var depth: usize = 1;
+
+    while (node_path.ancestor(depth)) |parent| : (depth += 1) {
+        switch (tree.data(parent)) {
+            .parenthesized_expression => |expression| {
+                if (expression.expression != current) return false;
+                current = parent;
+            },
+            .expression_statement => |statement| return statement.expression == current,
+            else => return false,
+        }
+    }
+
+    return false;
 }
