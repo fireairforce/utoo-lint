@@ -8,6 +8,8 @@ test "reports no-path-concat for dirname and filename path string concatenation"
         \\const second = __filename + "\\foo.js";
         \\const third = "/tmp/" + __dirname;
         \\const fourth = (__dirname) + `/foo.js`;
+        \\const fifth = __filename + ".bak";
+        \\const sixth = __dirname + `${name}.js`;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -18,15 +20,13 @@ test "reports no-path-concat for dirname and filename path string concatenation"
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_path_concat.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_path_concat.id));
 }
 
 test "does not report no-path-concat for non-path concatenation or path helpers" {
     const source =
         \\const name = __dirname + suffix;
-        \\const label = __filename + ".bak";
         \\const joined = path.join(__dirname, "foo.js");
-        \\const dynamic = __dirname + `${name}.js`;
         \\const ordinary = dirname + "/foo.js";
     ;
 

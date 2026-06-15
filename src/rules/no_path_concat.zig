@@ -44,26 +44,11 @@ fn isPathMetaIdentifier(tree: *const ast.Tree, index: ast.NodeIndex) bool {
 
 fn isStringLikePathPart(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     return switch (tree.data(unwrapTransparent(tree, index))) {
-        .string_literal => |literal| containsPathSeparator(tree.string(literal.value)),
-        .template_literal => |template| template.expressions.len == 0 and containsPathSeparator(sourceSlice(tree, index) orelse ""),
+        .string_literal,
+        .template_literal,
+        => true,
         else => false,
     };
-}
-
-fn containsPathSeparator(value: []const u8) bool {
-    return std.mem.indexOfScalar(u8, value, '/') != null or
-        std.mem.indexOfScalar(u8, value, '\\') != null;
-}
-
-fn sourceSlice(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
-    if (index == .null) return null;
-
-    const span = tree.span(unwrapTransparent(tree, index));
-    const start: usize = @intCast(span.start);
-    const end: usize = @intCast(span.end);
-
-    if (start >= end or end > tree.source.len) return null;
-    return tree.source[start..end];
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
