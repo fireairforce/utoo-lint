@@ -835,6 +835,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "spaced-comment")) {
             self.spaced_comment_style = try spacedCommentStyleFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "wrap-iife")) {
+            self.wrap_iife_style = try wrapIifeStyleFromConfig(value);
+        }
     }
 
     pub const RuleConfigError = error{
@@ -1303,6 +1306,23 @@ pub const Options = struct {
         };
         if (std.mem.eql(u8, style, "always")) return .always;
         if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn wrapIifeStyleFromConfig(value: std.json.Value) RuleConfigError!WrapIifeStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .outside,
+        };
+        if (items.len < 2) return .outside;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "outside")) return .outside;
+        if (std.mem.eql(u8, style, "inside")) return .inside;
+        if (std.mem.eql(u8, style, "any")) return .any;
         return error.UnsupportedRuleConfigValue;
     }
 
@@ -1865,6 +1885,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("spaced-comment", spaced_comment_config.value);
     try std.testing.expect(options.spaced_comment);
     try std.testing.expectEqual(SpacedCommentStyle.never, options.spaced_comment_style);
+
+    var wrap_iife_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"inside\"]",
+        .{},
+    );
+    defer wrap_iife_config.deinit();
+    try options.setByRuleConfigValue("wrap-iife", wrap_iife_config.value);
+    try std.testing.expect(options.wrap_iife);
+    try std.testing.expectEqual(WrapIifeStyle.inside, options.wrap_iife_style);
 
     try std.testing.expectError(
         Options.RuleConfigError.UnsupportedRuleConfigValue,
