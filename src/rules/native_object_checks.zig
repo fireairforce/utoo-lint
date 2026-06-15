@@ -112,6 +112,11 @@ fn globalObjectName(
 
     const member = switch (tree.data(unwrapped)) {
         .member_expression => |member| member,
+        .sequence_expression => |sequence| {
+            const expressions = tree.extra(sequence.expressions);
+            if (expressions.len == 0) return null;
+            return globalObjectName(tree, symbol_table, expressions[expressions.len - 1]);
+        },
         else => return null,
     };
 
