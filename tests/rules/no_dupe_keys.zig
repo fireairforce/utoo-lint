@@ -23,7 +23,7 @@ test "reports no-dupe-keys for duplicate object literal keys" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_dupe_keys.id));
 }
 
-test "does not report no-dupe-keys for computed keys or getter setter pairs" {
+test "does not report no-dupe-keys for dynamic computed keys or getter setter pairs" {
     const source =
         \\const object = {
         \\  [alpha]: 1,
@@ -42,6 +42,51 @@ test "does not report no-dupe-keys for computed keys or getter setter pairs" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_dupe_keys.id));
+}
+
+test "reports no-dupe-keys for static computed object keys" {
+    const source =
+        \\const object = {
+        \\  alpha: 1,
+        \\  ["alpha"]: 2,
+        \\  [`beta`]: 1,
+        \\  beta: 2,
+        \\  [0x1]: 1,
+        \\  1: 2,
+        \\};
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_useless_computed_key = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_dupe_keys.id));
+}
+
+test "does not compare prototype setters with computed __proto__ keys" {
+    const source =
+        \\const object = {
+        \\  "__proto__": proto,
+        \\  ["__proto__"]: value,
+        \\  [`__proto__`]: other,
+        \\};
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_useless_computed_key = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_dupe_keys.id));
 }
 
 test "reports no-dupe-keys for equivalent numeric object keys" {
