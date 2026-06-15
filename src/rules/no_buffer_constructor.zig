@@ -12,12 +12,11 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
+    _: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
-        .symbol_table = symbol_table,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -26,7 +25,6 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
-    symbol_table: traverser.semantic.SymbolTable,
 
     pub fn enter_new_expression(
         self: *Visitor,
@@ -34,7 +32,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (isGlobalBufferReference(ctx.tree, self.symbol_table, expression.callee)) {
+        if (isBufferConstructorCallee(ctx.tree, expression.callee)) {
             try self.addDiagnostic(ctx.tree, index);
         }
 
@@ -47,7 +45,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (isGlobalBufferReference(ctx.tree, self.symbol_table, call.callee)) {
+        if (isBufferConstructorCallee(ctx.tree, call.callee)) {
             try self.addDiagnostic(ctx.tree, index);
         }
 
@@ -66,15 +64,11 @@ const Visitor = struct {
     }
 };
 
-fn isGlobalBufferReference(
-    tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
-    index: ast.NodeIndex,
-) bool {
+fn isBufferConstructorCallee(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     const unwrapped = unwrapTransparent(tree, index);
     const name = identifierReferenceName(tree, unwrapped) orelse return false;
 
-    return std.mem.eql(u8, name, "Buffer") and isUnresolvedReference(symbol_table, unwrapped);
+    return std.mem.eql(u8, name, "Buffer");
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
@@ -98,18 +92,4 @@ fn identifierReferenceName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const
         .identifier_reference => |identifier| tree.string(identifier.name),
         else => null,
     };
-}
-
-fn isUnresolvedReference(
-    symbol_table: traverser.semantic.SymbolTable,
-    node: ast.NodeIndex,
-) bool {
-    var iter = symbol_table.iterReferences();
-    while (iter.next()) |entry| {
-        if (entry.reference.node == node) {
-            return symbol_table.referenceSymbol(entry.id) == .none;
-        }
-    }
-
-    return false;
 }
