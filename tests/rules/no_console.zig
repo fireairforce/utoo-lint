@@ -21,6 +21,8 @@ test "allows configured no-console methods" {
     const source =
         \\console.warn(value);
         \\console["error"](value);
+        \\console[`warn`](value);
+        \\console[`wa${suffix}`](value);
         \\console.log(value);
     ;
 
@@ -36,7 +38,7 @@ test "allows configured no-console methods" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_console.id));
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_console.id));
 }
 
 test "can disable no-console" {
