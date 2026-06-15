@@ -29,7 +29,7 @@ pub fn check(
     const has_bound_arguments = call.arguments.len > 1;
 
     const is_extra = switch (tree.data(target)) {
-        .arrow_function_expression => true,
+        .arrow_function_expression => !has_bound_arguments,
         .function => |function| !has_bound_arguments and !functionUsesThis(tree, function),
         else => false,
     };

@@ -49,6 +49,7 @@ test "does not report no-extra-bind when this or bound arguments are used" {
         \\const second = function (value) {
         \\  return value + 1;
         \\}.bind(context, value);
+        \\const third = ((value) => value + 1).bind(context, value);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
