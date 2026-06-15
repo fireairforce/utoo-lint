@@ -1492,6 +1492,7 @@ fn printHelp() void {
         \\  --no-empty-character-class=off Disable no-empty-character-class
         \\  --no-empty-function=off Disable no-empty-function
         \\  --no-empty-function-allow=functions,arrowFunctions Allow selected empty function kinds
+        \\      also supports asyncFunctions,generatorFunctions,methods,asyncMethods,generatorMethods,getters,setters,constructors
         \\  --no-empty-pattern=off  Disable no-empty-pattern
         \\  --no-empty-static-block=off Disable no-empty-static-block
         \\  --no-else-return=off    Disable no-else-return

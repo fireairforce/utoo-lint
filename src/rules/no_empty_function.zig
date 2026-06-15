@@ -10,7 +10,13 @@ pub const id = "no-empty-function";
 pub const Kind = enum {
     functions,
     arrowFunctions,
+    generatorFunctions,
+    asyncFunctions,
     methods,
+    generatorMethods,
+    asyncMethods,
+    getters,
+    setters,
     constructors,
 };
 
@@ -55,7 +61,13 @@ fn allowsKind(allow: core.NoEmptyFunctionAllow, kind: Kind) bool {
     return switch (kind) {
         .functions => allow.functions,
         .arrowFunctions => allow.arrowFunctions,
+        .generatorFunctions => allow.generatorFunctions,
+        .asyncFunctions => allow.asyncFunctions,
         .methods => allow.methods,
+        .generatorMethods => allow.generatorMethods,
+        .asyncMethods => allow.asyncMethods,
+        .getters => allow.getters,
+        .setters => allow.setters,
         .constructors => allow.constructors,
     };
 }

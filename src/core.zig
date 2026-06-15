@@ -71,7 +71,13 @@ pub const NoEmptyAllowEmptyCatch = enum {
 pub const NoEmptyFunctionAllow = struct {
     functions: bool = false,
     arrowFunctions: bool = false,
+    generatorFunctions: bool = false,
+    asyncFunctions: bool = false,
     methods: bool = false,
+    generatorMethods: bool = false,
+    asyncMethods: bool = false,
+    getters: bool = false,
+    setters: bool = false,
     constructors: bool = false,
 
     pub fn contains(self: NoEmptyFunctionAllow, name: []const u8) bool {
@@ -1588,6 +1594,21 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_empty_function_allow.functions);
     try std.testing.expect(options.no_empty_function_allow.constructors);
     try std.testing.expect(!options.no_empty_function_allow.arrowFunctions);
+
+    var no_empty_function_extended_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"asyncFunctions\",\"generatorFunctions\",\"asyncMethods\",\"generatorMethods\",\"getters\",\"setters\"]}]",
+        .{},
+    );
+    defer no_empty_function_extended_config.deinit();
+    try options.setByRuleConfigValue("no-empty-function", no_empty_function_extended_config.value);
+    try std.testing.expect(options.no_empty_function_allow.asyncFunctions);
+    try std.testing.expect(options.no_empty_function_allow.generatorFunctions);
+    try std.testing.expect(options.no_empty_function_allow.asyncMethods);
+    try std.testing.expect(options.no_empty_function_allow.generatorMethods);
+    try std.testing.expect(options.no_empty_function_allow.getters);
+    try std.testing.expect(options.no_empty_function_allow.setters);
 
     var no_fallthrough_config = try std.json.parseFromSlice(
         std.json.Value,
