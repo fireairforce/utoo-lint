@@ -830,6 +830,11 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-fallthrough")) {
             self.no_fallthrough_allow_empty_case = try noFallthroughAllowEmptyCaseFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-implicit-coercion")) {
+            self.no_implicit_coercion_boolean = try noImplicitCoercionBooleanFromConfig(value);
+            self.no_implicit_coercion_number = try noImplicitCoercionNumberFromConfig(value);
+            self.no_implicit_coercion_string = try noImplicitCoercionStringFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-multi-spaces")) {
             self.no_multi_spaces_ignore_eol_comments = try noMultiSpacesIgnoreEOLCommentsFromConfig(value);
         }
@@ -1062,6 +1067,38 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (allow) .yes else .no;
+    }
+
+    fn noImplicitCoercionBooleanFromConfig(value: std.json.Value) RuleConfigError!NoImplicitCoercionBoolean {
+        const enabled = try noImplicitCoercionOptionFromConfig(value, "boolean");
+        return if (enabled) .yes else .no;
+    }
+
+    fn noImplicitCoercionNumberFromConfig(value: std.json.Value) RuleConfigError!NoImplicitCoercionNumber {
+        const enabled = try noImplicitCoercionOptionFromConfig(value, "number");
+        return if (enabled) .yes else .no;
+    }
+
+    fn noImplicitCoercionStringFromConfig(value: std.json.Value) RuleConfigError!NoImplicitCoercionString {
+        const enabled = try noImplicitCoercionOptionFromConfig(value, "string");
+        return if (enabled) .yes else .no;
+    }
+
+    fn noImplicitCoercionOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return true,
+        };
+        if (items.len < 2) return true;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return true) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noMultiSpacesIgnoreEOLCommentsFromConfig(value: std.json.Value) RuleConfigError!NoMultiSpacesIgnoreEOLComments {
@@ -1861,6 +1898,19 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-fallthrough", no_fallthrough_config.value);
     try std.testing.expect(options.no_fallthrough);
     try std.testing.expectEqual(NoFallthroughAllowEmptyCase.yes, options.no_fallthrough_allow_empty_case);
+
+    var no_implicit_coercion_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"boolean\":false,\"number\":false,\"string\":true}]",
+        .{},
+    );
+    defer no_implicit_coercion_config.deinit();
+    try options.setByRuleConfigValue("no-implicit-coercion", no_implicit_coercion_config.value);
+    try std.testing.expect(options.no_implicit_coercion);
+    try std.testing.expectEqual(NoImplicitCoercionBoolean.no, options.no_implicit_coercion_boolean);
+    try std.testing.expectEqual(NoImplicitCoercionNumber.no, options.no_implicit_coercion_number);
+    try std.testing.expectEqual(NoImplicitCoercionString.yes, options.no_implicit_coercion_string);
 
     var no_multi_spaces_config = try std.json.parseFromSlice(
         std.json.Value,
