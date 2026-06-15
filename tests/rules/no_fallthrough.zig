@@ -30,7 +30,7 @@ test "reports no-fallthrough for non-empty cases without abrupt completion" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_fallthrough.id));
 }
 
-test "does not report no-fallthrough for break, return, throw, empty case, or fallthrough comments" {
+test "does not report no-fallthrough for break, return, throw, adjacent empty case, or fallthrough comments" {
     const source =
         \\function run(value) {
         \\  switch (value) {
@@ -52,6 +52,47 @@ test "does not report no-fallthrough for break, return, throw, empty case, or fa
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_fallthrough.id));
+}
+
+test "reports no-fallthrough for separated empty cases by default" {
+    const source =
+        \\switch (value) {
+        \\  case 1:
+        \\
+        \\  case 2:
+        \\    two();
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_fallthrough.id));
+}
+
+test "allows separated empty cases when configured" {
+    const source =
+        \\switch (value) {
+        \\  case 1:
+        \\
+        \\  case 2:
+        \\    two();
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_fallthrough_allow_empty_case = .yes,
         .no_undef = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,

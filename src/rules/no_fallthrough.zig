@@ -7,11 +7,25 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-fallthrough";
 
+pub const Options = struct {
+    allow_empty_case: bool = false,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     statement: ast.SwitchStatement,
+) Allocator.Error!void {
+    try checkWithOptions(allocator, diagnostics, tree, statement, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    statement: ast.SwitchStatement,
+    options: Options,
 ) Allocator.Error!void {
     const cases = tree.extra(statement.cases);
     if (cases.len < 2) return;
@@ -22,9 +36,12 @@ pub fn check(
             else => continue,
         };
 
-        if (switch_case.consequent.len == 0) continue;
-        if (caseAlwaysExits(tree, switch_case)) continue;
-        if (hasFallthroughComment(tree, switch_case, next_case_index)) continue;
+        if (switch_case.consequent.len == 0) {
+            if (allowsEmptyCase(tree, case_index, next_case_index, options)) continue;
+        } else {
+            if (caseAlwaysExits(tree, switch_case)) continue;
+            if (hasFallthroughComment(tree, switch_case, next_case_index)) continue;
+        }
 
         try core.addDiagnostic(
             allocator,
@@ -35,6 +52,18 @@ pub fn check(
             tree.span(case_index),
         );
     }
+}
+
+fn allowsEmptyCase(tree: *const ast.Tree, case_index: ast.NodeIndex, next_case_index: ast.NodeIndex, options: Options) bool {
+    if (options.allow_empty_case) return true;
+    if (caseLabelsAreAdjacent(tree, case_index, next_case_index)) return true;
+    return hasFallthroughCommentBetween(tree, tree.span(case_index).end, tree.span(next_case_index).start);
+}
+
+fn caseLabelsAreAdjacent(tree: *const ast.Tree, case_index: ast.NodeIndex, next_case_index: ast.NodeIndex) bool {
+    const current = offsetToLine(tree.source, tree.span(case_index).end);
+    const next = offsetToLine(tree.source, tree.span(next_case_index).start);
+    return next <= current + 1;
 }
 
 fn caseAlwaysExits(tree: *const ast.Tree, switch_case: ast.SwitchCase) bool {
@@ -80,6 +109,12 @@ fn hasFallthroughComment(tree: *const ast.Tree, switch_case: ast.SwitchCase, nex
     const end: u32 = next_span.start;
     if (start > end) return false;
 
+    return hasFallthroughCommentBetween(tree, start, end);
+}
+
+fn hasFallthroughCommentBetween(tree: *const ast.Tree, start: u32, end: u32) bool {
+    if (start > end) return false;
+
     for (tree.comments) |comment| {
         if (comment.start < start or comment.end > end) continue;
         if (isFallthroughComment(tree.string(comment.value))) return true;
@@ -100,4 +135,15 @@ fn isFallthroughComment(comment: []const u8) bool {
     return std.mem.indexOf(u8, lower, "fallthrough") != null or
         std.mem.indexOf(u8, lower, "fall through") != null or
         std.mem.indexOf(u8, lower, "falls through") != null;
+}
+
+fn offsetToLine(source: []const u8, offset: u32) usize {
+    const limit = @min(@as(usize, @intCast(offset)), source.len);
+    var line: usize = 1;
+
+    for (source[0..limit]) |byte| {
+        if (byte == '\n') line += 1;
+    }
+
+    return line;
 }

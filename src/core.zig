@@ -68,6 +68,11 @@ pub const NoEmptyAllowEmptyCatch = enum {
     no,
 };
 
+pub const NoFallthroughAllowEmptyCase = enum {
+    yes,
+    no,
+};
+
 pub const NoUnderscoreDangleAllowFunctionParams = enum {
     yes,
     no,
@@ -283,6 +288,7 @@ pub const Options = struct {
     no_extra_boolean_cast: bool = true,
     no_floating_decimal: bool = true,
     no_fallthrough: bool = true,
+    no_fallthrough_allow_empty_case: NoFallthroughAllowEmptyCase = .no,
     no_for_in: bool = true,
     no_func_assign: bool = true,
     no_global_assign: bool = true,
@@ -645,6 +651,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-empty")) {
             self.no_empty_allow_empty_catch = try noEmptyAllowEmptyCatchFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-fallthrough")) {
+            self.no_fallthrough_allow_empty_case = try noFallthroughAllowEmptyCaseFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-useless-computed-key")) {
             self.no_useless_computed_key_enforce_for_class_members = try noUselessComputedKeyEnforceForClassMembersFromConfig(value);
         }
@@ -773,6 +782,24 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         const allow = switch (config.get("allowEmptyCatch") orelse return .no) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (allow) .yes else .no;
+    }
+
+    fn noFallthroughAllowEmptyCaseFromConfig(value: std.json.Value) RuleConfigError!NoFallthroughAllowEmptyCase {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allowEmptyCase") orelse return .no) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -1180,6 +1207,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-empty", no_empty_config.value);
     try std.testing.expect(options.no_empty);
     try std.testing.expectEqual(NoEmptyAllowEmptyCatch.yes, options.no_empty_allow_empty_catch);
+
+    var no_fallthrough_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowEmptyCase\":true}]",
+        .{},
+    );
+    defer no_fallthrough_config.deinit();
+    try options.setByRuleConfigValue("no-fallthrough", no_fallthrough_config.value);
+    try std.testing.expect(options.no_fallthrough);
+    try std.testing.expectEqual(NoFallthroughAllowEmptyCase.yes, options.no_fallthrough_allow_empty_case);
 
     var no_useless_computed_key_config = try std.json.parseFromSlice(
         std.json.Value,
