@@ -81,7 +81,7 @@ fn isImpliedEvalCallee(
 
     const object = unwrapTransparent(tree, member.object);
     const object_name = identifierReferenceName(tree, object) orelse return false;
-    return isGlobalObjectName(object_name) and isUnresolvedReference(symbol_table, object);
+    return isImpliedEvalGlobalObjectName(object_name) and isUnresolvedReference(symbol_table, object);
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
@@ -140,10 +140,8 @@ fn isImpliedEvalName(name: []const u8) bool {
         std.mem.eql(u8, name, "execScript");
 }
 
-fn isGlobalObjectName(name: []const u8) bool {
-    return std.mem.eql(u8, name, "window") or
-        std.mem.eql(u8, name, "globalThis") or
-        std.mem.eql(u8, name, "global");
+fn isImpliedEvalGlobalObjectName(name: []const u8) bool {
+    return std.mem.eql(u8, name, "globalThis");
 }
 
 fn isUnresolvedReference(
