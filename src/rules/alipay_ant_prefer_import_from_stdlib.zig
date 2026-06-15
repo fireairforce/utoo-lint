@@ -11,8 +11,8 @@ pub const id = "@alipay/ant/prefer-import-from-stdlib";
 const max_config_file_size = 1024 * 1024;
 
 const ProjectType = enum {
-    smallfish,
-    minifish,
+    appfw,
+    appmini,
     other,
 };
 
@@ -26,7 +26,7 @@ const stdlib_packages = [_]StdlibPackage{
     .{ .name = "lodash", .stdlib_path = "lodash", .version = 4 },
     .{ .name = "classnames", .stdlib_path = "classnames", .version = 2 },
     .{ .name = "lodash-es", .stdlib_path = "lodash", .version = 4 },
-    .{ .name = "@alipay/fm-request", .stdlib_path = "request", .version = 1 },
+    .{ .name = "@example/request", .stdlib_path = "request", .version = 1 },
     .{ .name = "dayjs", .stdlib_path = "dayjs", .version = 1 },
     .{ .name = "zustand", .stdlib_path = "zustand", .version = 4 },
 };
@@ -45,8 +45,8 @@ pub fn run(
 
     const project_type = detectProjectType(allocator, io, project_root) catch .other;
     const stdlib_package = switch (project_type) {
-        .smallfish => "smallfish:stdlib",
-        .minifish => "@alipay/stdlib",
+        .appfw => "appfw:stdlib",
+        .appmini => "@example/stdlib",
         .other => return,
     };
 
@@ -131,12 +131,12 @@ fn parsePackageNameFromImport(source: []const u8) ?[]const u8 {
         std.mem.startsWith(u8, source, "@/") or
         std.mem.startsWith(u8, source, "./") or
         std.mem.startsWith(u8, source, "../") or
-        std.mem.startsWith(u8, source, "@smallfish/") or
-        std.mem.startsWith(u8, source, "smallfish:") or
-        std.mem.startsWith(u8, source, "minifish:") or
-        std.mem.startsWith(u8, source, "@qiaozhi/") or
-        std.mem.eql(u8, source, "@wukong") or
-        std.mem.startsWith(u8, source, "@wukong/"))
+        std.mem.startsWith(u8, source, "@appfw/") or
+        std.mem.startsWith(u8, source, "appfw:") or
+        std.mem.startsWith(u8, source, "appmini:") or
+        std.mem.startsWith(u8, source, "@example-fw/") or
+        std.mem.eql(u8, source, "@example-runtime") or
+        std.mem.startsWith(u8, source, "@example-runtime/"))
     {
         return null;
     }
@@ -235,21 +235,21 @@ fn getMajorVersion(version: []const u8) ?u32 {
 }
 
 fn detectProjectType(allocator: Allocator, io: std.Io, project_root: []const u8) Allocator.Error!ProjectType {
-    const smallfish_js = try std.fs.path.join(allocator, &.{ project_root, "smallfish.config.js" });
-    defer allocator.free(smallfish_js);
-    if (exists(io, smallfish_js)) return .smallfish;
+    const appfw_js = try std.fs.path.join(allocator, &.{ project_root, "appfw.config.js" });
+    defer allocator.free(appfw_js);
+    if (exists(io, appfw_js)) return .appfw;
 
-    const smallfish_ts = try std.fs.path.join(allocator, &.{ project_root, "smallfish.config.ts" });
-    defer allocator.free(smallfish_ts);
-    if (exists(io, smallfish_ts)) return .smallfish;
+    const appfw_ts = try std.fs.path.join(allocator, &.{ project_root, "appfw.config.ts" });
+    defer allocator.free(appfw_ts);
+    if (exists(io, appfw_ts)) return .appfw;
 
-    const minifish_js = try std.fs.path.join(allocator, &.{ project_root, "minifish.config.js" });
-    defer allocator.free(minifish_js);
-    if (exists(io, minifish_js)) return .minifish;
+    const appmini_js = try std.fs.path.join(allocator, &.{ project_root, "appmini.config.js" });
+    defer allocator.free(appmini_js);
+    if (exists(io, appmini_js)) return .appmini;
 
-    const minifish_ts = try std.fs.path.join(allocator, &.{ project_root, "minifish.config.ts" });
-    defer allocator.free(minifish_ts);
-    if (exists(io, minifish_ts)) return .minifish;
+    const appmini_ts = try std.fs.path.join(allocator, &.{ project_root, "appmini.config.ts" });
+    defer allocator.free(appmini_ts);
+    if (exists(io, appmini_ts)) return .appmini;
 
     return .other;
 }

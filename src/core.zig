@@ -479,8 +479,8 @@ pub const Options = struct {
     alipay_ant_prefer_click_with_debounce: bool = true,
     alipay_ant_prefer_import_as_required: bool = true,
     alipay_ant_no_spread_params: bool = true,
-    alipay_ant_prefer_resource_from_huamei: bool = true,
-    alipay_ant_prefer_render_img_with_promo_mobile: bool = true,
+    alipay_ant_prefer_managed_resource: bool = true,
+    alipay_ant_prefer_safe_image_renderer: bool = true,
     alipay_ant_prefer_import_from_stdlib: bool = true,
     alipay_spmlint_use_labeled_spm: bool = true,
     alipay_spmlint_valid_manual_click: bool = true,
@@ -1041,17 +1041,17 @@ pub const Options = struct {
             else => return .default,
         };
 
-        if (external_packages.get("@alipay/dp-anyshare-react") != null or
-            external_packages.get("@alipay/yuyan-monitor-web") != null or
+        if (external_packages.get("@example/share-react") != null or
+            external_packages.get("@example/monitor-web") != null or
             external_packages.get("moment") != null)
         {
-            return .ivy;
+            return .profile_a;
         }
-        if (external_packages.get("@alipay/one-bridge") != null or
-            external_packages.get("@alipay/bx-rpc") != null or
-            external_packages.get("hooxjs") != null)
+        if (external_packages.get("@example/bridge") != null or
+            external_packages.get("@example/rpc-client") != null or
+            external_packages.get("statekit") != null)
         {
-            return .insurance;
+            return .profile_b;
         }
         return .default;
     }
@@ -1781,8 +1781,8 @@ pub const Options = struct {
 
 pub const DeprecatedDependenceProfile = enum {
     default,
-    ivy,
-    insurance,
+    profile_a,
+    profile_b,
 };
 
 pub const Diagnostic = struct {
@@ -2122,25 +2122,25 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_dot_notation);
     try std.testing.expectEqual(DotNotationAllowKeywords.yes, options.dot_notation_allow_keywords);
 
-    var ivy_config = try std.json.parseFromSlice(
+    var profile_a_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
         "[\"error\",{\"externalPackages\":{\"moment\":\"dayjs\"}}]",
         .{},
     );
-    defer ivy_config.deinit();
-    try options.setByRuleConfigValue("@alipay/ant/no-deprecated-dependence", ivy_config.value);
-    try std.testing.expectEqual(DeprecatedDependenceProfile.ivy, options.alipay_ant_no_deprecated_dependence_profile);
+    defer profile_a_config.deinit();
+    try options.setByRuleConfigValue("@alipay/ant/no-deprecated-dependence", profile_a_config.value);
+    try std.testing.expectEqual(DeprecatedDependenceProfile.profile_a, options.alipay_ant_no_deprecated_dependence_profile);
 
-    var insurance_config = try std.json.parseFromSlice(
+    var profile_b_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"externalPackages\":{\"@alipay/one-bridge\":\"babyfish\"}}]",
+        "[\"error\",{\"externalPackages\":{\"@example/bridge\":\"appkit\"}}]",
         .{},
     );
-    defer insurance_config.deinit();
-    try options.setByRuleConfigValue("@alipay/ant/no-deprecated-dependence", insurance_config.value);
-    try std.testing.expectEqual(DeprecatedDependenceProfile.insurance, options.alipay_ant_no_deprecated_dependence_profile);
+    defer profile_b_config.deinit();
+    try options.setByRuleConfigValue("@alipay/ant/no-deprecated-dependence", profile_b_config.value);
+    try std.testing.expectEqual(DeprecatedDependenceProfile.profile_b, options.alipay_ant_no_deprecated_dependence_profile);
 
     var restricted_disable_config = try std.json.parseFromSlice(
         std.json.Value,

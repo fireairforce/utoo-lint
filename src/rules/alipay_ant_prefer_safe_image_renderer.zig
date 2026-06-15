@@ -5,7 +5,7 @@ const core = @import("../core.zig");
 const ast = parser.ast;
 const Allocator = std.mem.Allocator;
 
-pub const id = "@alipay/ant/prefer-render-img-with-promo-mobile";
+pub const id = "@alipay/ant/prefer-safe-image-renderer";
 
 pub fn check(
     allocator: Allocator,
@@ -53,7 +53,7 @@ fn checkImageSource(
             .@"error",
             id,
             tree.span(src_node),
-            "图片链接为avif格式, 请使用promo-mobile中的`Image|BackgroundImageDiv`组件渲染(否则不支持该格式的设备将无法降级): {s}",
+            "图片链接为avif格式, 请使用safe-image-kit中的`Image|BackgroundImageDiv`组件渲染(否则不支持该格式的设备将无法降级): {s}",
             .{value},
         );
         return;
@@ -75,7 +75,7 @@ fn reportVariableImageSource(
         .@"error",
         id,
         tree.span(src_node),
-        "图片链接为变量(包括常量), 请使用promo-mobile中的`Image|BackgroundImageDiv`组件渲染(避免出现意外空值造成额外非预期请求, 或avif格式图片无法加载等情况): {s}",
+        "图片链接为变量(包括常量), 请使用safe-image-kit中的`Image|BackgroundImageDiv`组件渲染(避免出现意外空值造成额外非预期请求, 或avif格式图片无法加载等情况): {s}",
         .{nodeSource(tree, src_node)},
     );
 }

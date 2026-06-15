@@ -8,26 +8,26 @@ fn optionsOnly() lint.Options {
     return options;
 }
 
-test "reports @alipay/ant/no-deprecated-variable for ap and AlipayJSBridge member usage" {
+test "reports @alipay/ant/no-deprecated-variable for legacyBridge and LegacyJSBridge member usage" {
     const source =
-        \\ap.alert();
-        \\AlipayJSBridge.call("toast");
-        \\bridge[ap]();
-        \\bridge.AlipayJSBridge();
+        \\legacyBridge.alert();
+        \\LegacyJSBridge.call("toast");
+        \\bridge[legacyBridge]();
+        \\bridge.LegacyJSBridge();
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsOnly());
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.alipay_ant_no_deprecated_variable.id));
-    try std.testing.expectEqualStrings("ap 不推荐使用。强烈建议 使用 my 替代。", result.diagnostics[0].message);
+    try std.testing.expectEqualStrings("legacyBridge 不推荐使用。强烈建议 使用 currentBridge 替代。", result.diagnostics[0].message);
     try std.testing.expectEqual(.@"error", result.diagnostics[0].severity);
 }
 
 test "allows @alipay/ant/no-deprecated-variable ordinary members and identifiers" {
     const source =
-        \\const ap = createBridge();
-        \\my.alert();
+        \\const legacyBridge = createBridge();
+        \\currentBridge.alert();
         \\bridge.call("toast");
     ;
 
@@ -38,7 +38,7 @@ test "allows @alipay/ant/no-deprecated-variable ordinary members and identifiers
 }
 
 test "can disable @alipay/ant/no-deprecated-variable" {
-    const source = "ap.alert();\n";
+    const source = "legacyBridge.alert();\n";
     var options = optionsOnly();
     options.alipay_ant_no_deprecated_variable = false;
 

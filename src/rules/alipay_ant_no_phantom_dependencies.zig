@@ -142,7 +142,7 @@ fn readDependencyConfig(
     for (node_dependencies) |dependency| {
         try addDependency(allocator, &dependencies, dependency);
     }
-    try addDependency(allocator, &dependencies, "@qiaozhi/page");
+    try addDependency(allocator, &dependencies, "@example/page-runtime");
 
     const package_path = try std.fs.path.join(allocator, &.{ project_root, "package.json" });
     defer allocator.free(package_path);
@@ -152,7 +152,7 @@ fn readDependencyConfig(
     defer allocator.free(tsconfig_path);
     try readTsConfigAliases(allocator, io, tsconfig_path, &aliases);
 
-    try readSmallfishConfig(allocator, io, project_root, &dependencies, &aliases);
+    try readAppfwConfig(allocator, io, project_root, &dependencies, &aliases);
 
     return .{
         .allocator = allocator,
@@ -253,16 +253,16 @@ fn readTsConfigAliases(
     }
 }
 
-fn readSmallfishConfig(
+fn readAppfwConfig(
     allocator: Allocator,
     io: std.Io,
     project_root: []const u8,
     dependencies: *std.StringHashMap(void),
     aliases: *std.ArrayList([]const u8),
 ) Allocator.Error!void {
-    const js_path = try std.fs.path.join(allocator, &.{ project_root, "smallfish.config.js" });
+    const js_path = try std.fs.path.join(allocator, &.{ project_root, "appfw.config.js" });
     defer allocator.free(js_path);
-    const ts_path = try std.fs.path.join(allocator, &.{ project_root, "smallfish.config.ts" });
+    const ts_path = try std.fs.path.join(allocator, &.{ project_root, "appfw.config.ts" });
     defer allocator.free(ts_path);
 
     var source: ?[]u8 = readConfigFile(allocator, io, js_path);
@@ -287,19 +287,19 @@ fn readSmallfishConfig(
     }) catch return;
     defer tree.deinit();
 
-    var visitor = SmallfishAliasVisitor{
+    var visitor = AppfwAliasVisitor{
         .allocator = allocator,
         .aliases = aliases,
     };
-    try traverser.basic.traverse(SmallfishAliasVisitor, &tree, &visitor);
+    try traverser.basic.traverse(AppfwAliasVisitor, &tree, &visitor);
 }
 
-const SmallfishAliasVisitor = struct {
+const AppfwAliasVisitor = struct {
     allocator: Allocator,
     aliases: *std.ArrayList([]const u8),
 
     pub fn enter_object_property(
-        self: *SmallfishAliasVisitor,
+        self: *AppfwAliasVisitor,
         property: ast.ObjectProperty,
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
@@ -372,12 +372,12 @@ fn parsePackageNameFromImport(import_string: []const u8) ?[]const u8 {
         std.mem.startsWith(u8, import_string, "@/") or
         std.mem.startsWith(u8, import_string, "./") or
         std.mem.startsWith(u8, import_string, "../") or
-        std.mem.startsWith(u8, import_string, "@smallfish/") or
-        std.mem.startsWith(u8, import_string, "smallfish:") or
-        std.mem.startsWith(u8, import_string, "minifish:") or
-        std.mem.startsWith(u8, import_string, "@qiaozhi/") or
-        std.mem.eql(u8, import_string, "@wukong") or
-        std.mem.startsWith(u8, import_string, "@wukong/") or
+        std.mem.startsWith(u8, import_string, "@appfw/") or
+        std.mem.startsWith(u8, import_string, "appfw:") or
+        std.mem.startsWith(u8, import_string, "appmini:") or
+        std.mem.startsWith(u8, import_string, "@example-fw/") or
+        std.mem.eql(u8, import_string, "@example-runtime") or
+        std.mem.startsWith(u8, import_string, "@example-runtime/") or
         std.mem.eql(u8, import_string, ".") or
         std.mem.eql(u8, import_string, ".."))
     {
@@ -555,10 +555,10 @@ const node_dependencies = [_][]const u8{
     "zlib",
 };
 
-test "alipay ant no phantom dependencies parses package names like fishlint" {
+test "alipay ant no phantom dependencies parses package names like legacy lint" {
     try std.testing.expectEqualStrings("react", parsePackageNameFromImport("react/jsx-runtime").?);
     try std.testing.expectEqualStrings("@scope/pkg", parsePackageNameFromImport("@scope/pkg/sub/path").?);
     try std.testing.expect(parsePackageNameFromImport("./local") == null);
-    try std.testing.expect(parsePackageNameFromImport("@qiaozhi/foo") == null);
-    try std.testing.expect(parsePackageNameFromImport("@wukong/router") == null);
+    try std.testing.expect(parsePackageNameFromImport("@example-fw/foo") == null);
+    try std.testing.expect(parsePackageNameFromImport("@example-runtime/router") == null);
 }

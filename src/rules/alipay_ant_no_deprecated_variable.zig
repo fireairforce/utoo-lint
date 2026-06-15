@@ -21,7 +21,7 @@ pub fn checkMemberExpression(
         diagnostics,
         .@"error",
         id,
-        "ap 不推荐使用。强烈建议 使用 my 替代。",
+        "legacyBridge 不推荐使用。强烈建议 使用 currentBridge 替代。",
         tree.span(index),
     );
 }
@@ -32,5 +32,5 @@ fn isDeprecatedIdentifier(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .identifier_name => |identifier| tree.string(identifier.name),
         else => return false,
     };
-    return std.mem.eql(u8, name, "ap") or std.mem.eql(u8, name, "AlipayJSBridge");
+    return std.mem.eql(u8, name, "legacyBridge") or std.mem.eql(u8, name, "LegacyJSBridge");
 }

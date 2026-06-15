@@ -11,8 +11,8 @@ fn optionsOnly() lint.Options {
 test "reports @alipay/ant/prefer-import-as-required for default and namespace checked imports" {
     const source =
         \\import lodashEs from 'lodash-es';
-        \\import * as stdlib from '@alipay/stdlib';
-        \\import components, { Button } from '@alipay/content-components';
+        \\import * as stdlib from '@example/stdlib';
+        \\import components, { Button } from '@example/content-components';
         \\import { debounce } from 'lodash-es';
         \\import other from 'other-package';
     ;
@@ -28,7 +28,7 @@ test "reports @alipay/ant/prefer-import-as-required for default and namespace ch
 test "allows @alipay/ant/prefer-import-as-required named and unchecked imports" {
     const source =
         \\import { debounce } from 'lodash-es';
-        \\import { Button } from '@alipay/content-components';
+        \\import { Button } from '@example/content-components';
         \\import other from 'other-package';
     ;
 

@@ -47,8 +47,8 @@ pub const alipay_ant_prefer_catch_unsafe_func_call = @import("alipay_ant_prefer_
 pub const alipay_ant_prefer_click_with_debounce = @import("alipay_ant_prefer_click_with_debounce.zig");
 pub const alipay_ant_prefer_import_as_required = @import("alipay_ant_prefer_import_as_required.zig");
 pub const alipay_ant_no_spread_params = @import("alipay_ant_no_spread_params.zig");
-pub const alipay_ant_prefer_resource_from_huamei = @import("alipay_ant_prefer_resource_from_huamei.zig");
-pub const alipay_ant_prefer_render_img_with_promo_mobile = @import("alipay_ant_prefer_render_img_with_promo_mobile.zig");
+pub const alipay_ant_prefer_managed_resource = @import("alipay_ant_prefer_managed_resource.zig");
+pub const alipay_ant_prefer_safe_image_renderer = @import("alipay_ant_prefer_safe_image_renderer.zig");
 pub const alipay_ant_prefer_import_from_stdlib = @import("alipay_ant_prefer_import_from_stdlib.zig");
 pub const alipay_spmlint_use_labeled_spm = @import("alipay_spmlint_use_labeled_spm.zig");
 pub const alipay_spmlint_valid_manual_click = @import("alipay_spmlint_valid_manual_click.zig");
@@ -1949,8 +1949,8 @@ const BasicVisitor = struct {
         if (self.options.alipay_ant_disallow_typos) {
             try alipay_ant_disallow_typos.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
-        if (self.options.alipay_ant_prefer_resource_from_huamei) {
-            try alipay_ant_prefer_resource_from_huamei.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        if (self.options.alipay_ant_prefer_managed_resource) {
+            try alipay_ant_prefer_managed_resource.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         if (self.options.no_useless_escape) {
             try no_useless_escape.checkStringLiteral(self.allocator, self.diagnostics, ctx.tree, index);
@@ -2588,8 +2588,8 @@ const BasicVisitor = struct {
         if (self.options.jsx_a11y_img_redundant_alt) {
             try jsx_a11y_img_redundant_alt.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
         }
-        if (self.options.alipay_ant_prefer_render_img_with_promo_mobile) {
-            try alipay_ant_prefer_render_img_with_promo_mobile.check(self.allocator, self.diagnostics, ctx.tree, opening);
+        if (self.options.alipay_ant_prefer_safe_image_renderer) {
+            try alipay_ant_prefer_safe_image_renderer.check(self.allocator, self.diagnostics, ctx.tree, opening);
         }
         if (self.options.jsx_a11y_no_distracting_elements) {
             try jsx_a11y_no_distracting_elements.check(self.allocator, self.diagnostics, ctx.tree, opening, index);

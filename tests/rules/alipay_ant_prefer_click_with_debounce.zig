@@ -32,11 +32,11 @@ test "reports @alipay/ant/prefer-click-with-debounce for async onClick handlers"
     try std.testing.expectEqual(.@"error", result.diagnostics[0].severity);
 }
 
-test "reports @alipay/ant/prefer-click-with-debounce for DDD prefixed async definitions" {
+test "reports @alipay/ant/prefer-click-with-debounce for Auto prefixed async definitions" {
     const source =
-        \\async function DDDSubmit() {}
-        \\const DDDSave = async () => {};
-        \\const DDDMemo = useMemoizedFn(async function () {});
+        \\async function AutoSubmit() {}
+        \\const AutoSave = async () => {};
+        \\const AutoMemo = useMemoizedFn(async function () {});
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", optionsOnly());
