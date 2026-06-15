@@ -75,7 +75,17 @@ test "reports accessor-pairs for computed setters without getters" {
 
 test "reports accessor-pairs for property descriptors without get" {
     const source =
+        \\const suffix = "Property";
         \\Object.defineProperty(target, "value", {
+        \\  set(next) {}
+        \\});
+        \\Object["defineProperty"](target, "fourth", {
+        \\  set(next) {}
+        \\});
+        \\Object[`defineProperty`](target, "fifth", {
+        \\  set(next) {}
+        \\});
+        \\Object[`define${suffix}`](target, "dynamic", {
         \\  set(next) {}
         \\});
         \\Object.defineProperties(target, {
@@ -87,8 +97,28 @@ test "reports accessor-pairs for property descriptors without get" {
         \\    set(next) {}
         \\  }
         \\});
+        \\Object["defineProperties"](target, {
+        \\  sixth: {
+        \\    set(next) {}
+        \\  }
+        \\});
+        \\Object[`defineProperties`](target, {
+        \\  seventh: {
+        \\    set(next) {}
+        \\  }
+        \\});
         \\Object.create(proto, {
         \\  third: {
+        \\    set(next) {}
+        \\  }
+        \\});
+        \\Object["create"](proto, {
+        \\  eighth: {
+        \\    set(next) {}
+        \\  }
+        \\});
+        \\Object[`create`](proto, {
+        \\  ninth: {
         \\    set(next) {}
         \\  }
         \\});
@@ -103,7 +133,7 @@ test "reports accessor-pairs for property descriptors without get" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.accessor_pairs.id));
+    try std.testing.expectEqual(@as(usize, 9), helpers.countRule(result, lint.rules.accessor_pairs.id));
 }
 
 test "does not report accessor-pairs for getters without setters by default" {
