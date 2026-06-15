@@ -5,6 +5,7 @@ const helpers = @import("../helpers.zig");
 test "reports @typescript-eslint/dot-notation for computed string properties" {
     const source =
         \\object["property"];
+        \\object[`template`];
         \\object["_private"];
         \\object["$value"];
         \\object["property1"];
@@ -21,7 +22,7 @@ test "reports @typescript-eslint/dot-notation for computed string properties" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.typescript_eslint_dot_notation.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.typescript_eslint_dot_notation.id));
     try std.testing.expect(!helpers.hasRule(result, lint.rules.dot_notation.id));
     for (result.diagnostics) |diagnostic| {
         if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.typescript_eslint_dot_notation.id)) {
@@ -32,10 +33,13 @@ test "reports @typescript-eslint/dot-notation for computed string properties" {
 
 test "does not report @typescript-eslint/dot-notation when bracket access is required" {
     const source =
+        \\const suffix = "erty";
         \\object["not-valid"];
+        \\object[`not-valid`];
         \\object["123"];
         \\object[""];
         \\object[property];
+        \\object[`prop${suffix}`];
         \\object[call()];
     ;
 
