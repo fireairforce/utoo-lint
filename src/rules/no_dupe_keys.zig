@@ -91,17 +91,56 @@ fn isDuplicate(
 }
 
 fn propertyName(allocator: Allocator, tree: *const ast.Tree, property: ast.ObjectProperty) Allocator.Error!?PropertyName {
-    if (property.computed or property.key == .null) return null;
+    if (property.key == .null) return null;
+    if (isPrototypeSetter(tree, property)) return null;
 
-    return switch (tree.data(property.key)) {
-        .identifier_name => |identifier| .{ .value = tree.string(identifier.name) },
+    const key = unwrapTransparent(tree, property.key);
+    return switch (tree.data(key)) {
+        .identifier_name => |identifier| if (property.computed) null else .{ .value = tree.string(identifier.name) },
         .string_literal => |literal| .{ .value = tree.string(literal.value) },
         .numeric_literal => |literal| .{ .value = try numericPropertyName(allocator, tree, literal), .owned = true },
+        .template_literal => |literal| templatePropertyName(tree, literal),
         else => null,
     };
+}
+
+fn isPrototypeSetter(tree: *const ast.Tree, property: ast.ObjectProperty) bool {
+    if (property.computed or property.kind != .init or property.method) return false;
+    const key = unwrapTransparent(tree, property.key);
+    const name = switch (tree.data(key)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        .string_literal => |literal| tree.string(literal.value),
+        else => return false,
+    };
+    return std.mem.eql(u8, name, "__proto__");
 }
 
 fn numericPropertyName(allocator: Allocator, tree: *const ast.Tree, literal: ast.NumericLiteral) Allocator.Error![]const u8 {
     const value = literal.value(tree);
     return std.fmt.allocPrint(allocator, "{d}", .{value});
+}
+
+fn templatePropertyName(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?PropertyName {
+    if (tree.extra(literal.expressions).len != 0) return null;
+
+    const quasis = tree.extra(literal.quasis);
+    if (quasis.len != 1) return null;
+
+    return switch (tree.data(quasis[0])) {
+        .template_element => |element| .{ .value = tree.string(element.cooked) },
+        else => null,
+    };
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+
+    return current;
 }
