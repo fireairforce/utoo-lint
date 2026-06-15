@@ -9,6 +9,7 @@ test "reports prefer-spread for apply calls that can use spread syntax" {
         \\obj.method.apply(obj, args);
         \\this.method.apply(this, args);
         \\obj.nested.method.apply(obj.nested, args);
+        \\fn[`apply`](undefined, args);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -18,7 +19,7 @@ test "reports prefer-spread for apply calls that can use spread syntax" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.prefer_spread.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.prefer_spread.id));
 }
 
 test "does not report prefer-spread when spread conversion is unsafe or covered by no-useless-call" {
@@ -30,6 +31,7 @@ test "does not report prefer-spread when spread conversion is unsafe or covered 
         \\fn.apply(null, ...args);
         \\fn?.apply(null, args);
         \\obj.method.apply?.(obj, args);
+        \\fn[`ap${suffix}`](undefined, args);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
