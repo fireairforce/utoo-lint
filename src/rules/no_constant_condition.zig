@@ -42,8 +42,23 @@ fn isConstantExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .template_literal => |literal| literal.expressions.len == 0,
         .function => |function| function.type == .function_expression or function.type == .ts_empty_body_function_expression,
         .class => |class| class.type == .class_expression,
-        .unary_expression => |unary| unary.operator == .logical_not and isConstantExpression(tree, unwrapTransparent(tree, unary.argument)),
+        .unary_expression => |unary| isConstantUnaryExpression(tree, unary),
         else => false,
+    };
+}
+
+fn isConstantUnaryExpression(tree: *const ast.Tree, unary: ast.UnaryExpression) bool {
+    const argument = unwrapTransparent(tree, unary.argument);
+    return switch (unary.operator) {
+        .logical_not,
+        .positive,
+        .negate,
+        .bitwise_not,
+        => isConstantExpression(tree, argument),
+        .void => true,
+        .typeof,
+        .delete,
+        => false,
     };
 }
 
