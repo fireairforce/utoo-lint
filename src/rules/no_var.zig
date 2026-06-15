@@ -25,4 +25,3 @@ pub fn check(
         tree.span(index),
     );
 }
-

@@ -22,12 +22,12 @@ const OutputFormat = enum {
 };
 
 const JsonDiagnostic = struct {
-    @"filePath": []const u8,
+    filePath: []const u8,
     line: usize,
     column: usize,
     severity: []const u8,
     message: []const u8,
-    @"ruleId": []const u8,
+    ruleId: []const u8,
 };
 
 const JsonDiagnosticList = std.ArrayList(JsonDiagnostic);
@@ -1301,20 +1301,20 @@ fn appendJsonDiagnostic(
     errdefer allocator.free(owned_rule_id);
 
     try diagnostics.append(allocator, .{
-        .@"filePath" = owned_path,
+        .filePath = owned_path,
         .line = line,
         .column = column,
         .severity = severity,
         .message = owned_message,
-        .@"ruleId" = owned_rule_id,
+        .ruleId = owned_rule_id,
     });
 }
 
 fn freeJsonDiagnostics(allocator: std.mem.Allocator, diagnostics: *JsonDiagnosticList) void {
     for (diagnostics.items) |diagnostic| {
-        allocator.free(diagnostic.@"filePath");
+        allocator.free(diagnostic.filePath);
         allocator.free(diagnostic.message);
-        allocator.free(diagnostic.@"ruleId");
+        allocator.free(diagnostic.ruleId);
     }
     diagnostics.deinit(allocator);
 }
