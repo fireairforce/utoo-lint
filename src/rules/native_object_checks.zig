@@ -58,24 +58,25 @@ const Visitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         const callee = unwrapTransparent(ctx.tree, expression.callee);
-        const name = identifierReferenceName(ctx.tree, callee) orelse return .proceed;
 
-        if (self.check_no_new_native_nonconstructor and isNativeNonconstructorName(name)) {
-            if (isUnresolvedReference(self.symbol_table, callee)) {
-                try core.addDiagnosticFmt(
-                    self.allocator,
-                    self.diagnostics,
-                    .@"error",
-                    no_new_native_nonconstructor.id,
-                    ctx.tree.span(index),
-                    "`{s}` cannot be called as a constructor.",
-                    .{name},
-                );
+        if (identifierReferenceName(ctx.tree, callee)) |name| {
+            if (self.check_no_new_native_nonconstructor and isNativeNonconstructorName(name)) {
+                if (isUnresolvedReference(self.symbol_table, callee)) {
+                    try core.addDiagnosticFmt(
+                        self.allocator,
+                        self.diagnostics,
+                        .@"error",
+                        no_new_native_nonconstructor.id,
+                        ctx.tree.span(index),
+                        "`{s}` cannot be called as a constructor.",
+                        .{name},
+                    );
+                }
             }
         }
 
-        if (self.check_no_obj_calls and isForbiddenObject(name)) {
-            if (isUnresolvedReference(self.symbol_table, callee)) {
+        if (self.check_no_obj_calls) {
+            if (globalObjectName(ctx.tree, self.symbol_table, expression.callee)) |name| {
                 try self.reportNoObjCalls(ctx.tree, index, name);
             }
         }
@@ -102,10 +103,27 @@ fn globalObjectName(
     callee: ast.NodeIndex,
 ) ?[]const u8 {
     const unwrapped = unwrapTransparent(tree, callee);
-    const name = identifierReferenceName(tree, unwrapped) orelse return null;
-    if (!isForbiddenObject(name)) return null;
-    if (!isUnresolvedReference(symbol_table, unwrapped)) return null;
-    return name;
+
+    if (identifierReferenceName(tree, unwrapped)) |name| {
+        if (!isForbiddenObject(name)) return null;
+        if (!isUnresolvedReference(symbol_table, unwrapped)) return null;
+        return name;
+    }
+
+    const member = switch (tree.data(unwrapped)) {
+        .member_expression => |member| member,
+        else => return null,
+    };
+
+    const object = unwrapTransparent(tree, member.object);
+    const object_name = identifierReferenceName(tree, object) orelse return null;
+    if (!std.mem.eql(u8, object_name, "globalThis") or !isUnresolvedReference(symbol_table, object)) {
+        return null;
+    }
+
+    const property_name = propertyName(tree, member) orelse return null;
+    if (!isForbiddenObject(property_name)) return null;
+    return property_name;
 }
 
 fn isNativeNonconstructorName(name: []const u8) bool {
@@ -140,6 +158,30 @@ fn identifierReferenceName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const
 
     return switch (tree.data(index)) {
         .identifier_reference => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
+    if (member.property == .null) return null;
+
+    return if (member.computed)
+        switch (tree.data(member.property)) {
+            .string_literal => |literal| tree.string(literal.value),
+            .template_literal => |literal| templateStringValue(tree, literal),
+            else => null,
+        }
+    else switch (tree.data(member.property)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn templateStringValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]const u8 {
+    if (literal.expressions.len != 0 or literal.quasis.len != 1) return null;
+    const quasi_index = tree.extra(literal.quasis)[0];
+    return switch (tree.data(quasi_index)) {
+        .template_element => |element| tree.string(element.cooked),
         else => null,
     };
 }
