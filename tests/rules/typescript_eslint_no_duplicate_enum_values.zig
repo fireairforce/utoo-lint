@@ -49,6 +49,41 @@ test "ignores implicit and computed enum initializers" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_duplicate_enum_values.id));
 }
 
+test "reports @typescript-eslint/no-duplicate-enum-values for template literal enum values" {
+    const source =
+        \\enum Status {
+        \\  Pending = "pending",
+        \\  Waiting = `pending`,
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_duplicate_enum_values.id));
+}
+
+test "ignores interpolated template enum initializers" {
+    const source =
+        \\const suffix = "ing";
+        \\enum Status {
+        \\  Pending = "pending",
+        \\  Waiting = `pend${suffix}`,
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_duplicate_enum_values.id));
+}
+
 test "can disable @typescript-eslint/no-duplicate-enum-values" {
     const source =
         \\enum Status {

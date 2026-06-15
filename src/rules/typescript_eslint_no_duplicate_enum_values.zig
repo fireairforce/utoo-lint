@@ -56,7 +56,20 @@ fn literalEnumValue(tree: *const ast.Tree, index: ast.NodeIndex) ?EnumValue {
 
     return switch (tree.data(index)) {
         .string_literal => |literal| .{ .string = tree.string(literal.value) },
+        .template_literal => |literal| templateLiteralValue(tree, literal),
         .numeric_literal => |literal| .{ .number = literal.value(tree) },
+        else => null,
+    };
+}
+
+fn templateLiteralValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?EnumValue {
+    if (tree.extra(literal.expressions).len != 0) return null;
+
+    const quasis = tree.extra(literal.quasis);
+    if (quasis.len != 1) return null;
+
+    return switch (tree.data(quasis[0])) {
+        .template_element => |element| .{ .string = tree.string(element.cooked) },
         else => null,
     };
 }
