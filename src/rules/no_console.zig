@@ -7,6 +7,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-console";
 
+pub const Options = struct {
+    allow: core.NoConsoleAllow = .{},
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -14,7 +18,20 @@ pub fn check(
     call: ast.CallExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
-    if (!isConsoleMemberCall(tree, call.callee)) return;
+    try checkWithOptions(allocator, diagnostics, tree, call, index, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    call: ast.CallExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    const member = consoleMemberCall(tree, call.callee) orelse return;
+    const method = propertyName(tree, member);
+    if (method != null and options.allow.contains(method.?)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -26,7 +43,7 @@ pub fn check(
     );
 }
 
-fn isConsoleMemberCall(tree: *const ast.Tree, callee: ast.NodeIndex) bool {
+fn consoleMemberCall(tree: *const ast.Tree, callee: ast.NodeIndex) ?ast.MemberExpression {
     var current = callee;
 
     switch (tree.data(current)) {
@@ -35,8 +52,22 @@ fn isConsoleMemberCall(tree: *const ast.Tree, callee: ast.NodeIndex) bool {
     }
 
     return switch (tree.data(current)) {
-        .member_expression => |member| isIdentifierNamed(tree, member.object, "console"),
-        else => false,
+        .member_expression => |member| if (isIdentifierNamed(tree, member.object, "console")) member else null,
+        else => null,
+    };
+}
+
+fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
+    if (member.property == .null) return null;
+
+    return if (member.computed)
+        switch (tree.data(member.property)) {
+            .string_literal => |literal| tree.string(literal.value),
+            else => null,
+        }
+    else switch (tree.data(member.property)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        else => null,
     };
 }
 
@@ -48,4 +79,3 @@ fn isIdentifierNamed(tree: *const ast.Tree, index: ast.NodeIndex, name: []const 
         else => false,
     };
 }
-

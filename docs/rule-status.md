@@ -41,7 +41,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-comma-operator`](https://eslint.org/docs/latest/rules/no-comma-operator) | Implemented |
 | [`no-compare-neg-zero`](https://eslint.org/docs/latest/rules/no-compare-neg-zero) | Implemented |
 | [`no-cond-assign`](https://eslint.org/docs/latest/rules/no-cond-assign) | Implemented |
-| [`no-console`](https://eslint.org/docs/latest/rules/no-console) | Implemented |
+| [`no-console`](https://eslint.org/docs/latest/rules/no-console) | Implemented with `allow` support for known console methods |
 | [`no-const-assign`](https://eslint.org/docs/latest/rules/no-const-assign) | Implemented |
 | [`no-constant-condition`](https://eslint.org/docs/latest/rules/no-constant-condition) | Implemented |
 | [`no-constructor-return`](https://eslint.org/docs/latest/rules/no-constructor-return) | Implemented |

@@ -21,6 +21,48 @@ pub const NoConfusingArrowAllowParens = enum {
     no,
 };
 
+pub const NoConsoleAllow = struct {
+    assert: bool = false,
+    clear: bool = false,
+    count: bool = false,
+    countReset: bool = false,
+    debug: bool = false,
+    dir: bool = false,
+    dirxml: bool = false,
+    @"error": bool = false,
+    group: bool = false,
+    groupCollapsed: bool = false,
+    groupEnd: bool = false,
+    info: bool = false,
+    log: bool = false,
+    profile: bool = false,
+    profileEnd: bool = false,
+    table: bool = false,
+    time: bool = false,
+    timeEnd: bool = false,
+    timeLog: bool = false,
+    timeStamp: bool = false,
+    trace: bool = false,
+    warn: bool = false,
+
+    pub fn contains(self: NoConsoleAllow, name: []const u8) bool {
+        inline for (@typeInfo(NoConsoleAllow).@"struct".fields) |field| {
+            if (std.mem.eql(u8, field.name, name)) return @field(self, field.name);
+        }
+        return false;
+    }
+
+    pub fn enable(self: *NoConsoleAllow, name: []const u8) bool {
+        inline for (@typeInfo(NoConsoleAllow).@"struct".fields) |field| {
+            if (std.mem.eql(u8, field.name, name)) {
+                @field(self, field.name) = true;
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
 pub const NoUnderscoreDangleAllowFunctionParams = enum {
     yes,
     no,
@@ -199,6 +241,7 @@ pub const Options = struct {
     no_const_assign: bool = true,
     no_control_regex: bool = true,
     no_console: bool = true,
+    no_console_allow: NoConsoleAllow = .{},
     no_comma_operator: bool = true,
     no_continue: bool = true,
     no_constructor_return: bool = true,
@@ -584,6 +627,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "eslint-comments/no-restricted-disable")) {
             self.eslint_comments_no_restricted_disable_no_nested_ternary = noRestrictedDisableRestrictsNoNestedTernary(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-console")) {
+            self.no_console_allow = try noConsoleAllowFromConfig(value);
+        }
     }
 
     pub const RuleConfigError = error{
@@ -667,6 +713,34 @@ pub const Options = struct {
             if (std.mem.eql(u8, rule, "no-nested-ternary")) return true;
         }
         return false;
+    }
+
+    fn noConsoleAllowFromConfig(value: std.json.Value) RuleConfigError!NoConsoleAllow {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow_value = config.get("allow") orelse return .{};
+        const allow_items = switch (allow_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var allow: NoConsoleAllow = .{};
+        for (allow_items) |item| {
+            const method = switch (item) {
+                .string => |method| method,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!allow.enable(method)) return error.UnsupportedRuleConfigValue;
+        }
+        return allow;
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
@@ -1028,6 +1102,19 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("eslint-comments/no-restricted-disable", restricted_disable_config.value);
     try std.testing.expect(options.eslint_comments_no_restricted_disable);
     try std.testing.expect(options.eslint_comments_no_restricted_disable_no_nested_ternary);
+
+    var no_console_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"warn\",\"error\"]}]",
+        .{},
+    );
+    defer no_console_config.deinit();
+    try options.setByRuleConfigValue("no-console", no_console_config.value);
+    try std.testing.expect(options.no_console);
+    try std.testing.expect(options.no_console_allow.contains("warn"));
+    try std.testing.expect(options.no_console_allow.contains("error"));
+    try std.testing.expect(!options.no_console_allow.contains("log"));
 
     try std.testing.expectError(
         Options.RuleConfigError.UnsupportedRuleConfigValue,
