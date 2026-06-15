@@ -12,6 +12,9 @@ test "reports array-callback-return when callbacks can fall through" {
         \\items.filter(function(item) {
         \\  return void item;
         \\});
+        \\items[`map`](function(item) {
+        \\  item.value;
+        \\});
         \\Array.from(items, function(item) {
         \\  item.toString();
         \\});
@@ -27,7 +30,7 @@ test "reports array-callback-return when callbacks can fall through" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.array_callback_return.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.array_callback_return.id));
 }
 
 test "does not report array-callback-return for callbacks that return on all paths" {
@@ -90,6 +93,9 @@ test "ignores forEach callbacks and non-function callback references" {
         \\  item.toString();
         \\});
         \\items.map(callback);
+        \\items[`ma${suffix}`](function(item) {
+        \\  item.value;
+        \\});
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -114,6 +120,9 @@ test "reports array-callback-return for forEach return values when checkForEach 
         \\items.forEach((item) => {
         \\  return void item.touch();
         \\});
+        \\items[`forEach`](function(item) {
+        \\  return item.id;
+        \\});
         \\items.forEach((item) => {
         \\  item.touch();
         \\});
@@ -130,7 +139,7 @@ test "reports array-callback-return for forEach return values when checkForEach 
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.array_callback_return.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.array_callback_return.id));
     try std.testing.expectEqualStrings(
         "Array.prototype.forEach() expects no useless return value from callback.",
         result.diagnostics[0].message,
