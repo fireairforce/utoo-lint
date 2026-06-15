@@ -2163,7 +2163,9 @@ const BasicVisitor = struct {
             try no_comma_operator.check(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx);
         }
         if (self.options.no_sequences) {
-            try no_sequences.check(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx);
+            try no_sequences.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, index, ctx, .{
+                .allow_in_parentheses = self.options.no_sequences_allow_in_parentheses,
+            });
         }
         return .proceed;
     }

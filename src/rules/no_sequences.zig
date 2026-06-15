@@ -8,6 +8,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-sequences";
 
+pub const Options = struct {
+    allow_in_parentheses: core.NoSequencesAllowInParentheses = .yes,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -16,9 +20,20 @@ pub fn check(
     index: ast.NodeIndex,
     ctx: *traverser.basic.Ctx,
 ) Allocator.Error!void {
+    try checkWithOptions(allocator, diagnostics, tree, index, ctx, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    ctx: *traverser.basic.Ctx,
+    options: Options,
+) Allocator.Error!void {
     if (isNestedSequence(tree, ctx)) return;
     if (isAllowedForPart(tree, index, ctx)) return;
-    if (isAllowedParenthesizedSequence(tree, index, ctx)) return;
+    if (options.allow_in_parentheses == .yes and isAllowedParenthesizedSequence(tree, index, ctx)) return;
 
     try core.addDiagnostic(
         allocator,

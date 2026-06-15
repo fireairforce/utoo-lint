@@ -500,6 +500,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_shadow_restricted_names = false;
         } else if (std.mem.eql(u8, arg, "--no-sequences=off")) {
             options.no_sequences = false;
+        } else if (std.mem.eql(u8, arg, "--no-sequences-allow-in-parentheses=off")) {
+            options.no_sequences_allow_in_parentheses = .no;
         } else if (std.mem.eql(u8, arg, "--no-sparse-arrays=off")) {
             options.no_sparse_arrays = false;
         } else if (std.mem.eql(u8, arg, "--no-ternary=off")) {
@@ -1564,6 +1566,7 @@ fn printHelp() void {
         \\  --no-shadow=off           Disable no-shadow
         \\  --no-shadow-restricted-names=off Disable no-shadow-restricted-names
         \\  --no-sequences=off        Disable no-sequences
+        \\  --no-sequences-allow-in-parentheses=off Report parenthesized sequence expressions
         \\  --no-sparse-arrays=off    Disable no-sparse-arrays
         \\  --no-ternary=off          Disable no-ternary
         \\  --no-template-curly-in-string=off Disable no-template-curly-in-string
