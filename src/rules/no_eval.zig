@@ -47,6 +47,27 @@ const Visitor = struct {
 
         return .proceed;
     }
+
+    pub fn enter_identifier_reference(
+        self: *Visitor,
+        identifier: ast.IdentifierReference,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (!std.mem.eql(u8, ctx.tree.string(identifier.name), "eval")) return .proceed;
+        if (isCallCalleeReference(ctx.tree, index, ctx)) return .proceed;
+
+        try core.addDiagnostic(
+            self.allocator,
+            self.diagnostics,
+            .warning,
+            id,
+            "eval can be harmful.",
+            ctx.tree.span(index),
+        );
+
+        return .proceed;
+    }
 };
 
 fn isEvalCall(
@@ -84,6 +105,35 @@ fn isGlobalEvalMember(
     const object = unwrapTransparent(tree, member.object);
     const object_name = identifierReferenceName(tree, object) orelse return false;
     return isGlobalObjectName(object_name) and isUnresolvedReference(symbol_table, object);
+}
+
+fn isCallCalleeReference(tree: *const ast.Tree, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) bool {
+    var child = index;
+    var depth: usize = 1;
+
+    while (ctx.path.ancestor(depth)) |parent_index| : (depth += 1) {
+        switch (tree.data(parent_index)) {
+            .parenthesized_expression => |parenthesized| {
+                if (parenthesized.expression != child) return false;
+                child = parent_index;
+            },
+            .sequence_expression => |sequence| {
+                if (!rangeContains(tree, sequence.expressions, child)) return false;
+                child = parent_index;
+            },
+            .call_expression => |call| return call.callee == child,
+            else => return false,
+        }
+    }
+
+    return false;
+}
+
+fn rangeContains(tree: *const ast.Tree, range: ast.IndexRange, needle: ast.NodeIndex) bool {
+    for (tree.extra(range)) |item| {
+        if (item == needle) return true;
+    }
+    return false;
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
