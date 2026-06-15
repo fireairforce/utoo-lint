@@ -7,6 +7,7 @@ test "reports prefer-template for string concatenation with expressions" {
         \\const a = "hello " + name;
         \\const b = name + "!";
         \\const c = `hello ` + name;
+        \\const d = `hello ${name}` + suffix;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -16,7 +17,7 @@ test "reports prefer-template for string concatenation with expressions" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_template.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.prefer_template.id));
 }
 
 test "does not report prefer-template for non-string or static-only concatenation" {
@@ -25,6 +26,7 @@ test "does not report prefer-template for non-string or static-only concatenatio
         \\const b = "hello " + "world";
         \\const c = `hello ` + "world";
         \\const d = `hello ${name}`;
+        \\const e = `hello ${name}` + "!";
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
