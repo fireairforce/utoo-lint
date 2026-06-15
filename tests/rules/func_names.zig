@@ -91,6 +91,18 @@ test "allows func-names as-needed for inferable names" {
         \\quux ??= function () {
         \\  return value;
         \\};
+        \\const { local = function () {
+        \\  return value;
+        \\} } = object;
+        \\const [item = function () {
+        \\  return value;
+        \\}] = array;
+        \\({ assigned = function () {
+        \\  return value;
+        \\} } = object);
+        \\[assignedItem = function () {
+        \\  return value;
+        \\}] = array;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{

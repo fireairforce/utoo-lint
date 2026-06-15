@@ -83,6 +83,7 @@ fn allowsInferredName(tree: *const ast.Tree, index: ast.NodeIndex, ctx: *travers
         .variable_declarator => |declarator| declarator.init == index,
         .object_property => |property| property.value == index,
         .property_definition => |property| property.value == index,
+        .assignment_pattern => |pattern| pattern.right == index,
         .assignment_expression => |assignment| assignment.right == index and isInferredAssignment(tree, assignment),
         else => false,
     };
