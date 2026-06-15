@@ -5,6 +5,7 @@ const helpers = @import("../helpers.zig");
 test "reports valid-typeof for invalid typeof comparison strings" {
     const source =
         \\if (typeof value === "strnig") { use(value); }
+        \\if (typeof value === `strnig`) { use(value); }
         \\if ("undefimed" !== typeof value) { use(value); }
         \\if ((typeof value) == ("bool")) { use(value); }
     ;
@@ -17,12 +18,15 @@ test "reports valid-typeof for invalid typeof comparison strings" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.valid_typeof.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.valid_typeof.id));
 }
 
 test "does not report valid-typeof for valid values or unrelated comparisons" {
     const source =
+        \\const suffix = "nig";
         \\if (typeof value === "undefined") { use(value); }
+        \\if (typeof value === `string`) { use(value); }
+        \\if (typeof value === `str${suffix}`) { use(value); }
         \\if (typeof value !== "object") { use(value); }
         \\if (typeof value === "boolean") { use(value); }
         \\if (typeof value === "number") { use(value); }
