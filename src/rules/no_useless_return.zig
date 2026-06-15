@@ -51,12 +51,15 @@ fn isRedundantReturn(tree: *const ast.Tree, index: ast.NodeIndex, ctx: *traverse
                 if (statement.consequent != child and statement.alternate != child) return false;
                 child = ancestor;
             },
+            .try_statement => |statement| {
+                if (statement.block != child) return false;
+                child = ancestor;
+            },
             .while_statement,
             .do_while_statement,
             .for_statement,
             .for_in_statement,
             .for_of_statement,
-            .try_statement,
             .catch_clause,
             => return false,
             .function,
