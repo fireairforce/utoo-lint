@@ -876,6 +876,9 @@ pub const Options = struct {
             self.no_unused_expressions_allow_ternary = try noUnusedExpressionsAllowTernaryFromConfig(value);
             self.no_unused_expressions_allow_tagged_templates = try noUnusedExpressionsAllowTaggedTemplatesFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-void")) {
+            self.no_void_allow_as_statement = try noVoidAllowAsStatementFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-warning-comments")) {
             self.no_warning_comments_location = try noWarningCommentsLocationFromConfig(value);
             self.no_warning_comments_decoration = try noWarningCommentsDecorationFromConfig(value);
@@ -1444,6 +1447,24 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         const allow = switch (config.get("allowTaggedTemplates") orelse return .yes) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (allow) .yes else .no;
+    }
+
+    fn noVoidAllowAsStatementFromConfig(value: std.json.Value) RuleConfigError!NoVoidAllowAsStatement {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allowAsStatement") orelse return .no) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -2218,6 +2239,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUnusedExpressionsAllowShortCircuit.yes, options.no_unused_expressions_allow_short_circuit);
     try std.testing.expectEqual(NoUnusedExpressionsAllowTernary.yes, options.no_unused_expressions_allow_ternary);
     try std.testing.expectEqual(NoUnusedExpressionsAllowTaggedTemplates.no, options.no_unused_expressions_allow_tagged_templates);
+
+    var no_void_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowAsStatement\":true}]",
+        .{},
+    );
+    defer no_void_config.deinit();
+    try options.setByRuleConfigValue("no-void", no_void_config.value);
+    try std.testing.expect(options.no_void);
+    try std.testing.expectEqual(NoVoidAllowAsStatement.yes, options.no_void_allow_as_statement);
 
     var no_warning_comments_config = try std.json.parseFromSlice(
         std.json.Value,
