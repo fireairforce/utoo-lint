@@ -63,6 +63,11 @@ pub const NoConsoleAllow = struct {
     }
 };
 
+pub const NoEmptyAllowEmptyCatch = enum {
+    yes,
+    no,
+};
+
 pub const NoUnderscoreDangleAllowFunctionParams = enum {
     yes,
     no,
@@ -261,6 +266,7 @@ pub const Options = struct {
     no_delete_var: bool = true,
     no_div_regex: bool = true,
     no_empty: bool = true,
+    no_empty_allow_empty_catch: NoEmptyAllowEmptyCatch = .no,
     no_empty_block_statements: bool = true,
     no_empty_character_class: bool = true,
     no_empty_function: bool = true,
@@ -636,6 +642,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-console")) {
             self.no_console_allow = try noConsoleAllowFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-empty")) {
+            self.no_empty_allow_empty_catch = try noEmptyAllowEmptyCatchFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-useless-computed-key")) {
             self.no_useless_computed_key_enforce_for_class_members = try noUselessComputedKeyEnforceForClassMembersFromConfig(value);
         }
@@ -750,6 +759,24 @@ pub const Options = struct {
             if (!allow.enable(method)) return error.UnsupportedRuleConfigValue;
         }
         return allow;
+    }
+
+    fn noEmptyAllowEmptyCatchFromConfig(value: std.json.Value) RuleConfigError!NoEmptyAllowEmptyCatch {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allowEmptyCatch") orelse return .no) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (allow) .yes else .no;
     }
 
     fn noUselessComputedKeyEnforceForClassMembersFromConfig(value: std.json.Value) RuleConfigError!NoUselessComputedKeyEnforceForClassMembers {
@@ -1142,6 +1169,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_console_allow.contains("warn"));
     try std.testing.expect(options.no_console_allow.contains("error"));
     try std.testing.expect(!options.no_console_allow.contains("log"));
+
+    var no_empty_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowEmptyCatch\":true}]",
+        .{},
+    );
+    defer no_empty_config.deinit();
+    try options.setByRuleConfigValue("no-empty", no_empty_config.value);
+    try std.testing.expect(options.no_empty);
+    try std.testing.expectEqual(NoEmptyAllowEmptyCatch.yes, options.no_empty_allow_empty_catch);
 
     var no_useless_computed_key_config = try std.json.parseFromSlice(
         std.json.Value,

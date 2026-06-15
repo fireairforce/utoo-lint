@@ -351,6 +351,14 @@ fn funcNameMatchingStyle(style: core.FuncNameMatchingStyle) func_name_matching.S
     };
 }
 
+fn isCatchBody(tree: *const ast.Tree, index: ast.NodeIndex, parent: ?ast.NodeIndex) bool {
+    const parent_index = parent orelse return false;
+    return switch (tree.data(parent_index)) {
+        .catch_clause => |clause| clause.body == index,
+        else => false,
+    };
+}
+
 pub fn runBasic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -1729,7 +1737,10 @@ const BasicVisitor = struct {
             }
         }
         if (self.options.no_empty) {
-            try no_empty.checkBlockStatement(self.allocator, self.diagnostics, ctx.tree, block, index);
+            try no_empty.checkBlockStatementWithOptions(self.allocator, self.diagnostics, ctx.tree, block, index, .{
+                .allow_empty_catch = self.options.no_empty_allow_empty_catch == .yes,
+                .is_catch_body = isCatchBody(ctx.tree, index, ctx.path.parent()),
+            });
         }
         if (self.options.no_empty_block_statements) {
             try no_empty_block_statements.checkBlockStatement(self.allocator, self.diagnostics, ctx.tree, block, index);

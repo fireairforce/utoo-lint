@@ -57,7 +57,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-duplicate-case`](https://eslint.org/docs/latest/rules/no-duplicate-case) | Implemented |
 | [`no-duplicate-imports`](https://eslint.org/docs/latest/rules/no-duplicate-imports) | Implemented |
 | [`no-else-return`](https://eslint.org/docs/latest/rules/no-else-return) | Implemented |
-| [`no-empty`](https://eslint.org/docs/latest/rules/no-empty) | Implemented |
+| [`no-empty`](https://eslint.org/docs/latest/rules/no-empty) | Implemented with optional `allowEmptyCatch` behavior |
 | [`no-empty-block-statements`](https://eslint.org/docs/latest/rules/no-empty-block-statements) | Implemented |
 | [`no-empty-character-class`](https://eslint.org/docs/latest/rules/no-empty-character-class) | Implemented |
 | [`no-empty-function`](https://eslint.org/docs/latest/rules/no-empty-function) | Implemented |

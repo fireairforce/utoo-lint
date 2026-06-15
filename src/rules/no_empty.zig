@@ -7,6 +7,11 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-empty";
 
+pub const Options = struct {
+    allow_empty_catch: bool = false,
+    is_catch_body: bool = false,
+};
+
 pub fn checkBlockStatement(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -14,7 +19,19 @@ pub fn checkBlockStatement(
     block: ast.BlockStatement,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkBlockStatementWithOptions(allocator, diagnostics, tree, block, index, .{});
+}
+
+pub fn checkBlockStatementWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    block: ast.BlockStatement,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
     if (block.body.len != 0) return;
+    if (options.allow_empty_catch and options.is_catch_body) return;
     if (hasCommentInsideBraces(tree, index)) return;
 
     try core.addDiagnostic(
