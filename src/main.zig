@@ -268,6 +268,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_floating_decimal = false;
         } else if (std.mem.eql(u8, arg, "--no-fallthrough=off")) {
             options.no_fallthrough = false;
+        } else if (std.mem.eql(u8, arg, "--no-fallthrough-allow-empty-case=on")) {
+            options.no_fallthrough_allow_empty_case = .yes;
         } else if (std.mem.eql(u8, arg, "--no-for-in=off")) {
             options.no_for_in = false;
         } else if (std.mem.eql(u8, arg, "--no-func-assign=off")) {
@@ -1417,6 +1419,7 @@ fn printHelp() void {
         \\  --no-extra-boolean-cast=off Disable no-extra-boolean-cast
         \\  --no-floating-decimal=off Disable no-floating-decimal
         \\  --no-fallthrough=off      Disable no-fallthrough
+        \\  --no-fallthrough-allow-empty-case=on Allow empty switch cases
         \\  --no-for-in=off           Disable no-for-in
         \\  --no-func-assign=off      Disable no-func-assign
         \\  --no-global-assign=off    Disable no-global-assign

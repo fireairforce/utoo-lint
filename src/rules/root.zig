@@ -1582,7 +1582,9 @@ const BasicVisitor = struct {
             try no_duplicate_case.check(self.allocator, self.diagnostics, ctx.tree, statement);
         }
         if (self.options.no_fallthrough) {
-            try no_fallthrough.check(self.allocator, self.diagnostics, ctx.tree, statement);
+            try no_fallthrough.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, .{
+                .allow_empty_case = self.options.no_fallthrough_allow_empty_case == .yes,
+            });
         }
         return .proceed;
     }
