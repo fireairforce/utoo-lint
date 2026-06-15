@@ -11,6 +11,9 @@ test "reports no-throw-literal for literal throw arguments" {
         \\throw undefined;
         \\throw `error`;
         \\throw "prefix " + error;
+        \\throw /error/;
+        \\throw {};
+        \\throw [];
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -20,7 +23,7 @@ test "reports no-throw-literal for literal throw arguments" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_throw_literal.id));
+    try std.testing.expectEqual(@as(usize, 10), helpers.countRule(result, lint.rules.no_throw_literal.id));
 }
 
 test "does not report no-throw-literal for error objects or references" {
