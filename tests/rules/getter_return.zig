@@ -45,8 +45,18 @@ test "reports getter-return for getters that do not return a value" {
 
 test "reports getter-return for descriptor getters that do not return a value" {
     const source =
+        \\const suffix = "Property";
         \\Object.defineProperty(target, "x", {
         \\  get: function () {}
+        \\});
+        \\Object["defineProperty"](target, "string", {
+        \\  get() {}
+        \\});
+        \\Object[`defineProperty`](target, "template", {
+        \\  get() {}
+        \\});
+        \\Object[`define${suffix}`](target, "dynamic", {
+        \\  get() {}
         \\});
         \\Object.defineProperties(target, {
         \\  y: {
@@ -57,11 +67,31 @@ test "reports getter-return for descriptor getters that do not return a value" {
         \\    }
         \\  }
         \\});
+        \\Object["defineProperties"](target, {
+        \\  string: {
+        \\    get() {}
+        \\  }
+        \\});
+        \\Object[`defineProperties`](target, {
+        \\  template: {
+        \\    get() {}
+        \\  }
+        \\});
         \\Object.create(proto, {
         \\  z: {
         \\    get: function () {
         \\      return;
         \\    }
+        \\  }
+        \\});
+        \\Object["create"](proto, {
+        \\  string: {
+        \\    get() {}
+        \\  }
+        \\});
+        \\Object[`create`](proto, {
+        \\  template: {
+        \\    get() {}
         \\  }
         \\});
     ;
@@ -74,7 +104,7 @@ test "reports getter-return for descriptor getters that do not return a value" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.getter_return.id));
+    try std.testing.expectEqual(@as(usize, 9), helpers.countRule(result, lint.rules.getter_return.id));
 }
 
 test "does not report getter-return when all getter paths return or throw" {
