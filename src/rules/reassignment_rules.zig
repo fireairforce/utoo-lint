@@ -317,10 +317,20 @@ fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8
     return if (member.computed)
         switch (tree.data(member.property)) {
             .string_literal => |literal| tree.string(literal.value),
+            .template_literal => |literal| templateStringValue(tree, literal),
             else => null,
         }
     else switch (tree.data(member.property)) {
         .identifier_name => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn templateStringValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]const u8 {
+    if (literal.expressions.len != 0 or literal.quasis.len != 1) return null;
+    const quasi_index = tree.extra(literal.quasis)[0];
+    return switch (tree.data(quasi_index)) {
+        .template_element => |element| tree.string(element.cooked),
         else => null,
     };
 }
