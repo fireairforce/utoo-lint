@@ -881,6 +881,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-plusplus")) {
             self.no_plusplus_allow_for_loop_afterthoughts = try noPlusplusAllowForLoopAfterthoughtsFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "prefer-const")) {
+            self.prefer_const_destructuring = try preferConstDestructuringFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
             self.no_return_assign_style = try noReturnAssignStyleFromConfig(value);
         }
@@ -1456,6 +1459,26 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (allow) .yes else .no;
+    }
+
+    fn preferConstDestructuringFromConfig(value: std.json.Value) RuleConfigError!PreferConstDestructuring {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .any,
+        };
+        if (items.len < 2) return .any;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const destructuring = switch (config.get("destructuring") orelse return .any) {
+            .string => |destructuring| destructuring,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, destructuring, "any")) return .any;
+        if (std.mem.eql(u8, destructuring, "all")) return .all;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn noReturnAssignStyleFromConfig(value: std.json.Value) RuleConfigError!NoReturnAssignStyle {
@@ -2361,6 +2384,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-plusplus", no_plusplus_config.value);
     try std.testing.expect(options.no_plusplus);
     try std.testing.expectEqual(NoPlusplusAllowForLoopAfterthoughts.yes, options.no_plusplus_allow_for_loop_afterthoughts);
+
+    var prefer_const_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"destructuring\":\"all\"}]",
+        .{},
+    );
+    defer prefer_const_config.deinit();
+    try options.setByRuleConfigValue("prefer-const", prefer_const_config.value);
+    try std.testing.expect(options.prefer_const);
+    try std.testing.expectEqual(PreferConstDestructuring.all, options.prefer_const_destructuring);
 
     var no_return_assign_config = try std.json.parseFromSlice(
         std.json.Value,
