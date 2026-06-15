@@ -28,17 +28,10 @@ pub fn check(
 
 fn isRequireConstructorCallee(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     const unwrapped = unwrapTransparent(tree, index);
-    switch (tree.data(unwrapped)) {
-        .identifier_reference => |identifier| return std.mem.eql(u8, tree.string(identifier.name), "require"),
-        .call_expression => |call| {
-            const callee = unwrapTransparent(tree, call.callee);
-            return switch (tree.data(callee)) {
-                .identifier_reference => |identifier| std.mem.eql(u8, tree.string(identifier.name), "require"),
-                else => false,
-            };
-        },
-        else => return false,
-    }
+    return switch (tree.data(unwrapped)) {
+        .identifier_reference => |identifier| std.mem.eql(u8, tree.string(identifier.name), "require"),
+        else => false,
+    };
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {

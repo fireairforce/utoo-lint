@@ -6,7 +6,6 @@ test "reports no-new-require for constructing require calls" {
     const source =
         \\const foo = new require("foo");
         \\const bar = new (require)("bar");
-        \\const baz = new (require("baz"));
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -16,13 +15,14 @@ test "reports no-new-require for constructing require calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_new_require.id));
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_new_require.id));
 }
 
 test "does not report no-new-require for ordinary require or constructed values" {
     const source =
         \\const Foo = require("foo");
         \\const foo = new Foo();
+        \\const baz = new (require("baz"));
         \\const resolved = require.resolve("foo");
         \\const custom = new require.resolve("foo");
     ;
