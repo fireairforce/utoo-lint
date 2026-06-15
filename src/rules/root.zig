@@ -359,6 +359,23 @@ fn isCatchBody(tree: *const ast.Tree, index: ast.NodeIndex, parent: ?ast.NodeInd
     };
 }
 
+fn emptyFunctionKind(tree: *const ast.Tree, ctx: *traverser.basic.Ctx) no_empty_function.Kind {
+    const parent_index = ctx.path.parent() orelse return .functions;
+
+    switch (tree.data(parent_index)) {
+        .arrow_function_expression => return .arrowFunctions,
+        .function => {},
+        else => return .functions,
+    }
+
+    const grandparent_index = ctx.path.ancestor(2) orelse return .functions;
+    return switch (tree.data(grandparent_index)) {
+        .method_definition => |method| if (method.kind == .constructor) .constructors else .methods,
+        .object_property => |property| if (property.method or property.kind != .init) .methods else .functions,
+        else => .functions,
+    };
+}
+
 pub fn runBasic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -1778,7 +1795,10 @@ const BasicVisitor = struct {
             try no_empty_block_statements.checkFunctionBody(self.allocator, self.diagnostics, ctx.tree, body, index);
         }
         if (self.options.no_empty_function and !self.options.typescript_eslint_no_empty_function) {
-            try no_empty_function.check(self.allocator, self.diagnostics, ctx.tree, body, index);
+            try no_empty_function.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, body, index, .{
+                .allow = self.options.no_empty_function_allow,
+                .kind = emptyFunctionKind(ctx.tree, ctx),
+            });
         }
         if (self.options.typescript_eslint_no_empty_function) {
             try typescript_eslint_no_empty_function.checkFunctionBody(self.allocator, self.diagnostics, ctx.tree, body, index, ctx);

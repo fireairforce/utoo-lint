@@ -60,7 +60,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-empty`](https://eslint.org/docs/latest/rules/no-empty) | Implemented with optional `allowEmptyCatch` behavior |
 | [`no-empty-block-statements`](https://eslint.org/docs/latest/rules/no-empty-block-statements) | Implemented |
 | [`no-empty-character-class`](https://eslint.org/docs/latest/rules/no-empty-character-class) | Implemented |
-| [`no-empty-function`](https://eslint.org/docs/latest/rules/no-empty-function) | Implemented |
+| [`no-empty-function`](https://eslint.org/docs/latest/rules/no-empty-function) | Implemented with partial `allow` behavior for functions, arrow functions, methods, and constructors |
 | [`no-empty-pattern`](https://eslint.org/docs/latest/rules/no-empty-pattern) | Implemented |
 | [`no-empty-static-block`](https://eslint.org/docs/latest/rules/no-empty-static-block) | Implemented |
 | [`no-eq-null`](https://eslint.org/docs/latest/rules/no-eq-null) | Implemented |
