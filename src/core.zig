@@ -409,6 +409,7 @@ pub const Options = struct {
     no_misleading_character_class: bool = true,
     no_multiple_empty_lines: bool = true,
     no_multiple_empty_lines_max: usize = 2,
+    no_multiple_empty_lines_max_bof: ?usize = null,
     no_multiple_empty_lines_max_eof: ?usize = null,
     no_nonoctal_decimal_escape: bool = true,
     no_new: bool = true,
@@ -707,6 +708,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-multiple-empty-lines")) {
             self.no_multiple_empty_lines_max = try noMultipleEmptyLinesMaxFromConfig(value);
+            self.no_multiple_empty_lines_max_bof = try noMultipleEmptyLinesMaxBofFromConfig(value);
             self.no_multiple_empty_lines_max_eof = try noMultipleEmptyLinesMaxEofFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
@@ -925,6 +927,25 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         const max = switch (config.get("max") orelse return 2) {
+            .integer => |max| max,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (max < 0) return error.UnsupportedRuleConfigValue;
+        return @intCast(max);
+    }
+
+    fn noMultipleEmptyLinesMaxBofFromConfig(value: std.json.Value) RuleConfigError!?usize {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return null,
+        };
+        if (items.len < 2) return null;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const max = switch (config.get("maxBOF") orelse return null) {
             .integer => |max| max,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -1432,6 +1453,20 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-multiple-empty-lines", no_multiple_empty_lines_config.value);
     try std.testing.expect(options.no_multiple_empty_lines);
     try std.testing.expectEqual(@as(usize, 1), options.no_multiple_empty_lines_max);
+    try std.testing.expectEqual(@as(?usize, null), options.no_multiple_empty_lines_max_bof);
+    try std.testing.expectEqual(@as(?usize, null), options.no_multiple_empty_lines_max_eof);
+
+    var no_multiple_empty_lines_bof_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"maxBOF\":0}]",
+        .{},
+    );
+    defer no_multiple_empty_lines_bof_config.deinit();
+    try options.setByRuleConfigValue("no-multiple-empty-lines", no_multiple_empty_lines_bof_config.value);
+    try std.testing.expect(options.no_multiple_empty_lines);
+    try std.testing.expectEqual(@as(usize, 2), options.no_multiple_empty_lines_max);
+    try std.testing.expectEqual(@as(?usize, 0), options.no_multiple_empty_lines_max_bof);
     try std.testing.expectEqual(@as(?usize, null), options.no_multiple_empty_lines_max_eof);
 
     var no_multiple_empty_lines_eof_config = try std.json.parseFromSlice(
@@ -1444,6 +1479,7 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-multiple-empty-lines", no_multiple_empty_lines_eof_config.value);
     try std.testing.expect(options.no_multiple_empty_lines);
     try std.testing.expectEqual(@as(usize, 2), options.no_multiple_empty_lines_max);
+    try std.testing.expectEqual(@as(?usize, null), options.no_multiple_empty_lines_max_bof);
     try std.testing.expectEqual(@as(?usize, 0), options.no_multiple_empty_lines_max_eof);
 
     var no_return_assign_config = try std.json.parseFromSlice(
