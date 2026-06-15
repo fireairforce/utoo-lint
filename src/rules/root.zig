@@ -1322,7 +1322,11 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_unused_expressions and !self.options.typescript_eslint_no_unused_expressions) {
-            try no_unused_expressions.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+            try no_unused_expressions.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, index, .{
+                .allow_short_circuit = self.options.no_unused_expressions_allow_short_circuit == .yes,
+                .allow_ternary = self.options.no_unused_expressions_allow_ternary == .yes,
+                .allow_tagged_templates = self.options.no_unused_expressions_allow_tagged_templates == .yes,
+            });
         }
         if (self.options.typescript_eslint_no_unused_expressions) {
             try typescript_eslint_no_unused_expressions.check(self.allocator, self.diagnostics, ctx.tree, statement, index);

@@ -218,6 +218,21 @@ pub const NoPlusplusAllowForLoopAfterthoughts = enum {
     no,
 };
 
+pub const NoUnusedExpressionsAllowShortCircuit = enum {
+    yes,
+    no,
+};
+
+pub const NoUnusedExpressionsAllowTernary = enum {
+    yes,
+    no,
+};
+
+pub const NoUnusedExpressionsAllowTaggedTemplates = enum {
+    yes,
+    no,
+};
+
 pub const NoParamReassignProps = enum {
     yes,
     no,
@@ -585,6 +600,9 @@ pub const Options = struct {
     no_useless_escape: bool = true,
     no_useless_rename: bool = true,
     no_unused_expressions: bool = true,
+    no_unused_expressions_allow_short_circuit: NoUnusedExpressionsAllowShortCircuit = .no,
+    no_unused_expressions_allow_ternary: NoUnusedExpressionsAllowTernary = .no,
+    no_unused_expressions_allow_tagged_templates: NoUnusedExpressionsAllowTaggedTemplates = .yes,
     typescript_eslint_no_unused_expressions: bool = true,
     no_warning_comments: bool = true,
     no_warning_comments_location: NoWarningCommentsLocation = .start,
@@ -832,6 +850,11 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-useless-computed-key")) {
             self.no_useless_computed_key_enforce_for_class_members = try noUselessComputedKeyEnforceForClassMembersFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-unused-expressions")) {
+            self.no_unused_expressions_allow_short_circuit = try noUnusedExpressionsAllowShortCircuitFromConfig(value);
+            self.no_unused_expressions_allow_ternary = try noUnusedExpressionsAllowTernaryFromConfig(value);
+            self.no_unused_expressions_allow_tagged_templates = try noUnusedExpressionsAllowTaggedTemplatesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-warning-comments")) {
             self.no_warning_comments_location = try noWarningCommentsLocationFromConfig(value);
@@ -1212,6 +1235,60 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (enforce) .yes else .no;
+    }
+
+    fn noUnusedExpressionsAllowShortCircuitFromConfig(value: std.json.Value) RuleConfigError!NoUnusedExpressionsAllowShortCircuit {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allowShortCircuit") orelse return .no) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (allow) .yes else .no;
+    }
+
+    fn noUnusedExpressionsAllowTernaryFromConfig(value: std.json.Value) RuleConfigError!NoUnusedExpressionsAllowTernary {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allowTernary") orelse return .no) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (allow) .yes else .no;
+    }
+
+    fn noUnusedExpressionsAllowTaggedTemplatesFromConfig(value: std.json.Value) RuleConfigError!NoUnusedExpressionsAllowTaggedTemplates {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .yes,
+        };
+        if (items.len < 2) return .yes;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allowTaggedTemplates") orelse return .yes) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (allow) .yes else .no;
     }
 
     fn noWarningCommentsLocationFromConfig(value: std.json.Value) RuleConfigError!NoWarningCommentsLocation {
@@ -1884,6 +1961,19 @@ test "Options can apply ESLint-style rule config values" {
         NoUselessComputedKeyEnforceForClassMembers.no,
         options.no_useless_computed_key_enforce_for_class_members,
     );
+
+    var no_unused_expressions_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowShortCircuit\":true,\"allowTernary\":true,\"allowTaggedTemplates\":false}]",
+        .{},
+    );
+    defer no_unused_expressions_config.deinit();
+    try options.setByRuleConfigValue("no-unused-expressions", no_unused_expressions_config.value);
+    try std.testing.expect(options.no_unused_expressions);
+    try std.testing.expectEqual(NoUnusedExpressionsAllowShortCircuit.yes, options.no_unused_expressions_allow_short_circuit);
+    try std.testing.expectEqual(NoUnusedExpressionsAllowTernary.yes, options.no_unused_expressions_allow_ternary);
+    try std.testing.expectEqual(NoUnusedExpressionsAllowTaggedTemplates.no, options.no_unused_expressions_allow_tagged_templates);
 
     var no_warning_comments_config = try std.json.parseFromSlice(
         std.json.Value,
