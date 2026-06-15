@@ -67,6 +67,11 @@ pub const NoPlusplusAllowForLoopAfterthoughts = enum {
     no,
 };
 
+pub const NoParamReassignProps = enum {
+    yes,
+    no,
+};
+
 pub const WrapIifeStyle = enum {
     outside,
     inside,
@@ -317,6 +322,7 @@ pub const Options = struct {
     no_octal_escape: bool = true,
     no_object_constructor: bool = true,
     no_param_reassign: bool = true,
+    no_param_reassign_props: NoParamReassignProps = .no,
     no_path_concat: bool = true,
     no_plusplus: bool = true,
     no_plusplus_allow_for_loop_afterthoughts: NoPlusplusAllowForLoopAfterthoughts = .no,

@@ -85,6 +85,34 @@ test "does not report no-param-reassign for property writes or shadowed local as
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_param_reassign.id));
 }
 
+test "reports no-param-reassign for parameter property writes when props is enabled" {
+    const source =
+        \\function run(value, other) {
+        \\  value.name = next;
+        \\  value.name++;
+        \\  delete value.name;
+        \\  for (value.name in source) {
+        \\    run(value);
+        \\  }
+        \\  for (value.item of source) {
+        \\    run(value);
+        \\  }
+        \\  other.nested.value = next;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_param_reassign_props = .yes,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .no_plusplus = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_param_reassign.id));
+}
+
 test "can disable no-param-reassign" {
     const source =
         \\function run(value) {
