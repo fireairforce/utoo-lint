@@ -130,7 +130,56 @@ pub const NoWarningCommentsLocation = enum {
 pub const NoWarningCommentsDecoration = enum {
     none,
     asterisk,
+    slash,
     slash_asterisk,
+};
+
+pub const no_warning_comments_default_terms = [_][]const u8{
+    "todo",
+    "fixme",
+    "xxx",
+};
+
+pub const max_no_warning_comments_terms = 32;
+pub const max_no_warning_comments_term_len = 128;
+
+pub const NoWarningCommentsTermsError = error{
+    EmptyNoWarningCommentsTerm,
+    TooManyNoWarningCommentsTerms,
+    NoWarningCommentsTermTooLong,
+};
+
+pub const NoWarningCommentsTerms = struct {
+    custom: bool = false,
+    count: usize = 0,
+    lengths: [max_no_warning_comments_terms]usize = undefined,
+    storage: [max_no_warning_comments_terms][max_no_warning_comments_term_len]u8 = undefined,
+
+    pub fn len(self: *const NoWarningCommentsTerms) usize {
+        return if (self.custom) self.count else no_warning_comments_default_terms.len;
+    }
+
+    pub fn at(self: *const NoWarningCommentsTerms, index: usize) []const u8 {
+        if (!self.custom) return no_warning_comments_default_terms[index];
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn set(self: *NoWarningCommentsTerms, terms: []const []const u8) NoWarningCommentsTermsError!void {
+        self.custom = true;
+        self.count = 0;
+        for (terms) |term| try self.append(term);
+    }
+
+    pub fn append(self: *NoWarningCommentsTerms, term: []const u8) NoWarningCommentsTermsError!void {
+        if (term.len == 0) return error.EmptyNoWarningCommentsTerm;
+        if (self.count >= max_no_warning_comments_terms) return error.TooManyNoWarningCommentsTerms;
+        if (term.len > max_no_warning_comments_term_len) return error.NoWarningCommentsTermTooLong;
+
+        self.custom = true;
+        @memcpy(self.storage[self.count][0..term.len], term);
+        self.lengths[self.count] = term.len;
+        self.count += 1;
+    }
 };
 
 pub const NoVoidAllowAsStatement = enum {
@@ -486,6 +535,7 @@ pub const Options = struct {
     no_warning_comments: bool = true,
     no_warning_comments_location: NoWarningCommentsLocation = .start,
     no_warning_comments_decoration: NoWarningCommentsDecoration = .none,
+    no_warning_comments_terms: NoWarningCommentsTerms = .{},
     no_void: bool = true,
     no_void_allow_as_statement: NoVoidAllowAsStatement = .no,
     no_with: bool = true,
@@ -719,6 +769,11 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-useless-computed-key")) {
             self.no_useless_computed_key_enforce_for_class_members = try noUselessComputedKeyEnforceForClassMembersFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-warning-comments")) {
+            self.no_warning_comments_location = try noWarningCommentsLocationFromConfig(value);
+            self.no_warning_comments_decoration = try noWarningCommentsDecorationFromConfig(value);
+            self.no_warning_comments_terms = try noWarningCommentsTermsFromConfig(value);
         }
     }
 
@@ -1022,6 +1077,94 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (enforce) .yes else .no;
+    }
+
+    fn noWarningCommentsLocationFromConfig(value: std.json.Value) RuleConfigError!NoWarningCommentsLocation {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .start,
+        };
+        if (items.len < 2) return .start;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const location = switch (config.get("location") orelse return .start) {
+            .string => |location| location,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, location, "start")) return .start;
+        if (std.mem.eql(u8, location, "anywhere")) return .anywhere;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn noWarningCommentsDecorationFromConfig(value: std.json.Value) RuleConfigError!NoWarningCommentsDecoration {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .none,
+        };
+        if (items.len < 2) return .none;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const decoration_value = config.get("decoration") orelse return .none;
+        const decoration_items = switch (decoration_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var has_asterisk = false;
+        var has_slash = false;
+        for (decoration_items) |item| {
+            const char = switch (item) {
+                .string => |char| char,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, char, "*")) {
+                has_asterisk = true;
+            } else if (std.mem.eql(u8, char, "/")) {
+                has_slash = true;
+            } else {
+                return error.UnsupportedRuleConfigValue;
+            }
+        }
+
+        if (has_asterisk and has_slash) return .slash_asterisk;
+        if (has_asterisk) return .asterisk;
+        if (has_slash) return .slash;
+        return .none;
+    }
+
+    fn noWarningCommentsTermsFromConfig(value: std.json.Value) RuleConfigError!NoWarningCommentsTerms {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const terms_value = config.get("terms") orelse return .{};
+        const term_items = switch (terms_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var terms = NoWarningCommentsTerms{};
+        terms.custom = true;
+        for (term_items) |item| {
+            const term = switch (item) {
+                .string => |term| term,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            terms.append(term) catch return error.UnsupportedRuleConfigValue;
+        }
+        return terms;
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
@@ -1517,6 +1660,21 @@ test "Options can apply ESLint-style rule config values" {
         NoUselessComputedKeyEnforceForClassMembers.no,
         options.no_useless_computed_key_enforce_for_class_members,
     );
+
+    var no_warning_comments_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"terms\":[\"review\",\"blocked by upstream\"],\"location\":\"anywhere\",\"decoration\":[\"/\",\"*\"]}]",
+        .{},
+    );
+    defer no_warning_comments_config.deinit();
+    try options.setByRuleConfigValue("no-warning-comments", no_warning_comments_config.value);
+    try std.testing.expect(options.no_warning_comments);
+    try std.testing.expectEqual(NoWarningCommentsLocation.anywhere, options.no_warning_comments_location);
+    try std.testing.expectEqual(NoWarningCommentsDecoration.slash_asterisk, options.no_warning_comments_decoration);
+    try std.testing.expectEqual(@as(usize, 2), options.no_warning_comments_terms.len());
+    try std.testing.expectEqualStrings("review", options.no_warning_comments_terms.at(0));
+    try std.testing.expectEqualStrings("blocked by upstream", options.no_warning_comments_terms.at(1));
 
     try std.testing.expectError(
         Options.RuleConfigError.UnsupportedRuleConfigValue,

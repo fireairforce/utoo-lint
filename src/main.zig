@@ -582,8 +582,12 @@ pub fn main(init: std.process.Init) !void {
             options.no_warning_comments_location = .anywhere;
         } else if (std.mem.eql(u8, arg, "--no-warning-comments-decoration=asterisk")) {
             options.no_warning_comments_decoration = .asterisk;
+        } else if (std.mem.eql(u8, arg, "--no-warning-comments-decoration=slash")) {
+            options.no_warning_comments_decoration = .slash;
         } else if (std.mem.eql(u8, arg, "--no-warning-comments-decoration=slash-asterisk")) {
             options.no_warning_comments_decoration = .slash_asterisk;
+        } else if (std.mem.startsWith(u8, arg, "--no-warning-comments-terms=")) {
+            parseNoWarningCommentsTerms(arg["--no-warning-comments-terms=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--no-void=off")) {
             options.no_void = false;
         } else if (std.mem.eql(u8, arg, "--no-void-allow-as-statement=on")) {
@@ -1081,6 +1085,25 @@ fn parseNoEmptyFunctionAllow(value: []const u8, options: *lint.Options) void {
         }
     }
     options.no_empty_function_allow = allow;
+}
+
+fn parseNoWarningCommentsTerms(value: []const u8, options: *lint.Options) void {
+    if (value.len == 0) {
+        std.debug.print("utoo-lint: --no-warning-comments-terms requires a comma-separated term list\n", .{});
+        std.process.exit(2);
+    }
+
+    var terms: @TypeOf(options.no_warning_comments_terms) = .{};
+    terms.custom = true;
+    var iter = std.mem.splitScalar(u8, value, ',');
+    while (iter.next()) |raw_term| {
+        const term = std.mem.trim(u8, raw_term, " \t\r\n");
+        terms.append(term) catch {
+            std.debug.print("utoo-lint: invalid --no-warning-comments-terms term: {s}\n", .{term});
+            std.process.exit(2);
+        };
+    }
+    options.no_warning_comments_terms = terms;
 }
 
 fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void {
@@ -1639,7 +1662,9 @@ fn printHelp() void {
         \\  --no-warning-comments=off Disable no-warning-comments
         \\  --no-warning-comments-location=anywhere Report warning terms anywhere in comments
         \\  --no-warning-comments-decoration=asterisk Ignore leading * comment decorations
+        \\  --no-warning-comments-decoration=slash Ignore leading / comment decorations
         \\  --no-warning-comments-decoration=slash-asterisk Ignore leading / and * comment decorations
+        \\  --no-warning-comments-terms=todo,fixme Configure no-warning-comments terms
         \\  --no-void=off             Disable no-void
         \\  --no-void-allow-as-statement=on Allow void as expression statement
         \\  --no-with=off             Disable no-with
