@@ -86,7 +86,14 @@ const Visitor = struct {
         expression: ast.NodeIndex,
     ) Allocator.Error!void {
         const unwrapped = unwrapTransparent(tree, expression);
+        try self.checkBooleanExpression(tree, unwrapped);
+    }
 
+    fn checkBooleanExpression(
+        self: *Visitor,
+        tree: *const ast.Tree,
+        unwrapped: ast.NodeIndex,
+    ) Allocator.Error!void {
         if (isBooleanCall(tree, self.symbol_table, unwrapped) or isDoubleNegation(tree, unwrapped)) {
             try core.addDiagnostic(
                 self.allocator,
@@ -97,6 +104,14 @@ const Visitor = struct {
                 tree.span(unwrapped),
             );
         }
+
+        const unary = switch (tree.data(unwrapped)) {
+            .unary_expression => |unary| unary,
+            else => return,
+        };
+        if (unary.operator != .logical_not) return;
+
+        try self.checkBooleanExpression(tree, unwrapTransparent(tree, unary.argument));
     }
 };
 
