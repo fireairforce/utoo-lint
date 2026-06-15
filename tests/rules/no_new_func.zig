@@ -9,6 +9,7 @@ test "reports no-new-func for Function constructor usage" {
         \\const c = Function.call(null, "return 1");
         \\const d = Function.apply(null, ["return 1"]);
         \\const e = Function.bind(null, "return 1");
+        \\const f = Function[`call`](null, "return 1");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -19,16 +20,18 @@ test "reports no-new-func for Function constructor usage" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_new_func.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_new_func.id));
 }
 
-test "does not report no-new-func for shadowed Function" {
+test "does not report no-new-func for shadowed Function or dynamic member names" {
     const source =
         \\function local(Function) {
         \\  const a = new Function("return 1");
         \\  const b = Function("return 1");
         \\  const c = Function.call(null, "return 1");
+        \\  const d = Function[`call`](null, "return 1");
         \\}
+        \\const d = Function[`ca${suffix}`](null, "return 1");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
