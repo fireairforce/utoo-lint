@@ -41,6 +41,38 @@ test "does not report no-extra-boolean-cast outside boolean contexts or for shad
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_extra_boolean_cast.id));
 }
 
+test "reports no-extra-boolean-cast inside negated boolean contexts" {
+    const source =
+        \\if (!Boolean(value)) { use(value); }
+        \\while (!!!value) { break; }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_extra_boolean_cast.id));
+}
+
+test "does not report negated boolean casts outside boolean contexts" {
+    const source =
+        \\const a = !Boolean(value);
+        \\const b = !!!value;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_extra_boolean_cast.id));
+}
+
 test "can disable no-extra-boolean-cast" {
     const source =
         \\if (Boolean(value)) { use(value); }
