@@ -95,7 +95,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-mixed-spaces-and-tabs`](https://eslint.org/docs/latest/rules/no-mixed-spaces-and-tabs) | Implemented |
 | [`no-misleading-character-class`](https://eslint.org/docs/latest/rules/no-misleading-character-class) | Implemented |
 | [`no-multi-assign`](https://eslint.org/docs/latest/rules/no-multi-assign) | Implemented |
-| [`no-multi-spaces`](https://eslint.org/docs/latest/rules/no-multi-spaces) | Implemented |
+| [`no-multi-spaces`](https://eslint.org/docs/latest/rules/no-multi-spaces) | Implemented with optional `ignoreEOLComments` behavior |
 | [`no-multi-str`](https://eslint.org/docs/latest/rules/no-multi-str) | Implemented |
 | [`no-multiple-empty-lines`](https://eslint.org/docs/latest/rules/no-multiple-empty-lines) | Implemented |
 | [`no-negated-condition`](https://eslint.org/docs/latest/rules/no-negated-condition) | Implemented |

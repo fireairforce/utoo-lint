@@ -443,7 +443,9 @@ pub fn runBasic(
         try no_inline_comments.run(allocator, diagnostics, tree);
     }
     if (options.no_multi_spaces) {
-        try no_multi_spaces.run(allocator, diagnostics, tree);
+        try no_multi_spaces.runWithOptions(allocator, diagnostics, tree, .{
+            .ignore_eol_comments = options.no_multi_spaces_ignore_eol_comments,
+        });
     }
     if (options.spaced_comment) {
         try spaced_comment.run(allocator, diagnostics, tree);

@@ -7,6 +7,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-multi-spaces";
 
+pub const Options = struct {
+    ignore_eol_comments: core.NoMultiSpacesIgnoreEOLComments = .no,
+};
+
 const IgnoredSpan = struct {
     start: u32,
     end: u32,
@@ -17,6 +21,15 @@ pub fn run(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
 ) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
+) Allocator.Error!void {
     const source = tree.source;
     const ignored_spans = try collectIgnoredSpans(allocator, tree);
     defer allocator.free(ignored_spans);
@@ -26,7 +39,7 @@ pub fn run(
 
     while (line_start <= source.len) {
         const line_end = findLineEnd(source, line_start);
-        try checkLine(allocator, diagnostics, tree, line_start, line_end, ignored_spans, &ignored_index);
+        try checkLine(allocator, diagnostics, tree, line_start, line_end, ignored_spans, &ignored_index, options);
 
         if (line_end >= source.len) break;
 
@@ -45,6 +58,7 @@ fn checkLine(
     line_end: usize,
     ignored_spans: []const IgnoredSpan,
     ignored_index: *usize,
+    options: Options,
 ) Allocator.Error!void {
     const source = tree.source;
     var index = line_start;
@@ -73,6 +87,8 @@ fn checkLine(
         while (index < line_end and source[index] == ' ') : (index += 1) {}
 
         if (index - start > 1) {
+            if (options.ignore_eol_comments == .yes and isBeforeEndOfLineComment(tree, index, line_end)) continue;
+
             try core.addDiagnostic(
                 allocator,
                 diagnostics,
@@ -83,6 +99,26 @@ fn checkLine(
             );
         }
     }
+}
+
+fn isBeforeEndOfLineComment(tree: *const ast.Tree, index: usize, line_end: usize) bool {
+    for (tree.comments) |comment| {
+        const start: usize = comment.start;
+        if (start != index) continue;
+        if (comment.type == .line) return true;
+
+        const end: usize = comment.end;
+        if (end > line_end) return false;
+        return isOnlyWhitespace(tree.source[end..line_end]);
+    }
+    return false;
+}
+
+fn isOnlyWhitespace(source: []const u8) bool {
+    for (source) |byte| {
+        if (byte != ' ' and byte != '\t') return false;
+    }
+    return true;
 }
 
 fn collectIgnoredSpans(allocator: Allocator, tree: *const ast.Tree) Allocator.Error![]IgnoredSpan {

@@ -34,6 +34,23 @@ test "reports no-multi-spaces before end-of-line comments" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_multi_spaces.id));
 }
 
+test "allows no-multi-spaces before end-of-line comments when configured" {
+    const source =
+        "const value =  1;\n" ++
+        "const line = 1;  // comment\n" ++
+        "const block = 1;  /* comment */\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_multi_spaces_ignore_eol_comments = .yes,
+        .no_inline_comments = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_multi_spaces.id));
+}
+
 test "does not report no-multi-spaces for indentation or inside literals and comments" {
     const source =
         "  const text = \"hello  world\";\n" ++
