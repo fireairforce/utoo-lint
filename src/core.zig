@@ -859,6 +859,9 @@ pub const Options = struct {
             self.no_param_reassign_props = try noParamReassignPropsFromConfig(value);
             self.no_param_reassign_ignore_property_modifications_for = try noParamReassignIgnoredNamesFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-plusplus")) {
+            self.no_plusplus_allow_for_loop_afterthoughts = try noPlusplusAllowForLoopAfterthoughtsFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
             self.no_return_assign_style = try noReturnAssignStyleFromConfig(value);
         }
@@ -1321,6 +1324,24 @@ pub const Options = struct {
             ignored.append(name) catch return error.UnsupportedRuleConfigValue;
         }
         return ignored;
+    }
+
+    fn noPlusplusAllowForLoopAfterthoughtsFromConfig(value: std.json.Value) RuleConfigError!NoPlusplusAllowForLoopAfterthoughts {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allowForLoopAfterthoughts") orelse return .no) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (allow) .yes else .no;
     }
 
     fn noReturnAssignStyleFromConfig(value: std.json.Value) RuleConfigError!NoReturnAssignStyle {
@@ -2137,6 +2158,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_param_reassign_ignore_property_modifications_for.contains("req"));
     try std.testing.expect(options.no_param_reassign_ignore_property_modifications_for.contains("res"));
     try std.testing.expect(!options.no_param_reassign_ignore_property_modifications_for.contains("ctx"));
+
+    var no_plusplus_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowForLoopAfterthoughts\":true}]",
+        .{},
+    );
+    defer no_plusplus_config.deinit();
+    try options.setByRuleConfigValue("no-plusplus", no_plusplus_config.value);
+    try std.testing.expect(options.no_plusplus);
+    try std.testing.expectEqual(NoPlusplusAllowForLoopAfterthoughts.yes, options.no_plusplus_allow_for_loop_afterthoughts);
 
     var no_return_assign_config = try std.json.parseFromSlice(
         std.json.Value,
