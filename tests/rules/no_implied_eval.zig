@@ -9,6 +9,7 @@ test "reports no-implied-eval for string timer and execScript calls" {
         \\execScript("alert(1)");
         \\window.setTimeout("alert(1)");
         \\globalThis["setInterval"]("tick()", 100);
+        \\globalThis[`setInterval`]("tick()", 100);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -20,7 +21,7 @@ test "reports no-implied-eval for string timer and execScript calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_implied_eval.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_implied_eval.id));
 }
 
 test "does not report no-implied-eval for function arguments or shadowed calls" {
@@ -32,6 +33,7 @@ test "does not report no-implied-eval for function arguments or shadowed calls" 
         \\const window = sandbox;
         \\window.setTimeout("not global");
         \\object.setInterval("not global");
+        \\globalThis[`set${suffix}`]("not static");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
