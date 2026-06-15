@@ -7,12 +7,23 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-multiple-empty-lines";
 
-const max_empty_lines = 2;
+pub const Options = struct {
+    max: usize = 2,
+};
 
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
 ) Allocator.Error!void {
     const source = tree.source;
     var line_start: usize = 0;
@@ -23,14 +34,15 @@ pub fn run(
 
         if (isEmptyLine(source[line_start..line_end])) {
             empty_lines += 1;
-            if (empty_lines > max_empty_lines) {
-                try core.addDiagnostic(
+            if (empty_lines > options.max) {
+                try core.addDiagnosticFmt(
                     allocator,
                     diagnostics,
                     .warning,
                     id,
-                    "More than 2 blank lines not allowed.",
                     .{ .start = @intCast(line_start), .end = @intCast(line_end) },
+                    "More than {d} blank lines not allowed.",
+                    .{options.max},
                 );
             }
         } else {

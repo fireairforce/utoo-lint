@@ -437,7 +437,9 @@ pub fn runBasic(
         try no_irregular_whitespace.run(allocator, diagnostics, tree);
     }
     if (options.no_multiple_empty_lines) {
-        try no_multiple_empty_lines.run(allocator, diagnostics, tree);
+        try no_multiple_empty_lines.runWithOptions(allocator, diagnostics, tree, .{
+            .max = options.no_multiple_empty_lines_max,
+        });
     }
     if (options.no_inline_comments) {
         try no_inline_comments.run(allocator, diagnostics, tree);
