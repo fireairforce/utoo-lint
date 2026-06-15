@@ -182,6 +182,11 @@ pub const NoWarningCommentsTerms = struct {
     }
 };
 
+pub const SpacedCommentStyle = enum {
+    always,
+    never,
+};
+
 pub const NoVoidAllowAsStatement = enum {
     yes,
     no,
@@ -606,6 +611,7 @@ pub const Options = struct {
     require_atomic_updates: bool = true,
     require_yield: bool = true,
     spaced_comment: bool = true,
+    spaced_comment_style: SpacedCommentStyle = .always,
     symbol_description: bool = true,
     typescript_eslint_adjacent_overload_signatures: bool = true,
     typescript_eslint_array_type: bool = true,
@@ -774,6 +780,9 @@ pub const Options = struct {
             self.no_warning_comments_location = try noWarningCommentsLocationFromConfig(value);
             self.no_warning_comments_decoration = try noWarningCommentsDecorationFromConfig(value);
             self.no_warning_comments_terms = try noWarningCommentsTermsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "spaced-comment")) {
+            self.spaced_comment_style = try spacedCommentStyleFromConfig(value);
         }
     }
 
@@ -1165,6 +1174,22 @@ pub const Options = struct {
             terms.append(term) catch return error.UnsupportedRuleConfigValue;
         }
         return terms;
+    }
+
+    fn spacedCommentStyleFromConfig(value: std.json.Value) RuleConfigError!SpacedCommentStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "always")) return .always;
+        if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
@@ -1675,6 +1700,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(@as(usize, 2), options.no_warning_comments_terms.len());
     try std.testing.expectEqualStrings("review", options.no_warning_comments_terms.at(0));
     try std.testing.expectEqualStrings("blocked by upstream", options.no_warning_comments_terms.at(1));
+
+    var spaced_comment_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\"]",
+        .{},
+    );
+    defer spaced_comment_config.deinit();
+    try options.setByRuleConfigValue("spaced-comment", spaced_comment_config.value);
+    try std.testing.expect(options.spaced_comment);
+    try std.testing.expectEqual(SpacedCommentStyle.never, options.spaced_comment_style);
 
     try std.testing.expectError(
         Options.RuleConfigError.UnsupportedRuleConfigValue,

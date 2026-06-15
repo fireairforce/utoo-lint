@@ -454,7 +454,12 @@ pub fn runBasic(
         });
     }
     if (options.spaced_comment) {
-        try spaced_comment.run(allocator, diagnostics, tree);
+        try spaced_comment.runWithOptions(allocator, diagnostics, tree, .{
+            .style = switch (options.spaced_comment_style) {
+                .always => .always,
+                .never => .never,
+            },
+        });
     }
     if (options.typescript_eslint_ban_ts_comment) {
         try typescript_eslint_ban_ts_comment.run(allocator, diagnostics, tree);
