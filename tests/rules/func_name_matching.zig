@@ -58,12 +58,14 @@ test "does not report func-name-matching for matching or unsupported cases" {
         \\const unnamed = function () {};
         \\const arrow = () => {};
         \\object.value = function value() {};
+        \\object[value] = function otherValue() {};
         \\object[getName()] = function dynamic() {};
         \\module.exports = function exported() {};
         \\exports.value = function exportedValue() {};
         \\const object = {
         \\  method() {},
         \\  value: function value() {},
+        \\  [value]: function otherValue() {},
         \\};
         \\class Example {
         \\  field = function field() {};
