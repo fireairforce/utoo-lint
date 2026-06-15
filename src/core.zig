@@ -820,6 +820,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "eslint-comments/no-restricted-disable")) {
             self.eslint_comments_no_restricted_disable_no_nested_ternary = noRestrictedDisableRestrictsNoNestedTernary(value);
         }
+        if (std.mem.eql(u8, cli_name, "func-name-matching")) {
+            self.func_name_matching_style = try funcNameMatchingStyleFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "func-names")) {
             self.func_names_style = try funcNamesStyleFromConfig(value);
         }
@@ -1008,6 +1011,22 @@ pub const Options = struct {
             if (std.mem.eql(u8, rule, "no-nested-ternary")) return true;
         }
         return false;
+    }
+
+    fn funcNameMatchingStyleFromConfig(value: std.json.Value) RuleConfigError!FuncNameMatchingStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "always")) return .always;
+        if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn funcNamesStyleFromConfig(value: std.json.Value) RuleConfigError!FuncNamesStyle {
@@ -1980,6 +1999,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("eslint-comments/no-restricted-disable", restricted_disable_config.value);
     try std.testing.expect(options.eslint_comments_no_restricted_disable);
     try std.testing.expect(options.eslint_comments_no_restricted_disable_no_nested_ternary);
+
+    var func_name_matching_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\"]",
+        .{},
+    );
+    defer func_name_matching_config.deinit();
+    try options.setByRuleConfigValue("func-name-matching", func_name_matching_config.value);
+    try std.testing.expect(options.func_name_matching);
+    try std.testing.expectEqual(FuncNameMatchingStyle.never, options.func_name_matching_style);
 
     var func_names_config = try std.json.parseFromSlice(
         std.json.Value,
