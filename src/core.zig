@@ -817,6 +817,10 @@ pub const Options = struct {
             self.array_callback_return_check_for_each = try arrayCallbackReturnCheckForEachFromConfig(value);
             self.array_callback_return_allow_void = try arrayCallbackReturnAllowVoidFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "capitalized-comments")) {
+            self.capitalized_comments_mode = try capitalizedCommentsModeFromConfig(value);
+            self.capitalized_comments_ignore_inline_comments = try capitalizedCommentsIgnoreInlineCommentsFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "eslint-comments/no-restricted-disable")) {
             self.eslint_comments_no_restricted_disable_no_nested_ternary = noRestrictedDisableRestrictsNoNestedTernary(value);
         }
@@ -965,6 +969,46 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn capitalizedCommentsModeFromConfig(value: std.json.Value) RuleConfigError!CapitalizedCommentsMode {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const mode = switch (items[1]) {
+            .string => |mode| mode,
+            .object => return .always,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, mode, "always")) return .always;
+        if (std.mem.eql(u8, mode, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn capitalizedCommentsIgnoreInlineCommentsFromConfig(value: std.json.Value) RuleConfigError!CapitalizedCommentsIgnoreInlineComments {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config_value = switch (items[1]) {
+            .object => items[1],
+            .string => if (items.len >= 3) items[2] else return .no,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const config = switch (config_value) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const ignore = switch (config.get("ignoreInlineComments") orelse return .no) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (ignore) .yes else .no;
     }
 
     fn deprecatedDependenceProfileFromConfig(value: std.json.Value) DeprecatedDependenceProfile {
@@ -1968,6 +2012,18 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(ArrayCallbackReturnAllowImplicit.no, options.array_callback_return_allow_implicit);
     try std.testing.expectEqual(ArrayCallbackReturnCheckForEach.yes, options.array_callback_return_check_for_each);
     try std.testing.expectEqual(ArrayCallbackReturnAllowVoid.yes, options.array_callback_return_allow_void);
+
+    var capitalized_comments_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\",{\"ignoreInlineComments\":true}]",
+        .{},
+    );
+    defer capitalized_comments_config.deinit();
+    try options.setByRuleConfigValue("capitalized-comments", capitalized_comments_config.value);
+    try std.testing.expect(options.capitalized_comments);
+    try std.testing.expectEqual(CapitalizedCommentsMode.never, options.capitalized_comments_mode);
+    try std.testing.expectEqual(CapitalizedCommentsIgnoreInlineComments.yes, options.capitalized_comments_ignore_inline_comments);
 
     var ivy_config = try std.json.parseFromSlice(
         std.json.Value,
