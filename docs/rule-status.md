@@ -144,7 +144,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-unreachable`](https://eslint.org/docs/latest/rules/no-unreachable) | Implemented |
 | [`no-unsafe-finally`](https://eslint.org/docs/latest/rules/no-unsafe-finally) | Implemented |
 | [`no-unsafe-negation`](https://eslint.org/docs/latest/rules/no-unsafe-negation) | Implemented |
-| [`no-unused-expressions`](https://eslint.org/docs/latest/rules/no-unused-expressions) | Implemented |
+| [`no-unused-expressions`](https://eslint.org/docs/latest/rules/no-unused-expressions) | Implemented with optional `allowShortCircuit`, `allowTernary`, and `allowTaggedTemplates` behavior |
 | [`no-unused-labels`](https://eslint.org/docs/latest/rules/no-unused-labels) | Implemented |
 | [`no-unused-vars`](https://eslint.org/docs/latest/rules/no-unused-vars) | Implemented |
 | [`no-useless-call`](https://eslint.org/docs/latest/rules/no-useless-call) | Implemented |

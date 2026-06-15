@@ -59,6 +59,27 @@ test "does not report no-unused-expressions for expressions with side effects" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unused_expressions.id));
 }
 
+test "honors no-unused-expressions allow options" {
+    const source =
+        \\foo && bar();
+        \\foo ? bar() : baz();
+        \\tag`template`;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_expressions_allow_short_circuit = .yes,
+        .no_unused_expressions_allow_ternary = .yes,
+        .no_unused_expressions_allow_tagged_templates = .no,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_unused_expressions.id));
+}
+
 test "can disable no-unused-expressions" {
     const source =
         \\foo;

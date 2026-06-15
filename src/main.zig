@@ -583,6 +583,12 @@ pub fn main(init: std.process.Init) !void {
             options.no_useless_rename = false;
         } else if (std.mem.eql(u8, arg, "--no-unused-expressions=off")) {
             options.no_unused_expressions = false;
+        } else if (std.mem.eql(u8, arg, "--no-unused-expressions-allow-short-circuit=on")) {
+            options.no_unused_expressions_allow_short_circuit = .yes;
+        } else if (std.mem.eql(u8, arg, "--no-unused-expressions-allow-ternary=on")) {
+            options.no_unused_expressions_allow_ternary = .yes;
+        } else if (std.mem.eql(u8, arg, "--no-unused-expressions-allow-tagged-templates=off")) {
+            options.no_unused_expressions_allow_tagged_templates = .no;
         } else if (std.mem.eql(u8, arg, "--no-warning-comments=off")) {
             options.no_warning_comments = false;
         } else if (std.mem.eql(u8, arg, "--no-warning-comments-location=anywhere")) {
@@ -1691,6 +1697,9 @@ fn printHelp() void {
         \\  --no-useless-escape=off   Disable no-useless-escape
         \\  --no-useless-rename=off   Disable no-useless-rename
         \\  --no-unused-expressions=off Disable no-unused-expressions
+        \\  --no-unused-expressions-allow-short-circuit=on Allow short-circuit expressions
+        \\  --no-unused-expressions-allow-ternary=on Allow ternary expressions
+        \\  --no-unused-expressions-allow-tagged-templates=off Report tagged template expressions
         \\  --no-warning-comments=off Disable no-warning-comments
         \\  --no-warning-comments-location=anywhere Report warning terms anywhere in comments
         \\  --no-warning-comments-decoration=asterisk Ignore leading * comment decorations
