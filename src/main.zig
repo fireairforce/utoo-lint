@@ -420,6 +420,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_multi_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-multi-spaces=off")) {
             options.no_multi_spaces = false;
+        } else if (std.mem.eql(u8, arg, "--no-multi-spaces-ignore-eol-comments=on")) {
+            options.no_multi_spaces_ignore_eol_comments = .yes;
         } else if (std.mem.eql(u8, arg, "--no-mixed-spaces-and-tabs=off")) {
             options.no_mixed_spaces_and_tabs = false;
         } else if (std.mem.eql(u8, arg, "--no-misleading-character-class=off")) {
@@ -1526,6 +1528,7 @@ fn printHelp() void {
         \\  --no-multi-str=off        Disable no-multi-str
         \\  --no-multi-assign=off     Disable no-multi-assign
         \\  --no-multi-spaces=off     Disable no-multi-spaces
+        \\  --no-multi-spaces-ignore-eol-comments=on Allow spacing before end-of-line comments
         \\  --no-mixed-spaces-and-tabs=off Disable no-mixed-spaces-and-tabs
         \\  --no-misleading-character-class=off Disable no-misleading-character-class
         \\  --no-multiple-empty-lines=off Disable no-multiple-empty-lines

@@ -97,6 +97,11 @@ pub const NoFallthroughAllowEmptyCase = enum {
     no,
 };
 
+pub const NoMultiSpacesIgnoreEOLComments = enum {
+    yes,
+    no,
+};
+
 pub const NoReturnAssignStyle = enum {
     except_parens,
     always,
@@ -399,6 +404,7 @@ pub const Options = struct {
     no_multi_str: bool = true,
     no_multi_assign: bool = true,
     no_multi_spaces: bool = true,
+    no_multi_spaces_ignore_eol_comments: NoMultiSpacesIgnoreEOLComments = .no,
     no_mixed_spaces_and_tabs: bool = true,
     no_misleading_character_class: bool = true,
     no_multiple_empty_lines: bool = true,
@@ -694,6 +700,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-fallthrough")) {
             self.no_fallthrough_allow_empty_case = try noFallthroughAllowEmptyCaseFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-multi-spaces")) {
+            self.no_multi_spaces_ignore_eol_comments = try noMultiSpacesIgnoreEOLCommentsFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
             self.no_return_assign_style = try noReturnAssignStyleFromConfig(value);
         }
@@ -878,6 +887,24 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (allow) .yes else .no;
+    }
+
+    fn noMultiSpacesIgnoreEOLCommentsFromConfig(value: std.json.Value) RuleConfigError!NoMultiSpacesIgnoreEOLComments {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const ignore = switch (config.get("ignoreEOLComments") orelse return .no) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (ignore) .yes else .no;
     }
 
     fn noReturnAssignStyleFromConfig(value: std.json.Value) RuleConfigError!NoReturnAssignStyle {
@@ -1339,6 +1366,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-fallthrough", no_fallthrough_config.value);
     try std.testing.expect(options.no_fallthrough);
     try std.testing.expectEqual(NoFallthroughAllowEmptyCase.yes, options.no_fallthrough_allow_empty_case);
+
+    var no_multi_spaces_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreEOLComments\":true}]",
+        .{},
+    );
+    defer no_multi_spaces_config.deinit();
+    try options.setByRuleConfigValue("no-multi-spaces", no_multi_spaces_config.value);
+    try std.testing.expect(options.no_multi_spaces);
+    try std.testing.expectEqual(NoMultiSpacesIgnoreEOLComments.yes, options.no_multi_spaces_ignore_eol_comments);
 
     var no_return_assign_config = try std.json.parseFromSlice(
         std.json.Value,
