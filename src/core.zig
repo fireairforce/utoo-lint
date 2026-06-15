@@ -812,6 +812,11 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@alipay/ant/no-deprecated-dependence")) {
             self.alipay_ant_no_deprecated_dependence_profile = deprecatedDependenceProfileFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "array-callback-return")) {
+            self.array_callback_return_allow_implicit = try arrayCallbackReturnAllowImplicitFromConfig(value);
+            self.array_callback_return_check_for_each = try arrayCallbackReturnCheckForEachFromConfig(value);
+            self.array_callback_return_allow_void = try arrayCallbackReturnAllowVoidFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "eslint-comments/no-restricted-disable")) {
             self.eslint_comments_no_restricted_disable_no_nested_ternary = noRestrictedDisableRestrictsNoNestedTernary(value);
         }
@@ -916,6 +921,38 @@ pub const Options = struct {
             return true;
         }
         return null;
+    }
+
+    fn arrayCallbackReturnAllowImplicitFromConfig(value: std.json.Value) RuleConfigError!ArrayCallbackReturnAllowImplicit {
+        const enabled = try arrayCallbackReturnOptionFromConfig(value, "allowImplicit", true);
+        return if (enabled) .yes else .no;
+    }
+
+    fn arrayCallbackReturnCheckForEachFromConfig(value: std.json.Value) RuleConfigError!ArrayCallbackReturnCheckForEach {
+        const enabled = try arrayCallbackReturnOptionFromConfig(value, "checkForEach", false);
+        return if (enabled) .yes else .no;
+    }
+
+    fn arrayCallbackReturnAllowVoidFromConfig(value: std.json.Value) RuleConfigError!ArrayCallbackReturnAllowVoid {
+        const enabled = try arrayCallbackReturnOptionFromConfig(value, "allowVoid", false);
+        return if (enabled) .yes else .no;
+    }
+
+    fn arrayCallbackReturnOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn deprecatedDependenceProfileFromConfig(value: std.json.Value) DeprecatedDependenceProfile {
@@ -1837,6 +1874,19 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.jsx_a11y_aria_props);
 
     try options.setByRuleConfigValue("prettier/prettier", .{ .string = "error" });
+
+    var array_callback_return_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowImplicit\":false,\"checkForEach\":true,\"allowVoid\":true}]",
+        .{},
+    );
+    defer array_callback_return_config.deinit();
+    try options.setByRuleConfigValue("array-callback-return", array_callback_return_config.value);
+    try std.testing.expect(options.array_callback_return);
+    try std.testing.expectEqual(ArrayCallbackReturnAllowImplicit.no, options.array_callback_return_allow_implicit);
+    try std.testing.expectEqual(ArrayCallbackReturnCheckForEach.yes, options.array_callback_return_check_for_each);
+    try std.testing.expectEqual(ArrayCallbackReturnAllowVoid.yes, options.array_callback_return_allow_void);
 
     var ivy_config = try std.json.parseFromSlice(
         std.json.Value,
