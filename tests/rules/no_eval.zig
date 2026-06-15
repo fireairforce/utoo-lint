@@ -9,6 +9,7 @@ test "reports no-eval for direct indirect and global eval calls" {
         \\(0, eval)("code");
         \\window.eval("code");
         \\globalThis["eval"]("code");
+        \\globalThis[`eval`]("code");
         \\global.eval("code");
     ;
 
@@ -21,7 +22,7 @@ test "reports no-eval for direct indirect and global eval calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_eval.id));
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_eval.id));
 }
 
 test "does not report no-eval for non-global eval members" {
@@ -29,6 +30,8 @@ test "does not report no-eval for non-global eval members" {
         \\const object = { eval() {} };
         \\object.eval("code");
         \\object["eval"]("code");
+        \\object[`eval`]("code");
+        \\globalThis[`ev${suffix}`]("code");
         \\const window = sandbox;
         \\window.eval("code");
     ;
