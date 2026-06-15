@@ -46,6 +46,29 @@ test "reports no-useless-computed-key for class members with literal keys" {
     try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_useless_computed_key.id));
 }
 
+test "allows class member computed keys when enforcement is disabled" {
+    const source =
+        \\const object = {
+        \\  ["name"]: value,
+        \\};
+        \\class Example {
+        \\  ["method"]() {}
+        \\  ["field"] = value;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_useless_computed_key_enforce_for_class_members = .no,
+        .no_empty_function = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_useless_computed_key.id));
+}
+
 test "does not report no-useless-computed-key for dynamic keys or semantic exceptions" {
     const source =
         \\const object = {

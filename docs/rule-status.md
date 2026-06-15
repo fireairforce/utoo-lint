@@ -149,7 +149,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-unused-vars`](https://eslint.org/docs/latest/rules/no-unused-vars) | Implemented |
 | [`no-useless-call`](https://eslint.org/docs/latest/rules/no-useless-call) | Implemented |
 | [`no-useless-catch`](https://eslint.org/docs/latest/rules/no-useless-catch) | Implemented |
-| [`no-useless-computed-key`](https://eslint.org/docs/latest/rules/no-useless-computed-key) | Implemented |
+| [`no-useless-computed-key`](https://eslint.org/docs/latest/rules/no-useless-computed-key) | Implemented with optional `enforceForClassMembers` behavior |
 | [`no-useless-concat`](https://eslint.org/docs/latest/rules/no-useless-concat) | Implemented |
 | [`no-useless-constructor`](https://eslint.org/docs/latest/rules/no-useless-constructor) | Implemented |
 | [`no-useless-escape`](https://eslint.org/docs/latest/rules/no-useless-escape) | Implemented |

@@ -2678,7 +2678,7 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.options.no_useless_computed_key) {
+        if (self.options.no_useless_computed_key and self.options.no_useless_computed_key_enforce_for_class_members == .yes) {
             try no_useless_computed_key.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
         }
         if (self.options.no_underscore_dangle) {
@@ -2721,7 +2721,7 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.options.no_useless_computed_key) {
+        if (self.options.no_useless_computed_key and self.options.no_useless_computed_key_enforce_for_class_members == .yes) {
             try no_useless_computed_key.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, index);
         }
         if (self.options.no_underscore_dangle) {
