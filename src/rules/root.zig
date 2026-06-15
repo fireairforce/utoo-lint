@@ -362,18 +362,50 @@ fn isCatchBody(tree: *const ast.Tree, index: ast.NodeIndex, parent: ?ast.NodeInd
 fn emptyFunctionKind(tree: *const ast.Tree, ctx: *traverser.basic.Ctx) no_empty_function.Kind {
     const parent_index = ctx.path.parent() orelse return .functions;
 
-    switch (tree.data(parent_index)) {
+    const function = switch (tree.data(parent_index)) {
         .arrow_function_expression => return .arrowFunctions,
-        .function => {},
+        .function => |function| function,
         else => return .functions,
-    }
+    };
 
     const grandparent_index = ctx.path.ancestor(2) orelse return .functions;
     return switch (tree.data(grandparent_index)) {
-        .method_definition => |method| if (method.kind == .constructor) .constructors else .methods,
-        .object_property => |property| if (property.method or property.kind != .init) .methods else .functions,
-        else => .functions,
+        .method_definition => |method| methodKind(method.kind, function),
+        .object_property => |property| if (property.method or property.kind != .init)
+            propertyMethodKind(property.kind, function)
+        else
+            functionKind(function),
+        else => functionKind(function),
     };
+}
+
+fn functionKind(function: ast.Function) no_empty_function.Kind {
+    if (function.async) return .asyncFunctions;
+    if (function.generator) return .generatorFunctions;
+    return .functions;
+}
+
+fn methodKind(kind: ast.MethodDefinitionKind, function: ast.Function) no_empty_function.Kind {
+    return switch (kind) {
+        .constructor => .constructors,
+        .get => .getters,
+        .set => .setters,
+        .method => methodFunctionKind(function),
+    };
+}
+
+fn propertyMethodKind(kind: ast.PropertyKind, function: ast.Function) no_empty_function.Kind {
+    return switch (kind) {
+        .get => .getters,
+        .set => .setters,
+        else => methodFunctionKind(function),
+    };
+}
+
+fn methodFunctionKind(function: ast.Function) no_empty_function.Kind {
+    if (function.async) return .asyncMethods;
+    if (function.generator) return .generatorMethods;
+    return .methods;
 }
 
 pub fn runBasic(

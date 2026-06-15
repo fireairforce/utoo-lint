@@ -75,6 +75,47 @@ test "allows configured no-empty-function kinds" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_empty_function.id));
 }
 
+test "allows configured async generator and accessor no-empty-function kinds" {
+    const source =
+        \\async function asyncEmpty() {}
+        \\function* generatorEmpty() {}
+        \\class Example {
+        \\  async asyncMethod() {}
+        \\  *generatorMethod() {}
+        \\  get value() {}
+        \\  set value(next) {}
+        \\  method() {}
+        \\}
+        \\const object = {
+        \\  async asyncMethod() {},
+        \\  *generatorMethod() {},
+        \\  get value() {},
+        \\  set value(next) {},
+        \\  method() {},
+        \\};
+    ;
+
+    var allow = (lint.Options{}).no_empty_function_allow;
+    try std.testing.expect(allow.enable("asyncFunctions"));
+    try std.testing.expect(allow.enable("generatorFunctions"));
+    try std.testing.expect(allow.enable("asyncMethods"));
+    try std.testing.expect(allow.enable("generatorMethods"));
+    try std.testing.expect(allow.enable("getters"));
+    try std.testing.expect(allow.enable("setters"));
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_empty_function_allow = allow,
+        .no_empty_block_statements = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .typescript_eslint_no_empty_function = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_empty_function.id));
+}
+
 test "can disable no-empty-function" {
     const source =
         \\function empty() {}
