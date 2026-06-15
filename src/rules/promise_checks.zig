@@ -105,9 +105,10 @@ fn isGlobalPromiseRejectCall(
         .member_expression => |member| member,
         else => return false,
     };
-    if (member.optional or member.computed) return false;
+    if (member.optional) return false;
 
-    if (!isIdentifierNameNamed(tree, member.property, "reject")) return false;
+    const property = staticMemberPropertyName(tree, member) orelse return false;
+    if (!std.mem.eql(u8, property, "reject")) return false;
     return isGlobalPromiseReference(tree, symbol_table, member.object);
 }
 
@@ -414,11 +415,26 @@ fn isIdentifierReferenceNamed(tree: *const ast.Tree, index: ast.NodeIndex, name:
     };
 }
 
-fn isIdentifierNameNamed(tree: *const ast.Tree, index: ast.NodeIndex, name: []const u8) bool {
-    if (index == .null) return false;
-    return switch (tree.data(unwrapTransparent(tree, index))) {
-        .identifier_name => |identifier| std.mem.eql(u8, tree.string(identifier.name), name),
-        else => false,
+fn staticMemberPropertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
+    if (member.property == .null) return null;
+
+    return switch (tree.data(member.property)) {
+        .identifier_name => |identifier| if (member.computed) null else tree.string(identifier.name),
+        .string_literal => |literal| tree.string(literal.value),
+        .template_literal => |literal| templateStringValue(tree, literal),
+        else => null,
+    };
+}
+
+fn templateStringValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]const u8 {
+    if (literal.expressions.len != 0) return null;
+
+    const quasis = tree.extra(literal.quasis);
+    if (quasis.len == 0) return "";
+
+    return switch (tree.data(quasis[0])) {
+        .template_element => |element| tree.string(element.cooked),
+        else => null,
     };
 }
 
