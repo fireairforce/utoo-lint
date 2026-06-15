@@ -855,6 +855,8 @@ pub fn main(init: std.process.Init) !void {
             options.parser_semantic_errors = false;
         } else if (std.mem.eql(u8, arg, "--yoda=off")) {
             options.yoda = false;
+        } else if (std.mem.eql(u8, arg, "--yoda=always")) {
+            options.yoda_style = .always;
         } else {
             try targets.append(allocator, arg);
         }
@@ -1814,6 +1816,7 @@ fn printHelp() void {
         \\  --wrap-iife=off|outside|inside|any Configure wrap-iife
         \\  --semantic-errors=off     Disable parser semantic errors
         \\  --yoda=off                Disable yoda
+        \\  --yoda=always             Require yoda comparison style
         \\
     , .{});
 }

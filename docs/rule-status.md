@@ -184,7 +184,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`valid-typeof`](https://eslint.org/docs/latest/rules/valid-typeof) | Implemented |
 | [`vars-on-top`](https://eslint.org/docs/latest/rules/vars-on-top) | Implemented |
 | [`wrap-iife`](https://eslint.org/docs/latest/rules/wrap-iife) | Implemented for `outside`, `inside`, and `any` options |
-| [`yoda`](https://eslint.org/docs/latest/rules/yoda) | Implemented |
+| [`yoda`](https://eslint.org/docs/latest/rules/yoda) | Implemented for `never` and optional `always` behavior |
 
 ## Import plugin rules
 

@@ -6,6 +6,11 @@ const Allocator = @import("std").mem.Allocator;
 
 pub const id = "yoda";
 
+pub const Style = enum {
+    never,
+    always,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -13,17 +18,47 @@ pub fn check(
     expression: ast.BinaryExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkWithStyle(allocator, diagnostics, tree, expression, index, .never);
+}
+
+pub fn checkWithStyle(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.BinaryExpression,
+    index: ast.NodeIndex,
+    style: Style,
+) Allocator.Error!void {
     if (!isComparisonOperator(expression.operator)) return;
-    if (!isLiteralLike(tree, expression.left) or isLiteralLike(tree, expression.right)) return;
+
+    const left_literal = isLiteralLike(tree, expression.left);
+    const right_literal = isLiteralLike(tree, expression.right);
+    if (hasExpectedYodaStyle(style, left_literal, right_literal)) return;
 
     try core.addDiagnostic(
         allocator,
         diagnostics,
         .warning,
         id,
-        "Expected literal to be on the right side of comparison.",
+        message(style),
         tree.span(index),
     );
+}
+
+fn hasExpectedYodaStyle(style: Style, left_literal: bool, right_literal: bool) bool {
+    if (left_literal == right_literal) return true;
+
+    return switch (style) {
+        .never => !left_literal,
+        .always => left_literal,
+    };
+}
+
+fn message(style: Style) []const u8 {
+    return switch (style) {
+        .never => "Expected literal to be on the right side of comparison.",
+        .always => "Expected literal to be on the left side of comparison.",
+    };
 }
 
 fn isComparisonOperator(operator: ast.BinaryOperator) bool {
