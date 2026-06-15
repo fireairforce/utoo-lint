@@ -9,14 +9,14 @@ pub const id = "@alipay/ant/prefer-import-as-required";
 
 const default_check_deps = [_][]const u8{
     "lodash-es",
-    "@alipay/content-components",
-    "@alipay/cdk-components",
-    "@alipay/content-utils",
-    "@alipay/cdk-utils",
-    "@alipay/shandie-utils",
-    "@alipay/shandie-hooks",
-    "smallfish:stdlib/lodash",
-    "@alipay/stdlib",
+    "@example/content-components",
+    "@example/widget-components",
+    "@example/content-utils",
+    "@example/widget-utils",
+    "@example/shared-utils",
+    "@example/shared-hooks",
+    "appfw:stdlib/lodash",
+    "@example/stdlib",
 };
 
 pub fn checkImportDeclaration(

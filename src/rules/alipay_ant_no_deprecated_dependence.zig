@@ -13,34 +13,34 @@ const Dep = struct {
 };
 
 const default_deps = [_]Dep{
-    .{ .deprecated = "@alipay/qiaozhi/utils", .recommend = "@alipay/shandie-utils" },
-    .{ .deprecated = "@alipay/ivy-utils", .recommend = "@alipay/shandie-utils" },
-    .{ .deprecated = "@alipay/qiaozhi/hooks", .recommend = "@alipay/shandie-hooks" },
-    .{ .deprecated = "@alipay/ivy-hooks", .recommend = "@alipay/shandie-hooks" },
-    .{ .deprecated = "@alipay/alipayjsapi", .recommend = "smallfish:jsapi" },
+    .{ .deprecated = "@example/legacy-utils", .recommend = "@example/shared-utils" },
+    .{ .deprecated = "@example/legacy-utils-next", .recommend = "@example/shared-utils" },
+    .{ .deprecated = "@example/legacy-hooks", .recommend = "@example/shared-hooks" },
+    .{ .deprecated = "@example/legacy-hooks-next", .recommend = "@example/shared-hooks" },
+    .{ .deprecated = "@example/legacy-jsapi", .recommend = "appfw:jsapi" },
 };
 
-const ivy_deps = [_]Dep{
-    .{ .deprecated = "@alipay/dp-anyshare-react", .recommend = "jsapi easyShare(原依赖包已不维护，体积也较大)" },
-    .{ .deprecated = "@alipay/yuyan-monitor-web", .recommend = "window.yuyanMonitor(smallfish 框架下，html 会默认注入 yuyanMonitor 全局实例，无需安装额外依赖)" },
-    .{ .deprecated = "@alipay/anylog", .recommend = "window.Tracert(原依赖包已不维护)" },
-    .{ .deprecated = "@alipay/tracert", .recommend = "window.Tracert(smallfish 框架下，html 会默认注入 Tracert 全局实例，无需安装额外依赖)" },
+const profile_a_deps = [_]Dep{
+    .{ .deprecated = "@example/share-react", .recommend = "jsapi share(原依赖包已不维护，体积也较大)" },
+    .{ .deprecated = "@example/monitor-web", .recommend = "window.monitorClient(appfw 框架下，html 会默认注入 monitorClient 全局实例，无需安装额外依赖)" },
+    .{ .deprecated = "@example/event-log", .recommend = "window.TraceClient(原依赖包已不维护)" },
+    .{ .deprecated = "@example/trace-sdk", .recommend = "window.TraceClient(appfw 框架下，html 会默认注入 TraceClient 全局实例，无需安装额外依赖)" },
     .{ .deprecated = "moment", .recommend = "dayjs(原依赖包体积过大)" },
-    .{ .deprecated = "lodash", .recommend = "smallfish:stdlib/lodash 或 lodash-es" },
+    .{ .deprecated = "lodash", .recommend = "appfw:stdlib/lodash 或 lodash-es" },
 };
 
-const insurance_deps = [_]Dep{
-    .{ .deprecated = "@alipay/one-bridge", .recommend = "babyfish" },
-    .{ .deprecated = "@alipay/insiop-comp-request", .recommend = "@smallfish:request/h5" },
-    .{ .deprecated = "@alipay/bx-util", .recommend = "@alipay/bx-utils-next" },
-    .{ .deprecated = "@alipay/bx-util-mp", .recommend = "@alipay/bx-utils-next" },
-    .{ .deprecated = "@alipay/bx-rpc", .recommend = "@smallfish:request/h5" },
-    .{ .deprecated = "@alipay/bx-react-hooks", .recommend = "ahooks" },
-    .{ .deprecated = "@alipay/bx-store", .recommend = "smallfish:stdlib/zustand" },
-    .{ .deprecated = "@alipay/bx-load", .recommend = "babyfish" },
-    .{ .deprecated = "hooxjs", .recommend = "smallfish:stdlib/zustand" },
-    .{ .deprecated = "@alipay/bx-mobile", .recommend = "antd-mobile" },
-    .{ .deprecated = "@alipay/bx-bikini", .recommend = "@alipay/bikini" },
+const profile_b_deps = [_]Dep{
+    .{ .deprecated = "@example/bridge", .recommend = "appkit" },
+    .{ .deprecated = "@example/request-adapter", .recommend = "@appfw/request/h5" },
+    .{ .deprecated = "@example/legacy-util", .recommend = "@example/utils-next" },
+    .{ .deprecated = "@example/legacy-util-mini", .recommend = "@example/utils-next" },
+    .{ .deprecated = "@example/rpc-client", .recommend = "@appfw/request/h5" },
+    .{ .deprecated = "@example/react-hooks", .recommend = "ahooks" },
+    .{ .deprecated = "@example/state-store", .recommend = "appfw:stdlib/zustand" },
+    .{ .deprecated = "@example/app-loader", .recommend = "appkit" },
+    .{ .deprecated = "statekit", .recommend = "appfw:stdlib/zustand" },
+    .{ .deprecated = "@example/mobile-ui", .recommend = "antd-mobile" },
+    .{ .deprecated = "@example/legacy-ui", .recommend = "@example/ui" },
 };
 
 pub fn checkImportDeclaration(
@@ -71,8 +71,8 @@ fn deprecatedDependency(source: []const u8, profile: core.DeprecatedDependencePr
 
     switch (profile) {
         .default => return null,
-        .ivy => return findDeprecated(source, &ivy_deps),
-        .insurance => return findDeprecated(source, &insurance_deps),
+        .profile_a => return findDeprecated(source, &profile_a_deps),
+        .profile_b => return findDeprecated(source, &profile_b_deps),
     }
 }
 
@@ -110,8 +110,8 @@ fn allSpecifiersWhitelisted(
 }
 
 fn isWhitelisted(deprecated_dep: []const u8, imported: []const u8, profile: core.DeprecatedDependenceProfile) bool {
-    return profile == .ivy and
-        std.mem.eql(u8, deprecated_dep, "@alipay/qiaozhi/utils") and
+    return profile == .profile_a and
+        std.mem.eql(u8, deprecated_dep, "@example/legacy-utils") and
         std.mem.eql(u8, imported, "AError");
 }
 

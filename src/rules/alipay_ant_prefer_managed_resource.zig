@@ -5,13 +5,13 @@ const core = @import("../core.zig");
 const ast = parser.ast;
 const Allocator = std.mem.Allocator;
 
-pub const id = "@alipay/ant/prefer-resource-from-huamei";
+pub const id = "@alipay/ant/prefer-managed-resource";
 
 const allow_keywords = [_][]const u8{
-    "huamei",
+    "resource-hub",
     "mars",
     "marketing",
-    "/graph_jupiter/afts/img",
+    "/managed_asset/managed/img",
     "fecodex_image",
 };
 
@@ -32,14 +32,14 @@ pub fn checkStringLiteral(
         .warning,
         id,
         tree.span(index),
-        "静态资源({s})推荐使用画眉平台进行上传使用(https://huamei.antgroup-inc.cn/my/space).",
+        "静态资源({s})推荐使用资源管理平台进行上传使用(https://assets.example.com/space).",
         .{value},
     );
 }
 
 fn isResourceUrl(value: []const u8) bool {
     if (!std.mem.startsWith(u8, value, "http://") and !std.mem.startsWith(u8, value, "https://")) return false;
-    return std.mem.indexOf(u8, value, "/afts/img") != null or
+    return std.mem.indexOf(u8, value, "/managed/img") != null or
         std.mem.indexOf(u8, value, ".png") != null or
         std.mem.indexOf(u8, value, ".jpeg") != null or
         std.mem.indexOf(u8, value, ".webp") != null or

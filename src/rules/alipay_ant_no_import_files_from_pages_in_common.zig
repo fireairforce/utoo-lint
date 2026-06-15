@@ -18,7 +18,7 @@ pub fn checkImportDeclaration(
     if (std.mem.indexOf(u8, file_path, "src/common") == null) return;
 
     const source = importSource(tree, declaration) orelse return;
-    if (std.mem.indexOf(u8, source, "smallfish") == null or
+    if (std.mem.indexOf(u8, source, "appfw") == null or
         std.mem.indexOf(u8, source, "page-") == null)
     {
         return;

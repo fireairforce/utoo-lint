@@ -124,7 +124,7 @@ const Visitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         const name = bindingIdentifierName(ctx.tree, declarator.id) orelse return .proceed;
-        if (std.mem.startsWith(u8, name, "DDD")) {
+        if (std.mem.startsWith(u8, name, "Auto")) {
             _ = try self.validateDefinition(ctx.tree, index, .null);
         }
         return .proceed;
@@ -138,7 +138,7 @@ const Visitor = struct {
     ) Allocator.Error!traverser.Action {
         if (function.type != .function_declaration) return .proceed;
         const name = bindingIdentifierName(ctx.tree, function.id) orelse return .proceed;
-        if (std.mem.startsWith(u8, name, "DDD")) {
+        if (std.mem.startsWith(u8, name, "Auto")) {
             _ = try self.validateDefinition(ctx.tree, index, .null);
         }
         return .proceed;

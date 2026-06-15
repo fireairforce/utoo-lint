@@ -127,11 +127,11 @@ comptime {
 }
 
 comptime {
-    _ = @import("rules/alipay_ant_prefer_resource_from_huamei.zig");
+    _ = @import("rules/alipay_ant_prefer_managed_resource.zig");
 }
 
 comptime {
-    _ = @import("rules/alipay_ant_prefer_render_img_with_promo_mobile.zig");
+    _ = @import("rules/alipay_ant_prefer_safe_image_renderer.zig");
 }
 
 comptime {
