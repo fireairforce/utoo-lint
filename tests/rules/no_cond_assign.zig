@@ -26,6 +26,13 @@ test "does not report no-cond-assign for parenthesized assignments or comparison
         \\while ((node = node.parentNode) !== null) { use(node); }
         \\do { use(value); } while ((value += 1));
         \\for (; value === next; ) { use(value); }
+        \\if (use(value = next)) { use(value); }
+        \\if (other + (value = next)) { use(value); }
+        \\if (other || (value = next)) { use(value); }
+        \\if (other ? (value = next) : fallback) { use(value); }
+        \\if (!(value = next)) { use(value); }
+        \\if (value = next, other) { use(value); }
+        \\if ((value = next), other) { use(value); }
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
