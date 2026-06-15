@@ -430,6 +430,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_multiple_empty_lines = false;
         } else if (std.mem.startsWith(u8, arg, "--no-multiple-empty-lines-max=")) {
             parseNoMultipleEmptyLinesMax(arg["--no-multiple-empty-lines-max=".len..], &options);
+        } else if (std.mem.startsWith(u8, arg, "--no-multiple-empty-lines-max-eof=")) {
+            parseNoMultipleEmptyLinesMaxEof(arg["--no-multiple-empty-lines-max-eof=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--no-nonoctal-decimal-escape=off")) {
             options.no_nonoctal_decimal_escape = false;
         } else if (std.mem.eql(u8, arg, "--no-new=off")) {
@@ -1087,6 +1089,14 @@ fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void 
     options.no_multiple_empty_lines_max = max;
 }
 
+fn parseNoMultipleEmptyLinesMaxEof(value: []const u8, options: *lint.Options) void {
+    const max_eof = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --no-multiple-empty-lines-max-eof value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.no_multiple_empty_lines_max_eof = max_eof;
+}
+
 fn collectLintableDirectory(
     allocator: std.mem.Allocator,
     io: std.Io,
@@ -1543,6 +1553,7 @@ fn printHelp() void {
         \\  --no-misleading-character-class=off Disable no-misleading-character-class
         \\  --no-multiple-empty-lines=off Disable no-multiple-empty-lines
         \\  --no-multiple-empty-lines-max=N Configure no-multiple-empty-lines max
+        \\  --no-multiple-empty-lines-max-eof=N Configure no-multiple-empty-lines maxEOF
         \\  --no-nonoctal-decimal-escape=off Disable no-nonoctal-decimal-escape
         \\  --no-new=off              Disable no-new
         \\  --no-nested-ternary=off   Disable no-nested-ternary

@@ -9,6 +9,7 @@ pub const id = "no-multiple-empty-lines";
 
 pub const Options = struct {
     max: usize = 2,
+    max_eof: ?usize = null,
 };
 
 pub fn run(
@@ -29,12 +30,13 @@ pub fn runWithOptions(
     var line_start: usize = 0;
     var empty_lines: usize = 0;
 
-    while (line_start <= source.len) {
+    while (line_start < source.len) {
         const line_end = findLineEnd(source, line_start);
 
         if (isEmptyLine(source[line_start..line_end])) {
             empty_lines += 1;
-            if (empty_lines > options.max) {
+            const max = if (isTrailingEmptyLine(source, line_start)) options.max_eof orelse options.max else options.max;
+            if (empty_lines > max) {
                 try core.addDiagnosticFmt(
                     allocator,
                     diagnostics,
@@ -42,7 +44,7 @@ pub fn runWithOptions(
                     id,
                     .{ .start = @intCast(line_start), .end = @intCast(line_end) },
                     "More than {d} blank lines not allowed.",
-                    .{options.max},
+                    .{max},
                 );
             }
         } else {
@@ -56,6 +58,14 @@ pub fn runWithOptions(
             line_start += 1;
         }
     }
+}
+
+fn isTrailingEmptyLine(source: []const u8, line_start: usize) bool {
+    for (source[line_start..]) |char| {
+        if (char == '\n' or char == '\r') continue;
+        if (!isBlankWhitespace(char)) return false;
+    }
+    return true;
 }
 
 fn findLineEnd(source: []const u8, start: usize) usize {
