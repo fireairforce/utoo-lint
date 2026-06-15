@@ -8,6 +8,7 @@ test "reports @typescript-eslint/dot-notation for computed string properties" {
         \\object["_private"];
         \\object["$value"];
         \\object["property1"];
+        \\object["default"];
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
@@ -20,7 +21,7 @@ test "reports @typescript-eslint/dot-notation for computed string properties" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.typescript_eslint_dot_notation.id));
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.typescript_eslint_dot_notation.id));
     try std.testing.expect(!helpers.hasRule(result, lint.rules.dot_notation.id));
     for (result.diagnostics) |diagnostic| {
         if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.typescript_eslint_dot_notation.id)) {
@@ -47,6 +48,31 @@ test "does not report @typescript-eslint/dot-notation when bracket access is req
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_dot_notation.id));
+}
+
+test "allows keyword properties for @typescript-eslint/dot-notation when allowKeywords is false" {
+    const source =
+        \\object["default"];
+        \\object["class"];
+        \\object["property"];
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .dot_notation_allow_keywords = .no,
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_dot_notation.id));
+    try std.testing.expectEqualStrings(
+        "['property'] is better written in dot notation.",
+        result.diagnostics[0].message,
+    );
 }
 
 test "can disable @typescript-eslint/dot-notation and fall back to core rule" {

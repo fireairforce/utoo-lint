@@ -10,6 +10,7 @@ pub const id = "dot-notation";
 pub const Options = struct {
     rule_id: []const u8 = id,
     severity: core.Severity = .warning,
+    allow_keywords: bool = true,
 };
 
 pub fn check(
@@ -37,6 +38,7 @@ pub fn checkWithOptions(
         else => return,
     };
     if (!isAsciiIdentifierName(property_name)) return;
+    if (!options.allow_keywords and isKeyword(property_name)) return;
 
     try core.addDiagnosticFmt(
         allocator,
@@ -65,4 +67,73 @@ fn isIdentifierStart(char: u8) bool {
 
 fn isIdentifierPart(char: u8) bool {
     return isIdentifierStart(char) or std.ascii.isDigit(char);
+}
+
+fn isKeyword(name: []const u8) bool {
+    const keywords = [_][]const u8{
+        "abstract",
+        "boolean",
+        "break",
+        "byte",
+        "case",
+        "catch",
+        "char",
+        "class",
+        "const",
+        "continue",
+        "debugger",
+        "default",
+        "delete",
+        "do",
+        "double",
+        "else",
+        "enum",
+        "export",
+        "extends",
+        "false",
+        "final",
+        "finally",
+        "float",
+        "for",
+        "function",
+        "goto",
+        "if",
+        "implements",
+        "import",
+        "in",
+        "instanceof",
+        "int",
+        "interface",
+        "long",
+        "native",
+        "new",
+        "null",
+        "package",
+        "private",
+        "protected",
+        "public",
+        "return",
+        "short",
+        "static",
+        "super",
+        "switch",
+        "synchronized",
+        "this",
+        "throw",
+        "throws",
+        "transient",
+        "true",
+        "try",
+        "typeof",
+        "var",
+        "void",
+        "volatile",
+        "while",
+        "with",
+    };
+
+    for (keywords) |keyword| {
+        if (std.mem.eql(u8, name, keyword)) return true;
+    }
+    return false;
 }
