@@ -58,16 +58,10 @@ fn hasUselessThisArg(tree: *const ast.Tree, target: ast.NodeIndex, this_arg: ast
 fn hasArrayLiteralArguments(tree: *const ast.Tree, arguments: []const ast.NodeIndex) bool {
     if (arguments.len < 2) return false;
 
-    const array = switch (tree.data(unwrapTransparent(tree, arguments[1]))) {
-        .array_expression => |array| array,
+    return switch (tree.data(unwrapTransparent(tree, arguments[1]))) {
+        .array_expression => true,
         else => return false,
     };
-
-    for (tree.extra(array.elements)) |element| {
-        if (element == .null) return false;
-    }
-
-    return true;
 }
 
 fn isNullOrUndefined(tree: *const ast.Tree, index: ast.NodeIndex) bool {
