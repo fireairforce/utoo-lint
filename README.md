@@ -2,9 +2,13 @@
 
 ![utoo-lint logo](assets/utoo-lint-logo.svg)
 
-`@utoo/lint` is an experimental JavaScript and TypeScript linter written in Zig.
+`@utoo/lint` is a High performance linter for JavaScript and TypeScript written by Zig.
 It uses [`yuku`](https://github.com/yuku-toolchain/yuku) for parsing, AST
 traversal, scope tracking, and symbol resolution.
+
+It currently has some performance advantages compared with other lint tools:
+
+![utoo-lint benchmark](assets/utoo-lint-benchmark.png)
 
 ## Status
 
