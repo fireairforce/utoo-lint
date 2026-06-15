@@ -357,6 +357,11 @@ pub const CapitalizedCommentsIgnoreInlineComments = enum {
     no,
 };
 
+pub const DotNotationAllowKeywords = enum {
+    yes,
+    no,
+};
+
 pub const Options = struct {
     accessor_pairs: bool = true,
     accessor_pairs_get_without_set: AccessorPairsGetWithoutSet = .no,
@@ -373,6 +378,7 @@ pub const Options = struct {
     constructor_super: bool = true,
     curly: bool = true,
     dot_notation: bool = true,
+    dot_notation_allow_keywords: DotNotationAllowKeywords = .yes,
     typescript_eslint_dot_notation: bool = true,
     default_case: bool = true,
     default_case_last: bool = true,
@@ -821,6 +827,9 @@ pub const Options = struct {
             self.capitalized_comments_mode = try capitalizedCommentsModeFromConfig(value);
             self.capitalized_comments_ignore_inline_comments = try capitalizedCommentsIgnoreInlineCommentsFromConfig(value);
         }
+        if (enabled and (std.mem.eql(u8, cli_name, "dot-notation") or std.mem.eql(u8, cli_name, "@typescript-eslint/dot-notation"))) {
+            self.dot_notation_allow_keywords = try dotNotationAllowKeywordsFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "eslint-comments/no-restricted-disable")) {
             self.eslint_comments_no_restricted_disable_no_nested_ternary = noRestrictedDisableRestrictsNoNestedTernary(value);
         }
@@ -1042,6 +1051,24 @@ pub const Options = struct {
             return .insurance;
         }
         return .default;
+    }
+
+    fn dotNotationAllowKeywordsFromConfig(value: std.json.Value) RuleConfigError!DotNotationAllowKeywords {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .yes,
+        };
+        if (items.len < 2) return .yes;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allowKeywords") orelse return .yes) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (allow) .yes else .no;
     }
 
     fn noRestrictedDisableRestrictsNoNestedTernary(value: std.json.Value) bool {
@@ -2045,6 +2072,32 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.capitalized_comments);
     try std.testing.expectEqual(CapitalizedCommentsMode.never, options.capitalized_comments_mode);
     try std.testing.expectEqual(CapitalizedCommentsIgnoreInlineComments.yes, options.capitalized_comments_ignore_inline_comments);
+
+    var dot_notation_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowKeywords\":false}]",
+        .{},
+    );
+    defer dot_notation_config.deinit();
+    try options.setByRuleConfigValue("dot-notation", dot_notation_config.value);
+    try std.testing.expect(options.dot_notation);
+    try std.testing.expectEqual(DotNotationAllowKeywords.no, options.dot_notation_allow_keywords);
+
+    try options.setByRuleConfigValue("@typescript-eslint/dot-notation", .{ .string = "off" });
+    try std.testing.expect(!options.typescript_eslint_dot_notation);
+    try std.testing.expectEqual(DotNotationAllowKeywords.no, options.dot_notation_allow_keywords);
+
+    var typescript_dot_notation_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowKeywords\":true}]",
+        .{},
+    );
+    defer typescript_dot_notation_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/dot-notation", typescript_dot_notation_config.value);
+    try std.testing.expect(options.typescript_eslint_dot_notation);
+    try std.testing.expectEqual(DotNotationAllowKeywords.yes, options.dot_notation_allow_keywords);
 
     var ivy_config = try std.json.parseFromSlice(
         std.json.Value,

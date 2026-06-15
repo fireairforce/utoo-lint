@@ -2409,10 +2409,14 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.dot_notation and !self.options.typescript_eslint_dot_notation) {
-            try dot_notation.check(self.allocator, self.diagnostics, ctx.tree, member, index);
+            try dot_notation.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, member, index, .{
+                .allow_keywords = self.options.dot_notation_allow_keywords == .yes,
+            });
         }
         if (self.options.typescript_eslint_dot_notation) {
-            try typescript_eslint_dot_notation.check(self.allocator, self.diagnostics, ctx.tree, member, index);
+            try typescript_eslint_dot_notation.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, member, index, .{
+                .allow_keywords = self.options.dot_notation_allow_keywords == .yes,
+            });
         }
         if (self.options.no_caller) {
             try no_caller.check(self.allocator, self.diagnostics, ctx.tree, member, index);
