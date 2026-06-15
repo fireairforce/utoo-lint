@@ -25,6 +25,13 @@ test "reports no-useless-escape for unnecessary regular expression escapes" {
         \\const a = /\#/;
         \\const b = /[\#]/;
         \\const c = /\-/;
+        \\const d = /[\-]/;
+        \\const e = /[a\-]/;
+        \\const f = /[\-a]/;
+        \\const g = /[a\-z\-]/;
+        \\const h = /[^\^]/;
+        \\const i = /[a\^]/;
+        \\const j = /[\]\-\^]/;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -33,7 +40,7 @@ test "reports no-useless-escape for unnecessary regular expression escapes" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_useless_escape.id));
+    try std.testing.expectEqual(@as(usize, 10), helpers.countRule(result, lint.rules.no_useless_escape.id));
 }
 
 test "does not report no-useless-escape for necessary escapes" {
@@ -44,7 +51,9 @@ test "does not report no-useless-escape for necessary escapes" {
         \\const d = "\n\t\x20\u0020";
         \\const e = `\`${value}\${literal}`;
         \\const f = /\d+\.\w+\/x/;
-        \\const g = /[\]\-\^]/;
+        \\const h = /[a\-z]/;
+        \\const i = /[\^]/;
+        \\const j = /[\^a]/;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
