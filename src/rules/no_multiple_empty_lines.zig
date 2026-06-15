@@ -9,6 +9,7 @@ pub const id = "no-multiple-empty-lines";
 
 pub const Options = struct {
     max: usize = 2,
+    max_bof: ?usize = null,
     max_eof: ?usize = null,
 };
 
@@ -35,7 +36,12 @@ pub fn runWithOptions(
 
         if (isEmptyLine(source[line_start..line_end])) {
             empty_lines += 1;
-            const max = if (isTrailingEmptyLine(source, line_start)) options.max_eof orelse options.max else options.max;
+            const max = if (isLeadingEmptyLine(source, line_start))
+                options.max_bof orelse options.max
+            else if (isTrailingEmptyLine(source, line_start))
+                options.max_eof orelse options.max
+            else
+                options.max;
             if (empty_lines > max) {
                 try core.addDiagnosticFmt(
                     allocator,
@@ -58,6 +64,14 @@ pub fn runWithOptions(
             line_start += 1;
         }
     }
+}
+
+fn isLeadingEmptyLine(source: []const u8, line_start: usize) bool {
+    for (source[0..line_start]) |char| {
+        if (char == '\n' or char == '\r') continue;
+        if (!isBlankWhitespace(char)) return false;
+    }
+    return true;
 }
 
 fn isTrailingEmptyLine(source: []const u8, line_start: usize) bool {

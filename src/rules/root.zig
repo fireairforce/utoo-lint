@@ -439,6 +439,7 @@ pub fn runBasic(
     if (options.no_multiple_empty_lines) {
         try no_multiple_empty_lines.runWithOptions(allocator, diagnostics, tree, .{
             .max = options.no_multiple_empty_lines_max,
+            .max_bof = options.no_multiple_empty_lines_max_bof,
             .max_eof = options.no_multiple_empty_lines_max_eof,
         });
     }
