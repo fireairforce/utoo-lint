@@ -197,7 +197,6 @@ fn propertyName(tree: *const ast.Tree, key: ast.NodeIndex, computed: bool) ?[]co
 
     return if (computed)
         switch (tree.data(unwrapTransparent(tree, key))) {
-            .identifier_reference => |identifier| tree.string(identifier.name),
             .string_literal => |literal| tree.string(literal.value),
             .numeric_literal => |literal| tree.string(literal.raw),
             else => null,
