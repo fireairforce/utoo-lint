@@ -29,13 +29,18 @@ pub fn check(
 }
 
 fn canUseShorthand(tree: *const ast.Tree, property: ast.ObjectProperty) bool {
-    const key_name = switch (tree.data(property.key)) {
-        .identifier_name => |identifier| tree.string(identifier.name),
-        else => return false,
-    };
+    const key_name = propertyKeyName(tree, property.key) orelse return false;
 
     if (identifierReferenceNamed(tree, property.value, key_name)) return true;
     return isAnonymousFunctionExpression(tree, property.value);
+}
+
+fn propertyKeyName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    return switch (tree.data(index)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        .string_literal => |literal| tree.string(literal.value),
+        else => null,
+    };
 }
 
 fn identifierReferenceNamed(tree: *const ast.Tree, index: ast.NodeIndex, name: []const u8) bool {
