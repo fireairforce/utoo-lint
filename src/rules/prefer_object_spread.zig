@@ -81,8 +81,9 @@ fn isGlobalObjectAssign(
         .member_expression => |member| member,
         else => return false,
     };
-    if (member.computed or member.optional) return false;
-    if (!isIdentifierName(tree, member.property, "assign")) return false;
+    if (member.optional) return false;
+    const property_name = memberPropertyName(tree, member) orelse return false;
+    if (!std.mem.eql(u8, property_name, "assign")) return false;
     const object = unwrapTransparent(tree, member.object);
     if (!isIdentifierReference(tree, object, "Object")) return false;
     return isUnresolvedReference(symbol_table, object);
@@ -102,11 +103,30 @@ fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex 
     return current;
 }
 
-fn isIdentifierName(tree: *const ast.Tree, index: ast.NodeIndex, expected: []const u8) bool {
-    if (index == .null) return false;
-    return switch (tree.data(index)) {
-        .identifier_name => |identifier| std.mem.eql(u8, tree.string(identifier.name), expected),
-        else => false,
+fn memberPropertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
+    if (member.property == .null) return null;
+
+    if (!member.computed) {
+        return switch (tree.data(member.property)) {
+            .identifier_name => |identifier| tree.string(identifier.name),
+            else => null,
+        };
+    }
+
+    return switch (tree.data(unwrapTransparent(tree, member.property))) {
+        .string_literal => |literal| tree.string(literal.value),
+        .template_literal => |literal| templateStringValue(tree, literal),
+        else => null,
+    };
+}
+
+fn templateStringValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]const u8 {
+    if (literal.expressions.len != 0) return null;
+    const quasis = tree.extra(literal.quasis);
+    if (quasis.len == 0) return "";
+    return switch (tree.data(quasis[0])) {
+        .template_element => |element| tree.string(element.cooked),
+        else => null,
     };
 }
 
