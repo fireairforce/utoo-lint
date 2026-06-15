@@ -11,6 +11,7 @@ const ParamSet = std.StringHashMapUnmanaged(void);
 
 pub const Options = struct {
     props: bool = false,
+    ignore_property_modifications_for: core.NoParamReassignIgnoredNames = .{},
 };
 
 pub fn checkFunction(
@@ -319,6 +320,7 @@ fn checkTarget(
             if (!options.props) return;
             const name = rootIdentifierReferenceName(tree, member.object) orelse return;
             if (!params.contains(name)) return;
+            if (options.ignore_property_modifications_for.contains(name)) return;
 
             try core.addDiagnosticFmt(
                 allocator,

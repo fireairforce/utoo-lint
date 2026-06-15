@@ -466,6 +466,11 @@ pub fn main(init: std.process.Init) !void {
             options.no_param_reassign = false;
         } else if (std.mem.eql(u8, arg, "--no-param-reassign-props=on")) {
             options.no_param_reassign_props = .yes;
+        } else if (std.mem.startsWith(u8, arg, "--no-param-reassign-ignore-property-modifications-for=")) {
+            parseNoParamReassignIgnorePropertyModificationsFor(
+                arg["--no-param-reassign-ignore-property-modifications-for=".len..],
+                &options,
+            );
         } else if (std.mem.eql(u8, arg, "--no-path-concat=off")) {
             options.no_path_concat = false;
         } else if (std.mem.eql(u8, arg, "--no-plusplus=off")) {
@@ -1089,6 +1094,24 @@ fn parseNoEmptyFunctionAllow(value: []const u8, options: *lint.Options) void {
     options.no_empty_function_allow = allow;
 }
 
+fn parseNoParamReassignIgnorePropertyModificationsFor(value: []const u8, options: *lint.Options) void {
+    if (value.len == 0) {
+        std.debug.print("utoo-lint: --no-param-reassign-ignore-property-modifications-for requires a comma-separated name list\n", .{});
+        std.process.exit(2);
+    }
+
+    var ignored: @TypeOf(options.no_param_reassign_ignore_property_modifications_for) = .{};
+    var iter = std.mem.splitScalar(u8, value, ',');
+    while (iter.next()) |raw_name| {
+        const name = std.mem.trim(u8, raw_name, " \t\r\n");
+        ignored.append(name) catch {
+            std.debug.print("utoo-lint: invalid --no-param-reassign-ignore-property-modifications-for name: {s}\n", .{name});
+            std.process.exit(2);
+        };
+    }
+    options.no_param_reassign_ignore_property_modifications_for = ignored;
+}
+
 fn parseNoWarningCommentsTerms(value: []const u8, options: *lint.Options) void {
     if (value.len == 0) {
         std.debug.print("utoo-lint: --no-warning-comments-terms requires a comma-separated term list\n", .{});
@@ -1607,6 +1630,7 @@ fn printHelp() void {
         \\  --no-object-constructor=off Disable no-object-constructor
         \\  --no-param-reassign=off   Disable no-param-reassign
         \\  --no-param-reassign-props=on Report parameter property writes
+        \\  --no-param-reassign-ignore-property-modifications-for=req,res Allow listed parameter property writes
         \\  --no-path-concat=off      Disable no-path-concat
         \\  --no-plusplus=off         Disable no-plusplus
         \\  --no-plusplus-allow-for-loop-afterthoughts=on Allow ++/-- in for afterthoughts

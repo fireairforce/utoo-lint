@@ -113,6 +113,34 @@ test "reports no-param-reassign for parameter property writes when props is enab
     try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_param_reassign.id));
 }
 
+test "allows configured parameter property modification names" {
+    const source =
+        \\function middleware(req, res, ctx) {
+        \\  req.body = next;
+        \\  res.statusCode++;
+        \\  delete req.headers;
+        \\  ctx.value = next;
+        \\  req = next;
+        \\}
+    ;
+
+    var ignored = (lint.Options{}).no_param_reassign_ignore_property_modifications_for;
+    try ignored.append("req");
+    try ignored.append("res");
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_param_reassign_props = .yes,
+        .no_param_reassign_ignore_property_modifications_for = ignored,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .no_plusplus = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_param_reassign.id));
+}
+
 test "can disable no-param-reassign" {
     const source =
         \\function run(value) {
