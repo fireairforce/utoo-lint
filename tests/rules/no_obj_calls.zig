@@ -38,6 +38,23 @@ test "reports no-obj-calls for globalThis object member calls" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_obj_calls.id));
 }
 
+test "reports no-obj-calls for sequence call callees" {
+    const source =
+        \\(0, Math)();
+        \\(foo, globalThis.JSON)();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_comma_operator = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_obj_calls.id));
+}
+
 test "reports no-obj-calls for global object constructors" {
     const source =
         \\new Math();
@@ -74,6 +91,24 @@ test "reports no-obj-calls for globalThis object member constructors" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_obj_calls.id));
+}
+
+test "reports no-obj-calls for sequence constructor callees" {
+    const source =
+        \\new (0, Math)();
+        \\new (foo, globalThis.JSON)();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_comma_operator = false,
+        .no_new = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_obj_calls.id));
 }
 
 test "does not report no-obj-calls for member calls allowed globals or shadowed names" {
