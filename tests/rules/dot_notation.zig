@@ -5,6 +5,7 @@ const helpers = @import("../helpers.zig");
 test "reports dot-notation for computed string properties that can use dot access" {
     const source =
         \\object["property"];
+        \\object[`template`];
         \\object["_private"];
         \\object["$value"];
         \\object["property1"];
@@ -22,7 +23,7 @@ test "reports dot-notation for computed string properties that can use dot acces
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.dot_notation.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.dot_notation.id));
     try std.testing.expectEqualStrings(
         "['property'] is better written in dot notation.",
         result.diagnostics[0].message,
@@ -31,10 +32,13 @@ test "reports dot-notation for computed string properties that can use dot acces
 
 test "does not report dot-notation when bracket access is required" {
     const source =
+        \\const suffix = "erty";
         \\object["not-valid"];
+        \\object[`not-valid`];
         \\object["123"];
         \\object[""];
         \\object[property];
+        \\object[`prop${suffix}`];
         \\object[call()];
     ;
 

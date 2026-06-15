@@ -33,10 +33,7 @@ pub fn checkWithOptions(
 ) Allocator.Error!void {
     if (!member.computed or member.property == .null) return;
 
-    const property_name = switch (tree.data(member.property)) {
-        .string_literal => |literal| tree.string(literal.value),
-        else => return,
-    };
+    const property_name = staticPropertyName(tree, member.property) orelse return;
     if (!isAsciiIdentifierName(property_name)) return;
     if (!options.allow_keywords and isKeyword(property_name)) return;
 
@@ -49,6 +46,26 @@ pub fn checkWithOptions(
         "['{s}'] is better written in dot notation.",
         .{property_name},
     );
+}
+
+fn staticPropertyName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    return switch (tree.data(index)) {
+        .string_literal => |literal| tree.string(literal.value),
+        .template_literal => |literal| templateStringValue(tree, literal),
+        else => null,
+    };
+}
+
+fn templateStringValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]const u8 {
+    if (literal.expressions.len != 0) return null;
+
+    const quasis = tree.extra(literal.quasis);
+    if (quasis.len == 0) return "";
+
+    return switch (tree.data(quasis[0])) {
+        .template_element => |element| tree.string(element.cooked),
+        else => null,
+    };
 }
 
 fn isAsciiIdentifierName(name: []const u8) bool {
