@@ -10,6 +10,7 @@ pub const id = "func-names";
 pub const Style = enum {
     always,
     as_needed,
+    never,
 };
 
 pub fn check(
@@ -32,6 +33,20 @@ pub fn checkWithStyle(
     ctx: *traverser.basic.Ctx,
     style: Style,
 ) Allocator.Error!void {
+    if (style == .never) {
+        if (!disallowsName(tree, function, ctx)) return;
+
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Unexpected named function.",
+            tree.span(index),
+        );
+        return;
+    }
+
     if (function.id != .null) return;
     if (!requiresName(tree, function, index, ctx, style)) return;
 
@@ -49,6 +64,13 @@ fn requiresName(tree: *const ast.Tree, function: ast.Function, index: ast.NodeIn
     return switch (function.type) {
         .function_expression => !isMethodParent(tree, ctx) and !allowsInferredName(tree, index, ctx, style),
         .function_declaration => isExportDefaultDeclarationParent(tree, ctx),
+        else => false,
+    };
+}
+
+fn disallowsName(tree: *const ast.Tree, function: ast.Function, ctx: *traverser.basic.Ctx) bool {
+    return switch (function.type) {
+        .function_expression => function.id != .null and !isMethodParent(tree, ctx),
         else => false,
     };
 }

@@ -1055,6 +1055,7 @@ const BasicVisitor = struct {
             try func_names.checkWithStyle(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, switch (self.options.func_names_style) {
                 .always => .always,
                 .as_needed => .as_needed,
+                .never => .never,
             });
         }
         if (self.options.default_param_last) {
