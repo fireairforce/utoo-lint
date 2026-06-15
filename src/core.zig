@@ -102,6 +102,11 @@ pub const NoReturnAssignStyle = enum {
     always,
 };
 
+pub const NoSequencesAllowInParentheses = enum {
+    yes,
+    no,
+};
+
 pub const NoUnderscoreDangleAllowFunctionParams = enum {
     yes,
     no,
@@ -434,6 +439,7 @@ pub const Options = struct {
     no_shadow: bool = true,
     no_shadow_restricted_names: bool = true,
     no_sequences: bool = true,
+    no_sequences_allow_in_parentheses: NoSequencesAllowInParentheses = .yes,
     no_sparse_arrays: bool = true,
     no_ternary: bool = true,
     no_template_curly_in_string: bool = true,
@@ -691,6 +697,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
             self.no_return_assign_style = try noReturnAssignStyleFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-sequences")) {
+            self.no_sequences_allow_in_parentheses = try noSequencesAllowInParenthesesFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-useless-computed-key")) {
             self.no_useless_computed_key_enforce_for_class_members = try noUselessComputedKeyEnforceForClassMembersFromConfig(value);
         }
@@ -885,6 +894,24 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "except-parens")) return .except_parens;
         if (std.mem.eql(u8, style, "always")) return .always;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn noSequencesAllowInParenthesesFromConfig(value: std.json.Value) RuleConfigError!NoSequencesAllowInParentheses {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .yes,
+        };
+        if (items.len < 2) return .yes;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allowInParentheses") orelse return .yes) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (allow) .yes else .no;
     }
 
     fn noUselessComputedKeyEnforceForClassMembersFromConfig(value: std.json.Value) RuleConfigError!NoUselessComputedKeyEnforceForClassMembers {
@@ -1323,6 +1350,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-return-assign", no_return_assign_config.value);
     try std.testing.expect(options.no_return_assign);
     try std.testing.expectEqual(NoReturnAssignStyle.always, options.no_return_assign_style);
+
+    var no_sequences_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowInParentheses\":false}]",
+        .{},
+    );
+    defer no_sequences_config.deinit();
+    try options.setByRuleConfigValue("no-sequences", no_sequences_config.value);
+    try std.testing.expect(options.no_sequences);
+    try std.testing.expectEqual(NoSequencesAllowInParentheses.no, options.no_sequences_allow_in_parentheses);
 
     var no_useless_computed_key_config = try std.json.parseFromSlice(
         std.json.Value,
