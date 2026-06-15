@@ -823,6 +823,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "func-names")) {
             self.func_names_style = try funcNamesStyleFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "grouped-accessor-pairs")) {
+            self.grouped_accessor_pairs_style = try groupedAccessorPairsStyleFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "logical-assignment-operators")) {
             self.logical_assignment_operators_style = try logicalAssignmentOperatorsStyleFromConfig(value);
             self.logical_assignment_operators_enforce_for_if_statements = try logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value);
@@ -1015,6 +1018,23 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "always")) return .always;
         if (std.mem.eql(u8, style, "as-needed")) return .as_needed;
         if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn groupedAccessorPairsStyleFromConfig(value: std.json.Value) RuleConfigError!GroupedAccessorPairsStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .any_order,
+        };
+        if (items.len < 2) return .any_order;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "anyOrder")) return .any_order;
+        if (std.mem.eql(u8, style, "getBeforeSet")) return .get_before_set;
+        if (std.mem.eql(u8, style, "setBeforeGet")) return .set_before_get;
         return error.UnsupportedRuleConfigValue;
     }
 
@@ -1929,6 +1949,28 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("func-names", func_names_config.value);
     try std.testing.expect(options.func_names);
     try std.testing.expectEqual(FuncNamesStyle.never, options.func_names_style);
+
+    var grouped_accessor_pairs_get_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"getBeforeSet\"]",
+        .{},
+    );
+    defer grouped_accessor_pairs_get_config.deinit();
+    try options.setByRuleConfigValue("grouped-accessor-pairs", grouped_accessor_pairs_get_config.value);
+    try std.testing.expect(options.grouped_accessor_pairs);
+    try std.testing.expectEqual(GroupedAccessorPairsStyle.get_before_set, options.grouped_accessor_pairs_style);
+
+    var grouped_accessor_pairs_set_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"setBeforeGet\"]",
+        .{},
+    );
+    defer grouped_accessor_pairs_set_config.deinit();
+    try options.setByRuleConfigValue("grouped-accessor-pairs", grouped_accessor_pairs_set_config.value);
+    try std.testing.expect(options.grouped_accessor_pairs);
+    try std.testing.expectEqual(GroupedAccessorPairsStyle.set_before_get, options.grouped_accessor_pairs_style);
 
     var logical_assignment_operators_never_config = try std.json.parseFromSlice(
         std.json.Value,
