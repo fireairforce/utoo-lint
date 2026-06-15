@@ -2377,9 +2377,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_new) {
-            if (ctx.path.parent()) |parent| {
-                try no_new.check(self.allocator, self.diagnostics, ctx.tree, index, parent);
-            }
+            try no_new.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path);
         }
         if (self.options.no_new_require) {
             try no_new_require.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
