@@ -114,6 +114,11 @@ pub const NoParamReassignProps = enum {
     no,
 };
 
+pub const NoUselessComputedKeyEnforceForClassMembers = enum {
+    yes,
+    no,
+};
+
 pub const WrapIifeStyle = enum {
     outside,
     inside,
@@ -411,6 +416,7 @@ pub const Options = struct {
     no_unsafe_finally: bool = true,
     no_unsafe_negation: bool = true,
     no_useless_computed_key: bool = true,
+    no_useless_computed_key_enforce_for_class_members: NoUselessComputedKeyEnforceForClassMembers = .yes,
     no_useless_call: bool = true,
     no_useless_concat: bool = true,
     no_useless_constructor: bool = true,
@@ -630,6 +636,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-console")) {
             self.no_console_allow = try noConsoleAllowFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-useless-computed-key")) {
+            self.no_useless_computed_key_enforce_for_class_members = try noUselessComputedKeyEnforceForClassMembersFromConfig(value);
+        }
     }
 
     pub const RuleConfigError = error{
@@ -741,6 +750,24 @@ pub const Options = struct {
             if (!allow.enable(method)) return error.UnsupportedRuleConfigValue;
         }
         return allow;
+    }
+
+    fn noUselessComputedKeyEnforceForClassMembersFromConfig(value: std.json.Value) RuleConfigError!NoUselessComputedKeyEnforceForClassMembers {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .yes,
+        };
+        if (items.len < 2) return .yes;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const enforce = switch (config.get("enforceForClassMembers") orelse return .yes) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (enforce) .yes else .no;
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
@@ -1115,6 +1142,20 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_console_allow.contains("warn"));
     try std.testing.expect(options.no_console_allow.contains("error"));
     try std.testing.expect(!options.no_console_allow.contains("log"));
+
+    var no_useless_computed_key_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"enforceForClassMembers\":false}]",
+        .{},
+    );
+    defer no_useless_computed_key_config.deinit();
+    try options.setByRuleConfigValue("no-useless-computed-key", no_useless_computed_key_config.value);
+    try std.testing.expect(options.no_useless_computed_key);
+    try std.testing.expectEqual(
+        NoUselessComputedKeyEnforceForClassMembers.no,
+        options.no_useless_computed_key_enforce_for_class_members,
+    );
 
     try std.testing.expectError(
         Options.RuleConfigError.UnsupportedRuleConfigValue,
