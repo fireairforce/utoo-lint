@@ -6,6 +6,7 @@ test "reports no-extend-native for native prototype assignments" {
     const source =
         \\String.prototype.trimLeft = function () {};
         \\Array.prototype["first"] = function () {};
+        \\Array[`prototype`].first = function () {};
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -22,14 +23,18 @@ test "reports no-extend-native for native prototype assignments" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_extend_native.id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_extend_native.id));
     try std.testing.expectEqualStrings("String prototype is read only, properties should not be added.", result.diagnostics[0].message);
 }
 
 test "reports no-extend-native for Object defineProperty calls" {
     const source =
         \\Object.defineProperty(Date.prototype, "week", { value: function () {} });
+        \\Object[`defineProperty`](Array.prototype, "first", {});
         \\Object.defineProperties(Map.prototype, {
+        \\  first: { value: function () {} },
+        \\});
+        \\Object[`defineProperties`](Set.prototype, {
         \\  first: { value: function () {} },
         \\});
     ;
@@ -48,7 +53,7 @@ test "reports no-extend-native for Object defineProperty calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_extend_native.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_extend_native.id));
 }
 
 test "does not report no-extend-native for shadowed constructors or ordinary objects" {
@@ -61,6 +66,8 @@ test "does not report no-extend-native for shadowed constructors or ordinary obj
         \\  defineProperty() {},
         \\};
         \\Object.defineProperty(Array.prototype, "first", {});
+        \\Array[`proto${suffix}`].first = function () {};
+        \\Object[`define${suffix}`](Array.prototype, "first", {});
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
