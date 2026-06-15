@@ -59,10 +59,25 @@ const Visitor = struct {
         if (arguments.len == 0) return;
         if (!isGlobalRegExpReference(tree, self.symbol_table, callee)) return;
 
-        const pattern = stringLiteralValue(tree, arguments[0]) orelse return;
-        const flags = if (arguments.len >= 2) stringLiteralValue(tree, arguments[1]) orelse return else "";
+        const flags = if (arguments.len >= 2) stringLiteralValue(tree, arguments[1]) else null;
+        if (flags) |value| {
+            if (validateFlags(value)) |message| {
+                try self.addDiagnostic(tree, index, message);
+                return;
+            }
+        }
 
-        const message = validateRegExp(pattern, flags) orelse return;
+        const pattern = stringLiteralValue(tree, arguments[0]) orelse return;
+        const message = validatePattern(pattern) orelse return;
+        try self.addDiagnostic(tree, index, message);
+    }
+
+    fn addDiagnostic(
+        self: *Visitor,
+        tree: *const ast.Tree,
+        index: ast.NodeIndex,
+        message: []const u8,
+    ) Allocator.Error!void {
         try core.addDiagnosticFmt(
             self.allocator,
             self.diagnostics,
@@ -74,11 +89,6 @@ const Visitor = struct {
         );
     }
 };
-
-fn validateRegExp(pattern: []const u8, flags: []const u8) ?[]const u8 {
-    if (validateFlags(flags)) |message| return message;
-    return validatePattern(pattern);
-}
 
 fn validateFlags(flags: []const u8) ?[]const u8 {
     var seen: u32 = 0;
