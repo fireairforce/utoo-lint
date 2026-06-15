@@ -73,6 +73,32 @@ test "reports prefer-const for destructuring only when all bindings qualify in a
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_const.id));
 }
 
+test "uses configured prefer-const destructuring all mode" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"destructuring\":\"all\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("prefer-const", config.value);
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\let { a, b } = obj;
+        \\b = 2;
+        \\let [c, d] = list;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_const.id));
+}
+
 test "can disable prefer-const" {
     const source =
         \\let a = 1;
