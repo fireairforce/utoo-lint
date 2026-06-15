@@ -325,9 +325,7 @@ fn isAlertGlobalObjectName(name: []const u8) bool {
 }
 
 fn isEvalGlobalObjectName(name: []const u8) bool {
-    return std.mem.eql(u8, name, "window") or
-        std.mem.eql(u8, name, "globalThis") or
-        std.mem.eql(u8, name, "global");
+    return std.mem.eql(u8, name, "globalThis");
 }
 
 fn isImpliedEvalGlobalObjectName(name: []const u8) bool {

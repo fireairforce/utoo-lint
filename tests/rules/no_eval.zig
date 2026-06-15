@@ -7,10 +7,8 @@ test "reports no-eval for direct indirect and global eval calls" {
         \\eval("code");
         \\(eval)("code");
         \\(0, eval)("code");
-        \\window.eval("code");
         \\globalThis["eval"]("code");
         \\globalThis[`eval`]("code");
-        \\global.eval("code");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -22,7 +20,7 @@ test "reports no-eval for direct indirect and global eval calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_eval.id));
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_eval.id));
 }
 
 test "reports no-eval for eval references outside call callees" {
@@ -57,6 +55,11 @@ test "does not report no-eval for non-global eval members" {
         \\globalThis[`ev${suffix}`]("code");
         \\const window = sandbox;
         \\window.eval("code");
+        \\global.eval("code");
+        \\self.eval("code");
+        \\this.eval("code");
+        \\window["eval"]("code");
+        \\global[`eval`]("code");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
