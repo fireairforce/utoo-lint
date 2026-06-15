@@ -45,6 +45,34 @@ test "reports accessor-pairs for class setters without getters" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.accessor_pairs.id));
 }
 
+test "reports accessor-pairs for computed setters without getters" {
+    const source =
+        \\const object = {
+        \\  set [`template`](next) {},
+        \\  set [dynamic](next) {},
+        \\  get [paired]() { return 1; },
+        \\  set [paired](next) {},
+        \\};
+        \\class Example {
+        \\  set [`template`](next) {}
+        \\  set [dynamic](next) {}
+        \\  get [paired]() { return 1; }
+        \\  set [paired](next) {}
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_empty_function = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.accessor_pairs.id));
+}
+
 test "reports accessor-pairs for property descriptors without get" {
     const source =
         \\Object.defineProperty(target, "value", {
