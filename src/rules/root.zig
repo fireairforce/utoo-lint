@@ -2148,7 +2148,10 @@ const BasicVisitor = struct {
             try no_path_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.yoda) {
-            try yoda.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try yoda.checkWithStyle(self.allocator, self.diagnostics, ctx.tree, expression, index, switch (self.options.yoda_style) {
+                .never => .never,
+                .always => .always,
+            });
         }
         if (self.options.typescript_eslint_no_confusing_non_null_assertion) {
             try typescript_eslint_no_confusing_non_null_assertion.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);

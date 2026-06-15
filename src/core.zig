@@ -307,6 +307,11 @@ pub const FuncNameMatchingStyle = enum {
     never,
 };
 
+pub const YodaStyle = enum {
+    never,
+    always,
+};
+
 pub const PreferConstDestructuring = enum {
     any,
     all,
@@ -707,6 +712,7 @@ pub const Options = struct {
     wrap_iife: bool = true,
     wrap_iife_style: WrapIifeStyle = .outside,
     yoda: bool = true,
+    yoda_style: YodaStyle = .never,
 
     pub fn allDisabled() Options {
         var options = Options{};
@@ -837,6 +843,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "wrap-iife")) {
             self.wrap_iife_style = try wrapIifeStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "yoda")) {
+            self.yoda_style = try yodaStyleFromConfig(value);
         }
     }
 
@@ -1323,6 +1332,22 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "outside")) return .outside;
         if (std.mem.eql(u8, style, "inside")) return .inside;
         if (std.mem.eql(u8, style, "any")) return .any;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn yodaStyleFromConfig(value: std.json.Value) RuleConfigError!YodaStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .never,
+        };
+        if (items.len < 2) return .never;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "never")) return .never;
+        if (std.mem.eql(u8, style, "always")) return .always;
         return error.UnsupportedRuleConfigValue;
     }
 
@@ -1896,6 +1921,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("wrap-iife", wrap_iife_config.value);
     try std.testing.expect(options.wrap_iife);
     try std.testing.expectEqual(WrapIifeStyle.inside, options.wrap_iife_style);
+
+    var yoda_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"always\"]",
+        .{},
+    );
+    defer yoda_config.deinit();
+    try options.setByRuleConfigValue("yoda", yoda_config.value);
+    try std.testing.expect(options.yoda);
+    try std.testing.expectEqual(YodaStyle.always, options.yoda_style);
 
     try std.testing.expectError(
         Options.RuleConfigError.UnsupportedRuleConfigValue,
