@@ -482,6 +482,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_return_await = false;
         } else if (std.mem.eql(u8, arg, "--no-return-assign=off")) {
             options.no_return_assign = false;
+        } else if (std.mem.eql(u8, arg, "--no-return-assign=always")) {
+            options.no_return_assign_style = .always;
         } else if (std.mem.eql(u8, arg, "--no-useless-return=off")) {
             options.no_useless_return = false;
         } else if (std.mem.eql(u8, arg, "--no-script-url=off")) {
@@ -1553,6 +1555,7 @@ fn printHelp() void {
         \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-return-await=off     Disable no-return-await
         \\  --no-return-assign=off    Disable no-return-assign
+        \\  --no-return-assign=always Report all returned assignments, including parenthesized ones
         \\  --no-useless-return=off   Disable no-useless-return
         \\  --no-script-url=off       Disable no-script-url
         \\  --no-self-assign=off      Disable no-self-assign

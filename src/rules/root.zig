@@ -1679,7 +1679,9 @@ const BasicVisitor = struct {
             try no_useless_return.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }
         if (self.options.no_return_assign) {
-            try no_return_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.argument);
+            try no_return_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.argument, .{
+                .style = self.options.no_return_assign_style,
+            });
         }
         return .proceed;
     }
@@ -1951,7 +1953,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_return_assign and expression.expression) {
-            try no_return_assign.check(self.allocator, self.diagnostics, ctx.tree, expression.body);
+            try no_return_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression.body, .{
+                .style = self.options.no_return_assign_style,
+            });
         }
         if (self.options.consistent_return) {
             try consistent_return.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression);

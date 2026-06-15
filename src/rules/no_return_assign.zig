@@ -6,13 +6,27 @@ const Allocator = @import("std").mem.Allocator;
 
 pub const id = "no-return-assign";
 
+pub const Options = struct {
+    style: core.NoReturnAssignStyle = .except_parens,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     expression: ast.NodeIndex,
 ) Allocator.Error!void {
-    const assignment = findUnparenthesizedAssignment(tree, expression) orelse return;
+    try checkWithOptions(allocator, diagnostics, tree, expression, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    const assignment = findAssignment(tree, expression, options.style == .always) orelse return;
 
     try core.addDiagnostic(
         allocator,
@@ -24,50 +38,53 @@ pub fn check(
     );
 }
 
-fn findUnparenthesizedAssignment(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.NodeIndex {
+fn findAssignment(tree: *const ast.Tree, index: ast.NodeIndex, allow_parenthesized: bool) ?ast.NodeIndex {
     if (index == .null) return null;
 
     switch (tree.data(index)) {
-        .parenthesized_expression => return null,
+        .parenthesized_expression => |expression| {
+            if (!allow_parenthesized) return null;
+            return findAssignment(tree, expression.expression, allow_parenthesized);
+        },
         .assignment_expression => return index,
-        .chain_expression => |chain| return findUnparenthesizedAssignment(tree, chain.expression),
+        .chain_expression => |chain| return findAssignment(tree, chain.expression, allow_parenthesized),
         .binary_expression => |expression| {
-            if (findUnparenthesizedAssignment(tree, expression.left)) |assignment| return assignment;
-            return findUnparenthesizedAssignment(tree, expression.right);
+            if (findAssignment(tree, expression.left, allow_parenthesized)) |assignment| return assignment;
+            return findAssignment(tree, expression.right, allow_parenthesized);
         },
         .logical_expression => |expression| {
-            if (findUnparenthesizedAssignment(tree, expression.left)) |assignment| return assignment;
-            return findUnparenthesizedAssignment(tree, expression.right);
+            if (findAssignment(tree, expression.left, allow_parenthesized)) |assignment| return assignment;
+            return findAssignment(tree, expression.right, allow_parenthesized);
         },
-        .unary_expression => |expression| return findUnparenthesizedAssignment(tree, expression.argument),
+        .unary_expression => |expression| return findAssignment(tree, expression.argument, allow_parenthesized),
         .conditional_expression => |expression| {
-            if (findUnparenthesizedAssignment(tree, expression.@"test")) |assignment| return assignment;
-            if (findUnparenthesizedAssignment(tree, expression.consequent)) |assignment| return assignment;
-            return findUnparenthesizedAssignment(tree, expression.alternate);
+            if (findAssignment(tree, expression.@"test", allow_parenthesized)) |assignment| return assignment;
+            if (findAssignment(tree, expression.consequent, allow_parenthesized)) |assignment| return assignment;
+            return findAssignment(tree, expression.alternate, allow_parenthesized);
         },
         .sequence_expression => |expression| {
             for (tree.extra(expression.expressions)) |item| {
-                if (findUnparenthesizedAssignment(tree, item)) |assignment| return assignment;
+                if (findAssignment(tree, item, allow_parenthesized)) |assignment| return assignment;
             }
             return null;
         },
         .call_expression => |call| {
-            if (findUnparenthesizedAssignment(tree, call.callee)) |assignment| return assignment;
+            if (findAssignment(tree, call.callee, allow_parenthesized)) |assignment| return assignment;
             for (tree.extra(call.arguments)) |argument| {
-                if (findUnparenthesizedAssignment(tree, argument)) |assignment| return assignment;
+                if (findAssignment(tree, argument, allow_parenthesized)) |assignment| return assignment;
             }
             return null;
         },
         .new_expression => |new| {
-            if (findUnparenthesizedAssignment(tree, new.callee)) |assignment| return assignment;
+            if (findAssignment(tree, new.callee, allow_parenthesized)) |assignment| return assignment;
             for (tree.extra(new.arguments)) |argument| {
-                if (findUnparenthesizedAssignment(tree, argument)) |assignment| return assignment;
+                if (findAssignment(tree, argument, allow_parenthesized)) |assignment| return assignment;
             }
             return null;
         },
         .member_expression => |member| {
-            if (findUnparenthesizedAssignment(tree, member.object)) |assignment| return assignment;
-            if (member.computed) return findUnparenthesizedAssignment(tree, member.property);
+            if (findAssignment(tree, member.object, allow_parenthesized)) |assignment| return assignment;
+            if (member.computed) return findAssignment(tree, member.property, allow_parenthesized);
             return null;
         },
         else => return null,
