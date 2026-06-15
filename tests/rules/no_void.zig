@@ -43,6 +43,8 @@ test "does not report no-void for delete or property names" {
 test "allows void expression statements when allowAsStatement is enabled" {
     const source =
         \\void doSideEffect();
+        \\(void doSideEffect());
+        \\((void doSideEffect()));
         \\function f() {
         \\  return void doSideEffect();
         \\}

@@ -2182,7 +2182,7 @@ const BasicVisitor = struct {
             try no_delete_var.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_void) {
-            try no_void.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx.path.ancestor(1), .{
+            try no_void.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, &ctx.path, .{
                 .allow_as_statement = self.options.no_void_allow_as_statement == .yes,
             });
         }
