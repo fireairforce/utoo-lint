@@ -9,6 +9,8 @@ test "reports func-name-matching for mismatched variable and assignment targets"
         \\third = function fourth() {};
         \\object.value = function other() {};
         \\this.ready = function done() {};
+        \\module.exports.value = function exportedValue() {};
+        \\exports.value = function exportedValue() {};
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -21,7 +23,7 @@ test "reports func-name-matching for mismatched variable and assignment targets"
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.func_name_matching.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.func_name_matching.id));
     try std.testing.expectEqualStrings(
         "Function name `second` should match target name `first`.",
         result.diagnostics[0].message,
@@ -61,7 +63,7 @@ test "does not report func-name-matching for matching or unsupported cases" {
         \\object[value] = function otherValue() {};
         \\object[getName()] = function dynamic() {};
         \\module.exports = function exported() {};
-        \\exports.value = function exportedValue() {};
+        \\module["exports"] = function exportedComputed() {};
         \\const object = {
         \\  method() {},
         \\  value: function value() {},

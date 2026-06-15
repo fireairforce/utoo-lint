@@ -167,29 +167,14 @@ fn assignmentTargetName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8
 }
 
 fn memberTargetName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
-    if (isCommonJsExportTarget(tree, member)) return null;
+    if (isModuleExportsTarget(tree, member)) return null;
     return propertyName(tree, member.property, member.computed);
 }
 
-fn isCommonJsExportTarget(tree: *const ast.Tree, member: ast.MemberExpression) bool {
-    if (isIdentifierReferenceNamed(tree, member.object, "exports")) return true;
-    if (!member.computed and
-        isIdentifierReferenceNamed(tree, member.object, "module") and
-        propertyName(tree, member.property, member.computed) != null and
-        std.mem.eql(u8, propertyName(tree, member.property, member.computed).?, "exports"))
-    {
-        return true;
-    }
-
-    const object = switch (tree.data(unwrapTransparent(tree, member.object))) {
-        .member_expression => |object| object,
-        else => return false,
-    };
-    if (object.computed) return false;
-
-    return isIdentifierReferenceNamed(tree, object.object, "module") and
-        propertyName(tree, object.property, object.computed) != null and
-        std.mem.eql(u8, propertyName(tree, object.property, object.computed).?, "exports");
+fn isModuleExportsTarget(tree: *const ast.Tree, member: ast.MemberExpression) bool {
+    const name = propertyName(tree, member.property, member.computed) orelse return false;
+    return isIdentifierReferenceNamed(tree, member.object, "module") and
+        std.mem.eql(u8, name, "exports");
 }
 
 fn propertyName(tree: *const ast.Tree, key: ast.NodeIndex, computed: bool) ?[]const u8 {
