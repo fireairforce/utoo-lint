@@ -5,8 +5,12 @@ const helpers = @import("../helpers.zig");
 test "reports prefer-regex-literals for static RegExp constructors" {
     const source =
         \\RegExp("abc");
+        \\RegExp(`abc`);
         \\new RegExp("abc");
         \\new RegExp("abc", "u");
+        \\new RegExp(`abc`, "u");
+        \\new RegExp("abc", `u`);
+        \\new RegExp(`abc`, `u`);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -18,7 +22,7 @@ test "reports prefer-regex-literals for static RegExp constructors" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_regex_literals.id));
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.prefer_regex_literals.id));
     try std.testing.expectEqualStrings(
         "Use a regular expression literal instead of the RegExp constructor.",
         result.diagnostics[0].message,
@@ -27,7 +31,9 @@ test "reports prefer-regex-literals for static RegExp constructors" {
 
 test "does not report prefer-regex-literals for dynamic patterns or shadowed RegExp" {
     const source =
+        \\const suffix = "bc";
         \\RegExp(pattern);
+        \\RegExp(`a${suffix}`);
         \\RegExp("abc", flags);
         \\RegExp("abc", "u", "extra");
         \\const RegExp = function () {};

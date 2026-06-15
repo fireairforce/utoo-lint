@@ -77,9 +77,9 @@ fn isStaticRegExpConstructor(
     if (!isGlobalRegExpReference(tree, symbol_table, callee)) return false;
 
     const pattern = arguments[0];
-    if (!isStringLiteral(tree, pattern)) return false;
+    if (!isStaticLiteral(tree, pattern)) return false;
 
-    if (arguments.len == 2 and !isStringLiteral(tree, arguments[1])) return false;
+    if (arguments.len == 2 and !isStaticLiteral(tree, arguments[1])) return false;
     return true;
 }
 
@@ -93,9 +93,10 @@ fn isGlobalRegExpReference(
     return std.mem.eql(u8, name, "RegExp") and isUnresolvedReference(symbol_table, unwrapped);
 }
 
-fn isStringLiteral(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+fn isStaticLiteral(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     return switch (tree.data(unwrapTransparent(tree, index))) {
         .string_literal => true,
+        .template_literal => |literal| literal.expressions.len == 0,
         else => false,
     };
 }
