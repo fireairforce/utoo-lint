@@ -88,6 +88,12 @@ fn memberInfo(tree: *const ast.Tree, index: ast.NodeIndex) ?Member {
 }
 
 fn methodInfo(tree: *const ast.Tree, method: ast.MethodDefinition) ?Member {
+    const function = switch (tree.data(method.value)) {
+        .function => |function| function,
+        else => return null,
+    };
+    if (function.body == .null) return null;
+
     const name = if (method.kind == .constructor and !method.static)
         "constructor"
     else

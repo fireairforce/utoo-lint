@@ -54,6 +54,56 @@ test "does not report @typescript-eslint/no-dupe-class-members for getter setter
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_dupe_class_members.id));
 }
 
+test "does not report @typescript-eslint/no-dupe-class-members for overload signatures" {
+    const source =
+        \\class Example {
+        \\  value(input: string): string;
+        \\  value(input: number): string;
+        \\  value(input: string | number) {
+        \\    return String(input);
+        \\  }
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+        .typescript_eslint_adjacent_overload_signatures = false,
+        .typescript_eslint_unified_signatures = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_dupe_class_members.id));
+}
+
+test "reports @typescript-eslint/no-dupe-class-members for duplicate overload implementations" {
+    const source =
+        \\class Example {
+        \\  value(input: string): string;
+        \\  value(input: string) {
+        \\    return input;
+        \\  }
+        \\  value(input: number) {
+        \\    return String(input);
+        \\  }
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+        .typescript_eslint_adjacent_overload_signatures = false,
+        .typescript_eslint_unified_signatures = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_dupe_class_members.id));
+}
+
 test "can disable @typescript-eslint/no-dupe-class-members and fall back to core rule" {
     const source =
         \\class Example {
