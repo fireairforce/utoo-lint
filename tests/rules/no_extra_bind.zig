@@ -10,6 +10,9 @@ test "reports no-extra-bind for functions that do not use this" {
         \\const second = function () {
         \\  return value;
         \\}.bind();
+        \\const third = function () {
+        \\  return value;
+        \\}[`bind`](context);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -20,7 +23,7 @@ test "reports no-extra-bind for functions that do not use this" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_extra_bind.id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_extra_bind.id));
     try std.testing.expectEqualStrings("The function binding is unnecessary.", result.diagnostics[0].message);
 }
 
@@ -50,6 +53,9 @@ test "does not report no-extra-bind when this or bound arguments are used" {
         \\  return value + 1;
         \\}.bind(context, value);
         \\const third = ((value) => value + 1).bind(context, value);
+        \\const fourth = function () {
+        \\  return value;
+        \\}[`bi${suffix}`](context);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
