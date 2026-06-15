@@ -12,7 +12,7 @@ pub const Options = struct {
     severity: core.Severity = .warning,
     allow_short_circuit: bool = false,
     allow_ternary: bool = false,
-    allow_tagged_templates: bool = true,
+    allow_tagged_templates: bool = false,
 };
 
 pub fn check(
