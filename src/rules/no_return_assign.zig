@@ -43,7 +43,7 @@ fn findAssignment(tree: *const ast.Tree, index: ast.NodeIndex, allow_parenthesiz
 
     switch (tree.data(index)) {
         .parenthesized_expression => |expression| {
-            if (!allow_parenthesized) return null;
+            if (!allow_parenthesized and tree.data(expression.expression) == .assignment_expression) return null;
             return findAssignment(tree, expression.expression, allow_parenthesized);
         },
         .assignment_expression => return index,
@@ -69,6 +69,7 @@ fn findAssignment(tree: *const ast.Tree, index: ast.NodeIndex, allow_parenthesiz
             return null;
         },
         .call_expression => |call| {
+            if (!allow_parenthesized) return null;
             if (findAssignment(tree, call.callee, allow_parenthesized)) |assignment| return assignment;
             for (tree.extra(call.arguments)) |argument| {
                 if (findAssignment(tree, argument, allow_parenthesized)) |assignment| return assignment;
@@ -76,6 +77,7 @@ fn findAssignment(tree: *const ast.Tree, index: ast.NodeIndex, allow_parenthesiz
             return null;
         },
         .new_expression => |new| {
+            if (!allow_parenthesized) return null;
             if (findAssignment(tree, new.callee, allow_parenthesized)) |assignment| return assignment;
             for (tree.extra(new.arguments)) |argument| {
                 if (findAssignment(tree, argument, allow_parenthesized)) |assignment| return assignment;
@@ -83,6 +85,7 @@ fn findAssignment(tree: *const ast.Tree, index: ast.NodeIndex, allow_parenthesiz
             return null;
         },
         .member_expression => |member| {
+            if (!allow_parenthesized) return null;
             if (findAssignment(tree, member.object, allow_parenthesized)) |assignment| return assignment;
             if (member.computed) return findAssignment(tree, member.property, allow_parenthesized);
             return null;
