@@ -613,7 +613,7 @@ pub const Options = struct {
     no_unused_expressions: bool = true,
     no_unused_expressions_allow_short_circuit: NoUnusedExpressionsAllowShortCircuit = .no,
     no_unused_expressions_allow_ternary: NoUnusedExpressionsAllowTernary = .no,
-    no_unused_expressions_allow_tagged_templates: NoUnusedExpressionsAllowTaggedTemplates = .yes,
+    no_unused_expressions_allow_tagged_templates: NoUnusedExpressionsAllowTaggedTemplates = .no,
     typescript_eslint_no_unused_expressions: bool = true,
     no_warning_comments: bool = true,
     no_warning_comments_location: NoWarningCommentsLocation = .start,
@@ -1589,15 +1589,15 @@ pub const Options = struct {
     fn noUnusedExpressionsAllowTaggedTemplatesFromConfig(value: std.json.Value) RuleConfigError!NoUnusedExpressionsAllowTaggedTemplates {
         const items = switch (value) {
             .array => |array| array.items,
-            else => return .yes,
+            else => return .no,
         };
-        if (items.len < 2) return .yes;
+        if (items.len < 2) return .no;
 
         const config = switch (items[1]) {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        const allow = switch (config.get("allowTaggedTemplates") orelse return .yes) {
+        const allow = switch (config.get("allowTaggedTemplates") orelse return .no) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -2478,6 +2478,16 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_unused_expressions);
     try std.testing.expectEqual(NoUnusedExpressionsAllowShortCircuit.yes, options.no_unused_expressions_allow_short_circuit);
     try std.testing.expectEqual(NoUnusedExpressionsAllowTernary.yes, options.no_unused_expressions_allow_ternary);
+    try std.testing.expectEqual(NoUnusedExpressionsAllowTaggedTemplates.no, options.no_unused_expressions_allow_tagged_templates);
+
+    var no_unused_expressions_default_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\"]",
+        .{},
+    );
+    defer no_unused_expressions_default_config.deinit();
+    try options.setByRuleConfigValue("no-unused-expressions", no_unused_expressions_default_config.value);
     try std.testing.expectEqual(NoUnusedExpressionsAllowTaggedTemplates.no, options.no_unused_expressions_allow_tagged_templates);
 
     var no_use_before_define_config = try std.json.parseFromSlice(
