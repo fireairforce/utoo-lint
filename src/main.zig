@@ -242,6 +242,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_empty_character_class = false;
         } else if (std.mem.eql(u8, arg, "--no-empty-function=off")) {
             options.no_empty_function = false;
+        } else if (std.mem.startsWith(u8, arg, "--no-empty-function-allow=")) {
+            parseNoEmptyFunctionAllow(arg["--no-empty-function-allow=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--no-empty-pattern=off")) {
             options.no_empty_pattern = false;
         } else if (std.mem.eql(u8, arg, "--no-empty-static-block=off")) {
@@ -1047,6 +1049,28 @@ fn parseNoConsoleAllow(value: []const u8, options: *lint.Options) void {
     options.no_console_allow = allow;
 }
 
+fn parseNoEmptyFunctionAllow(value: []const u8, options: *lint.Options) void {
+    if (value.len == 0) {
+        std.debug.print("utoo-lint: --no-empty-function-allow requires a comma-separated kind list\n", .{});
+        std.process.exit(2);
+    }
+
+    var allow: @TypeOf(options.no_empty_function_allow) = .{};
+    var iter = std.mem.splitScalar(u8, value, ',');
+    while (iter.next()) |raw_kind| {
+        const kind = std.mem.trim(u8, raw_kind, " \t\r\n");
+        if (kind.len == 0) {
+            std.debug.print("utoo-lint: --no-empty-function-allow contains an empty kind\n", .{});
+            std.process.exit(2);
+        }
+        if (!allow.enable(kind)) {
+            std.debug.print("utoo-lint: unsupported --no-empty-function-allow kind: {s}\n", .{kind});
+            std.process.exit(2);
+        }
+    }
+    options.no_empty_function_allow = allow;
+}
+
 fn collectLintableDirectory(
     allocator: std.mem.Allocator,
     io: std.Io,
@@ -1406,6 +1430,7 @@ fn printHelp() void {
         \\  --no-empty-block-statements=off Disable no-empty-block-statements
         \\  --no-empty-character-class=off Disable no-empty-character-class
         \\  --no-empty-function=off Disable no-empty-function
+        \\  --no-empty-function-allow=functions,arrowFunctions Allow selected empty function kinds
         \\  --no-empty-pattern=off  Disable no-empty-pattern
         \\  --no-empty-static-block=off Disable no-empty-static-block
         \\  --no-else-return=off    Disable no-else-return

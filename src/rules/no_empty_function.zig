@@ -7,6 +7,18 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-empty-function";
 
+pub const Kind = enum {
+    functions,
+    arrowFunctions,
+    methods,
+    constructors,
+};
+
+pub const Options = struct {
+    allow: core.NoEmptyFunctionAllow = .{},
+    kind: Kind = .functions,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -14,7 +26,19 @@ pub fn check(
     body: ast.FunctionBody,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkWithOptions(allocator, diagnostics, tree, body, index, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    body: ast.FunctionBody,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
     if (body.body.len != 0) return;
+    if (allowsKind(options.allow, options.kind)) return;
     if (hasCommentInsideBraces(tree, index)) return;
 
     try core.addDiagnostic(
@@ -25,6 +49,15 @@ pub fn check(
         "Unexpected empty function.",
         tree.span(index),
     );
+}
+
+fn allowsKind(allow: core.NoEmptyFunctionAllow, kind: Kind) bool {
+    return switch (kind) {
+        .functions => allow.functions,
+        .arrowFunctions => allow.arrowFunctions,
+        .methods => allow.methods,
+        .constructors => allow.constructors,
+    };
 }
 
 pub fn hasCommentInsideBraces(tree: *const ast.Tree, index: ast.NodeIndex) bool {

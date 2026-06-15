@@ -68,6 +68,30 @@ pub const NoEmptyAllowEmptyCatch = enum {
     no,
 };
 
+pub const NoEmptyFunctionAllow = struct {
+    functions: bool = false,
+    arrowFunctions: bool = false,
+    methods: bool = false,
+    constructors: bool = false,
+
+    pub fn contains(self: NoEmptyFunctionAllow, name: []const u8) bool {
+        inline for (@typeInfo(NoEmptyFunctionAllow).@"struct".fields) |field| {
+            if (std.mem.eql(u8, field.name, name)) return @field(self, field.name);
+        }
+        return false;
+    }
+
+    pub fn enable(self: *NoEmptyFunctionAllow, name: []const u8) bool {
+        inline for (@typeInfo(NoEmptyFunctionAllow).@"struct".fields) |field| {
+            if (std.mem.eql(u8, field.name, name)) {
+                @field(self, field.name) = true;
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
 pub const NoFallthroughAllowEmptyCase = enum {
     yes,
     no,
@@ -275,6 +299,7 @@ pub const Options = struct {
     no_empty_block_statements: bool = true,
     no_empty_character_class: bool = true,
     no_empty_function: bool = true,
+    no_empty_function_allow: NoEmptyFunctionAllow = .{},
     no_empty_pattern: bool = true,
     no_empty_static_block: bool = true,
     no_else_return: bool = true,
@@ -651,6 +676,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-empty")) {
             self.no_empty_allow_empty_catch = try noEmptyAllowEmptyCatchFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-empty-function")) {
+            self.no_empty_function_allow = try noEmptyFunctionAllowFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-fallthrough")) {
             self.no_fallthrough_allow_empty_case = try noFallthroughAllowEmptyCaseFromConfig(value);
         }
@@ -786,6 +814,34 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (allow) .yes else .no;
+    }
+
+    fn noEmptyFunctionAllowFromConfig(value: std.json.Value) RuleConfigError!NoEmptyFunctionAllow {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow_value = config.get("allow") orelse return .{};
+        const allow_items = switch (allow_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var allow: NoEmptyFunctionAllow = .{};
+        for (allow_items) |item| {
+            const kind = switch (item) {
+                .string => |kind| kind,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!allow.enable(kind)) return error.UnsupportedRuleConfigValue;
+        }
+        return allow;
     }
 
     fn noFallthroughAllowEmptyCaseFromConfig(value: std.json.Value) RuleConfigError!NoFallthroughAllowEmptyCase {
@@ -1207,6 +1263,19 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-empty", no_empty_config.value);
     try std.testing.expect(options.no_empty);
     try std.testing.expectEqual(NoEmptyAllowEmptyCatch.yes, options.no_empty_allow_empty_catch);
+
+    var no_empty_function_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"functions\",\"constructors\"]}]",
+        .{},
+    );
+    defer no_empty_function_config.deinit();
+    try options.setByRuleConfigValue("no-empty-function", no_empty_function_config.value);
+    try std.testing.expect(options.no_empty_function);
+    try std.testing.expect(options.no_empty_function_allow.functions);
+    try std.testing.expect(options.no_empty_function_allow.constructors);
+    try std.testing.expect(!options.no_empty_function_allow.arrowFunctions);
 
     var no_fallthrough_config = try std.json.parseFromSlice(
         std.json.Value,
