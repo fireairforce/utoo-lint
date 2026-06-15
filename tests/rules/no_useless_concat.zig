@@ -6,6 +6,9 @@ test "reports no-useless-concat for same line string literal concatenation" {
     const source =
         \\const first = "foo" + "bar";
         \\const second = `foo` + "bar";
+        \\const third = "foo" + `bar`;
+        \\const fourth = `foo` + `bar`;
+        \\const fifth = `foo ${value}` + "bar";
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -15,13 +18,12 @@ test "reports no-useless-concat for same line string literal concatenation" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_useless_concat.id));
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_useless_concat.id));
 }
 
 test "does not report no-useless-concat for dynamic or multiline concatenation" {
     const source =
         \\const dynamic = "foo" + value;
-        \\const templated = `foo ${value}` + "bar";
         \\const multiline = "foo" +
         \\  "bar";
     ;
