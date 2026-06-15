@@ -130,17 +130,41 @@ fn isGlobalParseIntCall(
         .member_expression => |member| member,
         else => return false,
     };
-    if (member.computed or member.optional or member.property == .null) return false;
+    if (member.optional or member.property == .null) return false;
 
-    const property = switch (tree.data(member.property)) {
-        .identifier_name => |identifier| tree.string(identifier.name),
-        else => return false,
-    };
+    const property = propertyName(tree, member) orelse return false;
     if (!std.mem.eql(u8, property, "parseInt")) return false;
 
     const object = unwrapTransparent(tree, member.object);
     const object_name = identifierReferenceName(tree, object) orelse return false;
     return std.mem.eql(u8, object_name, "Number") and isUnresolvedReference(symbol_table, object);
+}
+
+fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
+    if (member.property == .null) return null;
+
+    return if (member.computed)
+        switch (tree.data(member.property)) {
+            .string_literal => |literal| tree.string(literal.value),
+            .template_literal => |literal| templateStringValue(tree, literal),
+            else => null,
+        }
+    else switch (tree.data(member.property)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn templateStringValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]const u8 {
+    if (literal.expressions.len != 0) return null;
+
+    const quasis = tree.extra(literal.quasis);
+    if (quasis.len == 0) return "";
+
+    return switch (tree.data(quasis[0])) {
+        .template_element => |element| tree.string(element.cooked),
+        else => null,
+    };
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
