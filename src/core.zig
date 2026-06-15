@@ -223,6 +223,42 @@ pub const NoParamReassignProps = enum {
     no,
 };
 
+pub const max_no_param_reassign_ignored_names = 32;
+pub const max_no_param_reassign_ignored_name_len = 128;
+
+pub const NoParamReassignIgnoredNamesError = error{
+    EmptyNoParamReassignIgnoredName,
+    TooManyNoParamReassignIgnoredNames,
+    NoParamReassignIgnoredNameTooLong,
+};
+
+pub const NoParamReassignIgnoredNames = struct {
+    count: usize = 0,
+    lengths: [max_no_param_reassign_ignored_names]usize = undefined,
+    storage: [max_no_param_reassign_ignored_names][max_no_param_reassign_ignored_name_len]u8 = undefined,
+
+    pub fn contains(self: *const NoParamReassignIgnoredNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const NoParamReassignIgnoredNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *NoParamReassignIgnoredNames, name: []const u8) NoParamReassignIgnoredNamesError!void {
+        if (name.len == 0) return error.EmptyNoParamReassignIgnoredName;
+        if (self.count >= max_no_param_reassign_ignored_names) return error.TooManyNoParamReassignIgnoredNames;
+        if (name.len > max_no_param_reassign_ignored_name_len) return error.NoParamReassignIgnoredNameTooLong;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const NoUselessComputedKeyEnforceForClassMembers = enum {
     yes,
     no,
@@ -487,6 +523,7 @@ pub const Options = struct {
     no_object_constructor: bool = true,
     no_param_reassign: bool = true,
     no_param_reassign_props: NoParamReassignProps = .no,
+    no_param_reassign_ignore_property_modifications_for: NoParamReassignIgnoredNames = .{},
     no_path_concat: bool = true,
     no_plusplus: bool = true,
     no_plusplus_allow_for_loop_afterthoughts: NoPlusplusAllowForLoopAfterthoughts = .no,
@@ -773,6 +810,10 @@ pub const Options = struct {
             self.no_multiple_empty_lines_max_bof = try noMultipleEmptyLinesMaxBofFromConfig(value);
             self.no_multiple_empty_lines_max_eof = try noMultipleEmptyLinesMaxEofFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-param-reassign")) {
+            self.no_param_reassign_props = try noParamReassignPropsFromConfig(value);
+            self.no_param_reassign_ignore_property_modifications_for = try noParamReassignIgnoredNamesFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
             self.no_return_assign_style = try noReturnAssignStyleFromConfig(value);
         }
@@ -1040,6 +1081,52 @@ pub const Options = struct {
         };
         if (max < 0) return error.UnsupportedRuleConfigValue;
         return @intCast(max);
+    }
+
+    fn noParamReassignPropsFromConfig(value: std.json.Value) RuleConfigError!NoParamReassignProps {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const props = switch (config.get("props") orelse return .no) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (props) .yes else .no;
+    }
+
+    fn noParamReassignIgnoredNamesFromConfig(value: std.json.Value) RuleConfigError!NoParamReassignIgnoredNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const ignored_value = config.get("ignorePropertyModificationsFor") orelse return .{};
+        const ignored_items = switch (ignored_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var ignored = NoParamReassignIgnoredNames{};
+        for (ignored_items) |item| {
+            const name = switch (item) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            ignored.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return ignored;
     }
 
     fn noReturnAssignStyleFromConfig(value: std.json.Value) RuleConfigError!NoReturnAssignStyle {
@@ -1670,6 +1757,20 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(@as(usize, 2), options.no_multiple_empty_lines_max);
     try std.testing.expectEqual(@as(?usize, null), options.no_multiple_empty_lines_max_bof);
     try std.testing.expectEqual(@as(?usize, 0), options.no_multiple_empty_lines_max_eof);
+
+    var no_param_reassign_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"props\":true,\"ignorePropertyModificationsFor\":[\"req\",\"res\"]}]",
+        .{},
+    );
+    defer no_param_reassign_config.deinit();
+    try options.setByRuleConfigValue("no-param-reassign", no_param_reassign_config.value);
+    try std.testing.expect(options.no_param_reassign);
+    try std.testing.expectEqual(NoParamReassignProps.yes, options.no_param_reassign_props);
+    try std.testing.expect(options.no_param_reassign_ignore_property_modifications_for.contains("req"));
+    try std.testing.expect(options.no_param_reassign_ignore_property_modifications_for.contains("res"));
+    try std.testing.expect(!options.no_param_reassign_ignore_property_modifications_for.contains("ctx"));
 
     var no_return_assign_config = try std.json.parseFromSlice(
         std.json.Value,
