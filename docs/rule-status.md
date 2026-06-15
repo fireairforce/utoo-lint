@@ -97,7 +97,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-multi-assign`](https://eslint.org/docs/latest/rules/no-multi-assign) | Implemented |
 | [`no-multi-spaces`](https://eslint.org/docs/latest/rules/no-multi-spaces) | Implemented with optional `ignoreEOLComments` behavior |
 | [`no-multi-str`](https://eslint.org/docs/latest/rules/no-multi-str) | Implemented |
-| [`no-multiple-empty-lines`](https://eslint.org/docs/latest/rules/no-multiple-empty-lines) | Implemented with optional `max` behavior |
+| [`no-multiple-empty-lines`](https://eslint.org/docs/latest/rules/no-multiple-empty-lines) | Implemented with optional `max` and `maxEOF` behavior |
 | [`no-negated-condition`](https://eslint.org/docs/latest/rules/no-negated-condition) | Implemented |
 | [`no-nested-ternary`](https://eslint.org/docs/latest/rules/no-nested-ternary) | Implemented |
 | [`no-new`](https://eslint.org/docs/latest/rules/no-new) | Implemented |

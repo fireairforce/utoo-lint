@@ -80,6 +80,38 @@ test "supports no-multiple-empty-lines max option" {
     );
 }
 
+test "supports no-multiple-empty-lines maxEOF option" {
+    const source =
+        "const first = 1;\n" ++
+        "\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_multiple_empty_lines_max_eof = 0,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_multiple_empty_lines.id));
+    try std.testing.expectEqualStrings(
+        "More than 0 blank lines not allowed.",
+        result.diagnostics[0].message,
+    );
+}
+
+test "does not count a single final newline as an empty EOF line" {
+    const source = "const first = 1;\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_multiple_empty_lines_max_eof = 0,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_multiple_empty_lines.id));
+}
+
 test "can disable no-multiple-empty-lines" {
     const source = "const first = 1;\n\n\n\nconst second = 2;\n";
 
