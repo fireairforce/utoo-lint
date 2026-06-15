@@ -234,6 +234,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_div_regex = false;
         } else if (std.mem.eql(u8, arg, "--no-empty=off")) {
             options.no_empty = false;
+        } else if (std.mem.eql(u8, arg, "--no-empty-allow-empty-catch=on")) {
+            options.no_empty_allow_empty_catch = .yes;
         } else if (std.mem.eql(u8, arg, "--no-empty-block-statements=off")) {
             options.no_empty_block_statements = false;
         } else if (std.mem.eql(u8, arg, "--no-empty-character-class=off")) {
@@ -1398,6 +1400,7 @@ fn printHelp() void {
         \\  --no-delete-var=off       Disable no-delete-var
         \\  --no-div-regex=off        Disable no-div-regex
         \\  --no-empty=off            Disable no-empty
+        \\  --no-empty-allow-empty-catch=on Allow empty catch blocks
         \\  --no-empty-block-statements=off Disable no-empty-block-statements
         \\  --no-empty-character-class=off Disable no-empty-character-class
         \\  --no-empty-function=off Disable no-empty-function
