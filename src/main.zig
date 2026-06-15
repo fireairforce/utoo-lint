@@ -428,6 +428,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_misleading_character_class = false;
         } else if (std.mem.eql(u8, arg, "--no-multiple-empty-lines=off")) {
             options.no_multiple_empty_lines = false;
+        } else if (std.mem.startsWith(u8, arg, "--no-multiple-empty-lines-max=")) {
+            parseNoMultipleEmptyLinesMax(arg["--no-multiple-empty-lines-max=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--no-nonoctal-decimal-escape=off")) {
             options.no_nonoctal_decimal_escape = false;
         } else if (std.mem.eql(u8, arg, "--no-new=off")) {
@@ -1077,6 +1079,14 @@ fn parseNoEmptyFunctionAllow(value: []const u8, options: *lint.Options) void {
     options.no_empty_function_allow = allow;
 }
 
+fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void {
+    const max = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --no-multiple-empty-lines-max value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.no_multiple_empty_lines_max = max;
+}
+
 fn collectLintableDirectory(
     allocator: std.mem.Allocator,
     io: std.Io,
@@ -1532,6 +1542,7 @@ fn printHelp() void {
         \\  --no-mixed-spaces-and-tabs=off Disable no-mixed-spaces-and-tabs
         \\  --no-misleading-character-class=off Disable no-misleading-character-class
         \\  --no-multiple-empty-lines=off Disable no-multiple-empty-lines
+        \\  --no-multiple-empty-lines-max=N Configure no-multiple-empty-lines max
         \\  --no-nonoctal-decimal-escape=off Disable no-nonoctal-decimal-escape
         \\  --no-new=off              Disable no-new
         \\  --no-nested-ternary=off   Disable no-nested-ternary

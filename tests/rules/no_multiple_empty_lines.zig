@@ -59,6 +59,27 @@ test "does not report no-multiple-empty-lines for two blank lines" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_multiple_empty_lines.id));
 }
 
+test "supports no-multiple-empty-lines max option" {
+    const source =
+        "const first = 1;\n" ++
+        "\n" ++
+        "\n" ++
+        "const second = 2;\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_multiple_empty_lines_max = 1,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_multiple_empty_lines.id));
+    try std.testing.expectEqualStrings(
+        "More than 1 blank lines not allowed.",
+        result.diagnostics[0].message,
+    );
+}
+
 test "can disable no-multiple-empty-lines" {
     const source = "const first = 1;\n\n\n\nconst second = 2;\n";
 
