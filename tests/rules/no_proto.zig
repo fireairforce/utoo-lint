@@ -8,6 +8,8 @@ test "reports no-proto for proto member access" {
         \\obj["__proto__"] = b;
         \\const c = obj.__proto__;
         \\const d = obj["__proto__"];
+        \\obj[`__proto__`] = e;
+        \\const f = obj[`__proto__`];
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -18,7 +20,7 @@ test "reports no-proto for proto member access" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expect(helpers.hasRule(result, lint.rules.no_proto.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_proto.id));
 }
 
 test "does not report no-proto for object literal proto property" {
@@ -27,6 +29,7 @@ test "does not report no-proto for object literal proto property" {
         \\  __proto__: null,
         \\  a: 1,
         \\};
+        \\const value = obj[`__${name}__`];
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
