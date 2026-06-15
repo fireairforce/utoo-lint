@@ -29,6 +29,7 @@ test "reports no-useless-call for unnecessary apply expressions with array argum
         \\obj.foo.apply(obj, [a]);
         \\this.foo.apply(this, [a]);
         \\obj.foo["apply"](obj, [a]);
+        \\foo.apply(undefined, [, a]);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -38,7 +39,7 @@ test "reports no-useless-call for unnecessary apply expressions with array argum
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_useless_call.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_useless_call.id));
 }
 
 test "does not report no-useless-call when this binding or arguments are meaningful" {
@@ -48,7 +49,6 @@ test "does not report no-useless-call when this binding or arguments are meaning
         \\getObj().foo.call(getObj(), a);
         \\foo.apply(undefined, args);
         \\obj.foo.apply(obj, args);
-        \\foo.apply(undefined, [, a]);
         \\foo.apply(obj, [a]);
     ;
 
