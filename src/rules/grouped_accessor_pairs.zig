@@ -163,6 +163,31 @@ fn propertyName(tree: *const ast.Tree, key: ast.NodeIndex, computed: bool) ?[]co
         .private_identifier => |identifier| if (computed) null else tree.string(identifier.name),
         .string_literal => |literal| tree.string(literal.value),
         .numeric_literal => |literal| tree.string(literal.raw),
+        .identifier_reference => if (computed) sourceSlice(tree, key) else null,
+        .template_literal => |literal| templateStringValue(tree, literal) orelse if (computed) sourceSlice(tree, key) else null,
         else => null,
     };
+}
+
+fn templateStringValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]const u8 {
+    if (literal.expressions.len != 0) return null;
+
+    const quasis = tree.extra(literal.quasis);
+    if (quasis.len == 0) return "";
+
+    return switch (tree.data(quasis[0])) {
+        .template_element => |element| tree.string(element.cooked),
+        else => null,
+    };
+}
+
+fn sourceSlice(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    if (index == .null) return null;
+
+    const span = tree.span(index);
+    const start: usize = @intCast(span.start);
+    const end: usize = @intCast(span.end);
+    if (start >= end or end > tree.source.len) return null;
+
+    return tree.source[start..end];
 }

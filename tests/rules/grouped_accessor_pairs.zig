@@ -54,6 +54,45 @@ test "reports grouped-accessor-pairs for class accessors separated by other memb
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.grouped_accessor_pairs.id));
 }
 
+test "reports grouped-accessor-pairs for computed accessors separated by other members" {
+    const source =
+        \\const object = {
+        \\  get [`template`]() {
+        \\    return 1;
+        \\  },
+        \\  other: 1,
+        \\  set [`template`](next) {},
+        \\  get [dynamic]() {
+        \\    return 2;
+        \\  },
+        \\  other2: 2,
+        \\  set [dynamic](next) {},
+        \\};
+        \\class Example {
+        \\  get [`template`]() {
+        \\    return 1;
+        \\  }
+        \\  method() {}
+        \\  set [`template`](next) {}
+        \\  get [dynamic]() {
+        \\    return 2;
+        \\  }
+        \\  method2() {}
+        \\  set [dynamic](next) {}
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_empty_function = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.grouped_accessor_pairs.id));
+}
+
 test "allows adjacent accessors in either order and distinct static pairs" {
     const source =
         \\const object = {
