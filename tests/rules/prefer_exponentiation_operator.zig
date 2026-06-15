@@ -7,6 +7,7 @@ test "reports prefer-exponentiation-operator for Math.pow calls" {
         \\Math.pow(base, exponent);
         \\(Math).pow(2, 8);
         \\Math["pow"](2, 8);
+        \\Math[`pow`](2, 8);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -20,7 +21,7 @@ test "reports prefer-exponentiation-operator for Math.pow calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_exponentiation_operator.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.prefer_exponentiation_operator.id));
     try std.testing.expectEqualStrings(
         "Use the exponentiation operator (**) instead of Math.pow.",
         result.diagnostics[0].message,
@@ -32,6 +33,7 @@ test "does not report prefer-exponentiation-operator for other calls or shadowed
         \\Math.max(base, exponent);
         \\Math.pow(base);
         \\Math.pow(base, exponent, modulo);
+        \\Math[`po${letter}`](base, exponent);
         \\const Math = { pow() {} };
         \\Math.pow(base, exponent);
     ;
