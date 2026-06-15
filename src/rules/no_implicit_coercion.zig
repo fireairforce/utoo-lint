@@ -208,7 +208,7 @@ fn isStringType(tree: *const ast.Tree, index: ast.NodeIndex) bool {
 fn isStringLiteral(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     return switch (tree.data(unwrapTransparent(tree, index))) {
         .string_literal => true,
-        .template_literal => |literal| literal.expressions.len == 0,
+        .template_literal => true,
         else => false,
     };
 }

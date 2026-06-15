@@ -76,6 +76,8 @@ test "does not report no-implicit-coercion for explicit conversions" {
         \\const tenth = "" + "value";
         \\const eleventh = `value` + "";
         \\const twelfth = ~items[`index${suffix}`](value);
+        \\const thirteenth = "" + `${value}`;
+        \\const fourteenth = `${value}` + "";
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
