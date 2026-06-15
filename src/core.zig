@@ -840,6 +840,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-console")) {
             self.no_console_allow = try noConsoleAllowFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-confusing-arrow")) {
+            self.no_confusing_arrow_allow_parens = try noConfusingArrowAllowParensFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-empty")) {
             self.no_empty_allow_empty_catch = try noEmptyAllowEmptyCatchFromConfig(value);
         }
@@ -1173,6 +1176,24 @@ pub const Options = struct {
             if (!allow.enable(method)) return error.UnsupportedRuleConfigValue;
         }
         return allow;
+    }
+
+    fn noConfusingArrowAllowParensFromConfig(value: std.json.Value) RuleConfigError!NoConfusingArrowAllowParens {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .yes,
+        };
+        if (items.len < 2) return .yes;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allowParens") orelse return .yes) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (allow) .yes else .no;
     }
 
     fn noEmptyAllowEmptyCatchFromConfig(value: std.json.Value) RuleConfigError!NoEmptyAllowEmptyCatch {
@@ -2138,6 +2159,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_console_allow.contains("warn"));
     try std.testing.expect(options.no_console_allow.contains("error"));
     try std.testing.expect(!options.no_console_allow.contains("log"));
+
+    var no_confusing_arrow_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowParens\":false}]",
+        .{},
+    );
+    defer no_confusing_arrow_config.deinit();
+    try options.setByRuleConfigValue("no-confusing-arrow", no_confusing_arrow_config.value);
+    try std.testing.expect(options.no_confusing_arrow);
+    try std.testing.expectEqual(NoConfusingArrowAllowParens.no, options.no_confusing_arrow_allow_parens);
 
     var no_empty_config = try std.json.parseFromSlice(
         std.json.Value,
