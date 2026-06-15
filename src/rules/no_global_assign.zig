@@ -106,7 +106,7 @@ fn isReadonlyGlobal(name: []const u8) bool {
     if (name.len == 0) return false;
 
     return switch (name[0]) {
-        'A' => isOneOf(name, .{ "Array", "ArrayBuffer" }),
+        'A' => isOneOf(name, .{ "Array", "ArrayBuffer", "Atomics" }),
         'B' => isOneOf(name, .{ "BigInt", "BigInt64Array", "BigUint64Array", "Boolean" }),
         'D' => isOneOf(name, .{ "DataView", "Date" }),
         'E' => isOneOf(name, .{ "Error", "EvalError" }),
@@ -122,6 +122,7 @@ fn isReadonlyGlobal(name: []const u8) bool {
         'T' => std.mem.eql(u8, name, "TypeError"),
         'U' => isOneOf(name, .{ "Uint8Array", "Uint8ClampedArray", "Uint16Array", "Uint32Array", "URIError" }),
         'W' => isOneOf(name, .{ "WeakMap", "WeakSet" }),
+        'g' => std.mem.eql(u8, name, "globalThis"),
         'u' => std.mem.eql(u8, name, "undefined"),
         else => false,
     };

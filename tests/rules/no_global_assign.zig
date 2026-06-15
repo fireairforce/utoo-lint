@@ -7,6 +7,8 @@ test "reports no-global-assign for assignments to read-only globals" {
         \\Object = null;
         \\NaN = 1;
         \\undefined = 2;
+        \\globalThis = 3;
+        \\Atomics = value;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -17,7 +19,7 @@ test "reports no-global-assign for assignments to read-only globals" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_global_assign.id));
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_global_assign.id));
     try std.testing.expectEqualStrings("Read-only global 'Object' should not be modified.", result.diagnostics[0].message);
 }
 
@@ -44,6 +46,8 @@ test "does not report no-global-assign for shadowed names or property writes" {
         \\Object = {};
         \\globalThis.Object = {};
         \\Number.value = 1;
+        \\Temporal = value;
+        \\window = value;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
