@@ -40,13 +40,60 @@ test "reports no-global-assign for updates and destructuring assignments" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_global_assign.id));
 }
 
+test "reports no-global-assign for ESLint default read-only globals" {
+    const source =
+        \\AggregateError = 1;
+        \\AsyncDisposableStack = 2;
+        \\DisposableStack = 3;
+        \\FinalizationRegistry = 4;
+        \\Float16Array = 5;
+        \\Iterator = 6;
+        \\Proxy = 7;
+        \\SharedArrayBuffer = 8;
+        \\SuppressedError = 9;
+        \\Temporal = 10;
+        \\WeakRef = 11;
+        \\decodeURI = 12;
+        \\decodeURIComponent = 13;
+        \\encodeURI = 14;
+        \\encodeURIComponent = 15;
+        \\escape = 16;
+        \\isFinite = 17;
+        \\isNaN = 18;
+        \\isPrototypeOf = 19;
+        \\parseFloat = 20;
+        \\parseInt = 21;
+        \\propertyIsEnumerable = 22;
+        \\constructor = 23;
+        \\hasOwnProperty = 24;
+        \\toLocaleString = 25;
+        \\toString = 26;
+        \\unescape = 27;
+        \\valueOf = 28;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 28), helpers.countRule(result, lint.rules.no_global_assign.id));
+}
+
 test "does not report no-global-assign for shadowed names or property writes" {
     const source =
         \\let Object = null;
         \\Object = {};
+        \\let Temporal = null;
+        \\Temporal = value;
+        \\let parseFloat = null;
+        \\parseFloat = fn;
+        \\let constructor = null;
+        \\constructor = value;
         \\globalThis.Object = {};
         \\Number.value = 1;
-        \\Temporal = value;
         \\window = value;
     ;
 

@@ -106,24 +106,32 @@ fn isReadonlyGlobal(name: []const u8) bool {
     if (name.len == 0) return false;
 
     return switch (name[0]) {
-        'A' => isOneOf(name, .{ "Array", "ArrayBuffer", "Atomics" }),
+        'A' => isOneOf(name, .{ "AggregateError", "Array", "ArrayBuffer", "AsyncDisposableStack", "Atomics" }),
         'B' => isOneOf(name, .{ "BigInt", "BigInt64Array", "BigUint64Array", "Boolean" }),
-        'D' => isOneOf(name, .{ "DataView", "Date" }),
+        'D' => isOneOf(name, .{ "DataView", "Date", "DisposableStack" }),
         'E' => isOneOf(name, .{ "Error", "EvalError" }),
-        'F' => isOneOf(name, .{ "Float32Array", "Float64Array", "Function" }),
-        'I' => isOneOf(name, .{ "Infinity", "Int8Array", "Int16Array", "Int32Array", "Intl" }),
+        'F' => isOneOf(name, .{ "FinalizationRegistry", "Float16Array", "Float32Array", "Float64Array", "Function" }),
+        'I' => isOneOf(name, .{ "Infinity", "Int8Array", "Int16Array", "Int32Array", "Intl", "Iterator" }),
         'J' => std.mem.eql(u8, name, "JSON"),
         'M' => isOneOf(name, .{ "Map", "Math" }),
         'N' => isOneOf(name, .{ "NaN", "Number" }),
         'O' => std.mem.eql(u8, name, "Object"),
-        'P' => std.mem.eql(u8, name, "Promise"),
+        'P' => isOneOf(name, .{ "Promise", "Proxy" }),
         'R' => isOneOf(name, .{ "RangeError", "ReferenceError", "Reflect", "RegExp" }),
-        'S' => isOneOf(name, .{ "Set", "String", "Symbol", "SyntaxError" }),
-        'T' => std.mem.eql(u8, name, "TypeError"),
+        'S' => isOneOf(name, .{ "Set", "SharedArrayBuffer", "String", "SuppressedError", "Symbol", "SyntaxError" }),
+        'T' => isOneOf(name, .{ "Temporal", "TypeError" }),
         'U' => isOneOf(name, .{ "Uint8Array", "Uint8ClampedArray", "Uint16Array", "Uint32Array", "URIError" }),
-        'W' => isOneOf(name, .{ "WeakMap", "WeakSet" }),
+        'W' => isOneOf(name, .{ "WeakMap", "WeakRef", "WeakSet" }),
+        'c' => std.mem.eql(u8, name, "constructor"),
+        'd' => isOneOf(name, .{ "decodeURI", "decodeURIComponent" }),
+        'e' => isOneOf(name, .{ "encodeURI", "encodeURIComponent", "escape", "eval" }),
         'g' => std.mem.eql(u8, name, "globalThis"),
-        'u' => std.mem.eql(u8, name, "undefined"),
+        'h' => std.mem.eql(u8, name, "hasOwnProperty"),
+        'i' => isOneOf(name, .{ "isFinite", "isNaN", "isPrototypeOf" }),
+        'p' => isOneOf(name, .{ "parseFloat", "parseInt", "propertyIsEnumerable" }),
+        't' => isOneOf(name, .{ "toLocaleString", "toString" }),
+        'u' => isOneOf(name, .{ "undefined", "unescape" }),
+        'v' => std.mem.eql(u8, name, "valueOf"),
         else => false,
     };
 }
@@ -146,7 +154,7 @@ fn isUnresolvedReference(
         }
     }
 
-    return false;
+    return true;
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
