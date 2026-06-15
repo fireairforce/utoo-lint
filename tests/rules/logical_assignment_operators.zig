@@ -12,6 +12,7 @@ test "reports logical-assignment-operators for self logical assignments" {
         \\third = third ?? fallback;
         \\object.value = object.value || fallback;
         \\this.ready = this.ready && fallback;
+        \\object[`value`] = object[`value`] || fallback;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -21,7 +22,7 @@ test "reports logical-assignment-operators for self logical assignments" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.logical_assignment_operators.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.logical_assignment_operators.id));
 }
 
 test "reports logical-assignment-operators for short-circuit assignment expressions" {
@@ -96,6 +97,7 @@ test "does not report logical-assignment-operators when shorthand would change m
         \\value ||= fallback;
         \\value || (other = fallback);
         \\object[getKey()] = object[getKey()] || fallback;
+        \\object[`val${suffix}`] = object[`val${suffix}`] || fallback;
         \\object.value = other.value || fallback;
         \\if (value) other = fallback;
         \\if (value != null) value = fallback;
