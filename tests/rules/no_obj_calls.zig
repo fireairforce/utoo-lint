@@ -9,7 +9,6 @@ test "reports no-obj-calls for global object calls" {
         \\Reflect();
         \\Atomics();
         \\Intl();
-        \\Temporal();
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -19,7 +18,7 @@ test "reports no-obj-calls for global object calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_obj_calls.id));
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_obj_calls.id));
 }
 
 test "reports no-obj-calls for global object constructors" {
@@ -29,7 +28,6 @@ test "reports no-obj-calls for global object constructors" {
         \\new Reflect();
         \\new Atomics();
         \\new Intl();
-        \\new Temporal();
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -40,13 +38,15 @@ test "reports no-obj-calls for global object constructors" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_obj_calls.id));
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_obj_calls.id));
 }
 
-test "does not report no-obj-calls for member calls or shadowed names" {
+test "does not report no-obj-calls for member calls allowed globals or shadowed names" {
     const source =
         \\Math.max(1, 2);
         \\JSON.parse("{}");
+        \\Temporal();
+        \\new Temporal();
         \\function run(Math, JSON) {
         \\  Math();
         \\  new JSON();

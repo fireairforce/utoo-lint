@@ -105,8 +105,7 @@ fn isForbiddenObject(name: []const u8) bool {
         std.mem.eql(u8, name, "JSON") or
         std.mem.eql(u8, name, "Reflect") or
         std.mem.eql(u8, name, "Atomics") or
-        std.mem.eql(u8, name, "Intl") or
-        std.mem.eql(u8, name, "Temporal");
+        std.mem.eql(u8, name, "Intl");
 }
 
 fn isUnresolvedReference(
