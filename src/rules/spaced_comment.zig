@@ -7,33 +7,66 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "spaced-comment";
 
+pub const Style = enum {
+    always,
+    never,
+};
+
+pub const Options = struct {
+    style: Style = .always,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
 ) Allocator.Error!void {
+    return runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
+) Allocator.Error!void {
     for (tree.comments) |comment| {
-        if (hasExpectedSpacing(tree, comment)) continue;
+        if (hasExpectedSpacing(tree, comment, options.style)) continue;
 
         try core.addDiagnostic(
             allocator,
             diagnostics,
             .warning,
             id,
-            "Expected space or tab after comment marker.",
+            message(options.style),
             .{ .start = comment.start, .end = comment.end },
         );
     }
 }
 
-fn hasExpectedSpacing(tree: *const ast.Tree, comment: ast.Comment) bool {
+fn hasExpectedSpacing(tree: *const ast.Tree, comment: ast.Comment, style: Style) bool {
     const value = tree.string(comment.value);
     if (value.len == 0) return true;
-    if (isWhitespace(value[0])) return true;
 
-    return switch (comment.type) {
-        .line => value[0] == '/',
-        .block => value[0] == '*' or value[0] == '!',
+    if (isMarker(value[0], comment.type)) return true;
+
+    return switch (style) {
+        .always => isWhitespace(value[0]),
+        .never => !isWhitespace(value[0]),
+    };
+}
+
+fn isMarker(char: u8, comment_type: ast.Comment.Type) bool {
+    return switch (comment_type) {
+        .line => char == '/',
+        .block => char == '*' or char == '!',
+    };
+}
+
+fn message(style: Style) []const u8 {
+    return switch (style) {
+        .always => "Expected space or tab after comment marker.",
+        .never => "Expected no space or tab after comment marker.",
     };
 }
 

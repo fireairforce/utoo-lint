@@ -734,6 +734,8 @@ pub fn main(init: std.process.Init) !void {
             options.require_yield = false;
         } else if (std.mem.eql(u8, arg, "--spaced-comment=off")) {
             options.spaced_comment = false;
+        } else if (std.mem.eql(u8, arg, "--spaced-comment=never")) {
+            options.spaced_comment_style = .never;
         } else if (std.mem.eql(u8, arg, "--symbol-description=off")) {
             options.symbol_description = false;
         } else if (std.mem.eql(u8, arg, "--typescript-eslint-adjacent-overload-signatures=off")) {
@@ -1735,6 +1737,7 @@ fn printHelp() void {
         \\  --require-atomic-updates=off Disable require-atomic-updates
         \\  --require-yield=off       Disable require-yield
         \\  --spaced-comment=off      Disable spaced-comment
+        \\  --spaced-comment=never    Disallow spacing after comment markers
         \\  --symbol-description=off  Disable symbol-description
         \\  --typescript-eslint-adjacent-overload-signatures=off Disable @typescript-eslint/adjacent-overload-signatures
         \\  --typescript-eslint-array-type=off Disable @typescript-eslint/array-type
