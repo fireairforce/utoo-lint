@@ -401,8 +401,10 @@ pub fn runBasic(
             .decoration = switch (options.no_warning_comments_decoration) {
                 .none => .none,
                 .asterisk => .asterisk,
+                .slash => .slash,
                 .slash_asterisk => .slash_asterisk,
             },
+            .terms = options.no_warning_comments_terms,
         });
     }
     if (options.no_trailing_spaces) {

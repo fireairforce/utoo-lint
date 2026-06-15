@@ -7,12 +7,6 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-warning-comments";
 
-const terms = [_][]const u8{
-    "todo",
-    "fixme",
-    "xxx",
-};
-
 pub const Location = enum {
     start,
     anywhere,
@@ -21,12 +15,14 @@ pub const Location = enum {
 pub const Decoration = enum {
     none,
     asterisk,
+    slash,
     slash_asterisk,
 };
 
 pub const Options = struct {
     location: Location = .start,
     decoration: Decoration = .none,
+    terms: core.NoWarningCommentsTerms = .{},
 };
 
 pub fn run(
@@ -44,7 +40,7 @@ pub fn runWithOptions(
     options: Options,
 ) Allocator.Error!void {
     for (tree.comments) |comment| {
-        const match = warningTerm(tree, comment, options) orelse continue;
+        const match = warningTerm(tree, comment, &options) orelse continue;
 
         try core.addDiagnosticFmt(
             allocator,
@@ -58,18 +54,24 @@ pub fn runWithOptions(
     }
 }
 
-fn warningTerm(tree: *const ast.Tree, comment: ast.Comment, options: Options) ?[]const u8 {
+fn warningTerm(tree: *const ast.Tree, comment: ast.Comment, options: *const Options) ?[]const u8 {
     return switch (options.location) {
-        .start => warningTermAtStart(tree, comment, options.decoration),
-        .anywhere => warningTermAnywhere(tree, comment),
+        .start => warningTermAtStart(tree, comment, options.decoration, &options.terms),
+        .anywhere => warningTermAnywhere(tree, comment, &options.terms),
     };
 }
 
-fn warningTermAtStart(tree: *const ast.Tree, comment: ast.Comment, decoration: Decoration) ?[]const u8 {
+fn warningTermAtStart(
+    tree: *const ast.Tree,
+    comment: ast.Comment,
+    decoration: Decoration,
+    warning_terms: *const core.NoWarningCommentsTerms,
+) ?[]const u8 {
     const value = tree.string(comment.value);
     const trimmed = trimLeftDecoration(trimLeftWhitespace(value), decoration);
 
-    inline for (terms) |term| {
+    for (0..warning_terms.len()) |index| {
+        const term = warning_terms.at(index);
         if (startsWithWholeWordIgnoreCase(trimmed, term)) return term;
     }
 
@@ -86,16 +88,22 @@ fn isDecoration(char: u8, decoration: Decoration) bool {
     return switch (decoration) {
         .none => false,
         .asterisk => char == '*',
+        .slash => char == '/',
         .slash_asterisk => char == '*' or char == '/',
     };
 }
 
-fn warningTermAnywhere(tree: *const ast.Tree, comment: ast.Comment) ?[]const u8 {
+fn warningTermAnywhere(
+    tree: *const ast.Tree,
+    comment: ast.Comment,
+    warning_terms: *const core.NoWarningCommentsTerms,
+) ?[]const u8 {
     const value = tree.string(comment.value);
     var index: usize = 0;
 
     while (index < value.len) : (index += 1) {
-        inline for (terms) |term| {
+        for (0..warning_terms.len()) |term_index| {
+            const term = warning_terms.at(term_index);
             if (matchesWholeWordAt(value, index, term)) return term;
         }
     }

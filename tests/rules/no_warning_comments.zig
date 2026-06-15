@@ -73,6 +73,29 @@ test "reports no-warning-comments after configured decorations" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_warning_comments.id));
 }
 
+test "reports no-warning-comments for configured terms" {
+    const source =
+        \\// review needed before release
+        \\// TODO default term is disabled by custom terms
+        \\// note: blocked by upstream
+        \\// reviewer is not the whole word
+        \\const value = 1;
+    ;
+
+    var terms = (lint.Options{}).no_warning_comments_terms;
+    try terms.set(&[_][]const u8{ "review", "blocked by upstream" });
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_warning_comments_location = .anywhere,
+        .no_warning_comments_terms = terms,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_warning_comments.id));
+}
+
 test "can disable no-warning-comments" {
     const source =
         \\// TODO: handle this case
