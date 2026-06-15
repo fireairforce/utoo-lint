@@ -8,7 +8,6 @@ test "reports no-shadow-restricted-names for restricted declarations" {
         \\!function(Infinity) {};
         \\const undefined = 5;
         \\try {} catch (eval) {}
-        \\import globalThis from "foo";
         \\import { undefined } from "bar";
         \\import * as arguments from "baz";
         \\class Infinity {}
@@ -25,13 +24,13 @@ test "reports no-shadow-restricted-names for restricted declarations" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 8), helpers.countRule(result, lint.rules.no_shadow_restricted_names.id));
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_shadow_restricted_names.id));
 }
 
 test "reports no-shadow-restricted-names inside binding patterns" {
     const source =
         \\function f({ NaN }, [Infinity], ...eval) {}
-        \\const { undefined: alias = 1, value: globalThis } = source;
+        \\const { undefined: alias = 1 } = source;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -42,7 +41,7 @@ test "reports no-shadow-restricted-names inside binding patterns" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_shadow_restricted_names.id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_shadow_restricted_names.id));
 }
 
 test "does not report no-shadow-restricted-names for allowed names or uninitialized undefined" {
@@ -53,6 +52,9 @@ test "does not report no-shadow-restricted-names for allowed names or uninitiali
         \\var undefined;
         \\import { undefined as undef } from "bar";
         \\const foo = globalThis;
+        \\function global(globalThis) {}
+        \\const { value: globalThis } = source;
+        \\import globalThis from "foo";
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{

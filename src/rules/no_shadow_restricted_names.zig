@@ -125,6 +125,5 @@ fn isRestrictedName(name: []const u8) bool {
         std.mem.eql(u8, name, "NaN") or
         std.mem.eql(u8, name, "Infinity") or
         std.mem.eql(u8, name, "arguments") or
-        std.mem.eql(u8, name, "eval") or
-        std.mem.eql(u8, name, "globalThis");
+        std.mem.eql(u8, name, "eval");
 }
