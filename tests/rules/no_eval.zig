@@ -25,6 +25,29 @@ test "reports no-eval for direct indirect and global eval calls" {
     try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_eval.id));
 }
 
+test "reports no-eval for eval references outside call callees" {
+    const source =
+        \\var evalAlias = eval;
+        \\foo(eval);
+        \\const values = [eval];
+        \\const wrapped = (eval);
+        \\eval("code");
+        \\(0, eval)("code");
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_comma_operator = false,
+        .no_sequences = false,
+        .no_var = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_eval.id));
+}
+
 test "does not report no-eval for non-global eval members" {
     const source =
         \\const object = { eval() {} };
