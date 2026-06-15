@@ -28,7 +28,23 @@ test "reports no-setter-return for returning values from class and object setter
 
 test "reports no-setter-return for common property descriptor setters" {
     const source =
+        \\const suffix = "Property";
         \\Object.defineProperty(object, "value", {
+        \\  set(next) {
+        \\    return next;
+        \\  },
+        \\});
+        \\Object["defineProperty"](object, "string", {
+        \\  set(next) {
+        \\    return next;
+        \\  },
+        \\});
+        \\Object[`defineProperty`](object, "template", {
+        \\  set(next) {
+        \\    return next;
+        \\  },
+        \\});
+        \\Object[`define${suffix}`](object, "dynamic", {
         \\  set(next) {
         \\    return next;
         \\  },
@@ -40,9 +56,37 @@ test "reports no-setter-return for common property descriptor setters" {
         \\    },
         \\  },
         \\});
+        \\Object["defineProperties"](object, {
+        \\  string: {
+        \\    set(next) {
+        \\      return next;
+        \\    },
+        \\  },
+        \\});
+        \\Object[`defineProperties`](object, {
+        \\  template: {
+        \\    set(next) {
+        \\      return next;
+        \\    },
+        \\  },
+        \\});
         \\Object.create(proto, {
         \\  value: {
         \\    set: function(next) {
+        \\      return next;
+        \\    },
+        \\  },
+        \\});
+        \\Object["create"](proto, {
+        \\  string: {
+        \\    set(next) {
+        \\      return next;
+        \\    },
+        \\  },
+        \\});
+        \\Object[`create`](proto, {
+        \\  template: {
+        \\    set(next) {
         \\      return next;
         \\    },
         \\  },
@@ -56,7 +100,7 @@ test "reports no-setter-return for common property descriptor setters" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_setter_return.id));
+    try std.testing.expectEqual(@as(usize, 9), helpers.countRule(result, lint.rules.no_setter_return.id));
 }
 
 test "does not report no-setter-return for bare returns methods or nested functions" {
