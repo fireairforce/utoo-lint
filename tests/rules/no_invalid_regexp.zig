@@ -11,6 +11,9 @@ test "reports no-invalid-regexp for invalid RegExp constructor arguments" {
         \\RegExp("abc", "uv");
         \\RegExp(pattern, "z");
         \\RegExp(`abc`, "z");
+        \\function local(RegExp) {
+        \\  RegExp("(", "z");
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -20,7 +23,22 @@ test "reports no-invalid-regexp for invalid RegExp constructor arguments" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_invalid_regexp.id));
+    try std.testing.expectEqual(@as(usize, 8), helpers.countRule(result, lint.rules.no_invalid_regexp.id));
+}
+
+test "reports no-invalid-regexp when only the rule is enabled" {
+    const source =
+        \\RegExp("[");
+        \\new RegExp("[", "z");
+    ;
+
+    var options = lint.Options.allDisabled();
+    options.no_invalid_regexp = true;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_invalid_regexp.id));
 }
 
 test "does not report no-invalid-regexp for valid or non-static RegExp calls" {
@@ -30,9 +48,7 @@ test "does not report no-invalid-regexp for valid or non-static RegExp calls" {
         \\RegExp(pattern, flags);
         \\RegExp(`[`, `z`);
         \\RegExp(pattern, `z`);
-        \\function local(RegExp) {
-        \\  RegExp("(", "z");
-        \\}
+        \\globalThis.RegExp("(", "z");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
