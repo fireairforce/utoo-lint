@@ -22,6 +22,21 @@ test "reports no-regex-spaces for consecutive regex pattern spaces" {
     try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_regex_spaces.id));
 }
 
+test "reports no-regex-spaces constructors when only the rule is enabled" {
+    const source =
+        \\const first = RegExp("foo  bar");
+        \\const second = new RegExp("foo   bar");
+    ;
+
+    var options = lint.Options.allDisabled();
+    options.no_regex_spaces = true;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_regex_spaces.id));
+}
+
 test "does not report no-regex-spaces for escaped, character class, or dynamic constructor spaces" {
     const source =
         \\const first = /foo bar/;
