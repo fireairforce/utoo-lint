@@ -722,7 +722,9 @@ pub fn runSemantic(
     const use_typescript_no_redeclare = options.typescript_eslint_no_redeclare and tree.isTs();
 
     if (options.no_redeclare and !use_typescript_no_redeclare) {
-        try no_redeclare.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try no_redeclare.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .builtin_globals = options.no_redeclare_builtin_globals == .yes,
+        });
     }
 
     if (use_typescript_no_redeclare) {

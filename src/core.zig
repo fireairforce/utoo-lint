@@ -218,6 +218,11 @@ pub const NoPlusplusAllowForLoopAfterthoughts = enum {
     no,
 };
 
+pub const NoRedeclareBuiltinGlobals = enum {
+    yes,
+    no,
+};
+
 pub const NoUnusedExpressionsAllowShortCircuit = enum {
     yes,
     no,
@@ -565,6 +570,7 @@ pub const Options = struct {
     no_process_exit: bool = true,
     no_prototype_builtins: bool = true,
     no_redeclare: bool = true,
+    no_redeclare_builtin_globals: NoRedeclareBuiltinGlobals = .no,
     no_regex_spaces: bool = true,
     no_return_await: bool = true,
     no_return_assign: bool = true,
@@ -886,6 +892,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-param-reassign")) {
             self.no_param_reassign_props = try noParamReassignPropsFromConfig(value);
             self.no_param_reassign_ignore_property_modifications_for = try noParamReassignIgnoredNamesFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-redeclare")) {
+            self.no_redeclare_builtin_globals = try noRedeclareBuiltinGlobalsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-plusplus")) {
             self.no_plusplus_allow_for_loop_afterthoughts = try noPlusplusAllowForLoopAfterthoughtsFromConfig(value);
@@ -1476,6 +1485,24 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (allow) .yes else .no;
+    }
+
+    fn noRedeclareBuiltinGlobalsFromConfig(value: std.json.Value) RuleConfigError!NoRedeclareBuiltinGlobals {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no,
+        };
+        if (items.len < 2) return .no;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const enabled = switch (config.get("builtinGlobals") orelse return .no) {
+            .bool => |bool_value| bool_value,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return if (enabled) .yes else .no;
     }
 
     fn preferConstDestructuringFromConfig(value: std.json.Value) RuleConfigError!PreferConstDestructuring {
@@ -2408,6 +2435,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_param_reassign_ignore_property_modifications_for.contains("req"));
     try std.testing.expect(options.no_param_reassign_ignore_property_modifications_for.contains("res"));
     try std.testing.expect(!options.no_param_reassign_ignore_property_modifications_for.contains("ctx"));
+
+    var no_redeclare_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"builtinGlobals\":true}]",
+        .{},
+    );
+    defer no_redeclare_config.deinit();
+    try options.setByRuleConfigValue("no-redeclare", no_redeclare_config.value);
+    try std.testing.expect(options.no_redeclare);
+    try std.testing.expectEqual(NoRedeclareBuiltinGlobals.yes, options.no_redeclare_builtin_globals);
 
     var no_plusplus_config = try std.json.parseFromSlice(
         std.json.Value,

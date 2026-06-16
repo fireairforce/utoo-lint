@@ -12,6 +12,7 @@ pub const Options = struct {
     rule_id: []const u8 = id,
     severity: core.Severity = .warning,
     mode: Mode = .javascript,
+    builtin_globals: bool = false,
 };
 
 pub const Mode = enum {
@@ -108,6 +109,7 @@ fn isBuiltinGlobalRedeclaration(
     options: Options,
 ) bool {
     return options.mode == .javascript and
+        options.builtin_globals and
         tree.source_type == .script and
         symbol.scope == .root and
         core.isKnownGlobal(name);
