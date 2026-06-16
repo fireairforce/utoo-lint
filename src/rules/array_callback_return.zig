@@ -8,7 +8,7 @@ const Allocator = std.mem.Allocator;
 pub const id = "array-callback-return";
 
 pub const Options = struct {
-    allow_implicit: bool = true,
+    allow_implicit: bool = false,
     check_for_each: bool = false,
     allow_void: bool = false,
 };

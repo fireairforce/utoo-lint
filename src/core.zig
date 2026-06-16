@@ -372,7 +372,7 @@ pub const Options = struct {
     accessor_pairs_get_without_set: AccessorPairsGetWithoutSet = .no,
     accessor_pairs_set_without_get: AccessorPairsSetWithoutGet = .yes,
     array_callback_return: bool = true,
-    array_callback_return_allow_implicit: ArrayCallbackReturnAllowImplicit = .yes,
+    array_callback_return_allow_implicit: ArrayCallbackReturnAllowImplicit = .no,
     array_callback_return_check_for_each: ArrayCallbackReturnCheckForEach = .no,
     array_callback_return_allow_void: ArrayCallbackReturnAllowVoid = .no,
     block_scoped_var: bool = true,
@@ -972,7 +972,7 @@ pub const Options = struct {
     }
 
     fn arrayCallbackReturnAllowImplicitFromConfig(value: std.json.Value) RuleConfigError!ArrayCallbackReturnAllowImplicit {
-        const enabled = try arrayCallbackReturnOptionFromConfig(value, "allowImplicit", true);
+        const enabled = try arrayCallbackReturnOptionFromConfig(value, "allowImplicit", false);
         return if (enabled) .yes else .no;
     }
 
