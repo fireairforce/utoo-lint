@@ -33,10 +33,16 @@ test "reports constructor-super when derived constructors omit super" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.constructor_super.id));
 }
 
-test "reports constructor-super for super calls in base constructors" {
+test "does not report constructor-super for base constructors" {
     const source =
         \\class Base {
         \\  constructor() {
+        \\    super();
+        \\  }
+        \\}
+        \\class DuplicateBase {
+        \\  constructor() {
+        \\    super();
         \\    super();
         \\  }
         \\}
@@ -50,7 +56,7 @@ test "reports constructor-super for super calls in base constructors" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.constructor_super.id));
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.constructor_super.id));
 }
 
 test "reports constructor-super for duplicate super calls" {

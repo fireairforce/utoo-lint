@@ -25,19 +25,7 @@ pub fn checkClass(
         else => return,
     };
 
-    if (class.super_class == .null) {
-        if (containsSuperCall(tree, function.body)) {
-            try core.addDiagnostic(
-                allocator,
-                diagnostics,
-                .warning,
-                id,
-                "Unexpected 'super()'.",
-                tree.span(constructor.index),
-            );
-        }
-        return;
-    }
+    if (class.super_class == .null) return;
 
     var super_calls: std.ArrayList(ast.NodeIndex) = .empty;
     defer super_calls.deinit(allocator);
