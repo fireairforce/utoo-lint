@@ -12,12 +12,11 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
+    _: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
-        .symbol_table = symbol_table,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -26,7 +25,6 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
-    symbol_table: traverser.semantic.SymbolTable,
 
     pub fn enter_call_expression(
         self: *Visitor,
@@ -34,7 +32,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (preferredLiteralKind(ctx.tree, self.symbol_table, call)) |kind| {
+        if (preferredLiteralKind(ctx.tree, call)) |kind| {
             try core.addDiagnostic(
                 self.allocator,
                 self.diagnostics,
@@ -57,10 +55,9 @@ const LiteralKind = enum {
 
 fn preferredLiteralKind(
     tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
     call: ast.CallExpression,
 ) ?LiteralKind {
-    if (!isGlobalParseIntCall(tree, symbol_table, call.callee)) return null;
+    if (!isParseIntCall(tree, call.callee)) return null;
 
     const arguments = tree.extra(call.arguments);
     if (arguments.len != 2) return null;
@@ -115,15 +112,11 @@ fn radixLiteralKind(tree: *const ast.Tree, index: ast.NodeIndex) ?LiteralKind {
     };
 }
 
-fn isGlobalParseIntCall(
-    tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
-    callee: ast.NodeIndex,
-) bool {
+fn isParseIntCall(tree: *const ast.Tree, callee: ast.NodeIndex) bool {
     const unwrapped = unwrapTransparent(tree, callee);
 
     if (identifierReferenceName(tree, unwrapped)) |name| {
-        return std.mem.eql(u8, name, "parseInt") and isUnresolvedReference(symbol_table, unwrapped);
+        return std.mem.eql(u8, name, "parseInt");
     }
 
     const member = switch (tree.data(unwrapped)) {
@@ -137,7 +130,7 @@ fn isGlobalParseIntCall(
 
     const object = unwrapTransparent(tree, member.object);
     const object_name = identifierReferenceName(tree, object) orelse return false;
-    return std.mem.eql(u8, object_name, "Number") and isUnresolvedReference(symbol_table, object);
+    return std.mem.eql(u8, object_name, "Number");
 }
 
 fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
@@ -188,18 +181,4 @@ fn identifierReferenceName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const
         .identifier_reference => |identifier| tree.string(identifier.name),
         else => null,
     };
-}
-
-fn isUnresolvedReference(
-    symbol_table: traverser.semantic.SymbolTable,
-    node: ast.NodeIndex,
-) bool {
-    var iter = symbol_table.iterReferences();
-    while (iter.next()) |entry| {
-        if (entry.reference.node == node) {
-            return symbol_table.referenceSymbol(entry.id) == .none;
-        }
-    }
-
-    return false;
 }
