@@ -34,7 +34,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (call.arguments.len == 2 and isGlobalMathPowCall(ctx.tree, self.symbol_table, call.callee)) {
+        if (isGlobalMathPowCall(ctx.tree, self.symbol_table, call.callee)) {
             try core.addDiagnostic(
                 self.allocator,
                 self.diagnostics,

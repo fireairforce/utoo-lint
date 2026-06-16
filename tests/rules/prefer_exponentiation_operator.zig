@@ -5,6 +5,9 @@ const helpers = @import("../helpers.zig");
 test "reports prefer-exponentiation-operator for Math.pow calls" {
     const source =
         \\Math.pow(base, exponent);
+        \\Math.pow();
+        \\Math.pow(base);
+        \\Math.pow(base, exponent, modulo);
         \\(Math).pow(2, 8);
         \\Math["pow"](2, 8);
         \\Math[`pow`](2, 8);
@@ -21,7 +24,7 @@ test "reports prefer-exponentiation-operator for Math.pow calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.prefer_exponentiation_operator.id));
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.prefer_exponentiation_operator.id));
     try std.testing.expectEqualStrings(
         "Use the exponentiation operator (**) instead of Math.pow.",
         result.diagnostics[0].message,
@@ -31,8 +34,6 @@ test "reports prefer-exponentiation-operator for Math.pow calls" {
 test "does not report prefer-exponentiation-operator for other calls or shadowed Math" {
     const source =
         \\Math.max(base, exponent);
-        \\Math.pow(base);
-        \\Math.pow(base, exponent, modulo);
         \\Math[`po${letter}`](base, exponent);
         \\const Math = { pow() {} };
         \\Math.pow(base, exponent);
