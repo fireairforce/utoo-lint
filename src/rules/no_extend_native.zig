@@ -51,7 +51,6 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (call.optional) return .proceed;
         if (!isObjectDefinePropertyCall(ctx.tree, call.callee)) return .proceed;
 
         const arguments = ctx.tree.extra(call.arguments);
@@ -93,7 +92,6 @@ fn isObjectDefinePropertyCall(
         .member_expression => |member| member,
         else => return false,
     };
-    if (member.optional) return false;
 
     const method = propertyName(tree, member) orelse return false;
     if (!std.mem.eql(u8, method, "defineProperty") and !std.mem.eql(u8, method, "defineProperties")) return false;
