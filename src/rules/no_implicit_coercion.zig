@@ -140,13 +140,11 @@ fn isIndexOfCall(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .call_expression => |call| call,
         else => return false,
     };
-    if (call.optional) return false;
 
     const member = switch (tree.data(unwrapTransparent(tree, call.callee))) {
         .member_expression => |member| member,
         else => return false,
     };
-    if (member.optional) return false;
 
     const name = propertyName(tree, member) orelse return false;
     return std.mem.eql(u8, name, "indexOf") or std.mem.eql(u8, name, "lastIndexOf");

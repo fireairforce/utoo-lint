@@ -9,6 +9,10 @@ test "reports no-implicit-coercion for boolean coercion" {
         \\const third = ~items.lastIndexOf(value);
         \\const fourth = ~items[`indexOf`](value);
         \\const fifth = ~items[`lastIndexOf`](value);
+        \\const sixth = ~items?.indexOf(value);
+        \\const seventh = ~items.indexOf?.(value);
+        \\const eighth = ~items?.[`indexOf`](value);
+        \\const ninth = ~items.lastIndexOf?.(value);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -19,7 +23,7 @@ test "reports no-implicit-coercion for boolean coercion" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_implicit_coercion.id));
+    try std.testing.expectEqual(@as(usize, 9), helpers.countRule(result, lint.rules.no_implicit_coercion.id));
     try std.testing.expectEqualStrings("Use `Boolean()` instead of double negation.", result.diagnostics[0].message);
 }
 
@@ -78,6 +82,7 @@ test "does not report no-implicit-coercion for explicit conversions" {
         \\const twelfth = ~items[`index${suffix}`](value);
         \\const thirteenth = "" + `${value}`;
         \\const fourteenth = `${value}` + "";
+        \\const fifteenth = ~items?.[`index${suffix}`](value);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
