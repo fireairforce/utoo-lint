@@ -12,12 +12,11 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
+    _: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
-        .symbol_table = symbol_table,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -26,7 +25,6 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
-    symbol_table: traverser.semantic.SymbolTable,
 
     pub fn enter_assignment_expression(
         self: *Visitor,
@@ -40,7 +38,7 @@ const Visitor = struct {
         };
         if (left_member.optional) return .proceed;
 
-        if (nativePrototypeName(ctx.tree, self.symbol_table, left_member.object)) |name| {
+        if (nativePrototypeName(ctx.tree, left_member.object)) |name| {
             try report(self.allocator, self.diagnostics, ctx.tree, index, name);
         }
 
@@ -54,12 +52,12 @@ const Visitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (call.optional) return .proceed;
-        if (!isObjectDefinePropertyCall(ctx.tree, self.symbol_table, call.callee)) return .proceed;
+        if (!isObjectDefinePropertyCall(ctx.tree, call.callee)) return .proceed;
 
         const arguments = ctx.tree.extra(call.arguments);
         if (arguments.len == 0) return .proceed;
 
-        if (nativePrototypeName(ctx.tree, self.symbol_table, arguments[0])) |name| {
+        if (nativePrototypeName(ctx.tree, arguments[0])) |name| {
             try report(self.allocator, self.diagnostics, ctx.tree, index, name);
         }
 
@@ -69,7 +67,6 @@ const Visitor = struct {
 
 fn nativePrototypeName(
     tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
     index: ast.NodeIndex,
 ) ?[]const u8 {
     const member = switch (tree.data(unwrapTransparent(tree, index))) {
@@ -83,14 +80,13 @@ fn nativePrototypeName(
 
     const object = unwrapTransparent(tree, member.object);
     const name = identifierReferenceName(tree, object) orelse return null;
-    if (!isNativeConstructor(name) or !isUnresolvedReference(symbol_table, object)) return null;
+    if (!isNativeConstructor(name)) return null;
 
     return name;
 }
 
 fn isObjectDefinePropertyCall(
     tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
     callee: ast.NodeIndex,
 ) bool {
     const member = switch (tree.data(unwrapTransparent(tree, callee))) {
@@ -104,7 +100,7 @@ fn isObjectDefinePropertyCall(
 
     const object = unwrapTransparent(tree, member.object);
     const object_name = identifierReferenceName(tree, object) orelse return false;
-    return std.mem.eql(u8, object_name, "Object") and isUnresolvedReference(symbol_table, object);
+    return std.mem.eql(u8, object_name, "Object");
 }
 
 fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
@@ -185,20 +181,6 @@ fn isNativeConstructor(name: []const u8) bool {
     for (constructors) |constructor| {
         if (std.mem.eql(u8, name, constructor)) return true;
     }
-    return false;
-}
-
-fn isUnresolvedReference(
-    symbol_table: traverser.semantic.SymbolTable,
-    node: ast.NodeIndex,
-) bool {
-    var iter = symbol_table.iterReferences();
-    while (iter.next()) |entry| {
-        if (entry.reference.node == node) {
-            return symbol_table.referenceSymbol(entry.id) == .none;
-        }
-    }
-
     return false;
 }
 
