@@ -15,6 +15,7 @@ pub fn check(
     index: ast.NodeIndex,
 ) Allocator.Error!void {
     const label_name = labelName(tree, statement.label) orelse return;
+    try reportRedundantLoopLabelReferences(allocator, diagnostics, tree, statement.body, label_name);
     if (containsLabelReference(tree, statement.body, label_name)) return;
 
     try core.addDiagnostic(
@@ -24,6 +25,107 @@ pub fn check(
         id,
         "This label is unnecessary.",
         tree.span(index),
+    );
+}
+
+fn reportRedundantLoopLabelReferences(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    label_name: []const u8,
+) Allocator.Error!void {
+    if (index == .null) return;
+
+    switch (tree.data(index)) {
+        .for_statement => |statement| try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, statement.body, label_name),
+        .for_in_statement => |statement| try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, statement.body, label_name),
+        .for_of_statement => |statement| try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, statement.body, label_name),
+        .while_statement => |statement| try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, statement.body, label_name),
+        .do_while_statement => |statement| try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, statement.body, label_name),
+        else => {},
+    }
+}
+
+fn reportRedundantLoopBodyReferences(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    label_name: []const u8,
+) Allocator.Error!void {
+    if (index == .null) return;
+
+    switch (tree.data(index)) {
+        .break_statement => |statement| {
+            if (sameLabel(tree, statement.label, label_name)) {
+                try addRedundantReferenceDiagnostic(allocator, diagnostics, tree, statement.label, label_name);
+            }
+        },
+        .continue_statement => |statement| {
+            if (sameLabel(tree, statement.label, label_name)) {
+                try addRedundantReferenceDiagnostic(allocator, diagnostics, tree, statement.label, label_name);
+            }
+        },
+        .block_statement => |block| try reportRedundantReferencesInRange(allocator, diagnostics, tree, block.body, label_name),
+        .static_block => |block| try reportRedundantReferencesInRange(allocator, diagnostics, tree, block.body, label_name),
+        .if_statement => |statement| {
+            try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, statement.consequent, label_name);
+            try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, statement.alternate, label_name);
+        },
+        .try_statement => |statement| {
+            try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, statement.block, label_name);
+            if (statement.handler != .null) {
+                const handler = switch (tree.data(statement.handler)) {
+                    .catch_clause => |handler| handler,
+                    else => return,
+                };
+                try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, handler.body, label_name);
+            }
+            try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, statement.finalizer, label_name);
+        },
+        .labeled_statement => |statement| try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, statement.body, label_name),
+        .function,
+        .arrow_function_expression,
+        .class,
+        .for_statement,
+        .for_in_statement,
+        .for_of_statement,
+        .while_statement,
+        .do_while_statement,
+        .switch_statement,
+        => {},
+        else => {},
+    }
+}
+
+fn reportRedundantReferencesInRange(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    range: ast.IndexRange,
+    label_name: []const u8,
+) Allocator.Error!void {
+    for (tree.extra(range)) |child| {
+        try reportRedundantLoopBodyReferences(allocator, diagnostics, tree, child, label_name);
+    }
+}
+
+fn addRedundantReferenceDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    label: ast.NodeIndex,
+    label_name: []const u8,
+) Allocator.Error!void {
+    try core.addDiagnosticFmt(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        tree.span(label),
+        "This label '{s}' is unnecessary.",
+        .{label_name},
     );
 }
 
