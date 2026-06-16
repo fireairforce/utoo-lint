@@ -4,9 +4,12 @@ const helpers = @import("../helpers.zig");
 
 test "reports no-extend-native for native prototype assignments" {
     const source =
+        \\Object.prototype.toJSON = function () {};
         \\String.prototype.trimLeft = function () {};
         \\Array.prototype["first"] = function () {};
         \\Array[`prototype`].first = function () {};
+        \\const Boolean = CustomBoolean;
+        \\Boolean.prototype.value = function () {};
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -23,8 +26,8 @@ test "reports no-extend-native for native prototype assignments" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_extend_native.id));
-    try std.testing.expectEqualStrings("String prototype is read only, properties should not be added.", result.diagnostics[0].message);
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_extend_native.id));
+    try std.testing.expectEqualStrings("Object prototype is read only, properties should not be added.", result.diagnostics[0].message);
 }
 
 test "reports no-extend-native for Object defineProperty calls" {
@@ -37,6 +40,12 @@ test "reports no-extend-native for Object defineProperty calls" {
         \\Object[`defineProperties`](Set.prototype, {
         \\  first: { value: function () {} },
         \\});
+        \\const Object = {
+        \\  defineProperty() {},
+        \\};
+        \\Object.defineProperty(Array.prototype, "last", {});
+        \\const Array = CustomArray;
+        \\Object.defineProperty(Array.prototype, "shadowed", {});
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -53,19 +62,13 @@ test "reports no-extend-native for Object defineProperty calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_extend_native.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_extend_native.id));
 }
 
-test "does not report no-extend-native for shadowed constructors or ordinary objects" {
+test "does not report no-extend-native for ordinary objects or dynamic members" {
     const source =
-        \\const String = {};
-        \\String.prototype.trimLeft = function () {};
         \\const local = { prototype: {} };
         \\local.prototype.trimLeft = function () {};
-        \\const Object = {
-        \\  defineProperty() {},
-        \\};
-        \\Object.defineProperty(Array.prototype, "first", {});
         \\Array[`proto${suffix}`].first = function () {};
         \\Object[`define${suffix}`](Array.prototype, "first", {});
     ;
