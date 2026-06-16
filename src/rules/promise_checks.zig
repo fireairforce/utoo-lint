@@ -49,7 +49,7 @@ const Visitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.check_prefer_promise_reject_errors and
-            isGlobalPromiseRejectCall(ctx.tree, self.symbol_table, call))
+            isPromiseRejectCall(ctx.tree, call))
         {
             try checkRejectArgument(self.allocator, self.diagnostics, ctx.tree, call.arguments, index);
         }
@@ -63,11 +63,11 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (!isGlobalPromiseReference(ctx.tree, self.symbol_table, expression.callee)) return .proceed;
-
         const executor = promiseExecutor(ctx.tree, expression.arguments);
+        const is_global_promise = isGlobalPromiseReference(ctx.tree, self.symbol_table, expression.callee);
 
-        if (self.check_no_async_promise_executor and
+        if (is_global_promise and
+            self.check_no_async_promise_executor and
             executor != null and
             isAsyncFunctionLike(ctx.tree, executor.?))
         {
@@ -81,11 +81,14 @@ const Visitor = struct {
             );
         }
 
-        if (self.check_no_promise_executor_return and executor != null) {
+        if (is_global_promise and self.check_no_promise_executor_return and executor != null) {
             try checkExecutorReturn(self.allocator, self.diagnostics, ctx.tree, executor.?);
         }
 
-        if (self.check_prefer_promise_reject_errors and executor != null) {
+        if (self.check_prefer_promise_reject_errors and
+            isPromiseReferenceName(ctx.tree, expression.callee) and
+            executor != null)
+        {
             const reject_name = executorRejectName(ctx.tree, executor.?) orelse return .proceed;
             try scanExecutorRejects(self.allocator, self.diagnostics, ctx.tree, reject_name, executor.?);
         }
@@ -94,9 +97,8 @@ const Visitor = struct {
     }
 };
 
-fn isGlobalPromiseRejectCall(
+fn isPromiseRejectCall(
     tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
     call: ast.CallExpression,
 ) bool {
     if (call.optional) return false;
@@ -109,7 +111,7 @@ fn isGlobalPromiseRejectCall(
 
     const property = staticMemberPropertyName(tree, member) orelse return false;
     if (!std.mem.eql(u8, property, "reject")) return false;
-    return isGlobalPromiseReference(tree, symbol_table, member.object);
+    return isPromiseReferenceName(tree, member.object);
 }
 
 fn promiseExecutor(tree: *const ast.Tree, arguments: ast.IndexRange) ?ast.NodeIndex {
@@ -379,9 +381,13 @@ fn isGlobalPromiseReference(
     symbol_table: traverser.semantic.SymbolTable,
     index: ast.NodeIndex,
 ) bool {
+    if (!isPromiseReferenceName(tree, index)) return false;
     const unwrapped = unwrapTransparent(tree, index);
-    if (!isIdentifierReferenceNamed(tree, unwrapped, "Promise")) return false;
     return isUnresolvedReference(symbol_table, unwrapped);
+}
+
+fn isPromiseReferenceName(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return isIdentifierReferenceNamed(tree, index, "Promise");
 }
 
 fn isUnresolvedReference(
