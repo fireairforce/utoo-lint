@@ -16,7 +16,7 @@ pub fn check(
 ) Allocator.Error!void {
     if (!isArgumentsObject(tree, member.object)) return;
 
-    const name = propertyName(tree, member) orelse return;
+    const name = nonComputedPropertyName(tree, member) orelse return;
     if (!isForbiddenProperty(name)) return;
 
     try core.addDiagnostic(
@@ -52,15 +52,10 @@ fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex 
     return current;
 }
 
-fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
-    if (member.property == .null) return null;
+fn nonComputedPropertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
+    if (member.computed or member.property == .null) return null;
 
-    return if (member.computed)
-        switch (tree.data(member.property)) {
-            .string_literal => |literal| tree.string(literal.value),
-            else => null,
-        }
-    else switch (tree.data(member.property)) {
+    return switch (tree.data(member.property)) {
         .identifier_name => |identifier| tree.string(identifier.name),
         else => null,
     };

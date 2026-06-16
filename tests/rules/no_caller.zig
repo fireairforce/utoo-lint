@@ -7,8 +7,8 @@ test "reports no-caller for arguments caller and callee access" {
         \\function f() {
         \\  arguments.callee;
         \\  arguments.caller;
-        \\  arguments["callee"];
-        \\  arguments["caller"];
+        \\  arguments?.callee;
+        \\  arguments.callee = fn;
         \\}
     ;
 
@@ -28,6 +28,9 @@ test "does not report no-caller for other objects or properties" {
         \\object.callee;
         \\arguments.length;
         \\arguments[name];
+        \\arguments["callee"];
+        \\arguments["caller"];
+        \\arguments[`callee`];
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
