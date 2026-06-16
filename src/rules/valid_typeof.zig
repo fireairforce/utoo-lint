@@ -20,9 +20,11 @@ pub fn check(
     const right_typeof = isTypeofExpression(tree, expression.right);
     if (left_typeof == right_typeof) return;
 
-    const literal_index = if (left_typeof) expression.right else expression.left;
-    const value = stringLiteralValue(tree, literal_index) orelse return;
-    if (isValidTypeofValue(value)) return;
+    const value_index = if (left_typeof) expression.right else expression.left;
+    switch (comparisonValueState(tree, value_index)) {
+        .valid, .unknown => return,
+        .invalid => {},
+    }
 
     try core.addDiagnostic(
         allocator,
@@ -33,6 +35,12 @@ pub fn check(
         tree.span(index),
     );
 }
+
+const ComparisonValueState = enum {
+    valid,
+    invalid,
+    unknown,
+};
 
 fn isTypeofComparisonOperator(operator: ast.BinaryOperator) bool {
     return switch (operator) {
@@ -61,6 +69,26 @@ fn stringLiteralValue(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
         .string_literal => |literal| tree.string(literal.value),
         .template_literal => |literal| templateStringValue(tree, literal),
         else => null,
+    };
+}
+
+fn comparisonValueState(tree: *const ast.Tree, index: ast.NodeIndex) ComparisonValueState {
+    if (index == .null) return .unknown;
+
+    const unwrapped = unwrapTransparent(tree, index);
+    if (stringLiteralValue(tree, unwrapped)) |value| {
+        return if (isValidTypeofValue(value)) .valid else .invalid;
+    }
+
+    return switch (tree.data(unwrapped)) {
+        .identifier_reference => |identifier| if (std.mem.eql(u8, tree.string(identifier.name), "undefined")) .invalid else .unknown,
+        .null_literal,
+        .boolean_literal,
+        .numeric_literal,
+        .bigint_literal,
+        .regexp_literal,
+        => .invalid,
+        else => .unknown,
     };
 }
 
