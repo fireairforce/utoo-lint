@@ -55,6 +55,28 @@ test "does not report prefer-rest-params for nested or arrow arguments usage" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.prefer_rest_params.id));
 }
 
+test "reports prefer-rest-params for each arguments reference" {
+    const source =
+        \\function multiple() {
+        \\  arguments;
+        \\  return arguments[0];
+        \\}
+        \\function arrowInside() {
+        \\  const read = () => arguments.length;
+        \\  return read;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_rest_params.id));
+}
+
 test "does not report prefer-rest-params when arguments is shadowed in scripts" {
     const source =
         \\function parameter(arguments) {
