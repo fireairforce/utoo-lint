@@ -13,6 +13,10 @@ pub fn check(
     statement: ast.IfStatement,
 ) Allocator.Error!void {
     if (statement.alternate == .null) return;
+    switch (tree.data(statement.alternate)) {
+        .if_statement => return,
+        else => {},
+    }
     if (!alwaysExits(tree, statement.consequent)) return;
 
     try core.addDiagnostic(
