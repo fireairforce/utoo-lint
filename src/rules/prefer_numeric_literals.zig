@@ -123,7 +123,7 @@ fn isParseIntCall(tree: *const ast.Tree, callee: ast.NodeIndex) bool {
         .member_expression => |member| member,
         else => return false,
     };
-    if (member.optional or member.property == .null) return false;
+    if (member.property == .null) return false;
 
     const property = propertyName(tree, member) orelse return false;
     if (!std.mem.eql(u8, property, "parseInt")) return false;
