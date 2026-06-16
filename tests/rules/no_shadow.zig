@@ -76,6 +76,35 @@ test "supports configured no-shadow allow names" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_shadow.id));
 }
 
+test "supports configured no-shadow built-in globals" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"builtinGlobals\":true,\"allow\":[\"Object\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-shadow", config.value);
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\function allowed(Object) {
+        \\  return Object;
+        \\}
+        \\function reported(Array) {
+        \\  return Array;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_shadow.id));
+}
+
 test "can disable no-shadow" {
     const source =
         \\let a = 1;

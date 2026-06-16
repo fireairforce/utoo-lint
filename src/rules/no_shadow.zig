@@ -13,6 +13,7 @@ pub const Options = struct {
     severity: core.Severity = .warning,
     mode: Mode = .javascript,
     allow: core.NoShadowAllowNames = .{},
+    builtin_globals: bool = false,
 };
 
 pub const Mode = enum {
@@ -48,10 +49,25 @@ pub fn runWithOptions(
         const name = tree.string(symbol.name);
         if (options.allow.contains(name)) continue;
 
-        const shadowed_id = findShadowedSymbol(scope_tree, symbol_table, symbol.scope, name, entry.id, symbol.flags, options) orelse continue;
         const decls = symbol_table.symbolDecls(entry.id);
+        if (decls.len == 0) continue;
+
+        if (options.builtin_globals and core.isKnownGlobal(name)) {
+            try core.addDiagnosticFmt(
+                allocator,
+                diagnostics,
+                options.severity,
+                options.rule_id,
+                tree.span(decls[0]),
+                "'{s}' is already a global variable.",
+                .{name},
+            );
+            continue;
+        }
+
+        const shadowed_id = findShadowedSymbol(scope_tree, symbol_table, symbol.scope, name, entry.id, symbol.flags, options) orelse continue;
         const shadowed_decls = symbol_table.symbolDecls(shadowed_id);
-        if (decls.len == 0 or shadowed_decls.len == 0) continue;
+        if (shadowed_decls.len == 0) continue;
 
         const shadowed_position = offsetToLineColumn(tree.source, tree.span(shadowed_decls[0]).start);
         try core.addDiagnosticFmt(

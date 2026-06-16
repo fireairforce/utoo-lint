@@ -629,6 +629,7 @@ pub const Options = struct {
     no_setter_return: bool = true,
     no_shadow: bool = true,
     no_shadow_allow: NoShadowAllowNames = .{},
+    no_shadow_builtin_globals: bool = false,
     no_shadow_restricted_names: bool = true,
     no_sequences: bool = true,
     no_sequences_allow_in_parentheses: NoSequencesAllowInParentheses = .yes,
@@ -778,6 +779,7 @@ pub const Options = struct {
     typescript_eslint_no_require_imports: bool = true,
     typescript_eslint_no_shadow: bool = true,
     typescript_eslint_no_shadow_allow: NoShadowAllowNames = .{},
+    typescript_eslint_no_shadow_builtin_globals: bool = false,
     typescript_eslint_no_this_alias: bool = true,
     typescript_eslint_no_unsafe_declaration_merging: bool = true,
     typescript_eslint_triple_slash_reference: bool = true,
@@ -957,6 +959,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-shadow")) {
             self.no_shadow_allow = try noShadowAllowFromConfig(value);
+            self.no_shadow_builtin_globals = try noShadowBuiltinGlobalsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-plusplus")) {
             self.no_plusplus_allow_for_loop_afterthoughts = try noPlusplusAllowForLoopAfterthoughtsFromConfig(value);
@@ -987,6 +990,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
+            self.typescript_eslint_no_shadow_builtin_globals = try noShadowBuiltinGlobalsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-undef")) {
             self.no_undef_typeof = try noUndefTypeofFromConfig(value);
@@ -1620,6 +1624,23 @@ pub const Options = struct {
             allow.append(name) catch return error.UnsupportedRuleConfigValue;
         }
         return allow;
+    }
+
+    fn noShadowBuiltinGlobalsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("builtinGlobals") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noPlusplusAllowForLoopAfterthoughtsFromConfig(value: std.json.Value) RuleConfigError!NoPlusplusAllowForLoopAfterthoughts {
@@ -2661,7 +2682,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"done\"]}]",
+        "[\"error\",{\"allow\":[\"done\"],\"builtinGlobals\":true}]",
         .{},
     );
     defer no_shadow_config.deinit();
@@ -2669,11 +2690,12 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_shadow);
     try std.testing.expect(options.no_shadow_allow.contains("done"));
     try std.testing.expect(!options.no_shadow_allow.contains("other"));
+    try std.testing.expect(options.no_shadow_builtin_globals);
 
     var typescript_no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"value\"]}]",
+        "[\"error\",{\"allow\":[\"value\"],\"builtinGlobals\":true}]",
         .{},
     );
     defer typescript_no_shadow_config.deinit();
@@ -2681,6 +2703,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_shadow);
     try std.testing.expect(options.typescript_eslint_no_shadow_allow.contains("value"));
     try std.testing.expect(!options.typescript_eslint_no_shadow_allow.contains("other"));
+    try std.testing.expect(options.typescript_eslint_no_shadow_builtin_globals);
 
     var no_plusplus_config = try std.json.parseFromSlice(
         std.json.Value,
