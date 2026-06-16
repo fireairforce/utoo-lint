@@ -5,7 +5,6 @@ const helpers = @import("../helpers.zig");
 test "reports no-process-exit for process exit calls" {
     const source =
         \\process.exit(1);
-        \\process["exit"](0);
         \\(process.exit)();
     ;
 
@@ -16,14 +15,17 @@ test "reports no-process-exit for process exit calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_process_exit.id));
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_process_exit.id));
 }
 
 test "does not report no-process-exit for references or other objects" {
     const source =
         \\const exit = process.exit;
         \\runner.exit(1);
+        \\process["exit"](0);
+        \\process[`exit`](0);
         \\process[method](0);
+        \\process[`${method}`](0);
         \\process.exitCode = 1;
     ;
 
