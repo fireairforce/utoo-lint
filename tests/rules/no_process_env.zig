@@ -6,7 +6,6 @@ test "reports no-process-env for process env member access" {
     const source =
         \\const nodeEnv = process.env.NODE_ENV;
         \\process.env.DEBUG = "1";
-        \\const env = process["env"];
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -16,13 +15,16 @@ test "reports no-process-env for process env member access" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_process_env.id));
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_process_env.id));
 }
 
 test "does not report no-process-env for other objects or dynamic properties" {
     const source =
         \\const env = config.env;
+        \\const bracket = process["env"];
+        \\const template = process[`env`];
         \\const env2 = process[envName];
+        \\const computed = process[`${envName}`];
         \\const value = process.envName;
     ;
 
