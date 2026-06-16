@@ -2,7 +2,7 @@ const std = @import("std");
 const lint = @import("utoo_lint");
 const helpers = @import("../helpers.zig");
 
-test "reports no-inner-declarations for function declarations inside blocks" {
+test "does not report no-inner-declarations for block-scoped function declarations by default" {
     const source =
         \\if (foo) {
         \\  function bar() {}
@@ -24,7 +24,7 @@ test "reports no-inner-declarations for function declarations inside blocks" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_inner_declarations.id));
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_inner_declarations.id));
 }
 
 test "does not report no-inner-declarations for root function declarations" {
