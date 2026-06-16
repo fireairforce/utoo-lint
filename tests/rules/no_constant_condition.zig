@@ -39,6 +39,40 @@ test "does not report no-constant-condition for dynamic conditions" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_constant_condition.id));
 }
 
+test "does not report no-constant-condition for while true loops" {
+    const source =
+        \\while (true) { break; }
+        \\while ((true)) { break; }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_constant_condition.id));
+}
+
+test "still reports no-constant-condition for other loop constants" {
+    const source =
+        \\while (false) { break; }
+        \\while (1) { break; }
+        \\do { break; } while (true);
+        \\for (; true; ) { break; }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_constant_condition.id));
+}
+
 test "reports no-constant-condition for constant unary expressions" {
     const source =
         \\if (void 0) { use(); }

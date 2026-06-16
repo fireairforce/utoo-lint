@@ -1230,7 +1230,7 @@ const BasicVisitor = struct {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
         if (self.options.no_constant_condition) {
-            try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+            try no_constant_condition.checkWhile(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
         return .proceed;
     }
