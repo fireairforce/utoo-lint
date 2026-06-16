@@ -7,14 +7,25 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-duplicate-imports";
 
+const ImportKind = enum {
+    named_only,
+    namespace_only,
+    other,
+};
+
+const SeenImport = struct {
+    source: []const u8,
+    kind: ImportKind,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     program: ast.Program,
 ) Allocator.Error!void {
-    var seen_sources: std.ArrayList([]const u8) = .empty;
-    defer seen_sources.deinit(allocator);
+    var seen: std.ArrayList(SeenImport) = .empty;
+    defer seen.deinit(allocator);
 
     for (tree.extra(program.body)) |statement_index| {
         const declaration = switch (tree.data(statement_index)) {
@@ -22,8 +33,9 @@ pub fn check(
             else => continue,
         };
         const source = importSource(tree, declaration) orelse continue;
+        const kind = importKind(tree, declaration);
 
-        if (contains(seen_sources.items, source)) {
+        if (hasDuplicate(seen.items, source, kind)) {
             try core.addDiagnosticFmt(
                 allocator,
                 diagnostics,
@@ -36,7 +48,7 @@ pub fn check(
             continue;
         }
 
-        try seen_sources.append(allocator, source);
+        try seen.append(allocator, .{ .source = source, .kind = kind });
     }
 }
 
@@ -47,9 +59,27 @@ fn importSource(tree: *const ast.Tree, declaration: ast.ImportDeclaration) ?[]co
     };
 }
 
-fn contains(items: []const []const u8, source: []const u8) bool {
+fn importKind(tree: *const ast.Tree, declaration: ast.ImportDeclaration) ImportKind {
+    const specifiers = tree.extra(declaration.specifiers);
+    if (specifiers.len == 1 and tree.data(specifiers[0]) == .import_namespace_specifier) return .namespace_only;
+    if (specifiers.len == 0) return .other;
+
+    for (specifiers) |specifier| {
+        if (tree.data(specifier) != .import_specifier) return .other;
+    }
+    return .named_only;
+}
+
+fn hasDuplicate(items: []const SeenImport, source: []const u8, kind: ImportKind) bool {
     for (items) |item| {
-        if (std.mem.eql(u8, item, source)) return true;
+        if (!std.mem.eql(u8, item.source, source)) continue;
+        if (canCoexist(item.kind, kind)) continue;
+        return true;
     }
     return false;
+}
+
+fn canCoexist(a: ImportKind, b: ImportKind) bool {
+    return (a == .namespace_only and b == .named_only) or
+        (a == .named_only and b == .namespace_only);
 }
