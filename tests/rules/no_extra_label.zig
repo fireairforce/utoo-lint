@@ -24,13 +24,66 @@ test "reports no-extra-label for labels without labeled break or continue" {
     try std.testing.expectEqualStrings("This label is unnecessary.", result.diagnostics[0].message);
 }
 
-test "does not report no-extra-label when labeled break or continue uses the label" {
+test "reports no-extra-label for redundant labeled break or continue" {
     const source =
         \\outer: while (ready) {
         \\  break outer;
         \\}
         \\loop: while (ready) {
         \\  continue loop;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_labels = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_extra_label.id));
+}
+
+test "reports no-extra-label through nested labeled blocks" {
+    const source =
+        \\outer: while (ready) {
+        \\  block: {
+        \\    break outer;
+        \\  }
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_labels = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_extra_label.id));
+
+    var found_redundant_reference = false;
+    for (result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.message, "This label 'outer' is unnecessary.")) {
+            found_redundant_reference = true;
+        }
+    }
+    try std.testing.expect(found_redundant_reference);
+}
+
+test "does not report no-extra-label when nested break or continue needs the label" {
+    const source =
+        \\outer: while (ready) {
+        \\  while (inner) {
+        \\    break outer;
+        \\  }
+        \\}
+        \\loop: while (ready) {
+        \\  while (inner) {
+        \\    continue loop;
+        \\  }
         \\}
     ;
 
