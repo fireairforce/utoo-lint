@@ -1911,7 +1911,10 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.typescript_eslint_no_empty_function) {
-            try typescript_eslint_no_empty_function.checkFunctionBody(self.allocator, self.diagnostics, ctx.tree, body, index, ctx);
+            try typescript_eslint_no_empty_function.checkFunctionBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, body, index, ctx, .{
+                .allow = self.options.typescript_eslint_no_empty_function_allow,
+                .kind = emptyFunctionKind(ctx.tree, ctx),
+            });
         }
         if (self.options.getter_return) {
             try getter_return.check(self.allocator, self.diagnostics, ctx.tree, body, index, ctx);
