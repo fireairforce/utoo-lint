@@ -493,6 +493,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_prototype_builtins = false;
         } else if (std.mem.eql(u8, arg, "--no-redeclare=off")) {
             options.no_redeclare = false;
+        } else if (std.mem.eql(u8, arg, "--no-redeclare-builtin-globals=on")) {
+            options.no_redeclare_builtin_globals = .yes;
         } else if (std.mem.eql(u8, arg, "--no-regex-spaces=off")) {
             options.no_regex_spaces = false;
         } else if (std.mem.eql(u8, arg, "--no-return-await=off")) {
@@ -1654,6 +1656,7 @@ fn printHelp() void {
         \\  --no-process-exit=off     Disable no-process-exit
         \\  --no-prototype-builtins=off Disable no-prototype-builtins
         \\  --no-redeclare=off        Disable no-redeclare
+        \\  --no-redeclare-builtin-globals=on Report redeclarations of built-in globals
         \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-return-await=off     Disable no-return-await
         \\  --no-return-assign=off    Disable no-return-assign

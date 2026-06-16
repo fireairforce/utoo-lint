@@ -24,7 +24,7 @@ test "reports no-redeclare for repeated declarations" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_redeclare.id));
 }
 
-test "reports no-redeclare for script built-in globals by default" {
+test "does not report no-redeclare for script built-in globals by default" {
     const source =
         \\var Object = 1;
         \\let undefinedValue = undefined;
@@ -32,6 +32,24 @@ test "reports no-redeclare for script built-in globals by default" {
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.cjs", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_redeclare.id));
+}
+
+test "reports no-redeclare for script built-in globals when configured" {
+    const source =
+        \\var Object = 1;
+        \\let undefinedValue = undefined;
+        \\let undefined = 1;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.cjs", .{
+        .no_redeclare_builtin_globals = .yes,
         .no_unused_vars = false,
         .no_undef = false,
         .parser_semantic_errors = false,
