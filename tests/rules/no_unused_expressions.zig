@@ -34,6 +34,8 @@ test "does not report no-unused-expressions for expressions with side effects" {
         \\value = 1;
         \\value += 1;
         \\value++;
+        \\delete object.value;
+        \\void object.value;
         \\import("mod");
         \\(foo());
         \\(0, foo());

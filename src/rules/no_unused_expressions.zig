@@ -59,6 +59,7 @@ fn hasSideEffect(tree: *const ast.Tree, index: ast.NodeIndex, options: Options) 
         => true,
 
         .tagged_template_expression => options.allow_tagged_templates,
+        .unary_expression => |unary| unary.operator == .delete or unary.operator == .void,
 
         .chain_expression => |chain| hasSideEffect(tree, chain.expression, options),
         .conditional_expression => |conditional| options.allow_ternary and
