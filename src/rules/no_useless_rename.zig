@@ -60,6 +60,72 @@ pub fn checkObjectPattern(
     }
 }
 
+pub fn checkAssignmentExpression(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+) Allocator.Error!void {
+    if (expression.operator != .assign) return;
+
+    switch (tree.data(unwrapTransparent(tree, expression.left))) {
+        .object_pattern => |pattern| try checkAssignmentObjectPattern(allocator, diagnostics, tree, pattern),
+        else => {},
+    }
+}
+
+fn checkAssignmentObjectPattern(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    pattern: ast.ObjectPattern,
+) Allocator.Error!void {
+    for (tree.extra(pattern.properties)) |property_index| {
+        const property = switch (tree.data(property_index)) {
+            .binding_property => |property| property,
+            else => continue,
+        };
+        if (property.shorthand or property.computed) continue;
+
+        switch (tree.data(unwrapTransparent(tree, property.value))) {
+            .object_pattern => |nested| {
+                try checkAssignmentObjectPattern(allocator, diagnostics, tree, nested);
+                continue;
+            },
+            else => {},
+        }
+
+        const key = propertyName(tree, property.key) orelse continue;
+        const value = referenceOrAssignmentName(tree, property.value) orelse continue;
+        if (!std.mem.eql(u8, key, value)) continue;
+
+        try addDiagnostic(allocator, diagnostics, tree, property_index);
+    }
+}
+
+fn referenceOrAssignmentName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    if (index == .null) return null;
+
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .assignment_pattern => |pattern| referenceOrPropertyName(tree, pattern.left),
+        else => referenceOrPropertyName(tree, unwrapTransparent(tree, index)),
+    };
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+
+    return current;
+}
+
 fn addDiagnostic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
