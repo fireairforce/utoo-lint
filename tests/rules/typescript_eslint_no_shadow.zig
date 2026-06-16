@@ -59,6 +59,39 @@ test "allows @typescript-eslint/no-shadow TypeScript class interface merging" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_shadow.id));
 }
 
+test "supports configured @typescript-eslint/no-shadow allow names" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"value\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-shadow", config.value);
+    options.no_unused_vars = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const value = 1;
+        \\const other = 2;
+        \\function f(value: number) {
+        \\  return value;
+        \\}
+        \\function g(other: number) {
+        \\  return other;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_shadow.id));
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_shadow.id));
+}
+
 test "can disable @typescript-eslint/no-shadow and fall back to no-shadow" {
     const source =
         \\const value = 1;

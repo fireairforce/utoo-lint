@@ -14,9 +14,21 @@ pub fn run(
     scope_tree: traverser.semantic.ScopeTree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, scope_tree, symbol_table, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const parser.ast.Tree,
+    scope_tree: traverser.semantic.ScopeTree,
+    symbol_table: traverser.semantic.SymbolTable,
+    options: no_shadow.Options,
+) Allocator.Error!void {
     try no_shadow.runWithOptions(allocator, diagnostics, tree, scope_tree, symbol_table, .{
         .rule_id = id,
         .severity = .@"error",
         .mode = .typescript,
+        .allow = options.allow,
     });
 }

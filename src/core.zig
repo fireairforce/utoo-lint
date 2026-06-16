@@ -289,6 +289,42 @@ pub const NoParamReassignIgnoredNames = struct {
     }
 };
 
+pub const max_no_shadow_allow_names = 32;
+pub const max_no_shadow_allow_name_len = 128;
+
+pub const NoShadowAllowNamesError = error{
+    EmptyNoShadowAllowName,
+    TooManyNoShadowAllowNames,
+    NoShadowAllowNameTooLong,
+};
+
+pub const NoShadowAllowNames = struct {
+    count: usize = 0,
+    lengths: [max_no_shadow_allow_names]usize = undefined,
+    storage: [max_no_shadow_allow_names][max_no_shadow_allow_name_len]u8 = undefined,
+
+    pub fn contains(self: *const NoShadowAllowNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const NoShadowAllowNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *NoShadowAllowNames, name: []const u8) NoShadowAllowNamesError!void {
+        if (name.len == 0) return error.EmptyNoShadowAllowName;
+        if (self.count >= max_no_shadow_allow_names) return error.TooManyNoShadowAllowNames;
+        if (name.len > max_no_shadow_allow_name_len) return error.NoShadowAllowNameTooLong;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const NoUselessComputedKeyEnforceForClassMembers = enum {
     yes,
     no,
@@ -592,6 +628,7 @@ pub const Options = struct {
     no_self_compare: bool = true,
     no_setter_return: bool = true,
     no_shadow: bool = true,
+    no_shadow_allow: NoShadowAllowNames = .{},
     no_shadow_restricted_names: bool = true,
     no_sequences: bool = true,
     no_sequences_allow_in_parentheses: NoSequencesAllowInParentheses = .yes,
@@ -740,6 +777,7 @@ pub const Options = struct {
     typescript_eslint_no_redeclare: bool = true,
     typescript_eslint_no_require_imports: bool = true,
     typescript_eslint_no_shadow: bool = true,
+    typescript_eslint_no_shadow_allow: NoShadowAllowNames = .{},
     typescript_eslint_no_this_alias: bool = true,
     typescript_eslint_no_unsafe_declaration_merging: bool = true,
     typescript_eslint_triple_slash_reference: bool = true,
@@ -917,6 +955,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-redeclare")) {
             self.no_redeclare_builtin_globals = try noRedeclareBuiltinGlobalsFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-shadow")) {
+            self.no_shadow_allow = try noShadowAllowFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-plusplus")) {
             self.no_plusplus_allow_for_loop_afterthoughts = try noPlusplusAllowForLoopAfterthoughtsFromConfig(value);
         }
@@ -943,6 +984,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-use-before-define")) {
             self.no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", true);
             self.no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
+            self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-undef")) {
             self.no_undef_typeof = try noUndefTypeofFromConfig(value);
@@ -1548,6 +1592,34 @@ pub const Options = struct {
             ignored.append(name) catch return error.UnsupportedRuleConfigValue;
         }
         return ignored;
+    }
+
+    fn noShadowAllowFromConfig(value: std.json.Value) RuleConfigError!NoShadowAllowNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow_value = config.get("allow") orelse return .{};
+        const allow_items = switch (allow_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var allow = NoShadowAllowNames{};
+        for (allow_items) |item| {
+            const name = switch (item) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            allow.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return allow;
     }
 
     fn noPlusplusAllowForLoopAfterthoughtsFromConfig(value: std.json.Value) RuleConfigError!NoPlusplusAllowForLoopAfterthoughts {
@@ -2585,6 +2657,30 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-redeclare", no_redeclare_config.value);
     try std.testing.expect(options.no_redeclare);
     try std.testing.expectEqual(NoRedeclareBuiltinGlobals.yes, options.no_redeclare_builtin_globals);
+
+    var no_shadow_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"done\"]}]",
+        .{},
+    );
+    defer no_shadow_config.deinit();
+    try options.setByRuleConfigValue("no-shadow", no_shadow_config.value);
+    try std.testing.expect(options.no_shadow);
+    try std.testing.expect(options.no_shadow_allow.contains("done"));
+    try std.testing.expect(!options.no_shadow_allow.contains("other"));
+
+    var typescript_no_shadow_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"value\"]}]",
+        .{},
+    );
+    defer typescript_no_shadow_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-shadow", typescript_no_shadow_config.value);
+    try std.testing.expect(options.typescript_eslint_no_shadow);
+    try std.testing.expect(options.typescript_eslint_no_shadow_allow.contains("value"));
+    try std.testing.expect(!options.typescript_eslint_no_shadow_allow.contains("other"));
 
     var no_plusplus_config = try std.json.parseFromSlice(
         std.json.Value,

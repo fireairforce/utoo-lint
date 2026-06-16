@@ -740,11 +740,15 @@ pub fn runSemantic(
     const use_typescript_no_shadow = options.typescript_eslint_no_shadow and tree.isTs();
 
     if (options.no_shadow and !use_typescript_no_shadow) {
-        try no_shadow.run(allocator, diagnostics, tree, semantic_result.scope_tree, semantic_result.symbol_table);
+        try no_shadow.runWithOptions(allocator, diagnostics, tree, semantic_result.scope_tree, semantic_result.symbol_table, .{
+            .allow = options.no_shadow_allow,
+        });
     }
 
     if (use_typescript_no_shadow) {
-        try typescript_eslint_no_shadow.run(allocator, diagnostics, tree, semantic_result.scope_tree, semantic_result.symbol_table);
+        try typescript_eslint_no_shadow.runWithOptions(allocator, diagnostics, tree, semantic_result.scope_tree, semantic_result.symbol_table, .{
+            .allow = options.typescript_eslint_no_shadow_allow,
+        });
     }
 
     if (reassignment_rules.shouldRun(options)) {

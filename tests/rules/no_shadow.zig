@@ -45,6 +45,37 @@ test "does not report no-shadow for distinct sibling scopes or type declarations
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_shadow.id));
 }
 
+test "supports configured no-shadow allow names" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"done\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-shadow", config.value);
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const done = 1;
+        \\function f(done) {
+        \\  return done;
+        \\}
+        \\const other = 1;
+        \\function g(other) {
+        \\  return other;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_shadow.id));
+}
+
 test "can disable no-shadow" {
     const source =
         \\let a = 1;

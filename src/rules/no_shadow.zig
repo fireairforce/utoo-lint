@@ -12,6 +12,7 @@ pub const Options = struct {
     rule_id: []const u8 = id,
     severity: core.Severity = .warning,
     mode: Mode = .javascript,
+    allow: core.NoShadowAllowNames = .{},
 };
 
 pub const Mode = enum {
@@ -45,6 +46,8 @@ pub fn runWithOptions(
         if (symbol.scope == .root or symbol.scope == .module) continue;
 
         const name = tree.string(symbol.name);
+        if (options.allow.contains(name)) continue;
+
         const shadowed_id = findShadowedSymbol(scope_tree, symbol_table, symbol.scope, name, entry.id, symbol.flags, options) orelse continue;
         const decls = symbol_table.symbolDecls(entry.id);
         const shadowed_decls = symbol_table.symbolDecls(shadowed_id);
