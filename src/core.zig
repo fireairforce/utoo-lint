@@ -644,6 +644,7 @@ pub const Options = struct {
     no_use_before_define_check_functions: NoUseBeforeDefineCheck = .yes,
     no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
     no_undef: bool = true,
+    no_undef_typeof: bool = false,
     prefer_const: bool = true,
     prefer_const_destructuring: PreferConstDestructuring = .any,
     prefer_exponentiation_operator: bool = true,
@@ -928,6 +929,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-use-before-define")) {
             self.no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", true);
             self.no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
+        }
+        if (std.mem.eql(u8, cli_name, "no-undef")) {
+            self.no_undef_typeof = try noUndefTypeofFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-use-before-define")) {
             self.typescript_eslint_no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", false);
@@ -1672,6 +1676,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (enabled) .yes else .no;
+    }
+
+    fn noUndefTypeofFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("typeof") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noVoidAllowAsStatementFromConfig(value: std.json.Value) RuleConfigError!NoVoidAllowAsStatement {
@@ -2575,6 +2596,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_use_before_define);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_functions);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_classes);
+
+    var no_undef_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"typeof\":true}]",
+        .{},
+    );
+    defer no_undef_config.deinit();
+    try options.setByRuleConfigValue("no-undef", no_undef_config.value);
+    try std.testing.expect(options.no_undef);
+    try std.testing.expect(options.no_undef_typeof);
 
     var typescript_no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,
