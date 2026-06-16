@@ -8,15 +8,29 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-extra-boolean-cast";
 
+pub const Options = struct {
+    enforce_for_inner_expressions: bool = false,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     _: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
+) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
+        .options = options,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -25,6 +39,7 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    options: Options,
 
     pub fn enter_if_statement(
         self: *Visitor,
@@ -103,13 +118,18 @@ const Visitor = struct {
             );
         }
 
-        const unary = switch (tree.data(unwrapped)) {
-            .unary_expression => |unary| unary,
+        switch (tree.data(unwrapped)) {
+            .unary_expression => |unary| {
+                if (unary.operator != .logical_not) return;
+                try self.checkBooleanExpression(tree, unwrapTransparent(tree, unary.argument));
+            },
+            .logical_expression => |logical| {
+                if (!self.options.enforce_for_inner_expressions) return;
+                try self.checkBooleanExpression(tree, unwrapTransparent(tree, logical.left));
+                try self.checkBooleanExpression(tree, unwrapTransparent(tree, logical.right));
+            },
             else => return,
-        };
-        if (unary.operator != .logical_not) return;
-
-        try self.checkBooleanExpression(tree, unwrapTransparent(tree, unary.argument));
+        }
     }
 };
 

@@ -464,6 +464,7 @@ pub const Options = struct {
     no_extra_label: bool = true,
     no_extra_semi: bool = true,
     no_extra_boolean_cast: bool = true,
+    no_extra_boolean_cast_enforce_for_inner_expressions: bool = false,
     no_floating_decimal: bool = true,
     no_fallthrough: bool = true,
     no_fallthrough_allow_empty_case: NoFallthroughAllowEmptyCase = .no,
@@ -879,6 +880,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-empty-function")) {
             self.no_empty_function_allow = try noEmptyFunctionAllowFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-extra-boolean-cast")) {
+            self.no_extra_boolean_cast_enforce_for_inner_expressions = try noExtraBooleanCastEnforceForInnerExpressionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-fallthrough")) {
             self.no_fallthrough_allow_empty_case = try noFallthroughAllowEmptyCaseFromConfig(value);
@@ -1309,6 +1313,23 @@ pub const Options = struct {
             if (!allow.enable(kind)) return error.UnsupportedRuleConfigValue;
         }
         return allow;
+    }
+
+    fn noExtraBooleanCastEnforceForInnerExpressionsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("enforceForInnerExpressions") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noFallthroughAllowEmptyCaseFromConfig(value: std.json.Value) RuleConfigError!NoFallthroughAllowEmptyCase {
@@ -2393,6 +2414,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_empty_function_allow.generatorMethods);
     try std.testing.expect(options.no_empty_function_allow.getters);
     try std.testing.expect(options.no_empty_function_allow.setters);
+
+    var no_extra_boolean_cast_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"enforceForInnerExpressions\":true}]",
+        .{},
+    );
+    defer no_extra_boolean_cast_config.deinit();
+    try options.setByRuleConfigValue("no-extra-boolean-cast", no_extra_boolean_cast_config.value);
+    try std.testing.expect(options.no_extra_boolean_cast);
+    try std.testing.expect(options.no_extra_boolean_cast_enforce_for_inner_expressions);
 
     var no_fallthrough_config = try std.json.parseFromSlice(
         std.json.Value,
