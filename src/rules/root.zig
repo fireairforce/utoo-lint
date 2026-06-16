@@ -764,6 +764,10 @@ pub fn runSemantic(
         try no_invalid_regexp.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
+    if (options.no_regex_spaces) {
+        try no_regex_spaces.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
     if (options.no_misleading_character_class) {
         try no_misleading_character_class.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
