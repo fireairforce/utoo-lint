@@ -15,7 +15,7 @@ pub fn checkNewExpression(
     index: ast.NodeIndex,
 ) Allocator.Error!void {
     const name = constructorName(tree, expression.callee) orelse return;
-    if (startsWithUppercase(name)) return;
+    if (nameCase(name) != .lower) return;
 
     try core.addDiagnostic(
         allocator,
@@ -36,7 +36,7 @@ pub fn checkCallExpression(
 ) Allocator.Error!void {
     const callee = unwrapTransparent(tree, expression.callee);
     const name = constructorName(tree, callee) orelse return;
-    if (!startsWithUppercase(name)) return;
+    if (nameCase(name) != .upper) return;
     if (isAllowedCallableBuiltin(tree, callee, name)) return;
 
     try core.addDiagnostic(
@@ -109,8 +109,17 @@ fn isAllowedCallableBuiltin(tree: *const ast.Tree, callee: ast.NodeIndex, name: 
     return false;
 }
 
-fn startsWithUppercase(name: []const u8) bool {
-    return name.len > 0 and std.ascii.isUpper(name[0]);
+const NameCase = enum {
+    upper,
+    lower,
+    other,
+};
+
+fn nameCase(name: []const u8) NameCase {
+    if (name.len == 0) return .other;
+    if (std.ascii.isUpper(name[0])) return .upper;
+    if (std.ascii.isLower(name[0])) return .lower;
+    return .other;
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
