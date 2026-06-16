@@ -7,6 +7,12 @@ test "reports prefer-const for initialized let declarations that are never reass
         \\let a = 1;
         \\let { b } = obj;
         \\let [c] = list;
+        \\for (let key in obj) {
+        \\  console.log(key);
+        \\}
+        \\for (let value of list) {
+        \\  console.log(value);
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -15,7 +21,7 @@ test "reports prefer-const for initialized let declarations that are never reass
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_const.id));
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.prefer_const.id));
 }
 
 test "does not report prefer-const for reassigned let bindings or uninitialized declarations" {
@@ -26,6 +32,9 @@ test "does not report prefer-const for reassigned let bindings or uninitialized 
         \\b++;
         \\let c;
         \\c = 1;
+        \\for (let key in obj) {
+        \\  key = "other";
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -43,6 +52,9 @@ test "reports prefer-const for destructuring any by default" {
         \\b = 2;
         \\let [c, d] = list;
         \\d++;
+        \\for (let [e, f] of entries) {
+        \\  f = 2;
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -51,7 +63,7 @@ test "reports prefer-const for destructuring any by default" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_const.id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_const.id));
 }
 
 test "reports prefer-const for destructuring only when all bindings qualify in all mode" {

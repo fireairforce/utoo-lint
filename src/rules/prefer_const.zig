@@ -159,6 +159,26 @@ const Visitor = struct {
         return .proceed;
     }
 
+    pub fn enter_for_in_statement(
+        self: *Visitor,
+        statement: ast.ForInStatement,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        try self.collectForLoopLeft(ctx.tree, statement.left);
+        return .proceed;
+    }
+
+    pub fn enter_for_of_statement(
+        self: *Visitor,
+        statement: ast.ForOfStatement,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        try self.collectForLoopLeft(ctx.tree, statement.left);
+        return .proceed;
+    }
+
     pub fn enter_update_expression(
         self: *Visitor,
         expression: ast.UpdateExpression,
@@ -167,6 +187,30 @@ const Visitor = struct {
     ) Allocator.Error!traverser.Action {
         try self.markReassigned(ctx.tree, expression.argument);
         return .proceed;
+    }
+
+    fn collectForLoopLeft(self: *Visitor, tree: *const ast.Tree, index: ast.NodeIndex) Allocator.Error!void {
+        const declaration = switch (tree.data(index)) {
+            .variable_declaration => |declaration| declaration,
+            else => return,
+        };
+        if (declaration.kind != .let) return;
+
+        for (tree.extra(declaration.declarators)) |declarator_index| {
+            const declarator = switch (tree.data(declarator_index)) {
+                .variable_declarator => |declarator| declarator,
+                else => continue,
+            };
+
+            const group = if (self.options.destructuring == .all and isDestructuringPattern(tree, declarator.id)) group: {
+                const group_id = self.next_destructuring_group;
+                self.next_destructuring_group += 1;
+                try self.destructuring_groups.put(group_id, false);
+                break :group group_id;
+            } else null;
+
+            try self.collectCandidate(tree, declarator.id, group);
+        }
     }
 
     fn collectCandidate(self: *Visitor, tree: *const ast.Tree, index: ast.NodeIndex, group: ?usize) Allocator.Error!void {
