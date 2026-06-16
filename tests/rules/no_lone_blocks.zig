@@ -12,12 +12,6 @@ test "reports no-lone-blocks for unnecessary block statements" {
         \\    run();
         \\  }
         \\}
-        \\switch (value) {
-        \\  case 1:
-        \\    {
-        \\      run();
-        \\    }
-        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -28,7 +22,7 @@ test "reports no-lone-blocks for unnecessary block statements" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_lone_blocks.id));
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_lone_blocks.id));
 }
 
 test "does not report no-lone-blocks for scoped declarations" {
@@ -66,6 +60,18 @@ test "does not report no-lone-blocks for structured statement bodies" {
         \\if (ready) { run(); } else { stop(); }
         \\while (ready) { run(); }
         \\for (let i = 0; i < 1; i++) { run(); }
+        \\switch (value) {
+        \\  case 1:
+        \\    {
+        \\      run();
+        \\    }
+        \\}
+        \\switch (value) {
+        \\  default:
+        \\    {
+        \\      run();
+        \\    }
+        \\}
         \\try { run(); } catch (error) { handle(error); } finally { cleanup(); }
     ;
 
