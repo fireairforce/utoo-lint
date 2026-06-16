@@ -6,6 +6,8 @@ test "reports no-unneeded-ternary for boolean literal branches" {
     const source =
         \\const first = enabled ? true : false;
         \\const second = enabled ? false : true;
+        \\const third = enabled ? true : true;
+        \\const fourth = enabled ? false : false;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -17,7 +19,7 @@ test "reports no-unneeded-ternary for boolean literal branches" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_unneeded_ternary.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_unneeded_ternary.id));
 }
 
 test "does not report no-unneeded-ternary for non-boolean branches or default assignments" {
