@@ -693,6 +693,12 @@ pub fn runSemantic(
         try no_buffer_constructor.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
+    if (options.no_console) {
+        try no_console.run(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .allow = options.no_console_allow,
+        });
+    }
+
     if (options.no_extra_boolean_cast) {
         try no_extra_boolean_cast.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
@@ -2277,11 +2283,6 @@ const BasicVisitor = struct {
         }
         if (self.options.import_no_amd) {
             try import_no_amd.check(self.allocator, self.diagnostics, ctx.tree, call, index);
-        }
-        if (self.options.no_console) {
-            try no_console.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, index, .{
-                .allow = self.options.no_console_allow,
-            });
         }
         if (self.options.no_prototype_builtins) {
             try no_prototype_builtins.check(self.allocator, self.diagnostics, ctx.tree, call, index);

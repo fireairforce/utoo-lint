@@ -3,6 +3,7 @@ const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
+const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 pub const id = "no-console";
@@ -11,50 +12,61 @@ pub const Options = struct {
     allow: core.NoConsoleAllow = .{},
 };
 
-pub fn check(
+pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
-    call: ast.CallExpression,
-    index: ast.NodeIndex,
-) Allocator.Error!void {
-    try checkWithOptions(allocator, diagnostics, tree, call, index, .{});
-}
-
-pub fn checkWithOptions(
-    allocator: Allocator,
-    diagnostics: *core.DiagnosticList,
-    tree: *const ast.Tree,
-    call: ast.CallExpression,
-    index: ast.NodeIndex,
+    symbol_table: traverser.semantic.SymbolTable,
     options: Options,
 ) Allocator.Error!void {
-    const member = consoleMemberCall(tree, call.callee) orelse return;
-    const method = propertyName(tree, member);
-    if (method != null and options.allow.contains(method.?)) return;
+    var visitor = Visitor{
+        .allocator = allocator,
+        .diagnostics = diagnostics,
+        .symbol_table = symbol_table,
+        .options = options,
+    };
 
-    try core.addDiagnostic(
-        allocator,
-        diagnostics,
-        .warning,
-        id,
-        "Unexpected console call.",
-        tree.span(index),
-    );
+    try traverser.basic.traverse(Visitor, tree, &visitor);
 }
 
-fn consoleMemberCall(tree: *const ast.Tree, callee: ast.NodeIndex) ?ast.MemberExpression {
-    var current = callee;
+const Visitor = struct {
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
 
-    switch (tree.data(current)) {
-        .chain_expression => |chain| current = chain.expression,
-        else => {},
+    pub fn enter_member_expression(
+        self: *Visitor,
+        member: ast.MemberExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (!isGlobalConsoleReference(ctx.tree, self.symbol_table, member.object)) return .proceed;
+
+        const method = propertyName(ctx.tree, member);
+        if (method != null and self.options.allow.contains(method.?)) return .proceed;
+
+        try core.addDiagnostic(
+            self.allocator,
+            self.diagnostics,
+            .warning,
+            id,
+            "Unexpected console statement.",
+            ctx.tree.span(index),
+        );
+
+        return .proceed;
     }
+};
 
-    return switch (tree.data(current)) {
-        .member_expression => |member| if (isIdentifierNamed(tree, member.object, "console")) member else null,
-        else => null,
-    };
+fn isGlobalConsoleReference(
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    index: ast.NodeIndex,
+) bool {
+    const unwrapped = unwrapTransparent(tree, index);
+    if (!isIdentifierNamed(tree, unwrapped, "console")) return false;
+    return isUnresolvedReference(symbol_table, unwrapped);
 }
 
 fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
@@ -91,4 +103,32 @@ fn isIdentifierNamed(tree: *const ast.Tree, index: ast.NodeIndex, name: []const 
         .identifier_reference => |identifier| std.mem.eql(u8, tree.string(identifier.name), name),
         else => false,
     };
+}
+
+fn isUnresolvedReference(
+    symbol_table: traverser.semantic.SymbolTable,
+    node: ast.NodeIndex,
+) bool {
+    var iter = symbol_table.iterReferences();
+    while (iter.next()) |entry| {
+        if (entry.reference.node == node) {
+            return symbol_table.referenceSymbol(entry.id) == .none;
+        }
+    }
+
+    return false;
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+
+    return current;
 }
