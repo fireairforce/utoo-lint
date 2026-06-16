@@ -24,6 +24,7 @@ test "reports no-nested-ternary for conditional expressions inside branches" {
 test "does not report no-nested-ternary for simple conditional expressions" {
     const source =
         \\const value = ready ? a : b;
+        \\const tested = (foo ? a : b) ? c : d;
         \\const called = foo ? call(bar ? a : b) : c;
         \\const object = foo ? { value: bar ? a : b } : c;
     ;
