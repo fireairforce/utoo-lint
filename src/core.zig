@@ -113,6 +113,11 @@ pub const NoReturnAssignStyle = enum {
     always,
 };
 
+pub const RadixStyle = enum {
+    always,
+    as_needed,
+};
+
 pub const NoSequencesAllowInParentheses = enum {
     yes,
     no,
@@ -693,6 +698,7 @@ pub const Options = struct {
     react_void_dom_elements_no_children: bool = true,
     react_hooks_rules_of_hooks: bool = true,
     radix: bool = true,
+    radix_style: RadixStyle = .always,
     require_await: bool = true,
     require_atomic_updates: bool = true,
     require_yield: bool = true,
@@ -901,6 +907,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "prefer-const")) {
             self.prefer_const_destructuring = try preferConstDestructuringFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "radix")) {
+            self.radix_style = try radixStyleFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
             self.no_return_assign_style = try noReturnAssignStyleFromConfig(value);
@@ -1538,6 +1547,22 @@ pub const Options = struct {
         };
         if (std.mem.eql(u8, style, "except-parens")) return .except_parens;
         if (std.mem.eql(u8, style, "always")) return .always;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn radixStyleFromConfig(value: std.json.Value) RuleConfigError!RadixStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "always")) return .always;
+        if (std.mem.eql(u8, style, "as-needed")) return .as_needed;
         return error.UnsupportedRuleConfigValue;
     }
 
@@ -2468,6 +2493,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("prefer-const", prefer_const_config.value);
     try std.testing.expect(options.prefer_const);
     try std.testing.expectEqual(PreferConstDestructuring.all, options.prefer_const_destructuring);
+
+    var radix_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"as-needed\"]",
+        .{},
+    );
+    defer radix_config.deinit();
+    try options.setByRuleConfigValue("radix", radix_config.value);
+    try std.testing.expect(options.radix);
+    try std.testing.expectEqual(RadixStyle.as_needed, options.radix_style);
 
     var no_return_assign_config = try std.json.parseFromSlice(
         std.json.Value,

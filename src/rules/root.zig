@@ -870,7 +870,12 @@ pub fn runSemantic(
     }
 
     if (options.radix) {
-        try radix.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try radix.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .style = switch (options.radix_style) {
+                .always => .always,
+                .as_needed => .as_needed,
+            },
+        });
     }
 
     if (options.require_atomic_updates) {

@@ -8,16 +8,36 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "radix";
 
+pub const Style = enum {
+    always,
+    as_needed,
+};
+
+pub const Options = struct {
+    style: Style = .always,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, symbol_table, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
+) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
         .symbol_table = symbol_table,
+        .options = options,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -27,6 +47,7 @@ const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
 
     pub fn enter_call_expression(
         self: *Visitor,
@@ -54,12 +75,19 @@ const Visitor = struct {
         }
 
         if (arguments.len == 1) {
-            try self.addDiagnostic(tree, index, "Missing radix parameter.");
+            if (self.options.style == .always) {
+                try self.addDiagnostic(tree, index, "Missing radix parameter.");
+            }
             return;
         }
 
         if (!isValidRadix(tree, arguments[1])) {
             try self.addDiagnostic(tree, index, "Invalid radix parameter, must be an integer between 2 and 36.");
+            return;
+        }
+
+        if (self.options.style == .as_needed and isDecimalRadix(tree, arguments[1])) {
+            try self.addDiagnostic(tree, index, "Redundant radix parameter.");
         }
     }
 
@@ -108,6 +136,24 @@ fn isGlobalParseIntCall(
     return std.mem.eql(u8, object_name, "Number") and isUnresolvedReference(symbol_table, object);
 }
 
+fn isDecimalRadix(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    const unwrapped = unwrapTransparent(tree, index);
+
+    switch (tree.data(unwrapped)) {
+        .numeric_literal => |literal| return isNumericRadix(tree, literal, 1, 10),
+        .unary_expression => |expression| {
+            if (expression.operator != .positive and expression.operator != .negate) return false;
+
+            const literal = switch (tree.data(unwrapTransparent(tree, expression.argument))) {
+                .numeric_literal => |literal| literal,
+                else => return false,
+            };
+            return isNumericRadix(tree, literal, if (expression.operator == .negate) -1 else 1, 10);
+        },
+        else => return false,
+    }
+}
+
 fn isValidRadix(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     const unwrapped = unwrapTransparent(tree, index);
 
@@ -132,6 +178,12 @@ fn isValidNumericRadix(tree: *const ast.Tree, literal: ast.NumericLiteral, sign:
     const value = literal.value(tree);
     const signed_value = value * @as(f64, @floatFromInt(sign));
     return signed_value >= 2 and signed_value <= 36 and signed_value == @floor(signed_value);
+}
+
+fn isNumericRadix(tree: *const ast.Tree, literal: ast.NumericLiteral, sign: i64, expected: i64) bool {
+    const value = literal.value(tree);
+    const signed_value = value * @as(f64, @floatFromInt(sign));
+    return signed_value == @as(f64, @floatFromInt(expected));
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {

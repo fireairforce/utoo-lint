@@ -62,6 +62,36 @@ test "does not report radix for valid radix arguments or shadowed globals" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.radix.id));
 }
 
+test "supports radix as-needed mode" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"as-needed\"]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("radix", config.value);
+    options.no_unused_vars = false;
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\parseInt(value);
+        \\parseInt(value, 10);
+        \\parseInt(value, 16);
+        \\parseInt(value, undefined);
+        \\Number.parseInt(value);
+        \\Number.parseInt(value, 10);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.radix.id));
+}
+
 test "can disable radix" {
     const source =
         \\parseInt(value);
