@@ -70,24 +70,9 @@ pub fn runWithOptions(
         const decls = symbol_table.symbolDecls(entry.id);
         if (decls.len == 0) continue;
 
-        const name = tree.string(symbol.name);
-        if (tree.source_type == .script and symbol.scope == .root and core.isKnownGlobal(name)) {
-            for (decls) |decl| {
-                try core.addDiagnosticFmt(
-                    allocator,
-                    diagnostics,
-                    options.severity,
-                    options.rule_id,
-                    tree.span(decl),
-                    "'{s}' is already defined as a built-in global variable.",
-                    .{name},
-                );
-            }
-            continue;
-        }
-
         if (decls.len <= 1) continue;
 
+        const name = tree.string(symbol.name);
         if (options.mode == .typescript) {
             try checkTypescriptRedeclarations(allocator, diagnostics, tree, decls, name, decl_info, options);
         } else {
