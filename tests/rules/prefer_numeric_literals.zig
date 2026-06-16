@@ -10,6 +10,12 @@ test "reports prefer-numeric-literals for parseInt calls that can be numeric lit
         \\Number["parseInt"]("ff", 16);
         \\Number[`parseInt`]("ff", 16);
         \\parseInt(`a0`, 16);
+        \\function local(parseInt, Number) {
+        \\  parseInt("101", 2);
+        \\  Number.parseInt("ff", 16);
+        \\  Number["parseInt"]("ff", 16);
+        \\  Number[`parseInt`]("ff", 16);
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -22,7 +28,7 @@ test "reports prefer-numeric-literals for parseInt calls that can be numeric lit
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.prefer_numeric_literals.id));
+    try std.testing.expectEqual(@as(usize, 10), helpers.countRule(result, lint.rules.prefer_numeric_literals.id));
     try std.testing.expectEqualStrings("Use a binary literal instead of parseInt().", result.diagnostics[0].message);
 }
 
@@ -54,10 +60,7 @@ test "allows parseInt calls without static string and binary octal or hexadecima
         \\parseInt("101", radix);
         \\parseInt("101", 2, extra);
         \\Number[`parse${suffix}`]("ff", 16);
-        \\function local(parseInt, Number) {
-        \\  parseInt("101", 2);
-        \\  Number.parseInt("ff", 16);
-        \\}
+        \\other.parseInt("ff", 16);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
