@@ -7,9 +7,8 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "prefer-rest-params";
 
-const ArgumentsScan = enum {
+const ArgumentsScanResult = enum {
     none,
-    used,
     declared,
 };
 
@@ -20,19 +19,26 @@ pub fn check(
     function: ast.Function,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    _ = index;
     if (function.body == .null) return;
     if (bindingNamed(tree, function.id, "arguments")) return;
     if (paramsContainBinding(tree, function.params, "arguments")) return;
-    if (scanBodyArguments(tree, function.body) != .used) return;
 
-    try core.addDiagnostic(
-        allocator,
-        diagnostics,
-        .warning,
-        id,
-        "Use the rest parameters instead of 'arguments'.",
-        tree.span(index),
-    );
+    var references: std.ArrayList(ast.NodeIndex) = .empty;
+    defer references.deinit(allocator);
+
+    if (try collectBodyArguments(allocator, tree, function.body, &references) == .declared) return;
+
+    for (references.items) |reference| {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Use the rest parameters instead of 'arguments'.",
+            tree.span(reference),
+        );
+    }
 }
 
 fn paramsContainBinding(tree: *const ast.Tree, params_index: ast.NodeIndex, name: []const u8) bool {
@@ -57,53 +63,88 @@ fn formalParameters(tree: *const ast.Tree, params_index: ast.NodeIndex) ?ast.For
     };
 }
 
-fn scanBodyArguments(tree: *const ast.Tree, index: ast.NodeIndex) ArgumentsScan {
+fn collectBodyArguments(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    references: *std.ArrayList(ast.NodeIndex),
+) Allocator.Error!ArgumentsScanResult {
     if (index == .null) return .none;
 
     return switch (tree.data(index)) {
-        .variable_declaration => |declaration| {
-            for (tree.extra(declaration.declarators)) |declarator_index| {
-                const declarator = switch (tree.data(declarator_index)) {
-                    .variable_declarator => |declarator| declarator,
-                    else => continue,
-                };
-                if (bindingNamed(tree, declarator.id, "arguments")) return .declared;
+        .variable_declaration => |declaration| try collectVariableDeclarationArguments(allocator, tree, declaration, references),
+        .function => |function| if (function.type == .function_declaration and bindingNamed(tree, function.id, "arguments")) .declared else .none,
+        .identifier_reference => |identifier| {
+            if (std.mem.eql(u8, tree.string(identifier.name), "arguments")) {
+                try references.append(allocator, index);
             }
             return .none;
         },
-        .function => |function| if (function.type == .function_declaration and bindingNamed(tree, function.id, "arguments")) .declared else .none,
-        .identifier_reference => |identifier| if (std.mem.eql(u8, tree.string(identifier.name), "arguments")) .used else .none,
-        .arrow_function_expression,
-        => .none,
-        inline else => |node| scanNodeArguments(tree, node),
+        .arrow_function_expression => |arrow| try collectArrowArguments(allocator, tree, arrow, references),
+        inline else => |node| try collectNodeArguments(allocator, tree, node, references),
     };
 }
 
-fn scanNodeArguments(tree: *const ast.Tree, node: anytype) ArgumentsScan {
+fn collectVariableDeclarationArguments(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    declaration: ast.VariableDeclaration,
+    references: *std.ArrayList(ast.NodeIndex),
+) Allocator.Error!ArgumentsScanResult {
+    for (tree.extra(declaration.declarators)) |declarator_index| {
+        const declarator = switch (tree.data(declarator_index)) {
+            .variable_declarator => |declarator| declarator,
+            else => continue,
+        };
+        if (bindingNamed(tree, declarator.id, "arguments")) return .declared;
+        if (try collectBodyArguments(allocator, tree, declarator.init, references) == .declared) return .declared;
+    }
+
+    return .none;
+}
+
+fn collectArrowArguments(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    arrow: ast.ArrowFunctionExpression,
+    references: *std.ArrayList(ast.NodeIndex),
+) Allocator.Error!ArgumentsScanResult {
+    if (paramsContainBinding(tree, arrow.params, "arguments")) return .none;
+
+    const before = references.items.len;
+    if (try collectBodyArguments(allocator, tree, arrow.body, references) == .declared) {
+        references.shrinkRetainingCapacity(before);
+    }
+
+    return .none;
+}
+
+fn collectNodeArguments(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    node: anytype,
+    references: *std.ArrayList(ast.NodeIndex),
+) Allocator.Error!ArgumentsScanResult {
     const T = @TypeOf(node);
     if (@typeInfo(T) != .@"struct") return .none;
 
-    var result: ArgumentsScan = .none;
-
     inline for (@typeInfo(T).@"struct".fields) |field| {
         if (field.type == ast.NodeIndex) {
-            switch (scanBodyArguments(tree, @field(node, field.name))) {
+            switch (try collectBodyArguments(allocator, tree, @field(node, field.name), references)) {
                 .declared => return .declared,
-                .used => result = .used,
                 .none => {},
             }
         } else if (field.type == ast.IndexRange) {
             for (tree.extra(@field(node, field.name))) |child| {
-                switch (scanBodyArguments(tree, child)) {
+                switch (try collectBodyArguments(allocator, tree, child, references)) {
                     .declared => return .declared,
-                    .used => result = .used,
                     .none => {},
                 }
             }
         }
     }
 
-    return result;
+    return .none;
 }
 
 fn bindingNamed(tree: *const ast.Tree, index: ast.NodeIndex, name: []const u8) bool {
