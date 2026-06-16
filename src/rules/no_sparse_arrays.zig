@@ -14,22 +14,26 @@ pub fn check(
     expression: ast.ArrayExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
-    if (!hasHole(tree, expression.elements)) return;
+    const holes = countHoles(tree, expression.elements);
+    if (holes == 0) return;
 
-    try core.addDiagnostic(
-        allocator,
-        diagnostics,
-        .warning,
-        id,
-        "Unexpected sparse array.",
-        tree.span(index),
-    );
+    for (0..holes) |_| {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Unexpected sparse array.",
+            tree.span(index),
+        );
+    }
 }
 
-fn hasHole(tree: *const ast.Tree, elements: ast.IndexRange) bool {
+fn countHoles(tree: *const ast.Tree, elements: ast.IndexRange) usize {
+    var holes: usize = 0;
     for (tree.extra(elements)) |element| {
-        if (element == .null) return true;
+        if (element == .null) holes += 1;
     }
 
-    return false;
+    return holes;
 }
