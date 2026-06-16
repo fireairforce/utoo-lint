@@ -17,6 +17,10 @@ test "reports operator-assignment for assignable binary self updates" {
         \\this.total = this.total - amount;
         \\obj["count"] = obj["count"] | mask;
         \\obj[0] = obj[0] & mask;
+        \\value = amount * value;
+        \\value = amount | value;
+        \\value = amount ^ value;
+        \\value = amount & value;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -28,13 +32,14 @@ test "reports operator-assignment for assignable binary self updates" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 12), helpers.countRule(result, lint.rules.operator_assignment.id));
+    try std.testing.expectEqual(@as(usize, 16), helpers.countRule(result, lint.rules.operator_assignment.id));
 }
 
 test "does not report operator-assignment when shorthand would change the expression" {
     const source =
         \\let value = 1;
         \\value = amount + value;
+        \\value = amount - value;
         \\value = value && amount;
         \\value = value < amount;
         \\value += amount;
