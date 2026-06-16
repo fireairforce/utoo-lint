@@ -87,6 +87,8 @@ fn alwaysExits(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .if_statement => |statement| statement.alternate != .null and
             alwaysExits(tree, statement.consequent) and
             alwaysExits(tree, statement.alternate),
+        .try_statement => |statement| alwaysExits(tree, statement.block) or
+            alwaysExits(tree, statement.finalizer),
 
         else => false,
     };
