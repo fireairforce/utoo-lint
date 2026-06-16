@@ -127,6 +127,25 @@ test "reports no-constant-condition for constant logical expressions" {
     try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_constant_condition.id));
 }
 
+test "reports no-constant-condition for constant binary and assignment expressions" {
+    const source =
+        \\if (1 + 2) { use(); }
+        \\if ("a" === "b") { use(); }
+        \\if (value = 1) { use(); }
+        \\if (value = {}) { use(); }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_cond_assign = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_constant_condition.id));
+}
+
 test "does not report no-constant-condition for dynamic logical expressions" {
     const source =
         \\if (true && ready) { use(); }
@@ -136,6 +155,26 @@ test "does not report no-constant-condition for dynamic logical expressions" {
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_constant_condition.id));
+}
+
+test "does not report no-constant-condition for dynamic binary or assignment expressions" {
+    const source =
+        \\if (1 + ready) { use(); }
+        \\if (value = ready) { use(); }
+        \\if (value += 1) { use(); }
+        \\if ("key" in {}) { use(); }
+        \\if ({} instanceof Object) { use(); }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_cond_assign = false,
         .no_unused_vars = false,
         .no_undef = false,
         .parser_semantic_errors = false,
