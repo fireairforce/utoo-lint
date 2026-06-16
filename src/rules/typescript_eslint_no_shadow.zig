@@ -30,5 +30,6 @@ pub fn runWithOptions(
         .severity = .@"error",
         .mode = .typescript,
         .allow = options.allow,
+        .builtin_globals = options.builtin_globals,
     });
 }
