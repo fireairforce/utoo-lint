@@ -2098,6 +2098,9 @@ const BasicVisitor = struct {
         if (self.options.prefer_destructuring) {
             try prefer_destructuring.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
+        if (self.options.no_useless_rename) {
+            try no_useless_rename.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
         if (self.options.no_self_assign) {
             try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
