@@ -8,8 +8,10 @@ test "reports @typescript-eslint/no-array-constructor for generic Array construc
         \\const b = new Array();
         \\const c = Array(1, 2);
         \\const d = new Array("a", "b");
+        \\const e = Array?.();
+        \\const f = Array?.(1, 2);
         \\function local(Array: (...args: unknown[]) => unknown) {
-        \\  const e = Array();
+        \\  const g = Array();
         \\}
     ;
 
@@ -20,7 +22,7 @@ test "reports @typescript-eslint/no-array-constructor for generic Array construc
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.typescript_eslint_no_array_constructor.id));
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.typescript_eslint_no_array_constructor.id));
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_array_constructor.id));
     for (result.diagnostics) |diagnostic| {
         if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.typescript_eslint_no_array_constructor.id)) {
@@ -36,7 +38,8 @@ test "does not report @typescript-eslint/no-array-constructor for single argumen
         \\const c = Array(...items);
         \\const d = Array<string>();
         \\const e = new Array<string>();
-        \\const f = Array?.();
+        \\const f = Array?.(length);
+        \\const g = Array?.(...items);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
