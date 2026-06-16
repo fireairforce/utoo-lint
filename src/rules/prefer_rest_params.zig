@@ -74,6 +74,7 @@ fn collectBodyArguments(
     return switch (tree.data(index)) {
         .variable_declaration => |declaration| try collectVariableDeclarationArguments(allocator, tree, declaration, references),
         .function => |function| if (function.type == .function_declaration and bindingNamed(tree, function.id, "arguments")) .declared else .none,
+        .member_expression => |member| try collectMemberExpressionArguments(allocator, tree, member, references),
         .identifier_reference => |identifier| {
             if (std.mem.eql(u8, tree.string(identifier.name), "arguments")) {
                 try references.append(allocator, index);
@@ -119,6 +120,29 @@ fn collectArrowArguments(
     return .none;
 }
 
+fn collectMemberExpressionArguments(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    member: ast.MemberExpression,
+    references: *std.ArrayList(ast.NodeIndex),
+) Allocator.Error!ArgumentsScanResult {
+    if (!member.computed and isIdentifierReferenceNamed(tree, member.object, "arguments")) return .none;
+
+    switch (try collectBodyArguments(allocator, tree, member.object, references)) {
+        .declared => return .declared,
+        .none => {},
+    }
+
+    if (member.computed) {
+        switch (try collectBodyArguments(allocator, tree, member.property, references)) {
+            .declared => return .declared,
+            .none => {},
+        }
+    }
+
+    return .none;
+}
+
 fn collectNodeArguments(
     allocator: Allocator,
     tree: *const ast.Tree,
@@ -145,6 +169,15 @@ fn collectNodeArguments(
     }
 
     return .none;
+}
+
+fn isIdentifierReferenceNamed(tree: *const ast.Tree, index: ast.NodeIndex, name: []const u8) bool {
+    if (index == .null) return false;
+
+    return switch (tree.data(index)) {
+        .identifier_reference => |identifier| std.mem.eql(u8, tree.string(identifier.name), name),
+        else => false,
+    };
 }
 
 fn bindingNamed(tree: *const ast.Tree, index: ast.NodeIndex, name: []const u8) bool {

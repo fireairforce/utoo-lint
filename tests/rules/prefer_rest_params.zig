@@ -8,7 +8,7 @@ test "reports prefer-rest-params for current function arguments usage" {
         \\  return arguments[0];
         \\}
         \\const second = function () {
-        \\  return arguments.length;
+        \\  return arguments[1];
         \\};
         \\const obj = {
         \\  method() {
@@ -62,7 +62,7 @@ test "reports prefer-rest-params for each arguments reference" {
         \\  return arguments[0];
         \\}
         \\function arrowInside() {
-        \\  const read = () => arguments.length;
+        \\  const read = () => arguments[0];
         \\  return read;
         \\}
     ;
@@ -75,6 +75,30 @@ test "reports prefer-rest-params for each arguments reference" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_rest_params.id));
+}
+
+test "does not report prefer-rest-params for static arguments members" {
+    const source =
+        \\function first() {
+        \\  return arguments.length;
+        \\}
+        \\function second() {
+        \\  return arguments.callee;
+        \\}
+        \\function arrowInside() {
+        \\  const read = () => arguments.length;
+        \\  return read;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.prefer_rest_params.id));
 }
 
 test "does not report prefer-rest-params when arguments is shadowed in scripts" {
