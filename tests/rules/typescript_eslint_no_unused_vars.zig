@@ -13,6 +13,11 @@ test "reports @typescript-eslint/no-unused-vars for unused variables and after-u
         \\}
         \\demo("before", "used", "after");
         \\
+        \\try {
+        \\  demo("before", "used", "after");
+        \\} catch (unusedError) {
+        \\}
+        \\
         \\type UnusedType = string;
     ;
 
@@ -22,7 +27,7 @@ test "reports @typescript-eslint/no-unused-vars for unused variables and after-u
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unused_vars.id));
     for (result.diagnostics) |diagnostic| {
         if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.typescript_eslint_no_unused_vars.id)) {

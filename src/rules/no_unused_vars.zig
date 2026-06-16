@@ -107,7 +107,6 @@ pub fn runWithOptions(
 
         if (!isLintableSymbol(flags, options)) continue;
         if (flags.exported or flags.ambient) continue;
-        if (flags.catch_var) continue;
         if (flags.parameter) {
             if (!options.check_parameters) continue;
             if (options.args_after_used and !shouldCheckParameter(entry.id, symbol.scope, parameters.items)) continue;
@@ -136,6 +135,7 @@ pub fn runWithOptions(
 
 fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bool {
     return flags.inValueSpace() or
+        flags.catch_var or
         flags.import or
         flags.type_import or
         flags.interface or
