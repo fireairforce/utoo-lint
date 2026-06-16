@@ -48,19 +48,18 @@ fn hasExpectedSpacing(tree: *const ast.Tree, comment: ast.Comment, style: Style)
     const value = tree.string(comment.value);
     if (value.len == 0) return true;
 
-    if (isMarker(value[0], comment.type)) return true;
+    const index = spacingIndex(value, comment.type);
+    if (index >= value.len) return true;
 
     return switch (style) {
-        .always => isWhitespace(value[0]),
-        .never => !isWhitespace(value[0]),
+        .always => isWhitespace(value[index]),
+        .never => !isWhitespace(value[index]),
     };
 }
 
-fn isMarker(char: u8, comment_type: ast.Comment.Type) bool {
-    return switch (comment_type) {
-        .line => char == '/',
-        .block => char == '*' or char == '!',
-    };
+fn spacingIndex(value: []const u8, comment_type: ast.Comment.Type) usize {
+    if (comment_type == .block and value[0] == '*') return 1;
+    return 0;
 }
 
 fn message(style: Style) []const u8 {
