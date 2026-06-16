@@ -7,6 +7,7 @@ test "reports no-extra-semi for unnecessary empty statements" {
         \\const value = 1;;
         \\function run() {}
         \\;
+        \\class Example { ; method() {} ; field; }
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -17,7 +18,7 @@ test "reports no-extra-semi for unnecessary empty statements" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_extra_semi.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_extra_semi.id));
 }
 
 test "does not report no-extra-semi for empty statement bodies" {

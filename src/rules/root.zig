@@ -2772,9 +2772,12 @@ const BasicVisitor = struct {
     pub fn enter_class_body(
         self: *BasicVisitor,
         body: ast.ClassBody,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_extra_semi and !self.options.typescript_eslint_no_extra_semi) {
+            try no_extra_semi.checkClassBody(self.allocator, self.diagnostics, ctx.tree, body, index);
+        }
         if (self.options.accessor_pairs) {
             try accessor_pairs.checkClassBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, body, .{
                 .get_without_set = self.options.accessor_pairs_get_without_set == .yes,
