@@ -40,13 +40,9 @@ fn isProcessExitCall(tree: *const ast.Tree, callee: ast.NodeIndex) bool {
 
 fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
     if (member.property == .null) return null;
+    if (member.computed) return null;
 
-    return if (member.computed)
-        switch (tree.data(member.property)) {
-            .string_literal => |literal| tree.string(literal.value),
-            else => null,
-        }
-    else switch (tree.data(member.property)) {
+    return switch (tree.data(member.property)) {
         .identifier_name => |identifier| tree.string(identifier.name),
         else => null,
     };
