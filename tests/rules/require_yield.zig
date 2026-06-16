@@ -4,17 +4,23 @@ const helpers = @import("../helpers.zig");
 
 test "reports require-yield for generators without their own yield" {
     const source =
-        \\function* empty() {}
+        \\function* emptyStatement() {
+        \\  ;
+        \\}
         \\function* onlyNested() {
         \\  function* nested() {
         \\    yield value;
         \\  }
         \\}
         \\const obj = {
-        \\  *emptyMethod() {}
+        \\  *emptyMethod() {
+        \\    ;
+        \\  }
         \\};
         \\class Example {
-        \\  *emptyMethod() {}
+        \\  *emptyMethod() {
+        \\    ;
+        \\  }
         \\}
     ;
 
@@ -32,13 +38,17 @@ test "reports require-yield for generators without their own yield" {
 
 test "does not report require-yield for generators with yield or non-generators" {
     const source =
+        \\function* empty() {}
+        \\const obj = {
+        \\  *emptyMethod() {}
+        \\};
         \\function* values() {
         \\  yield value;
         \\}
         \\function* delegate() {
         \\  yield* values();
         \\}
-        \\const obj = {
+        \\const objWithYield = {
         \\  *method() {
         \\    if (ready) {
         \\      yield value;
