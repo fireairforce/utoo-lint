@@ -101,13 +101,10 @@ fn isPromiseRejectCall(
     tree: *const ast.Tree,
     call: ast.CallExpression,
 ) bool {
-    if (call.optional) return false;
-
     const member = switch (tree.data(unwrapTransparent(tree, call.callee))) {
         .member_expression => |member| member,
         else => return false,
     };
-    if (member.optional) return false;
 
     const property = staticMemberPropertyName(tree, member) orelse return false;
     if (!std.mem.eql(u8, property, "reject")) return false;
@@ -334,7 +331,6 @@ fn scanRejectChildren(
 }
 
 fn isRejectCall(tree: *const ast.Tree, reject_name: []const u8, call: ast.CallExpression) bool {
-    if (call.optional) return false;
     return isIdentifierReferenceNamed(tree, call.callee, reject_name);
 }
 
