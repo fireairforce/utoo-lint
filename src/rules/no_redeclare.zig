@@ -70,9 +70,16 @@ pub fn runWithOptions(
         const decls = symbol_table.symbolDecls(entry.id);
         if (decls.len == 0) continue;
 
+        const name = tree.string(symbol.name);
+        if (isBuiltinGlobalRedeclaration(tree, symbol, name, options)) {
+            for (decls) |decl| {
+                try addBuiltinGlobalRedeclaration(allocator, diagnostics, tree, decl, name, options);
+            }
+            continue;
+        }
+
         if (decls.len <= 1) continue;
 
-        const name = tree.string(symbol.name);
         if (options.mode == .typescript) {
             try checkTypescriptRedeclarations(allocator, diagnostics, tree, decls, name, decl_info, options);
         } else {
@@ -92,6 +99,18 @@ fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bo
     if (flags.ambient) return false;
     if (flags.type_import or flags.interface or flags.type_alias or flags.type_parameter) return false;
     return flags.inValueSpace() or flags.import;
+}
+
+fn isBuiltinGlobalRedeclaration(
+    tree: *const ast.Tree,
+    symbol: traverser.semantic.Symbol,
+    name: []const u8,
+    options: Options,
+) bool {
+    return options.mode == .javascript and
+        tree.source_type == .script and
+        symbol.scope == .root and
+        core.isKnownGlobal(name);
 }
 
 fn checkTypescriptRedeclarations(
@@ -173,6 +192,25 @@ fn addAlreadyDefined(
         options.rule_id,
         tree.span(decl),
         "'{s}' is already defined.",
+        .{name},
+    );
+}
+
+fn addBuiltinGlobalRedeclaration(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    decl: ast.NodeIndex,
+    name: []const u8,
+    options: Options,
+) Allocator.Error!void {
+    try core.addDiagnosticFmt(
+        allocator,
+        diagnostics,
+        options.severity,
+        options.rule_id,
+        tree.span(decl),
+        "'{s}' is already defined as a built-in global variable.",
         .{name},
     );
 }
