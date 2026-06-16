@@ -14,13 +14,10 @@ pub fn check(
     call: ast.CallExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
-    if (call.optional) return;
-
     const callee_member = switch (tree.data(unwrapTransparent(tree, call.callee))) {
         .member_expression => |member| member,
         else => return,
     };
-    if (callee_member.optional) return;
 
     const method = propertyName(tree, callee_member) orelse return;
     if (!std.mem.eql(u8, method, "apply")) return;
@@ -46,7 +43,6 @@ fn canPreserveThisArg(tree: *const ast.Tree, target: ast.NodeIndex, this_arg: as
         else => return isNullOrUndefined(tree, this_arg),
     };
 
-    if (target_member.optional) return false;
     if (!isSimpleReference(tree, target_member.object)) return false;
     return sameSource(tree, target_member.object, this_arg);
 }
@@ -73,7 +69,7 @@ fn isSimpleReference(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .identifier_reference,
         .this_expression,
         => true,
-        .member_expression => |member| !member.optional and isSimpleReference(tree, member.object) and propertyName(tree, member) != null,
+        .member_expression => |member| isSimpleReference(tree, member.object) and propertyName(tree, member) != null,
         else => false,
     };
 }
