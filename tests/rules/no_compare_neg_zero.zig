@@ -8,6 +8,9 @@ test "reports no-compare-neg-zero for comparisons against negative zero" {
         \\-0 == x;
         \\x < -0;
         \\-0 >= x;
+        \\x === -(0);
+        \\(-0) === x;
+        \\x === -0.0;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -18,7 +21,7 @@ test "reports no-compare-neg-zero for comparisons against negative zero" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_compare_neg_zero.id));
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_compare_neg_zero.id));
 }
 
 test "does not report no-compare-neg-zero for non-comparisons" {
