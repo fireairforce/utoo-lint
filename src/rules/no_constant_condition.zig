@@ -56,7 +56,9 @@ fn isConstantExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .function => |function| function.type == .function_expression or function.type == .ts_empty_body_function_expression,
         .class => |class| class.type == .class_expression,
         .unary_expression => |unary| isConstantUnaryExpression(tree, unary),
+        .binary_expression => |binary| isConstantBinaryExpression(tree, binary),
         .logical_expression => |logical| isConstantLogicalExpression(tree, logical),
+        .assignment_expression => |assignment| isConstantAssignmentExpression(tree, assignment),
         else => false,
     };
 }
@@ -81,6 +83,18 @@ fn isConstantUnaryExpression(tree: *const ast.Tree, unary: ast.UnaryExpression) 
         .delete,
         => false,
     };
+}
+
+fn isConstantBinaryExpression(tree: *const ast.Tree, binary: ast.BinaryExpression) bool {
+    if (binary.operator == .in or binary.operator == .instanceof) return false;
+
+    return isConstantExpression(tree, unwrapTransparent(tree, binary.left)) and
+        isConstantExpression(tree, unwrapTransparent(tree, binary.right));
+}
+
+fn isConstantAssignmentExpression(tree: *const ast.Tree, assignment: ast.AssignmentExpression) bool {
+    if (assignment.operator != .assign) return false;
+    return isConstantExpression(tree, unwrapTransparent(tree, assignment.right));
 }
 
 fn isConstantLogicalExpression(tree: *const ast.Tree, logical: ast.LogicalExpression) bool {
