@@ -7,6 +7,7 @@ test "reports no-sparse-arrays for array holes" {
         \\const first = [1,, 2];
         \\const second = [,];
         \\const third = [,,];
+        \\const fourth = [,,...items];
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -17,7 +18,7 @@ test "reports no-sparse-arrays for array holes" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_sparse_arrays.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_sparse_arrays.id));
 }
 
 test "does not report no-sparse-arrays for explicit values" {
