@@ -21,6 +21,13 @@ Initialize submodules before building:
 git submodule update --init --recursive
 ```
 
+Install JavaScript workspace dependencies with pnpm:
+
+```bash
+corepack enable
+pnpm install
+```
+
 ## Development
 
 Run the test suite:
@@ -62,10 +69,8 @@ Biome, and ESLint on a generated TypeScript corpus using a shared rule set.
 
 ```bash
 zig build -Doptimize=ReleaseFast
-cd benchmarks
-npm install
-npm run generate
-npm run bench
+pnpm --dir benchmarks generate
+pnpm --dir benchmarks bench
 ```
 
 The benchmark runner writes machine-readable results to
@@ -74,8 +79,7 @@ The benchmark runner writes machine-readable results to
 Render a shareable chart from the latest benchmark results:
 
 ```bash
-cd benchmarks
-npm run chart
+pnpm --dir benchmarks chart
 ```
 
 `benchmarks/results` is ignored by git, so generated charts do not need to be
@@ -90,11 +94,11 @@ Build and stage the npm CLI packages:
 node npm/utoo-lint/bin/utoo-lint.js test/fixtures/bad.ts
 ```
 
-Local npm install test:
+Local pnpm install test:
 
 ```bash
-npm install -g ./npm/@utoo/lint-darwin-arm64
-npm install -g ./npm/utoo-lint
+pnpm add -g ./npm/@utoo/lint-darwin-arm64
+pnpm add -g ./npm/utoo-lint
 utoo-lint test/fixtures/bad.ts
 ```
 
@@ -138,8 +142,8 @@ Publish from GitHub:
 1. Create a new GitHub Release whose tag starts with `v`, for example `v0.1.0`.
 2. Publish the release.
 
-The release workflow updates npm package versions from the release tag and
-publishes the npm packages.
+The release workflow updates npm package versions from the release tag, builds
+the native binaries, and publishes the npm packages with pnpm.
 
 For a manual run, open the `Release` workflow in GitHub Actions and set
 `release_tag` to a `v`-prefixed tag. Enable `publish_npm` when the npm packages
@@ -148,6 +152,6 @@ should be published.
 After the workflow succeeds:
 
 ```bash
-npm install -g @utoo/lint
+pnpm add -g @utoo/lint
 utoo-lint test/fixtures/bad.ts
 ```

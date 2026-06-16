@@ -70,11 +70,11 @@
     "use-at-your-own-risk.js"
   ],
   "optionalDependencies": {
-    "@utoo/lint-darwin-arm64": "0.1.0",
-    "@utoo/lint-darwin-x64": "0.1.0",
-    "@utoo/lint-linux-arm64": "0.1.0",
-    "@utoo/lint-linux-x64": "0.1.0",
-    "@utoo/lint-win32-x64": "0.1.0"
+    "@utoo/lint-darwin-arm64": "workspace:*",
+    "@utoo/lint-darwin-x64": "workspace:*",
+    "@utoo/lint-linux-arm64": "workspace:*",
+    "@utoo/lint-linux-x64": "workspace:*",
+    "@utoo/lint-win32-x64": "workspace:*"
   },
   "publishConfig": {
     "access": "public",

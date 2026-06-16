@@ -7,7 +7,7 @@ High performance linter for JavaScript and TypeScript written by Zig.
 ## Install
 
 ```bash
-npm install -D @utoo/lint
+pnpm add -D @utoo/lint
 ```
 
 ## CLI
@@ -15,7 +15,7 @@ npm install -D @utoo/lint
 Run the linter with:
 
 ```bash
-npx utoo-lint src
+pnpm exec utoo-lint src
 ```
 
 If no target is provided, `utoo-lint` scans the current directory. It skips
@@ -24,19 +24,19 @@ If no target is provided, `utoo-lint` scans the current directory. It skips
 Use a config file:
 
 ```bash
-npx utoo-lint --config=utoo.json src
+pnpm exec utoo-lint --config=utoo.json src
 ```
 
 Run a focused rule set:
 
 ```bash
-npx utoo-lint --rules=no-debugger,no-console src
+pnpm exec utoo-lint --rules=no-debugger,no-console src
 ```
 
 Use machine-readable output:
 
 ```bash
-npx utoo-lint --format=json src
+pnpm exec utoo-lint --format=json src
 ```
 
 ## Configuration
@@ -66,14 +66,14 @@ cp node_modules/@utoo/lint/configs/frontend.json utoo.json
 Convert an existing ESLint config into the native utoo format:
 
 ```bash
-npx utoo-lint migrate eslint --from eslint.config.js --output utoo.json
+pnpm exec utoo-lint migrate eslint --from eslint.config.js --output utoo.json
 ```
 
 The package also provides compatibility bins for common replacement flows:
 
 ```bash
-npx eslint --config utoo.json src
-npx fishlint eslint --disable-setup --config utoo.json --glob src
+pnpm exec eslint --config utoo.json src
+pnpm exec fishlint eslint --disable-setup --config utoo.json --glob src
 ```
 
 ## JavaScript API

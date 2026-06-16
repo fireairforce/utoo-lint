@@ -189,8 +189,8 @@ through the same wrapper, so package scripts such as `eslint src -f json` can be
 tested without adding the `fishlint eslint` prefix.
 
 ```bash
-npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
-npx eslint --config utoo.json --ext .js,.ts src
+pnpm exec fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
+pnpm exec eslint --config utoo.json --ext .js,.ts src
 ```
 
 For programmatic replacements, `runFishlint()` invokes the same compatibility
@@ -225,7 +225,7 @@ Use the packaged frontend config in an app:
 
 ```bash
 cp node_modules/@utoo/lint/configs/frontend.json utoo.json
-npx utoo-lint src
+pnpm exec utoo-lint src
 ```
 
 The package also ships `schema.json`, which the frontend config references through
@@ -246,18 +246,20 @@ node npm/utoo-lint/bin/utoo-lint.js test/fixtures/bad.ts
 For local global testing:
 
 ```bash
-npm install -g ./npm/@utoo/lint-darwin-arm64 # replace with the current host package
-npm install -g ./npm/utoo-lint
+pnpm add -g ./npm/@utoo/lint-darwin-arm64 # replace with the current host package
+pnpm add -g ./npm/utoo-lint
 utoo-lint test/fixtures/bad.ts
 ```
 
 Publishing order:
 
 ```bash
-for package_dir in dist/native-packages/npm/@utoo/lint-*; do
-  npm publish "${package_dir}" --access public
+for package_dir in npm/@utoo/lint-*; do
+  pnpm --dir "${package_dir}" publish --access public
 done
-npm publish ./npm/utoo-lint --access public
+pnpm --dir npm/utoo-lint publish --access public
 ```
 
-GitHub Actions stages the native package directories from the release matrix and uses the same order in `.github/workflows/release.yml`.
+GitHub Actions stages the native package directories from the release matrix,
+copies their binaries into the workspace packages, updates package versions from
+the release tag, and publishes with pnpm in `.github/workflows/release.yml`.
