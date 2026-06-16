@@ -6,6 +6,7 @@ test "reports no-nested-ternary for conditional expressions inside branches" {
     const source =
         \\const first = foo ? bar ? a : b : c;
         \\const second = foo ? a : bar ? b : c;
+        \\const third = foo ? (bar ? a : b) : c;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -17,12 +18,14 @@ test "reports no-nested-ternary for conditional expressions inside branches" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_nested_ternary.id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_nested_ternary.id));
 }
 
 test "does not report no-nested-ternary for simple conditional expressions" {
     const source =
         \\const value = ready ? a : b;
+        \\const called = foo ? call(bar ? a : b) : c;
+        \\const object = foo ? { value: bar ? a : b } : c;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{

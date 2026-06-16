@@ -26,32 +26,30 @@ pub fn check(
 }
 
 fn hasNestedTernary(tree: *const ast.Tree, expression: ast.ConditionalExpression) bool {
-    return subtreeHasConditionalExpression(tree, expression.@"test") or
-        subtreeHasConditionalExpression(tree, expression.consequent) or
-        subtreeHasConditionalExpression(tree, expression.alternate);
+    return isConditionalExpression(tree, expression.@"test") or
+        isConditionalExpression(tree, expression.consequent) or
+        isConditionalExpression(tree, expression.alternate);
 }
 
-fn subtreeHasConditionalExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+fn isConditionalExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     if (index == .null) return false;
 
-    switch (tree.data(index)) {
-        .conditional_expression => return true,
-        inline else => |node| {
-            const Node = @TypeOf(node);
-            if (@typeInfo(Node) != .@"struct") return false;
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .conditional_expression => true,
+        else => false,
+    };
+}
 
-            inline for (@typeInfo(Node).@"struct".fields) |field| {
-                if (field.type == ast.NodeIndex) {
-                    if (subtreeHasConditionalExpression(tree, @field(node, field.name))) return true;
-                } else if (field.type == ast.IndexRange) {
-                    const range = @field(node, field.name);
-                    for (tree.extra(range)) |child| {
-                        if (subtreeHasConditionalExpression(tree, child)) return true;
-                    }
-                }
-            }
-        },
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
     }
 
-    return false;
+    return current;
 }
