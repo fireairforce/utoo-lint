@@ -52,6 +52,31 @@ test "does not report no-else-return when consequent can continue" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_else_return.id));
 }
 
+test "does not report no-else-return for else-if alternate" {
+    const source =
+        \\function first(value) {
+        \\  if (value) {
+        \\    return 1;
+        \\  } else if (value > 1) {
+        \\    return 2;
+        \\  }
+        \\}
+        \\function second(value) {
+        \\  if (value) return 1;
+        \\  else if (value > 1) return 2;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_else_return.id));
+}
+
 test "can disable no-else-return" {
     const source =
         \\function first(value) {
