@@ -16,7 +16,6 @@ pub fn checkCallExpression(
 ) Allocator.Error!void {
     if (call.arguments.len == 1) return;
     if (call.type_arguments != .null) return;
-    if (call.optional) return;
     if (!isArrayIdentifier(tree, call.callee)) return;
 
     try addDiagnostic(allocator, diagnostics, tree, index);
