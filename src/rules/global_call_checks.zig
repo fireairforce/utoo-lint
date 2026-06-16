@@ -226,10 +226,6 @@ fn isImpliedEvalCallee(
 ) bool {
     const unwrapped = unwrapTransparent(tree, callee);
 
-    if (identifierReferenceName(tree, unwrapped)) |name| {
-        return isImpliedEvalName(name) and isUnresolvedReference(symbol_table, unwrapped);
-    }
-
     const member = switch (tree.data(unwrapped)) {
         .member_expression => |member| member,
         else => return false,
