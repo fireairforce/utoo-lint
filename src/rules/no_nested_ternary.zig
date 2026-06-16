@@ -26,8 +26,7 @@ pub fn check(
 }
 
 fn hasNestedTernary(tree: *const ast.Tree, expression: ast.ConditionalExpression) bool {
-    return isConditionalExpression(tree, expression.@"test") or
-        isConditionalExpression(tree, expression.consequent) or
+    return isConditionalExpression(tree, expression.consequent) or
         isConditionalExpression(tree, expression.alternate);
 }
 
