@@ -14,7 +14,7 @@ pub fn check(
     index: ast.NodeIndex,
     ctx: *traverser.basic.Ctx,
 ) Allocator.Error!void {
-    if (!isInsideLoop(tree, ctx)) return;
+    if (!isInsideLoop(tree, index, ctx)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -26,20 +26,27 @@ pub fn check(
     );
 }
 
-fn isInsideLoop(tree: *const ast.Tree, ctx: *traverser.basic.Ctx) bool {
+fn isInsideLoop(tree: *const ast.Tree, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) bool {
+    var child = index;
     var depth: usize = 1;
     while (ctx.path.ancestor(depth)) |ancestor| : (depth += 1) {
         switch (tree.data(ancestor)) {
             .arrow_function_expression,
             .function,
             => return false,
-            .for_statement,
+            .for_statement => |statement| {
+                if (statement.init == child) {
+                    child = ancestor;
+                    continue;
+                }
+                return true;
+            },
             .for_in_statement,
             .for_of_statement,
             .while_statement,
             .do_while_statement,
             => return true,
-            else => {},
+            else => child = ancestor,
         }
     }
 
