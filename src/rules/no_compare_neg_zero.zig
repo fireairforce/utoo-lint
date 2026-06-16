@@ -46,14 +46,28 @@ fn isComparisonOperator(operator: ast.BinaryOperator) bool {
 fn isNegativeZero(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     if (index == .null) return false;
 
-    const unary = switch (tree.data(index)) {
+    const unary = switch (tree.data(unwrapTransparent(tree, index))) {
         .unary_expression => |unary| unary,
         else => return false,
     };
     if (unary.operator != .negate) return false;
 
-    return switch (tree.data(unary.argument)) {
-        .numeric_literal => |literal| std.mem.eql(u8, tree.string(literal.raw), "0"),
+    return switch (tree.data(unwrapTransparent(tree, unary.argument))) {
+        .numeric_literal => |literal| literal.value(tree) == 0,
         else => false,
     };
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+
+    return current;
 }
