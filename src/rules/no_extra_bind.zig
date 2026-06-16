@@ -14,13 +14,10 @@ pub fn check(
     call: ast.CallExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
-    if (call.optional) return;
-
     const callee_member = switch (tree.data(unwrapTransparent(tree, call.callee))) {
         .member_expression => |member| member,
         else => return,
     };
-    if (callee_member.optional) return;
 
     const method = propertyName(tree, callee_member) orelse return;
     if (!std.mem.eql(u8, method, "bind")) return;
