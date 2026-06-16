@@ -25,6 +25,24 @@ pub fn check(
     );
 }
 
+pub fn checkVariableDeclarator(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    declarator: ast.VariableDeclarator,
+) Allocator.Error!void {
+    if (!isAssignmentExpression(tree, declarator.init)) return;
+
+    try core.addDiagnostic(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        "Unexpected chained assignment.",
+        tree.span(declarator.init),
+    );
+}
+
 fn isAssignmentExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     if (index == .null) return false;
 

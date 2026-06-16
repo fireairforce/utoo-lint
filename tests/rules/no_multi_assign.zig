@@ -8,6 +8,9 @@ test "reports no-multi-assign for chained assignments" {
         \\a = b = c;
         \\a = (b = c);
         \\a = b = c = d;
+        \\let x = y = z;
+        \\const p = q = r;
+        \\var m = n = o;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -17,7 +20,7 @@ test "reports no-multi-assign for chained assignments" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_multi_assign.id));
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_multi_assign.id));
 }
 
 test "does not report no-multi-assign for single assignments" {
@@ -26,6 +29,7 @@ test "does not report no-multi-assign for single assignments" {
         \\a = b;
         \\a += b;
         \\a = condition ? b = c : c;
+        \\let ok = b;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{

@@ -1407,6 +1407,9 @@ const BasicVisitor = struct {
                 .allow_in_object_destructuring = self.options.no_underscore_dangle_allow_in_object_destructuring == .yes,
             });
         }
+        if (self.options.no_multi_assign) {
+            try no_multi_assign.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
+        }
         if (self.options.func_name_matching) {
             try func_name_matching.checkVariableDeclaratorWithOptions(self.allocator, self.diagnostics, ctx.tree, declarator, .{
                 .style = funcNameMatchingStyle(self.options.func_name_matching_style),
