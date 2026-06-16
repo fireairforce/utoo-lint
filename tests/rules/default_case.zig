@@ -9,6 +9,16 @@ test "reports default-case for switch statements without default" {
         \\    runOne();
         \\    break;
         \\}
+        \\switch (commentBeforeCase) {
+        \\  // no default
+        \\  case 1:
+        \\    runOne();
+        \\}
+        \\switch (commentWithExplanation) {
+        \\  case 1:
+        \\    runOne();
+        \\  // no default: handled elsewhere
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -18,7 +28,7 @@ test "reports default-case for switch statements without default" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.default_case.id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.default_case.id));
 }
 
 test "does not report default-case when default exists or comment opts out" {
@@ -31,9 +41,14 @@ test "does not report default-case when default exists or comment opts out" {
         \\    runDefault();
         \\}
         \\switch (second) {
-        \\  // no default
         \\  case 1:
         \\    runOne();
+        \\  // no default
+        \\}
+        \\switch (third) {
+        \\  case 1:
+        \\    runOne();
+        \\  /* No Default */
         \\}
     ;
 
