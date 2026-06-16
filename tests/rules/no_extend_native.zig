@@ -40,6 +40,12 @@ test "reports no-extend-native for Object defineProperty calls" {
         \\Object[`defineProperties`](Set.prototype, {
         \\  first: { value: function () {} },
         \\});
+        \\Object.defineProperty?.(Date.prototype, "day", {});
+        \\Object?.defineProperty(Array.prototype, "second", {});
+        \\Object?.["defineProperty"](Map.prototype, "second", {});
+        \\Object?.[`defineProperties`](Set.prototype, {
+        \\  second: { value: function () {} },
+        \\});
         \\const Object = {
         \\  defineProperty() {},
         \\};
@@ -62,7 +68,7 @@ test "reports no-extend-native for Object defineProperty calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_extend_native.id));
+    try std.testing.expectEqual(@as(usize, 10), helpers.countRule(result, lint.rules.no_extend_native.id));
 }
 
 test "does not report no-extend-native for ordinary objects or dynamic members" {
@@ -71,6 +77,7 @@ test "does not report no-extend-native for ordinary objects or dynamic members" 
         \\local.prototype.trimLeft = function () {};
         \\Array[`proto${suffix}`].first = function () {};
         \\Object[`define${suffix}`](Array.prototype, "first", {});
+        \\Object?.[`define${suffix}`](Array.prototype, "first", {});
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
