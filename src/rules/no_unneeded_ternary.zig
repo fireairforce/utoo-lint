@@ -13,9 +13,8 @@ pub fn check(
     expression: ast.ConditionalExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
-    const consequent = booleanLiteralValue(tree, expression.consequent) orelse return;
-    const alternate = booleanLiteralValue(tree, expression.alternate) orelse return;
-    if (consequent == alternate) return;
+    _ = booleanLiteralValue(tree, expression.consequent) orelse return;
+    _ = booleanLiteralValue(tree, expression.alternate) orelse return;
 
     try core.addDiagnostic(
         allocator,
