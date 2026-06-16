@@ -8,6 +8,10 @@ test "reports prefer-promise-reject-errors for obvious non-error rejection reaso
         \\Promise.reject("failed");
         \\Promise["reject"]("failed");
         \\Promise[`reject`]("failed");
+        \\Promise.reject?.("failed");
+        \\Promise?.reject("failed");
+        \\Promise?.["reject"]("failed");
+        \\Promise?.[`reject`]("failed");
         \\Promise[`re${suffix}`]("dynamic");
         \\Promise.reject(1);
         \\Promise.reject(`failed`);
@@ -15,6 +19,7 @@ test "reports prefer-promise-reject-errors for obvious non-error rejection reaso
         \\Promise.reject("failed " + code);
         \\new Promise((resolve, reject) => {
         \\  reject("failed");
+        \\  reject?.("failed");
         \\});
         \\new Promise(function (resolve, reject) {
         \\  if (failed) {
@@ -38,7 +43,7 @@ test "reports prefer-promise-reject-errors for obvious non-error rejection reaso
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 12), helpers.countRule(result, lint.rules.prefer_promise_reject_errors.id));
+    try std.testing.expectEqual(@as(usize, 17), helpers.countRule(result, lint.rules.prefer_promise_reject_errors.id));
 }
 
 test "does not report prefer-promise-reject-errors for error-like rejection reasons" {
@@ -67,6 +72,7 @@ test "does not report prefer-promise-reject-errors for dynamic Promise members o
         \\  }
         \\};
         \\Promise[`re${suffix}`]("dynamic");
+        \\Promise?.[`re${suffix}`]("dynamic");
         \\new Promise((resolve, reject) => {
         \\  function nested() {
         \\    reject("nested");
