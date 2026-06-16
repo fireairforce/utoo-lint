@@ -12,12 +12,11 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
+    _: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
-        .symbol_table = symbol_table,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -26,7 +25,6 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
-    symbol_table: traverser.semantic.SymbolTable,
 
     pub fn enter_if_statement(
         self: *Visitor,
@@ -94,7 +92,7 @@ const Visitor = struct {
         tree: *const ast.Tree,
         unwrapped: ast.NodeIndex,
     ) Allocator.Error!void {
-        if (isBooleanCall(tree, self.symbol_table, unwrapped) or isDoubleNegation(tree, unwrapped)) {
+        if (isBooleanCall(tree, unwrapped) or isDoubleNegation(tree, unwrapped)) {
             try core.addDiagnostic(
                 self.allocator,
                 self.diagnostics,
@@ -115,11 +113,7 @@ const Visitor = struct {
     }
 };
 
-fn isBooleanCall(
-    tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
-    index: ast.NodeIndex,
-) bool {
+fn isBooleanCall(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     const call = switch (tree.data(index)) {
         .call_expression => |call| call,
         else => return false,
@@ -127,7 +121,7 @@ fn isBooleanCall(
 
     const callee = unwrapTransparent(tree, call.callee);
     const name = identifierReferenceName(tree, callee) orelse return false;
-    return std.mem.eql(u8, name, "Boolean") and isUnresolvedReference(symbol_table, callee);
+    return std.mem.eql(u8, name, "Boolean");
 }
 
 fn isDoubleNegation(tree: *const ast.Tree, index: ast.NodeIndex) bool {
@@ -166,18 +160,4 @@ fn identifierReferenceName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const
         .identifier_reference => |identifier| tree.string(identifier.name),
         else => null,
     };
-}
-
-fn isUnresolvedReference(
-    symbol_table: traverser.semantic.SymbolTable,
-    node: ast.NodeIndex,
-) bool {
-    var iter = symbol_table.iterReferences();
-    while (iter.next()) |entry| {
-        if (entry.reference.node == node) {
-            return symbol_table.referenceSymbol(entry.id) == .none;
-        }
-    }
-
-    return false;
 }

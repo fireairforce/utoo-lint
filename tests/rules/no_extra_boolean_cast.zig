@@ -9,6 +9,10 @@ test "reports no-extra-boolean-cast in boolean contexts" {
         \\do { value++; } while (Boolean(value));
         \\for (; !!value; value++) { break; }
         \\const selected = Boolean(value) ? 1 : 2;
+        \\function local(Boolean) {
+        \\  if (Boolean(value)) { use(value); }
+        \\}
+        \\if (Boolean?.(value)) { use(value); }
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -18,16 +22,15 @@ test "reports no-extra-boolean-cast in boolean contexts" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_extra_boolean_cast.id));
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_extra_boolean_cast.id));
 }
 
-test "does not report no-extra-boolean-cast outside boolean contexts or for shadowed Boolean" {
+test "does not report no-extra-boolean-cast outside boolean contexts or member calls" {
     const source =
         \\const a = Boolean(value);
         \\const b = !!value;
-        \\function local(Boolean) {
-        \\  if (Boolean(value)) { use(value); }
-        \\}
+        \\if (globalThis.Boolean(value)) { use(value); }
+        \\if (obj.Boolean(value)) { use(value); }
         \\if (!value) { use(value); }
     ;
 
