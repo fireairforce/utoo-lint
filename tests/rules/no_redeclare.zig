@@ -24,9 +24,10 @@ test "reports no-redeclare for repeated declarations" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_redeclare.id));
 }
 
-test "reports no-redeclare for script built-in globals" {
+test "does not report no-redeclare for script built-in globals by default" {
     const source =
         \\var Object = 1;
+        \\var Array = 1;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.cjs", .{
@@ -35,7 +36,7 @@ test "reports no-redeclare for script built-in globals" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_redeclare.id));
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_redeclare.id));
 }
 
 test "does not report no-redeclare for distinct scopes and type declarations" {
