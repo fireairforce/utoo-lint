@@ -31,7 +31,6 @@ fn isStatementListParent(data: ast.NodeData) bool {
     return switch (data) {
         .program,
         .block_statement,
-        .switch_case,
         => true,
         else => false,
     };
