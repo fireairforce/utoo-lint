@@ -46,6 +46,8 @@ test "reports no-extend-native for Object defineProperty calls" {
         \\Object?.[`defineProperties`](Set.prototype, {
         \\  second: { value: function () {} },
         \\});
+        \\Object.defineProperty(Array?.prototype, "maybe", {});
+        \\Object.defineProperty(Array?.["prototype"], "maybeComputed", {});
         \\const Object = {
         \\  defineProperty() {},
         \\};
@@ -68,7 +70,7 @@ test "reports no-extend-native for Object defineProperty calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 10), helpers.countRule(result, lint.rules.no_extend_native.id));
+    try std.testing.expectEqual(@as(usize, 12), helpers.countRule(result, lint.rules.no_extend_native.id));
 }
 
 test "does not report no-extend-native for ordinary objects or dynamic members" {

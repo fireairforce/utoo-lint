@@ -38,7 +38,7 @@ const Visitor = struct {
         };
         if (left_member.optional) return .proceed;
 
-        if (nativePrototypeName(ctx.tree, left_member.object)) |name| {
+        if (nativePrototypeName(ctx.tree, left_member.object, false)) |name| {
             try report(self.allocator, self.diagnostics, ctx.tree, index, name);
         }
 
@@ -56,7 +56,7 @@ const Visitor = struct {
         const arguments = ctx.tree.extra(call.arguments);
         if (arguments.len == 0) return .proceed;
 
-        if (nativePrototypeName(ctx.tree, arguments[0])) |name| {
+        if (nativePrototypeName(ctx.tree, arguments[0], true)) |name| {
             try report(self.allocator, self.diagnostics, ctx.tree, index, name);
         }
 
@@ -67,12 +67,13 @@ const Visitor = struct {
 fn nativePrototypeName(
     tree: *const ast.Tree,
     index: ast.NodeIndex,
+    allow_optional: bool,
 ) ?[]const u8 {
     const member = switch (tree.data(unwrapTransparent(tree, index))) {
         .member_expression => |member| member,
         else => return null,
     };
-    if (member.optional) return null;
+    if (member.optional and !allow_optional) return null;
 
     const property_name = propertyName(tree, member) orelse return null;
     if (!std.mem.eql(u8, property_name, "prototype")) return null;
