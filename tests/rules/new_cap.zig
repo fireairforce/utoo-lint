@@ -28,7 +28,15 @@ test "does not report new-cap for conventional constructor usage callable builti
     const source =
         \\new Foo();
         \\foo();
+        \\new _foo();
+        \\new $foo();
+        \\_Foo();
+        \\$Foo();
         \\new namespace.Foo();
+        \\new namespace._foo();
+        \\new namespace.$foo();
+        \\namespace._Foo();
+        \\namespace.$Foo();
         \\new namespace[`fo${suffix}`]();
         \\namespace[`Fo${suffix}`]();
         \\Array();
