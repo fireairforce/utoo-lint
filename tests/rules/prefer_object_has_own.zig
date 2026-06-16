@@ -9,6 +9,9 @@ test "reports prefer-object-has-own for hasOwnProperty call helpers" {
         \\({}).hasOwnProperty.call(object, "key");
         \\Object["prototype"]["hasOwnProperty"]["call"](object, "key");
         \\Object[`prototype`][`hasOwnProperty`][`call`](object, "key");
+        \\Object.prototype.hasOwnProperty.call?.(object, "key");
+        \\Object.prototype.hasOwnProperty?.call(object, "key");
+        \\Object?.prototype.hasOwnProperty.call(object, "key");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -20,7 +23,7 @@ test "reports prefer-object-has-own for hasOwnProperty call helpers" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.prefer_object_has_own.id));
+    try std.testing.expectEqual(@as(usize, 8), helpers.countRule(result, lint.rules.prefer_object_has_own.id));
     try std.testing.expectEqualStrings(
         "Use 'Object.hasOwn()' instead of 'Object.prototype.hasOwnProperty.call()'.",
         result.diagnostics[0].message,

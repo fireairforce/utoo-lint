@@ -54,17 +54,13 @@ fn isPreferableHasOwn(
     symbol_table: traverser.semantic.SymbolTable,
     call: ast.CallExpression,
 ) bool {
-    if (call.optional) return false;
-
     const arguments = tree.extra(call.arguments);
     if (arguments.len < 2) return false;
 
     const call_member = memberExpression(tree, call.callee) orelse return false;
-    if (call_member.optional) return false;
     if (!propertyNamed(tree, call_member, "call")) return false;
 
     const target_member = memberExpression(tree, call_member.object) orelse return false;
-    if (target_member.optional) return false;
     if (!propertyNamed(tree, target_member, "hasOwnProperty")) return false;
 
     return isPreferredTargetObject(tree, symbol_table, target_member.object);
@@ -84,7 +80,6 @@ fn isPreferredTargetObject(
     }
 
     const prototype_member = memberExpression(tree, object) orelse return false;
-    if (prototype_member.optional) return false;
     if (!propertyNamed(tree, prototype_member, "prototype")) return false;
 
     const prototype_object = unwrapTransparent(tree, prototype_member.object);
