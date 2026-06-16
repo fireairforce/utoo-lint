@@ -14,6 +14,7 @@ pub fn check(
     index: ast.NodeIndex,
 ) Allocator.Error!void {
     if (!function.generator or function.body == .null) return;
+    if (functionBodyEmpty(tree, function.body)) return;
     if (containsYield(tree, function.body)) return;
 
     try core.addDiagnostic(
@@ -24,6 +25,13 @@ pub fn check(
         "This generator function does not have 'yield'.",
         tree.span(index),
     );
+}
+
+fn functionBodyEmpty(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(index)) {
+        .function_body => |body| body.body.len == 0,
+        else => false,
+    };
 }
 
 fn containsYield(tree: *const ast.Tree, index: ast.NodeIndex) bool {
