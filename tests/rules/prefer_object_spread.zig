@@ -8,6 +8,8 @@ test "reports prefer-object-spread for Object.assign into object literals" {
         \\const second = Object.assign({ value: 1 }, source, extra);
         \\const third = Object["assign"]({}, source);
         \\const fourth = Object[`assign`]({}, source);
+        \\const fifth = Object?.assign({}, source);
+        \\const sixth = Object?.["assign"]({}, source);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -19,7 +21,7 @@ test "reports prefer-object-spread for Object.assign into object literals" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.prefer_object_spread.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.prefer_object_spread.id));
     try std.testing.expectEqualStrings("Use an object spread instead of Object.assign.", result.diagnostics[0].message);
 }
 
@@ -30,6 +32,7 @@ test "allows non-object targets shadowed Object and spread arguments" {
         \\Object.assign({}, ...sources);
         \\Object[assign]({}, source);
         \\Object[`assi${name}`]({}, source);
+        \\Object?.[`assi${name}`]({}, source);
         \\function local(Object) {
         \\  Object.assign({}, source);
         \\}

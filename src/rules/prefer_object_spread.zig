@@ -81,7 +81,6 @@ fn isGlobalObjectAssign(
         .member_expression => |member| member,
         else => return false,
     };
-    if (member.optional) return false;
     const property_name = memberPropertyName(tree, member) orelse return false;
     if (!std.mem.eql(u8, property_name, "assign")) return false;
     const object = unwrapTransparent(tree, member.object);
