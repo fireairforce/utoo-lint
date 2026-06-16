@@ -28,13 +28,13 @@ Useful docs:
 ## Install
 
 ```bash
-npm install -D @utoo/lint
+pnpm add -D @utoo/lint
 ```
 
 Run it with:
 
 ```bash
-npx utoo-lint src
+pnpm exec utoo-lint src
 ```
 
 ## CLI
@@ -50,7 +50,7 @@ Start a frontend project from the packaged template:
 
 ```bash
 cp node_modules/@utoo/lint/configs/frontend.json utoo.json
-npx utoo-lint src
+pnpm exec utoo-lint src
 ```
 
 Run only a focused rule set:
@@ -96,7 +96,7 @@ ESLint-style array whose first item is the severity.
 To migrate an existing ESLint config into the native utoo format:
 
 ```bash
-npx utoo-lint migrate eslint --from eslint.config.js --output utoo.json
+pnpm exec utoo-lint migrate eslint --from eslint.config.js --output utoo.json
 ```
 
 ## JavaScript API

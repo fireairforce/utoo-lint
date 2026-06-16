@@ -135,12 +135,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
-          package-manager-cache: false
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install package manager dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Download native npm packages
         uses: actions/download-artifact@v7
@@ -180,9 +187,10 @@ jobs:
           const path = require("node:path");
 
           const version = process.env.VERSION;
-          const nativeRoot = "dist/native-packages/npm/@utoo";
+          const nativeRoot = "npm/@utoo";
           const nativePackagePaths = fs
             .readdirSync(nativeRoot)
+            .filter((name) => name.startsWith("lint-"))
             .map((name) => path.join(nativeRoot, name, "package.json"));
           const packagePaths = ["npm/utoo-lint/package.json", ...nativePackagePaths];
 
@@ -198,25 +206,26 @@ jobs:
           }
           NODE
 
+      - name: Stage native binaries into workspace packages
+        run: |
+          for package_dir in dist/native-packages/npm/@utoo/lint-*; do
+            package_name="$(basename "${package_dir}")"
+            mkdir -p "npm/@utoo/${package_name}/bin"
+            cp -R "${package_dir}/bin/." "npm/@utoo/${package_name}/bin/"
+          done
+
       - name: Verify package contents
         run: |
-          for package_dir in dist/native-packages/npm/@utoo/lint-*; do
-            npm pack --dry-run "${package_dir}"
+          for package_dir in npm/@utoo/lint-* npm/utoo-lint; do
+            pnpm --dir "${package_dir}" pack --dry-run
           done
-          npm pack --dry-run ./npm/utoo-lint
 
-      - name: Update npm
-        run: npm install -g npm@11.6.2
-
-      - name: Publish native npm packages
+      - name: Publish npm packages
         env:
           NPM_TAG: ${{ steps.release_version.outputs.npm_tag }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          for package_dir in dist/native-packages/npm/@utoo/lint-*; do
-            npm publish "${package_dir}" --access public --provenance --tag "${NPM_TAG}"
+          for package_dir in npm/@utoo/lint-*; do
+            pnpm --dir "${package_dir}" publish --access public --provenance --tag "${NPM_TAG}" --no-git-checks
           done
-
-      - name: Publish npm CLI package
-        env:
-          NPM_TAG: ${{ steps.release_version.outputs.npm_tag }}
-        run: npm publish ./npm/utoo-lint --access public --provenance --tag "${NPM_TAG}"
+          pnpm --dir npm/utoo-lint publish --access public --provenance --tag "${NPM_TAG}" --no-git-checks

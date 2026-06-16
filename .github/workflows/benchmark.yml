@@ -43,28 +43,28 @@ jobs:
       - name: Setup Zig
         uses: mlugg/setup-zig@v2
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: benchmarks/package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install benchmark dependencies
-        working-directory: benchmarks
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build utoo-lint
         run: zig build -Doptimize=ReleaseFast -j1
 
       - name: Generate benchmark corpus
-        working-directory: benchmarks
-        run: npm run generate -- --files=1000 --statements=30 --out=fixtures/codspeed
+        run: pnpm --dir benchmarks generate -- --files=1000 --statements=30 --out=fixtures/codspeed
 
       - name: Run benchmark smoke
         if: env.CODSPEED_TOKEN == ''
-        working-directory: benchmarks
-        run: npm run codspeed -- --target=fixtures/codspeed --time=100 --warmup-time=0
+        run: pnpm --dir benchmarks codspeed -- --target=fixtures/codspeed --time=100 --warmup-time=0
 
       - name: Skip CodSpeed upload
         if: env.CODSPEED_TOKEN == ''
@@ -76,5 +76,5 @@ jobs:
         with:
           mode: walltime
           working-directory: benchmarks
-          run: npm run codspeed -- --target=fixtures/codspeed
+          run: pnpm codspeed -- --target=fixtures/codspeed
           token: ${{ env.CODSPEED_TOKEN }}
