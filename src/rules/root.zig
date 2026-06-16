@@ -2176,7 +2176,9 @@ const BasicVisitor = struct {
             try no_compare_neg_zero.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.eqeqeq) {
-            try eqeqeq.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try eqeqeq.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .style = self.options.eqeqeq_style,
+            });
         }
         if (self.options.no_eq_null) {
             try no_eq_null.check(self.allocator, self.diagnostics, ctx.tree, expression, index);

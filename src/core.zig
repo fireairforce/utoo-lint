@@ -16,6 +16,11 @@ pub const Severity = enum {
     }
 };
 
+pub const EqeqeqStyle = enum {
+    strict,
+    allow_null,
+};
+
 pub const NoConfusingArrowAllowParens = enum {
     yes,
     no,
@@ -682,6 +687,7 @@ pub const Options = struct {
     one_var: bool = true,
     operator_assignment: bool = true,
     eqeqeq: bool = true,
+    eqeqeq_style: EqeqeqStyle = .strict,
     use_isnan: bool = true,
     no_unused_vars: bool = true,
     no_use_before_define: bool = true,
@@ -910,6 +916,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "grouped-accessor-pairs")) {
             self.grouped_accessor_pairs_style = try groupedAccessorPairsStyleFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "eqeqeq")) {
+            self.eqeqeq_style = try eqeqeqStyleFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "logical-assignment-operators")) {
             self.logical_assignment_operators_style = try logicalAssignmentOperatorsStyleFromConfig(value);
             self.logical_assignment_operators_enforce_for_if_statements = try logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value);
@@ -1053,6 +1062,22 @@ pub const Options = struct {
             return true;
         }
         return null;
+    }
+
+    fn eqeqeqStyleFromConfig(value: std.json.Value) RuleConfigError!EqeqeqStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .strict,
+        };
+        if (items.len < 2) return .strict;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "always")) return .strict;
+        if (std.mem.eql(u8, style, "allow-null")) return .allow_null;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn arrayCallbackReturnAllowImplicitFromConfig(value: std.json.Value) RuleConfigError!ArrayCallbackReturnAllowImplicit {
@@ -2390,6 +2415,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("@typescript-eslint/dot-notation", typescript_dot_notation_config.value);
     try std.testing.expect(options.typescript_eslint_dot_notation);
     try std.testing.expectEqual(DotNotationAllowKeywords.yes, options.dot_notation_allow_keywords);
+
+    var eqeqeq_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"allow-null\"]",
+        .{},
+    );
+    defer eqeqeq_config.deinit();
+    try options.setByRuleConfigValue("eqeqeq", eqeqeq_config.value);
+    try std.testing.expect(options.eqeqeq);
+    try std.testing.expectEqual(EqeqeqStyle.allow_null, options.eqeqeq_style);
 
     var profile_a_config = try std.json.parseFromSlice(
         std.json.Value,
