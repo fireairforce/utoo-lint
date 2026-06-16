@@ -15,6 +15,14 @@ test "reports prefer-rest-params for current function arguments usage" {
         \\    return arguments[0];
         \\  }
         \\};
+        \\function withRest(...args) {
+        \\  return arguments[0];
+        \\}
+        \\function nestedOnly() {
+        \\  function inner(...args) {
+        \\    return arguments[0];
+        \\  }
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -24,16 +32,13 @@ test "reports prefer-rest-params for current function arguments usage" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_rest_params.id));
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.prefer_rest_params.id));
 }
 
-test "does not report prefer-rest-params for rest params or nested rest usage" {
+test "does not report prefer-rest-params for nested or arrow arguments usage" {
     const source =
-        \\function withRest(...args) {
-        \\  return arguments[0];
-        \\}
         \\function nestedOnly() {
-        \\  function inner(...args) {
+        \\  function inner(arguments) {
         \\    return arguments[0];
         \\  }
         \\}
