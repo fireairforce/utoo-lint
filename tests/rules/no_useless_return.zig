@@ -66,6 +66,13 @@ test "reports no-useless-return in final try blocks" {
         \\    cleanup();
         \\  }
         \\}
+        \\function third() {
+        \\  try {
+        \\    work();
+        \\  } catch (error) {
+        \\    return;
+        \\  }
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -76,7 +83,7 @@ test "reports no-useless-return in final try blocks" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_useless_return.id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_useless_return.id));
 }
 
 test "does not report no-useless-return when return changes control flow" {
@@ -106,15 +113,17 @@ test "does not report no-useless-return when return changes control flow" {
         \\function fifth() {
         \\  try {
         \\    work();
-        \\  } catch (error) {
+        \\  } finally {
         \\    return;
         \\  }
         \\}
         \\function sixth() {
         \\  try {
         \\    work();
-        \\  } finally {
+        \\  } catch (error) {
         \\    return;
+        \\  } finally {
+        \\    cleanup();
         \\  }
         \\}
     ;
