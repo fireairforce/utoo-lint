@@ -118,6 +118,8 @@ pub fn main(init: std.process.Init) !void {
             options.constructor_super = false;
         } else if (std.mem.eql(u8, arg, "--array-callback-return=off")) {
             options.array_callback_return = false;
+        } else if (std.mem.eql(u8, arg, "--array-callback-return-allow-implicit=on")) {
+            options.array_callback_return_allow_implicit = .yes;
         } else if (std.mem.eql(u8, arg, "--array-callback-return-allow-implicit=off")) {
             options.array_callback_return_allow_implicit = .no;
         } else if (std.mem.eql(u8, arg, "--array-callback-return-check-for-each=on")) {
@@ -1460,6 +1462,7 @@ fn printHelp() void {
         \\  --accessor-pairs-get-without-set=on Enable accessor-pairs getWithoutSet
         \\  --accessor-pairs-set-without-get=off Disable accessor-pairs setWithoutGet
         \\  --array-callback-return=off Disable array-callback-return
+        \\  --array-callback-return-allow-implicit=on Allow bare return statements in array callbacks
         \\  --array-callback-return-allow-implicit=off Require explicit values from array callbacks
         \\  --array-callback-return-check-for-each=on Check forEach callbacks for return values
         \\  --array-callback-return-allow-void=on Allow void returns in checked forEach callbacks
