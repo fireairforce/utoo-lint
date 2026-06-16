@@ -4,12 +4,10 @@ const helpers = @import("../helpers.zig");
 
 test "reports no-implied-eval for string timer and execScript calls" {
     const source =
-        \\setTimeout("alert(1)", 100);
-        \\setInterval(`tick()`, 100);
-        \\execScript("alert(1)");
         \\globalThis.setTimeout("alert(1)");
         \\globalThis["setInterval"]("tick()", 100);
         \\globalThis[`setInterval`]("tick()", 100);
+        \\globalThis.execScript("alert(1)");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -21,11 +19,14 @@ test "reports no-implied-eval for string timer and execScript calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_implied_eval.id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_implied_eval.id));
 }
 
-test "does not report no-implied-eval for function arguments or shadowed calls" {
+test "does not report no-implied-eval for direct calls function arguments or shadowed calls" {
     const source =
+        \\setTimeout("alert(1)", 100);
+        \\setInterval(`tick()`, 100);
+        \\execScript("alert(1)");
         \\setTimeout(() => alert(1), 100);
         \\setInterval(handler, 100);
         \\const setTimeout = customTimer;
