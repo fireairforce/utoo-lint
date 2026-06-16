@@ -8,6 +8,10 @@ test "reports valid-typeof for invalid typeof comparison strings" {
         \\if (typeof value === `strnig`) { use(value); }
         \\if ("undefimed" !== typeof value) { use(value); }
         \\if ((typeof value) == ("bool")) { use(value); }
+        \\if (typeof value === undefined) { use(value); }
+        \\if (typeof value === null) { use(value); }
+        \\if (typeof value === 1) { use(value); }
+        \\if (typeof value === true) { use(value); }
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -18,7 +22,7 @@ test "reports valid-typeof for invalid typeof comparison strings" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.valid_typeof.id));
+    try std.testing.expectEqual(@as(usize, 8), helpers.countRule(result, lint.rules.valid_typeof.id));
 }
 
 test "does not report valid-typeof for valid values or unrelated comparisons" {
@@ -35,6 +39,7 @@ test "does not report valid-typeof for valid values or unrelated comparisons" {
         \\if (typeof value === "symbol") { use(value); }
         \\if (typeof value === "bigint") { use(value); }
         \\if (typeof value === expectedType) { use(value); }
+        \\if (typeof value === typeof other) { use(value); }
         \\if (value === "strnig") { use(value); }
     ;
 
