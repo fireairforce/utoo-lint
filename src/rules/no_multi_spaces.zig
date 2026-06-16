@@ -136,6 +136,12 @@ fn collectIgnoredSpans(allocator: Allocator, tree: *const ast.Tree) Allocator.Er
             .string_literal, .template_element, .regexp_literal => {
                 try ignored_spans.append(allocator, .{ .start = span.start, .end = span.end });
             },
+            .object_property => |property| {
+                const value_span = tree.span(property.value);
+                if (span.start < value_span.start) {
+                    try ignored_spans.append(allocator, .{ .start = span.start, .end = value_span.start });
+                }
+            },
             else => {},
         }
     }
