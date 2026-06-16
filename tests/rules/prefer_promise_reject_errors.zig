@@ -46,11 +46,35 @@ test "reports prefer-promise-reject-errors for obvious non-error rejection reaso
     try std.testing.expectEqual(@as(usize, 17), helpers.countRule(result, lint.rules.prefer_promise_reject_errors.id));
 }
 
+test "reports prefer-promise-reject-errors for object regexp and unary reject reasons" {
+    const source =
+        \\Promise.reject({});
+        \\Promise.reject([]);
+        \\Promise.reject(/failed/);
+        \\Promise.reject(void 0);
+        \\Promise.reject(typeof failed);
+        \\Promise.reject(-1);
+        \\new Promise((resolve, reject) => {
+        \\  reject({});
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.prefer_promise_reject_errors.id));
+}
+
 test "does not report prefer-promise-reject-errors for error-like rejection reasons" {
     const source =
         \\Promise.reject(new Error("failed"));
         \\Promise.reject(error);
         \\Promise.reject(Error("failed"));
+        \\Promise.reject(NaN);
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
