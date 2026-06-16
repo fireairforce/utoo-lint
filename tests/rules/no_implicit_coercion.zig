@@ -154,6 +154,40 @@ test "supports no-implicit-coercion category options" {
     try std.testing.expect(!helpers.hasRule(all_result, lint.rules.no_implicit_coercion.id));
 }
 
+test "supports no-implicit-coercion allow option" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"!!\",\"~\",\"+\",\"*\",\"-\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-implicit-coercion", config.value);
+    options.eol_last = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const first = !!value;
+        \\const second = ~items.indexOf(value);
+        \\const third = +value;
+        \\const fourth = value - 0;
+        \\const fifth = value * 1;
+        \\const sixth = -(-value);
+        \\const seventh = value + "";
+        \\let eighth = value;
+        \\eighth += "";
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_implicit_coercion.id));
+}
+
 test "can disable no-implicit-coercion" {
     const source =
         \\const first = !!value;

@@ -11,6 +11,11 @@ pub const Options = struct {
     boolean: bool = true,
     number: bool = true,
     string: bool = true,
+    allow_double_negation: bool = false,
+    allow_bitwise_not: bool = false,
+    allow_unary_plus: bool = false,
+    allow_multiply: bool = false,
+    allow_subtract: bool = false,
 };
 
 pub fn checkUnaryExpression(
@@ -33,17 +38,17 @@ pub fn checkUnaryExpressionWithOptions(
 ) Allocator.Error!void {
     switch (expression.operator) {
         .logical_not => {
-            if (options.boolean and isDoubleNegation(tree, expression)) {
+            if (options.boolean and !options.allow_double_negation and isDoubleNegation(tree, expression)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Boolean()` instead of double negation.");
             }
         },
         .bitwise_not => {
-            if (options.boolean and isIndexOfCall(tree, expression.argument)) {
+            if (options.boolean and !options.allow_bitwise_not and isIndexOfCall(tree, expression.argument)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use an explicit comparison instead of bitwise negation.");
             }
         },
         .positive => {
-            if (options.number and !isNumeric(tree, expression.argument)) {
+            if (options.number and !options.allow_unary_plus and !isNumeric(tree, expression.argument)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Number()` instead of unary plus.");
             }
         },
@@ -81,12 +86,12 @@ pub fn checkBinaryExpressionWithOptions(
             }
         },
         .subtract => {
-            if (options.number and isZeroLiteral(tree, expression.right) and !isNumeric(tree, expression.left)) {
+            if (options.number and !options.allow_subtract and isZeroLiteral(tree, expression.right) and !isNumeric(tree, expression.left)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Number()` instead of subtracting zero.");
             }
         },
         .multiply => {
-            if (options.number and ((isOneLiteral(tree, expression.left) and !isNumeric(tree, expression.right)) or
+            if (options.number and !options.allow_multiply and ((isOneLiteral(tree, expression.left) and !isNumeric(tree, expression.right)) or
                 (isOneLiteral(tree, expression.right) and !isNumeric(tree, expression.left))))
             {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Number()` instead of multiplying by one.");

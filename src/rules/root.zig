@@ -2239,6 +2239,11 @@ const BasicVisitor = struct {
             .boolean = self.options.no_implicit_coercion_boolean == .yes,
             .number = self.options.no_implicit_coercion_number == .yes,
             .string = self.options.no_implicit_coercion_string == .yes,
+            .allow_double_negation = self.options.no_implicit_coercion_allow_double_negation,
+            .allow_bitwise_not = self.options.no_implicit_coercion_allow_bitwise_not,
+            .allow_unary_plus = self.options.no_implicit_coercion_allow_unary_plus,
+            .allow_multiply = self.options.no_implicit_coercion_allow_multiply,
+            .allow_subtract = self.options.no_implicit_coercion_allow_subtract,
         };
     }
 

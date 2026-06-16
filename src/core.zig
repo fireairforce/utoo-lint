@@ -477,6 +477,11 @@ pub const Options = struct {
     no_implicit_coercion_boolean: NoImplicitCoercionBoolean = .yes,
     no_implicit_coercion_number: NoImplicitCoercionNumber = .yes,
     no_implicit_coercion_string: NoImplicitCoercionString = .yes,
+    no_implicit_coercion_allow_double_negation: bool = false,
+    no_implicit_coercion_allow_bitwise_not: bool = false,
+    no_implicit_coercion_allow_unary_plus: bool = false,
+    no_implicit_coercion_allow_multiply: bool = false,
+    no_implicit_coercion_allow_subtract: bool = false,
     no_implied_eval: bool = true,
     no_import_assign: bool = true,
     alipay_ant_disallow_typos: bool = true,
@@ -891,6 +896,11 @@ pub const Options = struct {
             self.no_implicit_coercion_boolean = try noImplicitCoercionBooleanFromConfig(value);
             self.no_implicit_coercion_number = try noImplicitCoercionNumberFromConfig(value);
             self.no_implicit_coercion_string = try noImplicitCoercionStringFromConfig(value);
+            self.no_implicit_coercion_allow_double_negation = try noImplicitCoercionAllowFromConfig(value, "!!");
+            self.no_implicit_coercion_allow_bitwise_not = try noImplicitCoercionAllowFromConfig(value, "~");
+            self.no_implicit_coercion_allow_unary_plus = try noImplicitCoercionAllowFromConfig(value, "+");
+            self.no_implicit_coercion_allow_multiply = try noImplicitCoercionAllowFromConfig(value, "*");
+            self.no_implicit_coercion_allow_subtract = try noImplicitCoercionAllowFromConfig(value, "-");
         }
         if (std.mem.eql(u8, cli_name, "no-multi-spaces")) {
             self.no_multi_spaces_ignore_eol_comments = try noMultiSpacesIgnoreEOLCommentsFromConfig(value);
@@ -1380,6 +1390,43 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn noImplicitCoercionAllowFromConfig(value: std.json.Value, expected: []const u8) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow_value = config.get("allow") orelse return false;
+        const allow_items = switch (allow_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var found = false;
+        for (allow_items) |item| {
+            const allow = switch (item) {
+                .string => |allow| allow,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!isNoImplicitCoercionAllowToken(allow)) return error.UnsupportedRuleConfigValue;
+            if (std.mem.eql(u8, allow, expected)) found = true;
+        }
+        return found;
+    }
+
+    fn isNoImplicitCoercionAllowToken(value: []const u8) bool {
+        return std.mem.eql(u8, value, "!!") or
+            std.mem.eql(u8, value, "~") or
+            std.mem.eql(u8, value, "+") or
+            std.mem.eql(u8, value, "*") or
+            std.mem.eql(u8, value, "-");
     }
 
     fn noMultiSpacesIgnoreEOLCommentsFromConfig(value: std.json.Value) RuleConfigError!NoMultiSpacesIgnoreEOLComments {
@@ -2449,6 +2496,20 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoImplicitCoercionBoolean.no, options.no_implicit_coercion_boolean);
     try std.testing.expectEqual(NoImplicitCoercionNumber.no, options.no_implicit_coercion_number);
     try std.testing.expectEqual(NoImplicitCoercionString.yes, options.no_implicit_coercion_string);
+
+    var no_implicit_coercion_allow_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"!!\",\"~\",\"+\",\"*\",\"-\"]}]",
+        .{},
+    );
+    defer no_implicit_coercion_allow_config.deinit();
+    try options.setByRuleConfigValue("no-implicit-coercion", no_implicit_coercion_allow_config.value);
+    try std.testing.expect(options.no_implicit_coercion_allow_double_negation);
+    try std.testing.expect(options.no_implicit_coercion_allow_bitwise_not);
+    try std.testing.expect(options.no_implicit_coercion_allow_unary_plus);
+    try std.testing.expect(options.no_implicit_coercion_allow_multiply);
+    try std.testing.expect(options.no_implicit_coercion_allow_subtract);
 
     var no_multi_spaces_config = try std.json.parseFromSlice(
         std.json.Value,
