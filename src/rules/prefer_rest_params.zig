@@ -21,7 +21,6 @@ pub fn check(
     index: ast.NodeIndex,
 ) Allocator.Error!void {
     if (function.body == .null) return;
-    if (hasRestParameter(tree, function.params)) return;
     if (bindingNamed(tree, function.id, "arguments")) return;
     if (paramsContainBinding(tree, function.params, "arguments")) return;
     if (scanBodyArguments(tree, function.body) != .used) return;
@@ -34,11 +33,6 @@ pub fn check(
         "Use the rest parameters instead of 'arguments'.",
         tree.span(index),
     );
-}
-
-fn hasRestParameter(tree: *const ast.Tree, params_index: ast.NodeIndex) bool {
-    const params = formalParameters(tree, params_index) orelse return false;
-    return params.rest != .null;
 }
 
 fn paramsContainBinding(tree: *const ast.Tree, params_index: ast.NodeIndex, name: []const u8) bool {
