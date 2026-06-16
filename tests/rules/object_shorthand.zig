@@ -17,6 +17,9 @@ test "reports object-shorthand for redundant property and method forms" {
         \\  "quoted-method": function () {
         \\    return 3;
         \\  },
+        \\  [computedMethod]: function () {
+        \\    return 4;
+        \\  },
         \\};
     ;
 
@@ -27,7 +30,7 @@ test "reports object-shorthand for redundant property and method forms" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.object_shorthand.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.object_shorthand.id));
 }
 
 test "does not report object-shorthand for non-shorthandable properties" {
@@ -38,6 +41,12 @@ test "does not report object-shorthand for non-shorthandable properties" {
         \\  foo: bar,
         \\  "foo": bar,
         \\  [foo]: foo,
+        \\  method() {
+        \\    return foo;
+        \\  },
+        \\  async asyncMethod() {
+        \\    return foo;
+        \\  },
         \\  bar: function named() {
         \\    return 1;
         \\  },

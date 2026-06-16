@@ -14,25 +14,36 @@ pub fn check(
     property: ast.ObjectProperty,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
-    if (property.computed or property.shorthand or property.kind != .init) return;
+    if (property.shorthand or property.kind != .init or property.method) return;
 
-    if (!canUseShorthand(tree, property)) return;
+    const shorthand_kind = shorthandKind(tree, property) orelse return;
 
     try core.addDiagnostic(
         allocator,
         diagnostics,
         .warning,
         id,
-        "Expected property shorthand.",
+        switch (shorthand_kind) {
+            .property => "Expected property shorthand.",
+            .method => "Expected method shorthand.",
+        },
         tree.span(index),
     );
 }
 
-fn canUseShorthand(tree: *const ast.Tree, property: ast.ObjectProperty) bool {
-    const key_name = propertyKeyName(tree, property.key) orelse return false;
+const ShorthandKind = enum {
+    property,
+    method,
+};
 
-    if (identifierReferenceNamed(tree, property.value, key_name)) return true;
-    return isAnonymousFunctionExpression(tree, property.value);
+fn shorthandKind(tree: *const ast.Tree, property: ast.ObjectProperty) ?ShorthandKind {
+    if (!property.computed) {
+        const key_name = propertyKeyName(tree, property.key);
+        if (key_name != null and identifierReferenceNamed(tree, property.value, key_name.?)) return .property;
+    }
+
+    if (isAnonymousFunctionExpression(tree, property.value)) return .method;
+    return null;
 }
 
 fn propertyKeyName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
