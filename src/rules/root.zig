@@ -965,6 +965,12 @@ const BasicVisitor = struct {
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
 
+    fn curlyOptions(self: *const BasicVisitor) curly.Options {
+        return .{
+            .style = self.options.curly_style,
+        };
+    }
+
     pub fn enter_node(
         self: *BasicVisitor,
         data: ast.NodeData,
@@ -1190,7 +1196,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.curly) {
-            try curly.checkIfStatement(self.allocator, self.diagnostics, ctx.tree, statement);
+            try curly.checkIfStatementWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, self.curlyOptions());
         }
         if (self.options.no_cond_assign) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
@@ -1247,7 +1253,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.curly) {
-            try curly.checkBody(self.allocator, self.diagnostics, ctx.tree, statement.body);
+            try curly.checkBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.body, self.curlyOptions());
         }
         if (self.options.no_cond_assign) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
@@ -1265,7 +1271,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.curly) {
-            try curly.checkBody(self.allocator, self.diagnostics, ctx.tree, statement.body);
+            try curly.checkBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.body, self.curlyOptions());
         }
         if (self.options.no_cond_assign) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
@@ -1283,7 +1289,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.curly) {
-            try curly.checkBody(self.allocator, self.diagnostics, ctx.tree, statement.body);
+            try curly.checkBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.body, self.curlyOptions());
         }
         if (self.options.no_cond_assign and statement.@"test" != .null) {
             try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
@@ -1825,7 +1831,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.curly) {
-            try curly.checkBody(self.allocator, self.diagnostics, ctx.tree, statement.body);
+            try curly.checkBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.body, self.curlyOptions());
         }
         if (self.options.guard_for_in) {
             try guard_for_in.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
@@ -1843,7 +1849,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.curly) {
-            try curly.checkBody(self.allocator, self.diagnostics, ctx.tree, statement.body);
+            try curly.checkBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.body, self.curlyOptions());
         }
         return .proceed;
     }

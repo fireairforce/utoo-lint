@@ -21,6 +21,11 @@ pub const EqeqeqStyle = enum {
     allow_null,
 };
 
+pub const CurlyStyle = enum {
+    all,
+    multi_line,
+};
+
 pub const NoConfusingArrowAllowParens = enum {
     yes,
     no,
@@ -433,6 +438,7 @@ pub const Options = struct {
     consistent_return: bool = true,
     constructor_super: bool = true,
     curly: bool = true,
+    curly_style: CurlyStyle = .all,
     dot_notation: bool = true,
     dot_notation_allow_keywords: DotNotationAllowKeywords = .yes,
     typescript_eslint_dot_notation: bool = true,
@@ -901,6 +907,9 @@ pub const Options = struct {
             self.capitalized_comments_mode = try capitalizedCommentsModeFromConfig(value);
             self.capitalized_comments_ignore_inline_comments = try capitalizedCommentsIgnoreInlineCommentsFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "curly")) {
+            self.curly_style = try curlyStyleFromConfig(value);
+        }
         if (enabled and (std.mem.eql(u8, cli_name, "dot-notation") or std.mem.eql(u8, cli_name, "@typescript-eslint/dot-notation"))) {
             self.dot_notation_allow_keywords = try dotNotationAllowKeywordsFromConfig(value);
         }
@@ -1072,6 +1081,22 @@ pub const Options = struct {
             return true;
         }
         return null;
+    }
+
+    fn curlyStyleFromConfig(value: std.json.Value) RuleConfigError!CurlyStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .all,
+        };
+        if (items.len < 2) return .all;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "all")) return .all;
+        if (std.mem.eql(u8, style, "multi-line")) return .multi_line;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn eqeqeqStyleFromConfig(value: std.json.Value) RuleConfigError!EqeqeqStyle {
@@ -2442,6 +2467,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("@typescript-eslint/dot-notation", typescript_dot_notation_config.value);
     try std.testing.expect(options.typescript_eslint_dot_notation);
     try std.testing.expectEqual(DotNotationAllowKeywords.yes, options.dot_notation_allow_keywords);
+
+    var curly_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"multi-line\"]",
+        .{},
+    );
+    defer curly_config.deinit();
+    try options.setByRuleConfigValue("curly", curly_config.value);
+    try std.testing.expect(options.curly);
+    try std.testing.expectEqual(CurlyStyle.multi_line, options.curly_style);
 
     var eqeqeq_config = try std.json.parseFromSlice(
         std.json.Value,
