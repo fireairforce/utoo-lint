@@ -21,6 +21,14 @@ test "reports prefer-promise-reject-errors for obvious non-error rejection reaso
         \\    reject(1);
         \\  }
         \\});
+        \\const Promise = {
+        \\  reject(value) {
+        \\    return value;
+        \\  }
+        \\};
+        \\Promise.reject("local");
+        \\Promise["reject"]("local");
+        \\Promise[`reject`]("local");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -30,7 +38,7 @@ test "reports prefer-promise-reject-errors for obvious non-error rejection reaso
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 9), helpers.countRule(result, lint.rules.prefer_promise_reject_errors.id));
+    try std.testing.expectEqual(@as(usize, 12), helpers.countRule(result, lint.rules.prefer_promise_reject_errors.id));
 }
 
 test "does not report prefer-promise-reject-errors for error-like rejection reasons" {
@@ -50,16 +58,15 @@ test "does not report prefer-promise-reject-errors for error-like rejection reas
     try std.testing.expect(!helpers.hasRule(result, lint.rules.prefer_promise_reject_errors.id));
 }
 
-test "does not report prefer-promise-reject-errors for shadowed Promise or nested reject calls" {
+test "does not report prefer-promise-reject-errors for dynamic Promise members or nested reject calls" {
     const source =
+        \\const suffix = "ject";
         \\const Promise = {
         \\  reject(value) {
         \\    return value;
         \\  }
         \\};
-        \\Promise.reject("local");
-        \\Promise["reject"]("local");
-        \\Promise[`reject`]("local");
+        \\Promise[`re${suffix}`]("dynamic");
         \\new Promise((resolve, reject) => {
         \\  function nested() {
         \\    reject("nested");
