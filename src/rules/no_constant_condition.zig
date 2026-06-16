@@ -26,6 +26,18 @@ pub fn check(
     );
 }
 
+pub fn checkWhile(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.NodeIndex,
+) Allocator.Error!void {
+    const unwrapped = unwrapTransparent(tree, expression);
+    if (isBooleanTrue(tree, unwrapped)) return;
+
+    try check(allocator, diagnostics, tree, expression);
+}
+
 fn isConstantExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     if (index == .null) return false;
 
@@ -45,6 +57,13 @@ fn isConstantExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .class => |class| class.type == .class_expression,
         .unary_expression => |unary| isConstantUnaryExpression(tree, unary),
         .logical_expression => |logical| isConstantLogicalExpression(tree, logical),
+        else => false,
+    };
+}
+
+fn isBooleanTrue(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(index)) {
+        .boolean_literal => |literal| literal.value,
         else => false,
     };
 }
