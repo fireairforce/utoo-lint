@@ -14,12 +14,19 @@ pub fn run(
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    var allowed_typeof_refs = std.AutoHashMap(ast.NodeIndex, void).init(allocator);
+    defer allowed_typeof_refs.deinit();
+
+    var visitor = TypeofVisitor{ .allowed_refs = &allowed_typeof_refs };
+    try traverser.basic.traverse(TypeofVisitor, tree, &visitor);
+
     var iter = symbol_table.iterUnresolved();
 
     while (iter.next()) |entry| {
         const reference = entry.reference;
         if (reference.kind != .value) continue;
         if (tree.data(reference.node) == .jsx_identifier) continue;
+        if (allowed_typeof_refs.contains(reference.node)) continue;
 
         const name = tree.string(reference.name);
         if (core.isKnownGlobal(name)) continue;
@@ -34,4 +41,38 @@ pub fn run(
             .{name},
         );
     }
+}
+
+const TypeofVisitor = struct {
+    allowed_refs: *std.AutoHashMap(ast.NodeIndex, void),
+
+    pub fn enter_unary_expression(
+        self: *TypeofVisitor,
+        expression: ast.UnaryExpression,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (expression.operator != .typeof) return .proceed;
+
+        const argument = unwrapTransparent(ctx.tree, expression.argument);
+        if (argument == .null) return .proceed;
+        if (ctx.tree.data(argument) != .identifier_reference) return .proceed;
+
+        try self.allowed_refs.put(argument, {});
+        return .proceed;
+    }
+};
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+
+    return current;
 }
