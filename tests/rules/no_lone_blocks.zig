@@ -12,6 +12,12 @@ test "reports no-lone-blocks for unnecessary block statements" {
         \\    run();
         \\  }
         \\}
+        \\function scoped() {
+        \\  { let value = getValue(); }
+        \\  { const value = getValue(); }
+        \\  { class Scoped {} }
+        \\  { function nested() {} }
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -22,7 +28,7 @@ test "reports no-lone-blocks for unnecessary block statements" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_lone_blocks.id));
+    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_lone_blocks.id));
 }
 
 test "does not report no-lone-blocks for scoped declarations" {
