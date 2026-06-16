@@ -14,15 +14,12 @@ pub fn check(
     call: ast.CallExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
-    if (call.optional) return;
-
     const callee_member = switch (tree.data(unwrapTransparent(tree, call.callee))) {
         .member_expression => |member| member,
         else => return,
     };
-    if (callee_member.optional) return;
 
-    const method = propertyName(tree, callee_member) orelse return;
+    const method = nonComputedPropertyName(tree, callee_member) orelse return;
     if (!std.mem.eql(u8, method, "call") and !std.mem.eql(u8, method, "apply")) return;
 
     const arguments = tree.extra(call.arguments);
@@ -49,7 +46,6 @@ fn hasUselessThisArg(tree: *const ast.Tree, target: ast.NodeIndex, this_arg: ast
         else => return isNullOrUndefined(tree, this_arg),
     };
 
-    if (target_member.optional) return false;
     if (!isSimpleReference(tree, target_member.object)) return false;
 
     return sameSource(tree, target_member.object, this_arg);
@@ -78,8 +74,17 @@ fn isSimpleReference(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .identifier_reference,
         .this_expression,
         => true,
-        .member_expression => |member| !member.optional and isSimpleReference(tree, member.object) and propertyName(tree, member) != null,
+        .member_expression => |member| isSimpleReference(tree, member.object) and propertyName(tree, member) != null,
         else => false,
+    };
+}
+
+fn nonComputedPropertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
+    if (member.computed or member.property == .null) return null;
+
+    return switch (tree.data(member.property)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        else => null,
     };
 }
 
