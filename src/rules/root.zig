@@ -1749,12 +1749,27 @@ const BasicVisitor = struct {
 
     pub fn enter_continue_statement(
         self: *BasicVisitor,
-        _: ast.ContinueStatement,
+        statement: ast.ContinueStatement,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_continue) {
             try no_continue.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        if (self.options.no_labels) {
+            try no_labels.checkContinueStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_break_statement(
+        self: *BasicVisitor,
+        statement: ast.BreakStatement,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_labels) {
+            try no_labels.checkBreakStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
         return .proceed;
     }
@@ -1772,7 +1787,7 @@ const BasicVisitor = struct {
             try no_unused_labels.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
         if (self.options.no_labels) {
-            try no_labels.check(self.allocator, self.diagnostics, ctx.tree, index);
+            try no_labels.checkLabeledStatement(self.allocator, self.diagnostics, ctx.tree, index);
         }
         return .proceed;
     }

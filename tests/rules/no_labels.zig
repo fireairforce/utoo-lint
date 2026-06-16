@@ -8,6 +8,10 @@ test "reports no-labels for labeled statements" {
         \\for (const item of items) {
         \\  if (item) break start;
         \\}
+        \\again:
+        \\while (ready) {
+        \\  continue again;
+        \\}
         \\done:
         \\use(value);
     ;
@@ -19,13 +23,14 @@ test "reports no-labels for labeled statements" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_labels.id));
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_labels.id));
 }
 
-test "does not report no-labels for unlabeled loops" {
+test "does not report no-labels for unlabeled break and continue" {
     const source =
         \\for (const item of items) {
         \\  if (item) break;
+        \\  continue;
         \\}
     ;
 
