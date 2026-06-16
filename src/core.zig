@@ -970,6 +970,16 @@ pub const Options = struct {
             self.no_shadow_allow = try noShadowAllowFromConfig(value);
             self.no_shadow_builtin_globals = try noShadowBuiltinGlobalsFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-underscore-dangle")) {
+            self.no_underscore_dangle_allow_after_this = try noUnderscoreDangleBoolOptionFromConfig(value, "allowAfterThis", false);
+            self.no_underscore_dangle_allow_after_super = try noUnderscoreDangleBoolOptionFromConfig(value, "allowAfterSuper", false);
+            self.no_underscore_dangle_allow_after_this_constructor = try noUnderscoreDangleBoolOptionFromConfig(value, "allowAfterThisConstructor", false);
+            self.no_underscore_dangle_allow_function_params = if (try noUnderscoreDangleBoolOptionFromConfig(value, "allowFunctionParams", true)) .yes else .no;
+            self.no_underscore_dangle_allow_in_array_destructuring = if (try noUnderscoreDangleBoolOptionFromConfig(value, "allowInArrayDestructuring", true)) .yes else .no;
+            self.no_underscore_dangle_allow_in_object_destructuring = if (try noUnderscoreDangleBoolOptionFromConfig(value, "allowInObjectDestructuring", true)) .yes else .no;
+            self.no_underscore_dangle_enforce_in_method_names = try noUnderscoreDangleBoolOptionFromConfig(value, "enforceInMethodNames", false);
+            self.no_underscore_dangle_enforce_in_class_fields = try noUnderscoreDangleBoolOptionFromConfig(value, "enforceInClassFields", false);
+        }
         if (std.mem.eql(u8, cli_name, "no-plusplus")) {
             self.no_plusplus_allow_for_loop_afterthoughts = try noPlusplusAllowForLoopAfterthoughtsFromConfig(value);
         }
@@ -1663,6 +1673,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("builtinGlobals") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn noUnderscoreDangleBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -2727,6 +2754,24 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_shadow_allow.contains("done"));
     try std.testing.expect(!options.no_shadow_allow.contains("other"));
     try std.testing.expect(options.no_shadow_builtin_globals);
+
+    var no_underscore_dangle_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowAfterThis\":true,\"allowAfterSuper\":true,\"allowAfterThisConstructor\":true,\"allowFunctionParams\":false,\"allowInArrayDestructuring\":false,\"allowInObjectDestructuring\":false,\"enforceInMethodNames\":true,\"enforceInClassFields\":true}]",
+        .{},
+    );
+    defer no_underscore_dangle_config.deinit();
+    try options.setByRuleConfigValue("no-underscore-dangle", no_underscore_dangle_config.value);
+    try std.testing.expect(options.no_underscore_dangle);
+    try std.testing.expect(options.no_underscore_dangle_allow_after_this);
+    try std.testing.expect(options.no_underscore_dangle_allow_after_super);
+    try std.testing.expect(options.no_underscore_dangle_allow_after_this_constructor);
+    try std.testing.expectEqual(NoUnderscoreDangleAllowFunctionParams.no, options.no_underscore_dangle_allow_function_params);
+    try std.testing.expectEqual(NoUnderscoreDangleAllowDestructuring.no, options.no_underscore_dangle_allow_in_array_destructuring);
+    try std.testing.expectEqual(NoUnderscoreDangleAllowDestructuring.no, options.no_underscore_dangle_allow_in_object_destructuring);
+    try std.testing.expect(options.no_underscore_dangle_enforce_in_method_names);
+    try std.testing.expect(options.no_underscore_dangle_enforce_in_class_fields);
 
     var typescript_no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,
