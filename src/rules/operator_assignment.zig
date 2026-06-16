@@ -37,7 +37,11 @@ pub fn check(
 
     const left = (try referenceFromExpression(arena_allocator, tree, expression.left)) orelse return;
     const right_left = (try referenceFromExpression(arena_allocator, tree, binary.left)) orelse return;
-    if (!referencesEqual(left, right_left)) return;
+    if (!referencesEqual(left, right_left)) {
+        if (!hasCommutativeAssignmentOperator(binary.operator)) return;
+        const right_right = (try referenceFromExpression(arena_allocator, tree, binary.right)) orelse return;
+        if (!referencesEqual(left, right_right)) return;
+    }
 
     try core.addDiagnostic(
         allocator,
@@ -63,6 +67,17 @@ fn hasAssignmentOperator(operator: ast.BinaryOperator) bool {
         .left_shift,
         .right_shift,
         .unsigned_right_shift,
+        => true,
+        else => false,
+    };
+}
+
+fn hasCommutativeAssignmentOperator(operator: ast.BinaryOperator) bool {
+    return switch (operator) {
+        .multiply,
+        .bitwise_or,
+        .bitwise_xor,
+        .bitwise_and,
         => true,
         else => false,
     };
