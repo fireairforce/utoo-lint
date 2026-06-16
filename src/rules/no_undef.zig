@@ -8,17 +8,33 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-undef";
 
+pub const Options = struct {
+    check_typeof: bool = false,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, symbol_table, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
+) Allocator.Error!void {
     var allowed_typeof_refs = std.AutoHashMap(ast.NodeIndex, void).init(allocator);
     defer allowed_typeof_refs.deinit();
 
-    var visitor = TypeofVisitor{ .allowed_refs = &allowed_typeof_refs };
-    try traverser.basic.traverse(TypeofVisitor, tree, &visitor);
+    if (!options.check_typeof) {
+        var visitor = TypeofVisitor{ .allowed_refs = &allowed_typeof_refs };
+        try traverser.basic.traverse(TypeofVisitor, tree, &visitor);
+    }
 
     var iter = symbol_table.iterUnresolved();
 

@@ -915,7 +915,9 @@ pub fn runSemantic(
     }
 
     if (options.no_undef) {
-        try no_undef.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try no_undef.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .check_typeof = options.no_undef_typeof,
+        });
     }
 
     if (options.react_jsx_no_undef) {
