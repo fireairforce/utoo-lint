@@ -1435,7 +1435,11 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.typescript_eslint_no_unused_expressions) {
-            try typescript_eslint_no_unused_expressions.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+            try typescript_eslint_no_unused_expressions.check(self.allocator, self.diagnostics, ctx.tree, statement, index, .{
+                .allow_short_circuit = self.options.typescript_eslint_no_unused_expressions_allow_short_circuit == .yes,
+                .allow_ternary = self.options.typescript_eslint_no_unused_expressions_allow_ternary == .yes,
+                .allow_tagged_templates = self.options.typescript_eslint_no_unused_expressions_allow_tagged_templates == .yes,
+            });
         }
         return .proceed;
     }
