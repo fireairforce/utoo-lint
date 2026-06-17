@@ -2454,7 +2454,10 @@ const BasicVisitor = struct {
             try react_jsx_key.enterCallExpression(self.allocator, self.diagnostics, ctx.tree, call, &self.react_jsx_key_state);
         }
         if (self.options.new_cap) {
-            try new_cap.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
+            try new_cap.checkCallExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, call, index, .{
+                .new_is_cap = self.options.new_cap_new_is_cap,
+                .cap_is_new = self.options.new_cap_cap_is_new,
+            });
         }
         if (self.options.no_extra_bind) {
             try no_extra_bind.check(self.allocator, self.diagnostics, ctx.tree, call, index);
@@ -2498,7 +2501,10 @@ const BasicVisitor = struct {
             try no_new_require.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.new_cap) {
-            try new_cap.checkNewExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try new_cap.checkNewExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .new_is_cap = self.options.new_cap_new_is_cap,
+                .cap_is_new = self.options.new_cap_cap_is_new,
+            });
         }
         if (self.options.new_parens) {
             try new_parens.check(self.allocator, self.diagnostics, ctx.tree, expression, index);

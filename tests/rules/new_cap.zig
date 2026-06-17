@@ -78,3 +78,30 @@ test "can disable new-cap" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.new_cap.id));
 }
+
+test "supports configured new-cap newIsCap and capIsNew options" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"newIsCap\":false,\"capIsNew\":false}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("new-cap", config.value);
+    options.no_new = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\new foo();
+        \\Foo();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.new_cap.id));
+}
