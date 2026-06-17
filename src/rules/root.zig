@@ -351,6 +351,13 @@ fn funcNameMatchingStyle(style: core.FuncNameMatchingStyle) func_name_matching.S
     };
 }
 
+fn reactPreferEs6ClassStyle(style: core.ReactPreferEs6ClassStyle) react_prefer_es6_class.Style {
+    return switch (style) {
+        .always => .always,
+        .never => .never,
+    };
+}
+
 fn isCatchBody(tree: *const ast.Tree, index: ast.NodeIndex, parent: ?ast.NodeIndex) bool {
     const parent_index = parent orelse return false;
     return switch (tree.data(parent_index)) {
@@ -1200,6 +1207,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_multi_comp) {
             try react_no_multi_comp.checkClass(self.allocator, self.diagnostics, ctx.tree, class, index, &self.react_no_multi_comp_state);
+        }
+        if (self.options.react_prefer_es6_class) {
+            try react_prefer_es6_class.checkClass(self.allocator, self.diagnostics, ctx.tree, class, index, reactPreferEs6ClassStyle(self.options.react_prefer_es6_class_style));
         }
         if (self.options.react_no_redundant_should_component_update) {
             try react_no_redundant_should_component_update.checkClass(self.allocator, self.diagnostics, ctx.tree, class, index, ctx.path.parent());
@@ -3000,7 +3010,7 @@ const BasicVisitor = struct {
             try no_useless_computed_key.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
         if (self.options.react_prefer_es6_class) {
-            try react_prefer_es6_class.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, index, ctx.path.ancestor(1));
+            try react_prefer_es6_class.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, index, ctx.path.ancestor(1), reactPreferEs6ClassStyle(self.options.react_prefer_es6_class_style));
         }
         if (self.options.react_no_deprecated) {
             try react_no_deprecated.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, index, expression, ctx.path.ancestor(1));

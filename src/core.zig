@@ -713,6 +713,11 @@ pub const ReactJsxBooleanValueStyle = enum {
     always,
 };
 
+pub const ReactPreferEs6ClassStyle = enum {
+    always,
+    never,
+};
+
 pub const FuncNamesStyle = enum {
     always,
     as_needed,
@@ -1212,6 +1217,7 @@ pub const Options = struct {
     react_no_unescaped_entities_forbid_single_quote: bool = true,
     react_no_unescaped_entities_forbid_closing_brace: bool = true,
     react_prefer_es6_class: bool = true,
+    react_prefer_es6_class_style: ReactPreferEs6ClassStyle = .always,
     react_self_closing_comp: bool = true,
     react_self_closing_comp_component: bool = true,
     react_self_closing_comp_html: bool = true,
@@ -1641,6 +1647,9 @@ pub const Options = struct {
             self.react_no_unescaped_entities_forbid_double_quote = forbid.double_quote;
             self.react_no_unescaped_entities_forbid_single_quote = forbid.single_quote;
             self.react_no_unescaped_entities_forbid_closing_brace = forbid.closing_brace;
+        }
+        if (std.mem.eql(u8, cli_name, "react/prefer-es6-class")) {
+            self.react_prefer_es6_class_style = try reactPreferEs6ClassStyleFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/self-closing-comp")) {
             self.react_self_closing_comp_component = try reactSelfClosingCompBoolOptionFromConfig(value, "component", true);
@@ -3584,6 +3593,22 @@ pub const Options = struct {
         return error.UnsupportedRuleConfigValue;
     }
 
+    fn reactPreferEs6ClassStyleFromConfig(value: std.json.Value) RuleConfigError!ReactPreferEs6ClassStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "always")) return .always;
+        if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
     fn reactJsxNoBindBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4651,6 +4676,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(!options.react_no_unescaped_entities_forbid_double_quote);
     try std.testing.expect(!options.react_no_unescaped_entities_forbid_single_quote);
     try std.testing.expect(options.react_no_unescaped_entities_forbid_closing_brace);
+
+    var react_prefer_es6_class_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\"]",
+        .{},
+    );
+    defer react_prefer_es6_class_config.deinit();
+    try options.setByRuleConfigValue("react/prefer-es6-class", react_prefer_es6_class_config.value);
+    try std.testing.expect(options.react_prefer_es6_class);
+    try std.testing.expectEqual(ReactPreferEs6ClassStyle.never, options.react_prefer_es6_class_style);
 
     var react_no_unused_prop_types_config = try std.json.parseFromSlice(
         std.json.Value,
