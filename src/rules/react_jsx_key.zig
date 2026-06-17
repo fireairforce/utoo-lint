@@ -15,6 +15,10 @@ pub const State = struct {
     children_to_array_depth: usize = 0,
 };
 
+pub const Options = struct {
+    check_key_must_before_spread: bool = false,
+};
+
 pub fn collectProgram(tree: *const ast.Tree, state: *State) void {
     state.pragma = pragmaFromComments(tree) orelse "React";
 }
@@ -25,6 +29,7 @@ pub fn enterCallExpression(
     tree: *const ast.Tree,
     call: ast.CallExpression,
     state: *State,
+    options: Options,
 ) Allocator.Error!void {
     if (isChildrenToArrayCall(tree, call, state.*)) {
         state.children_to_array_depth += 1;
@@ -33,7 +38,7 @@ pub fn enterCallExpression(
     if (state.children_to_array_depth > 0) return;
 
     const callback = iteratorCallback(tree, call) orelse return;
-    try checkIteratorCallback(allocator, diagnostics, tree, callback);
+    try checkIteratorCallback(allocator, diagnostics, tree, callback, options);
 }
 
 pub fn exitCallExpression(tree: *const ast.Tree, call: ast.CallExpression, state: *State) void {
@@ -48,6 +53,7 @@ pub fn checkArrayExpression(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     expression: ast.ArrayExpression,
+    options: Options,
 ) Allocator.Error!void {
     for (tree.extra(expression.elements)) |element_index| {
         if (element_index == .null) continue;
@@ -55,7 +61,7 @@ pub fn checkArrayExpression(
             .jsx_element => |element| element,
             else => continue,
         };
-        if (hasKeyProp(tree, element)) continue;
+        if (hasKeyProp(tree, element, options)) continue;
         try report(allocator, diagnostics, tree, element_index, missing_array_key_message);
     }
 }
@@ -65,19 +71,20 @@ fn checkIteratorCallback(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     callback_index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     const current = unwrapTransparent(tree, callback_index);
     switch (tree.data(current)) {
         .arrow_function_expression => |function| {
             if (function.expression) {
-                try checkIteratorExpression(allocator, diagnostics, tree, function.body);
+                try checkIteratorExpression(allocator, diagnostics, tree, function.body, options);
             } else {
-                try checkFunctionBody(allocator, diagnostics, tree, function.body);
+                try checkFunctionBody(allocator, diagnostics, tree, function.body, options);
             }
         },
         .function => |function| {
             if (function.type != .function_expression or function.body == .null) return;
-            try checkFunctionBody(allocator, diagnostics, tree, function.body);
+            try checkFunctionBody(allocator, diagnostics, tree, function.body, options);
         },
         else => {},
     }
@@ -88,15 +95,16 @@ fn checkIteratorExpression(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     const current = unwrapTransparent(tree, index);
     switch (tree.data(current)) {
-        .jsx_element => |element| try checkIteratorElement(allocator, diagnostics, tree, element, current),
+        .jsx_element => |element| try checkIteratorElement(allocator, diagnostics, tree, element, current, options),
         .conditional_expression => |conditional| {
-            try checkIteratorExpression(allocator, diagnostics, tree, conditional.consequent);
-            try checkIteratorExpression(allocator, diagnostics, tree, conditional.alternate);
+            try checkIteratorExpression(allocator, diagnostics, tree, conditional.consequent, options);
+            try checkIteratorExpression(allocator, diagnostics, tree, conditional.alternate, options);
         },
-        .logical_expression => |logical| try checkIteratorExpression(allocator, diagnostics, tree, logical.right),
+        .logical_expression => |logical| try checkIteratorExpression(allocator, diagnostics, tree, logical.right, options),
         else => {},
     }
 }
@@ -106,13 +114,14 @@ fn checkFunctionBody(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     const body = switch (tree.data(index)) {
         .function_body => |body| body.body,
         .block_statement => |block| block.body,
         else => return,
     };
-    try checkReturnStatements(allocator, diagnostics, tree, body);
+    try checkReturnStatements(allocator, diagnostics, tree, body, options);
 }
 
 fn checkReturnStatements(
@@ -120,9 +129,10 @@ fn checkReturnStatements(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     range: ast.IndexRange,
+    options: Options,
 ) Allocator.Error!void {
     for (tree.extra(range)) |statement_index| {
-        try checkReturnStatement(allocator, diagnostics, tree, statement_index);
+        try checkReturnStatement(allocator, diagnostics, tree, statement_index, options);
     }
 }
 
@@ -131,20 +141,21 @@ fn checkReturnStatement(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     switch (tree.data(index)) {
         .return_statement => |statement| {
             if (statement.argument != .null) {
-                try checkIteratorExpression(allocator, diagnostics, tree, statement.argument);
+                try checkIteratorExpression(allocator, diagnostics, tree, statement.argument, options);
             }
         },
         .if_statement => |statement| {
-            try checkReturnStatement(allocator, diagnostics, tree, statement.consequent);
+            try checkReturnStatement(allocator, diagnostics, tree, statement.consequent, options);
             if (statement.alternate != .null) {
-                try checkReturnStatement(allocator, diagnostics, tree, statement.alternate);
+                try checkReturnStatement(allocator, diagnostics, tree, statement.alternate, options);
             }
         },
-        .block_statement => |block| try checkReturnStatements(allocator, diagnostics, tree, block.body),
+        .block_statement => |block| try checkReturnStatements(allocator, diagnostics, tree, block.body, options),
         else => {},
     }
 }
@@ -155,8 +166,9 @@ fn checkIteratorElement(
     tree: *const ast.Tree,
     element: ast.JSXElement,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
-    if (hasKeyProp(tree, element)) return;
+    if (hasKeyProp(tree, element, options)) return;
     try report(allocator, diagnostics, tree, index, missing_iter_key_message);
 }
 
@@ -179,18 +191,25 @@ fn iteratorCallback(tree: *const ast.Tree, call: ast.CallExpression) ?ast.NodeIn
     return arguments[1];
 }
 
-fn hasKeyProp(tree: *const ast.Tree, element: ast.JSXElement) bool {
+fn hasKeyProp(tree: *const ast.Tree, element: ast.JSXElement, options: Options) bool {
     const opening = switch (tree.data(element.opening_element)) {
         .jsx_opening_element => |opening| opening,
         else => return false,
     };
+    var seen_spread = false;
     for (tree.extra(opening.attributes)) |attribute_index| {
         const attribute = switch (tree.data(attribute_index)) {
             .jsx_attribute => |attribute| attribute,
+            .jsx_spread_attribute => {
+                seen_spread = true;
+                continue;
+            },
             else => continue,
         };
         const name = jsxIdentifierName(tree, attribute.name) orelse continue;
-        if (std.mem.eql(u8, name, "key")) return true;
+        if (std.mem.eql(u8, name, "key")) {
+            return !options.check_key_must_before_spread or !seen_spread;
+        }
     }
     return false;
 }
