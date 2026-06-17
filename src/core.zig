@@ -513,6 +513,42 @@ pub const ReactJsxPascalCaseIgnoreNames = struct {
     }
 };
 
+pub const max_react_no_unknown_property_ignore_names = 32;
+pub const max_react_no_unknown_property_ignore_name_len = 128;
+
+pub const ReactNoUnknownPropertyIgnoreNamesError = error{
+    EmptyReactNoUnknownPropertyIgnoreName,
+    TooManyReactNoUnknownPropertyIgnoreNames,
+    ReactNoUnknownPropertyIgnoreNameTooLong,
+};
+
+pub const ReactNoUnknownPropertyIgnoreNames = struct {
+    count: usize = 0,
+    lengths: [max_react_no_unknown_property_ignore_names]usize = undefined,
+    storage: [max_react_no_unknown_property_ignore_names][max_react_no_unknown_property_ignore_name_len]u8 = undefined,
+
+    pub fn contains(self: *const ReactNoUnknownPropertyIgnoreNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const ReactNoUnknownPropertyIgnoreNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *ReactNoUnknownPropertyIgnoreNames, name: []const u8) ReactNoUnknownPropertyIgnoreNamesError!void {
+        if (name.len == 0) return error.EmptyReactNoUnknownPropertyIgnoreName;
+        if (self.count >= max_react_no_unknown_property_ignore_names) return error.TooManyReactNoUnknownPropertyIgnoreNames;
+        if (name.len > max_react_no_unknown_property_ignore_name_len) return error.ReactNoUnknownPropertyIgnoreNameTooLong;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const max_typescript_eslint_ban_type_entries = 32;
 pub const max_typescript_eslint_ban_type_name_len = 128;
 pub const max_typescript_eslint_ban_type_message_len = 512;
@@ -1159,6 +1195,8 @@ pub const Options = struct {
     react_no_this_in_sfc: bool = true,
     react_no_typos: bool = true,
     react_no_unknown_property: bool = true,
+    react_no_unknown_property_ignore: ReactNoUnknownPropertyIgnoreNames = .{},
+    react_no_unknown_property_require_data_lowercase: bool = false,
     react_prop_types: bool = true,
     react_prop_types_skip_undeclared: bool = false,
     react_no_unused_prop_types: bool = true,
@@ -1580,6 +1618,10 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/no-string-refs")) {
             self.react_no_string_refs_no_template_literals = try reactNoStringRefsNoTemplateLiteralsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/no-unknown-property")) {
+            self.react_no_unknown_property_ignore = try reactNoUnknownPropertyIgnoreFromConfig(value);
+            self.react_no_unknown_property_require_data_lowercase = try reactNoUnknownPropertyRequireDataLowercaseFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/no-unescaped-entities")) {
             const forbid = try reactNoUnescapedEntitiesForbidFromConfig(value);
@@ -3571,6 +3613,50 @@ pub const Options = struct {
         };
     }
 
+    fn reactNoUnknownPropertyIgnoreFromConfig(value: std.json.Value) RuleConfigError!ReactNoUnknownPropertyIgnoreNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const ignore_items = switch (config.get("ignore") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var ignore = ReactNoUnknownPropertyIgnoreNames{};
+        for (ignore_items) |item| {
+            const name = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            ignore.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return ignore;
+    }
+
+    fn reactNoUnknownPropertyRequireDataLowercaseFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("requireDataLowercase") orelse return false) {
+            .bool => |require_data_lowercase| require_data_lowercase,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn reactSelfClosingCompBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4226,6 +4312,12 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.react_no_string_refs);
     try std.testing.expect(!options.react_no_string_refs_no_template_literals);
 
+    try std.testing.expect(!options.react_no_unknown_property);
+    try std.testing.expect(options.setByCliName("react/no-unknown-property", true));
+    try std.testing.expect(options.react_no_unknown_property);
+    try std.testing.expectEqual(@as(usize, 0), options.react_no_unknown_property_ignore.count);
+    try std.testing.expect(!options.react_no_unknown_property_require_data_lowercase);
+
     try std.testing.expect(!options.react_self_closing_comp);
     try std.testing.expect(options.setByCliName("react/self-closing-comp", true));
     try std.testing.expect(options.react_self_closing_comp);
@@ -4364,6 +4456,20 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("react/no-string-refs", react_no_string_refs_config.value);
     try std.testing.expect(options.react_no_string_refs);
     try std.testing.expect(options.react_no_string_refs_no_template_literals);
+
+    var react_no_unknown_property_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignore\":[\"class\",\"data-Foo\"],\"requireDataLowercase\":true}]",
+        .{},
+    );
+    defer react_no_unknown_property_config.deinit();
+    try options.setByRuleConfigValue("react/no-unknown-property", react_no_unknown_property_config.value);
+    try std.testing.expect(options.react_no_unknown_property);
+    try std.testing.expect(options.react_no_unknown_property_ignore.contains("class"));
+    try std.testing.expect(options.react_no_unknown_property_ignore.contains("data-Foo"));
+    try std.testing.expect(!options.react_no_unknown_property_ignore.contains("other"));
+    try std.testing.expect(options.react_no_unknown_property_require_data_lowercase);
 
     var react_self_closing_comp_config = try std.json.parseFromSlice(
         std.json.Value,

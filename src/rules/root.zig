@@ -2814,7 +2814,10 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.react_no_unknown_property) {
-            try react_no_unknown_property.check(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1));
+            try react_no_unknown_property.check(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1), .{
+                .ignore = self.options.react_no_unknown_property_ignore,
+                .require_data_lowercase = self.options.react_no_unknown_property_require_data_lowercase,
+            });
         }
         return .proceed;
     }
