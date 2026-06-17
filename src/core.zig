@@ -473,6 +473,11 @@ pub const TypescriptEslintMethodSignatureStyle = enum {
     method,
 };
 
+pub const TypescriptEslintClassLiteralPropertyStyle = enum {
+    fields,
+    getters,
+};
+
 pub const PreferConstDestructuring = enum {
     any,
     all,
@@ -880,6 +885,7 @@ pub const Options = struct {
     typescript_eslint_adjacent_overload_signatures: bool = true,
     typescript_eslint_array_type: bool = true,
     typescript_eslint_class_literal_property_style: bool = true,
+    typescript_eslint_class_literal_property_style_style: TypescriptEslintClassLiteralPropertyStyle = .fields,
     typescript_eslint_consistent_type_assertions: bool = true,
     typescript_eslint_consistent_type_definitions: bool = true,
     typescript_eslint_no_array_constructor: bool = true,
@@ -1194,6 +1200,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "operator-assignment")) {
             self.operator_assignment_style = try operatorAssignmentStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/class-literal-property-style")) {
+            self.typescript_eslint_class_literal_property_style_style = try typescriptEslintClassLiteralPropertyStyleFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -2711,6 +2720,22 @@ pub const Options = struct {
         };
         if (std.mem.eql(u8, style, "property")) return .property;
         if (std.mem.eql(u8, style, "method")) return .method;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintClassLiteralPropertyStyleFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintClassLiteralPropertyStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .fields,
+        };
+        if (items.len < 2) return .fields;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "fields")) return .fields;
+        if (std.mem.eql(u8, style, "getters")) return .getters;
         return error.UnsupportedRuleConfigValue;
     }
 

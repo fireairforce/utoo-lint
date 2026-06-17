@@ -12,7 +12,9 @@ pub fn checkMethodDefinition(
     tree: *const ast.Tree,
     method: ast.MethodDefinition,
     index: ast.NodeIndex,
+    style: core.TypescriptEslintClassLiteralPropertyStyle,
 ) Allocator.Error!void {
+    if (style != .fields) return;
     if (method.kind != .get) return;
     if (!getterReturnsSingleLiteral(tree, method)) return;
 
@@ -22,6 +24,28 @@ pub fn checkMethodDefinition(
         .warning,
         id,
         "Literals should be exposed using readonly fields.",
+        tree.span(index),
+    );
+}
+
+pub fn checkPropertyDefinition(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    property: ast.PropertyDefinition,
+    index: ast.NodeIndex,
+    style: core.TypescriptEslintClassLiteralPropertyStyle,
+) Allocator.Error!void {
+    if (style != .getters) return;
+    if (!property.readonly) return;
+    if (!isLiteral(tree, property.value)) return;
+
+    try core.addDiagnostic(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        "Literals should be exposed using getters.",
         tree.span(index),
     );
 }
