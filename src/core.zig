@@ -1036,6 +1036,7 @@ pub const Options = struct {
     react_button_has_type: bool = true,
     react_require_render_return: bool = true,
     react_jsx_no_target_blank: bool = true,
+    react_jsx_no_target_blank_allow_referrer: bool = false,
     react_jsx_no_undef: bool = true,
     react_jsx_pascal_case: bool = true,
     react_jsx_pascal_case_allow_all_caps: bool = true,
@@ -1437,6 +1438,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-no-duplicate-props")) {
             self.react_jsx_no_duplicate_props_ignore_case = try reactJsxNoDuplicatePropsIgnoreCaseFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/jsx-no-target-blank")) {
+            self.react_jsx_no_target_blank_allow_referrer = try reactJsxNoTargetBlankAllowReferrerFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-pascal-case")) {
             self.react_jsx_pascal_case_allow_all_caps = try reactJsxPascalCaseAllowAllCapsFromConfig(value);
@@ -1867,6 +1871,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("skipUndeclared") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn reactJsxNoTargetBlankAllowReferrerFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowReferrer") orelse return false) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -3765,6 +3786,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.react_jsx_no_target_blank);
     try std.testing.expect(options.setByCliName("react/jsx-no-target-blank", true));
     try std.testing.expect(options.react_jsx_no_target_blank);
+    try std.testing.expect(!options.react_jsx_no_target_blank_allow_referrer);
 
     try std.testing.expect(!options.import_no_duplicates);
     try std.testing.expect(options.setByCliName("import/no-duplicates", true));
@@ -3879,6 +3901,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.jsx_a11y_aria_props);
 
     try options.setByRuleConfigValue("prettier/prettier", .{ .string = "error" });
+
+    var react_jsx_no_target_blank_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowReferrer\":true}]",
+        .{},
+    );
+    defer react_jsx_no_target_blank_config.deinit();
+    try options.setByRuleConfigValue("react/jsx-no-target-blank", react_jsx_no_target_blank_config.value);
+    try std.testing.expect(options.react_jsx_no_target_blank);
+    try std.testing.expect(options.react_jsx_no_target_blank_allow_referrer);
 
     var react_prop_types_config = try std.json.parseFromSlice(
         std.json.Value,

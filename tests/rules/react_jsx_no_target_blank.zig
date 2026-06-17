@@ -44,6 +44,34 @@ test "allows secure rel non-external links and non-anchor elements" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_jsx_no_target_blank.id));
 }
 
+test "supports configured react/jsx-no-target-blank allowReferrer" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowReferrer\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("react/jsx-no-target-blank", config.value);
+    options.eol_last = false;
+    options.jsx_a11y_anchor_has_content = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const noopener = <a href="https://example.com" target="_blank" rel="noopener" />;
+        \\const missing = <a href="https://example.com" target="_blank" />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_jsx_no_target_blank.id));
+}
+
 test "can disable react/jsx-no-target-blank" {
     const source =
         \\const link = <a href="https://example.com" target="_blank" />;
