@@ -492,6 +492,11 @@ pub const TypescriptEslintMethodSignatureStyle = enum {
     method,
 };
 
+pub const TypescriptEslintConsistentTypeDefinitionsStyle = enum {
+    interface,
+    type,
+};
+
 pub const TypescriptEslintClassLiteralPropertyStyle = enum {
     fields,
     getters,
@@ -911,6 +916,7 @@ pub const Options = struct {
     typescript_eslint_class_literal_property_style_style: TypescriptEslintClassLiteralPropertyStyle = .fields,
     typescript_eslint_consistent_type_assertions: bool = true,
     typescript_eslint_consistent_type_definitions: bool = true,
+    typescript_eslint_consistent_type_definitions_style: TypescriptEslintConsistentTypeDefinitionsStyle = .interface,
     typescript_eslint_no_array_constructor: bool = true,
     typescript_eslint_ban_types: bool = true,
     typescript_eslint_ban_ts_comment: bool = true,
@@ -1238,6 +1244,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/class-literal-property-style")) {
             self.typescript_eslint_class_literal_property_style_style = try typescriptEslintClassLiteralPropertyStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/consistent-type-definitions")) {
+            self.typescript_eslint_consistent_type_definitions_style = try typescriptEslintConsistentTypeDefinitionsStyleFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -2833,6 +2842,22 @@ pub const Options = struct {
         };
         if (std.mem.eql(u8, style, "property")) return .property;
         if (std.mem.eql(u8, style, "method")) return .method;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintConsistentTypeDefinitionsStyleFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintConsistentTypeDefinitionsStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .interface,
+        };
+        if (items.len < 2) return .interface;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "interface")) return .interface;
+        if (std.mem.eql(u8, style, "type")) return .type;
         return error.UnsupportedRuleConfigValue;
     }
 

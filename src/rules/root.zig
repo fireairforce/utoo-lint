@@ -1555,6 +1555,15 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_no_misused_new) {
             try typescript_eslint_no_misused_new.checkInterfaceDeclaration(self.allocator, self.diagnostics, ctx.tree, interface_declaration);
         }
+        if (self.options.typescript_eslint_consistent_type_definitions) {
+            try typescript_eslint_consistent_type_definitions.checkInterfaceDeclaration(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                interface_declaration,
+                self.options.typescript_eslint_consistent_type_definitions_style,
+            );
+        }
         return .proceed;
     }
 
@@ -1565,8 +1574,15 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_consistent_type_definitions) {
-            try typescript_eslint_consistent_type_definitions.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
+            try typescript_eslint_consistent_type_definitions.checkTypeAliasDeclaration(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                declaration,
+                self.options.typescript_eslint_consistent_type_definitions_style,
+            );
         }
+        _ = index;
         return .proceed;
     }
 
