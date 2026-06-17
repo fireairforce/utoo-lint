@@ -52,6 +52,33 @@ test "ignores rest siblings for object destructuring" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
 }
 
+test "supports configured @typescript-eslint/no-unused-vars args none" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"args\":\"none\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-unused-vars", config.value);
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\function demo(before: string, used: string, after: string) {
+        \\  console.log(used);
+        \\}
+        \\demo("before", "used", "after");
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
+}
+
 test "can disable @typescript-eslint/no-unused-vars and fall back to core rule" {
     const source =
         \\const unused = 1;

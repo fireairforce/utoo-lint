@@ -14,12 +14,13 @@ pub fn run(
     symbol_table: traverser.semantic.SymbolTable,
     react_jsx_uses_react: bool,
     react_jsx_uses_vars: bool,
+    args: core.NoUnusedVarsArgs,
 ) Allocator.Error!void {
     try no_unused_vars.runWithOptions(allocator, diagnostics, tree, symbol_table, .{
         .rule_id = id,
         .severity = .@"error",
-        .check_parameters = true,
-        .args_after_used = true,
+        .check_parameters = args != .none,
+        .args_after_used = args == .after_used,
         .ignore_rest_siblings = true,
         .check_type_parameters = true,
         .react_jsx_uses_react = react_jsx_uses_react,

@@ -258,6 +258,12 @@ pub const NoUseBeforeDefineCheck = enum {
     no,
 };
 
+pub const NoUnusedVarsArgs = enum {
+    none,
+    after_used,
+    all,
+};
+
 pub const NoParamReassignProps = enum {
     yes,
     no,
@@ -696,6 +702,7 @@ pub const Options = struct {
     eqeqeq_style: EqeqeqStyle = .strict,
     use_isnan: bool = true,
     no_unused_vars: bool = true,
+    no_unused_vars_args: NoUnusedVarsArgs = .none,
     no_use_before_define: bool = true,
     no_use_before_define_check_functions: NoUseBeforeDefineCheck = .yes,
     no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
@@ -803,6 +810,7 @@ pub const Options = struct {
     typescript_eslint_no_useless_constructor: bool = true,
     typescript_eslint_no_useless_empty_export: bool = true,
     typescript_eslint_no_unused_vars: bool = true,
+    typescript_eslint_no_unused_vars_args: NoUnusedVarsArgs = .after_used,
     typescript_eslint_no_use_before_define: bool = true,
     typescript_eslint_no_use_before_define_check_functions: NoUseBeforeDefineCheck = .no,
     typescript_eslint_no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
@@ -1016,6 +1024,9 @@ pub const Options = struct {
             self.no_unused_expressions_allow_ternary = try noUnusedExpressionsAllowTernaryFromConfig(value);
             self.no_unused_expressions_allow_tagged_templates = try noUnusedExpressionsAllowTaggedTemplatesFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-unused-vars")) {
+            self.no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .none);
+        }
         if (std.mem.eql(u8, cli_name, "no-use-before-define")) {
             self.no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", true);
             self.no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
@@ -1023,6 +1034,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
             self.typescript_eslint_no_shadow_builtin_globals = try noShadowBuiltinGlobalsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-unused-vars")) {
+            self.typescript_eslint_no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .after_used);
         }
         if (std.mem.eql(u8, cli_name, "no-undef")) {
             self.no_undef_typeof = try noUndefTypeofFromConfig(value);
@@ -1900,6 +1914,27 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (allow) .yes else .no;
+    }
+
+    fn noUnusedVarsArgsFromConfig(value: std.json.Value, default: NoUnusedVarsArgs) RuleConfigError!NoUnusedVarsArgs {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const args = switch (config.get("args") orelse return default) {
+            .string => |args| args,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, args, "none")) return .none;
+        if (std.mem.eql(u8, args, "after-used")) return .after_used;
+        if (std.mem.eql(u8, args, "all")) return .all;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn noUseBeforeDefineCheckFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!NoUseBeforeDefineCheck {
@@ -2930,6 +2965,28 @@ test "Options can apply ESLint-style rule config values" {
     defer no_unused_expressions_default_config.deinit();
     try options.setByRuleConfigValue("no-unused-expressions", no_unused_expressions_default_config.value);
     try std.testing.expectEqual(NoUnusedExpressionsAllowTaggedTemplates.no, options.no_unused_expressions_allow_tagged_templates);
+
+    var no_unused_vars_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"args\":\"all\"}]",
+        .{},
+    );
+    defer no_unused_vars_config.deinit();
+    try options.setByRuleConfigValue("no-unused-vars", no_unused_vars_config.value);
+    try std.testing.expect(options.no_unused_vars);
+    try std.testing.expectEqual(NoUnusedVarsArgs.all, options.no_unused_vars_args);
+
+    var typescript_no_unused_vars_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"args\":\"none\"}]",
+        .{},
+    );
+    defer typescript_no_unused_vars_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-unused-vars", typescript_no_unused_vars_config.value);
+    try std.testing.expect(options.typescript_eslint_no_unused_vars);
+    try std.testing.expectEqual(NoUnusedVarsArgs.none, options.typescript_eslint_no_unused_vars_args);
 
     var no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,

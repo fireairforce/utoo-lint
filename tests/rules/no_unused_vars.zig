@@ -43,3 +43,31 @@ test "reports no-unused-vars for unused catch parameters" {
 
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_unused_vars.id));
 }
+
+test "supports configured no-unused-vars args all" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"args\":\"all\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-unused-vars", config.value);
+    options.no_undef = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\function demo(before, used, after) {
+        \\  console.log(used);
+        \\}
+        \\demo(1, 2, 3);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_unused_vars.id));
+}
