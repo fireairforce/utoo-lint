@@ -11,16 +11,19 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const parser.ast.Tree,
+    scope_tree: traverser.semantic.ScopeTree,
     symbol_table: traverser.semantic.SymbolTable,
     react_jsx_uses_react: bool,
     react_jsx_uses_vars: bool,
+    vars: core.NoUnusedVarsVars,
     args: core.NoUnusedVarsArgs,
     caught_errors: core.NoUnusedVarsCaughtErrors,
     ignore_rest_siblings: bool,
 ) Allocator.Error!void {
-    try no_unused_vars.runWithOptions(allocator, diagnostics, tree, symbol_table, .{
+    try no_unused_vars.runWithOptions(allocator, diagnostics, tree, scope_tree, symbol_table, .{
         .rule_id = id,
         .severity = .@"error",
+        .vars = vars,
         .check_parameters = args != .none,
         .args_after_used = args == .after_used,
         .check_caught_errors = caught_errors == .all,
