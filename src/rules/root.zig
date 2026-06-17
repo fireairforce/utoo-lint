@@ -3027,7 +3027,14 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.typescript_eslint_explicit_member_accessibility) {
-            try typescript_eslint_explicit_member_accessibility.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
+            try typescript_eslint_explicit_member_accessibility.checkMethodDefinition(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                method,
+                index,
+                self.options.typescript_eslint_explicit_member_accessibility_accessibility,
+            );
         }
         if (self.options.typescript_eslint_class_literal_property_style) {
             try typescript_eslint_class_literal_property_style.checkMethodDefinition(
@@ -3077,7 +3084,14 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.typescript_eslint_explicit_member_accessibility) {
-            try typescript_eslint_explicit_member_accessibility.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, index);
+            try typescript_eslint_explicit_member_accessibility.checkPropertyDefinition(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                property,
+                index,
+                self.options.typescript_eslint_explicit_member_accessibility_accessibility,
+            );
         }
         if (self.options.typescript_eslint_prefer_as_const) {
             try typescript_eslint_prefer_as_const.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
