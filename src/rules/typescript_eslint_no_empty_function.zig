@@ -9,6 +9,11 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "@typescript-eslint/no-empty-function";
 
+pub const Options = struct {
+    allow: core.NoEmptyFunctionAllow = .{},
+    kind: no_empty_function.Kind = .functions,
+};
+
 pub fn checkFunctionBody(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -17,7 +22,20 @@ pub fn checkFunctionBody(
     index: ast.NodeIndex,
     ctx: *traverser.basic.Ctx,
 ) Allocator.Error!void {
+    return checkFunctionBodyWithOptions(allocator, diagnostics, tree, body, index, ctx, .{});
+}
+
+pub fn checkFunctionBodyWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    body: ast.FunctionBody,
+    index: ast.NodeIndex,
+    ctx: *traverser.basic.Ctx,
+    options: Options,
+) Allocator.Error!void {
     if (body.body.len != 0) return;
+    if (no_empty_function.allowsKind(options.allow, options.kind)) return;
     if (no_empty_function.hasCommentInsideBraces(tree, index)) return;
     if (hasParameterPropertyConstructor(tree, ctx)) return;
 

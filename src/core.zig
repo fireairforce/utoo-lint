@@ -776,6 +776,7 @@ pub const Options = struct {
     typescript_eslint_method_signature_style: bool = true,
     typescript_eslint_no_confusing_non_null_assertion: bool = true,
     typescript_eslint_no_empty_function: bool = true,
+    typescript_eslint_no_empty_function_allow: NoEmptyFunctionAllow = .{},
     typescript_eslint_no_empty_interface: bool = true,
     typescript_eslint_no_extra_semi: bool = true,
     typescript_eslint_no_extra_non_null_assertion: bool = true,
@@ -943,6 +944,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-empty-function")) {
             self.no_empty_function_allow = try noEmptyFunctionAllowFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-empty-function")) {
+            self.typescript_eslint_no_empty_function_allow = try noEmptyFunctionAllowFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-extra-boolean-cast")) {
             self.no_extra_boolean_cast_enforce_for_inner_expressions = try noExtraBooleanCastEnforceForInnerExpressionsFromConfig(value);
@@ -2653,6 +2657,19 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_empty_function_allow.generatorMethods);
     try std.testing.expect(options.no_empty_function_allow.getters);
     try std.testing.expect(options.no_empty_function_allow.setters);
+
+    var typescript_no_empty_function_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"arrowFunctions\",\"methods\"]}]",
+        .{},
+    );
+    defer typescript_no_empty_function_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-empty-function", typescript_no_empty_function_config.value);
+    try std.testing.expect(options.typescript_eslint_no_empty_function);
+    try std.testing.expect(options.typescript_eslint_no_empty_function_allow.arrowFunctions);
+    try std.testing.expect(options.typescript_eslint_no_empty_function_allow.methods);
+    try std.testing.expect(!options.typescript_eslint_no_empty_function_allow.functions);
 
     var no_extra_boolean_cast_config = try std.json.parseFromSlice(
         std.json.Value,

@@ -57,7 +57,7 @@ pub fn checkWithOptions(
     );
 }
 
-fn allowsKind(allow: core.NoEmptyFunctionAllow, kind: Kind) bool {
+pub fn allowsKind(allow: core.NoEmptyFunctionAllow, kind: Kind) bool {
     return switch (kind) {
         .functions => allow.functions,
         .arrowFunctions => allow.arrowFunctions,
