@@ -275,7 +275,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-shadow`](https://typescript-eslint.io/rules/no-shadow/) | Implemented |
 | [`@typescript-eslint/no-this-alias`](https://typescript-eslint.io/rules/no-this-alias/) | Implemented for `allowedNames` configuration |
 | [`@typescript-eslint/no-unsafe-declaration-merging`](https://typescript-eslint.io/rules/no-unsafe-declaration-merging/) | Implemented |
-| [`@typescript-eslint/triple-slash-reference`](https://typescript-eslint.io/rules/triple-slash-reference/) | Implemented for fishlint's `path: never, types: always, lib: always` configuration |
+| [`@typescript-eslint/triple-slash-reference`](https://typescript-eslint.io/rules/triple-slash-reference/) | Implemented for `path`, `types`, and `lib` `always`/`never` configurations |
 | [`@typescript-eslint/typedef`](https://typescript-eslint.io/rules/typedef/) | Implemented for `propertyDeclaration` and `memberVariableDeclaration` configurations |
 | [`@typescript-eslint/unified-signatures`](https://typescript-eslint.io/rules/unified-signatures/) | Implemented |
 | [`@typescript-eslint/no-unnecessary-parameter-property-assignment`](https://typescript-eslint.io/rules/no-unnecessary-parameter-property-assignment/) | Implemented for constructor assignments in the constructor body |

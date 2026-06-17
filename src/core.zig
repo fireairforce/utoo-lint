@@ -541,6 +541,11 @@ pub const TypescriptEslintClassLiteralPropertyStyle = enum {
     getters,
 };
 
+pub const TypescriptEslintTripleSlashReferenceMode = enum {
+    always,
+    never,
+};
+
 pub const PreferConstDestructuring = enum {
     any,
     all,
@@ -991,6 +996,9 @@ pub const Options = struct {
     typescript_eslint_no_this_alias_allowed_names: NoThisAliasAllowedNames = .{},
     typescript_eslint_no_unsafe_declaration_merging: bool = true,
     typescript_eslint_triple_slash_reference: bool = true,
+    typescript_eslint_triple_slash_reference_path: TypescriptEslintTripleSlashReferenceMode = .never,
+    typescript_eslint_triple_slash_reference_types: TypescriptEslintTripleSlashReferenceMode = .always,
+    typescript_eslint_triple_slash_reference_lib: TypescriptEslintTripleSlashReferenceMode = .always,
     typescript_eslint_typedef: bool = true,
     typescript_eslint_typedef_property_declaration: bool = true,
     typescript_eslint_typedef_member_variable_declaration: bool = false,
@@ -1316,6 +1324,11 @@ pub const Options = struct {
             self.typescript_eslint_no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .after_used);
             self.typescript_eslint_no_unused_vars_caught_errors = try noUnusedVarsCaughtErrorsFromConfig(value, .all);
             self.typescript_eslint_no_unused_vars_ignore_rest_siblings = try noUnusedVarsIgnoreRestSiblingsFromConfig(value, true);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/triple-slash-reference")) {
+            self.typescript_eslint_triple_slash_reference_path = try typescriptEslintTripleSlashReferenceModeFromConfig(value, "path", .never);
+            self.typescript_eslint_triple_slash_reference_types = try typescriptEslintTripleSlashReferenceModeFromConfig(value, "types", .always);
+            self.typescript_eslint_triple_slash_reference_lib = try typescriptEslintTripleSlashReferenceModeFromConfig(value, "lib", .always);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/typedef")) {
             self.typescript_eslint_typedef_property_declaration = try typescriptEslintTypedefBoolOptionFromConfig(value, "propertyDeclaration", true);
@@ -2971,6 +2984,26 @@ pub const Options = struct {
         };
         if (std.mem.eql(u8, style, "fields")) return .fields;
         if (std.mem.eql(u8, style, "getters")) return .getters;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintTripleSlashReferenceModeFromConfig(value: std.json.Value, key: []const u8, default: TypescriptEslintTripleSlashReferenceMode) RuleConfigError!TypescriptEslintTripleSlashReferenceMode {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const mode = switch (config.get(key) orelse return default) {
+            .string => |mode| mode,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, mode, "always")) return .always;
+        if (std.mem.eql(u8, mode, "never")) return .never;
         return error.UnsupportedRuleConfigValue;
     }
 
