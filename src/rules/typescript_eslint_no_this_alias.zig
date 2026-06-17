@@ -12,6 +12,7 @@ pub fn checkVariableDeclarator(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     declarator: ast.VariableDeclarator,
+    allowed_names: *const core.NoThisAliasAllowedNames,
 ) Allocator.Error!void {
     switch (tree.data(declarator.id)) {
         .binding_identifier => {},
@@ -20,7 +21,7 @@ pub fn checkVariableDeclarator(
 
     if (!isThisExpression(tree, declarator.init)) return;
 
-    try reportIfDisallowed(allocator, diagnostics, tree, declarator.id);
+    try reportIfDisallowed(allocator, diagnostics, tree, declarator.id, allowed_names);
 }
 
 pub fn checkAssignmentExpression(
@@ -28,6 +29,7 @@ pub fn checkAssignmentExpression(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     expression: ast.AssignmentExpression,
+    allowed_names: *const core.NoThisAliasAllowedNames,
 ) Allocator.Error!void {
     if (expression.operator != .assign) return;
 
@@ -38,7 +40,7 @@ pub fn checkAssignmentExpression(
 
     if (!isThisExpression(tree, expression.right)) return;
 
-    try reportIfDisallowed(allocator, diagnostics, tree, expression.left);
+    try reportIfDisallowed(allocator, diagnostics, tree, expression.left, allowed_names);
 }
 
 fn reportIfDisallowed(
@@ -46,8 +48,9 @@ fn reportIfDisallowed(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     target: ast.NodeIndex,
+    allowed_names: *const core.NoThisAliasAllowedNames,
 ) Allocator.Error!void {
-    if (isAllowedSelfAlias(tree, target)) return;
+    if (isAllowedAlias(tree, target, allowed_names)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -59,10 +62,10 @@ fn reportIfDisallowed(
     );
 }
 
-fn isAllowedSelfAlias(tree: *const ast.Tree, target: ast.NodeIndex) bool {
+fn isAllowedAlias(tree: *const ast.Tree, target: ast.NodeIndex, allowed_names: *const core.NoThisAliasAllowedNames) bool {
     const span = tree.span(target);
     if (span.end > tree.source.len or span.start > span.end) return false;
-    return std.mem.eql(u8, tree.source[span.start..span.end], "self");
+    return allowed_names.contains(tree.source[span.start..span.end]);
 }
 
 fn isThisExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
