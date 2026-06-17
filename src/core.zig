@@ -429,6 +429,57 @@ pub const NoThisAliasAllowedNames = struct {
 pub const max_react_jsx_pascal_case_ignore_names = 32;
 pub const max_react_jsx_pascal_case_ignore_name_len = 128;
 
+pub const react_jsx_filename_extension_default_extensions = [_][]const u8{
+    ".jsx",
+    ".js",
+    ".tsx",
+    ".ts",
+    ".vue",
+};
+
+pub const max_react_jsx_filename_extensions = 16;
+pub const max_react_jsx_filename_extension_len = 32;
+
+pub const ReactJsxFilenameExtensionsError = error{
+    EmptyReactJsxFilenameExtension,
+    TooManyReactJsxFilenameExtensions,
+    ReactJsxFilenameExtensionTooLong,
+};
+
+pub const ReactJsxFilenameExtensions = struct {
+    custom: bool = false,
+    count: usize = 0,
+    lengths: [max_react_jsx_filename_extensions]usize = undefined,
+    storage: [max_react_jsx_filename_extensions][max_react_jsx_filename_extension_len]u8 = undefined,
+
+    pub fn len(self: *const ReactJsxFilenameExtensions) usize {
+        return if (self.custom) self.count else react_jsx_filename_extension_default_extensions.len;
+    }
+
+    pub fn at(self: *const ReactJsxFilenameExtensions, index: usize) []const u8 {
+        if (!self.custom) return react_jsx_filename_extension_default_extensions[index];
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn containsFilePath(self: *const ReactJsxFilenameExtensions, file_path: []const u8) bool {
+        for (0..self.len()) |index| {
+            if (std.mem.endsWith(u8, file_path, self.at(index))) return true;
+        }
+        return false;
+    }
+
+    pub fn append(self: *ReactJsxFilenameExtensions, extension_name: []const u8) ReactJsxFilenameExtensionsError!void {
+        if (extension_name.len == 0) return error.EmptyReactJsxFilenameExtension;
+        if (self.count >= max_react_jsx_filename_extensions) return error.TooManyReactJsxFilenameExtensions;
+        if (extension_name.len > max_react_jsx_filename_extension_len) return error.ReactJsxFilenameExtensionTooLong;
+
+        self.custom = true;
+        @memcpy(self.storage[self.count][0..extension_name.len], extension_name);
+        self.lengths[self.count] = extension_name.len;
+        self.count += 1;
+    }
+};
+
 pub const ReactJsxPascalCaseIgnoreNamesError = error{
     EmptyReactJsxPascalCaseIgnoreName,
     TooManyReactJsxPascalCaseIgnoreNames,
@@ -1064,6 +1115,7 @@ pub const Options = struct {
     react_jsx_boolean_value: bool = true,
     react_jsx_boolean_value_style: ReactJsxBooleanValueStyle = .never,
     react_jsx_filename_extension: bool = true,
+    react_jsx_filename_extension_extensions: ReactJsxFilenameExtensions = .{},
     react_jsx_no_duplicate_props: bool = true,
     react_jsx_no_duplicate_props_ignore_case: bool = true,
     react_jsx_no_comment_textnodes: bool = true,
@@ -1487,6 +1539,9 @@ pub const Options = struct {
             self.react_forbid_prop_types_forbid_any = forbid.any;
             self.react_forbid_prop_types_forbid_array = forbid.array;
             self.react_forbid_prop_types_forbid_object = forbid.object;
+        }
+        if (std.mem.eql(u8, cli_name, "react/jsx-filename-extension")) {
+            self.react_jsx_filename_extension_extensions = try reactJsxFilenameExtensionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-boolean-value")) {
             self.react_jsx_boolean_value_style = try reactJsxBooleanValueStyleFromConfig(value);
@@ -3400,6 +3455,33 @@ pub const Options = struct {
         return forbid;
     }
 
+    fn reactJsxFilenameExtensionsFromConfig(value: std.json.Value) RuleConfigError!ReactJsxFilenameExtensions {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const extension_items = switch (config.get("extensions") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var extensions = ReactJsxFilenameExtensions{};
+        for (extension_items) |item| {
+            const extension_name = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            extensions.append(extension_name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return extensions;
+    }
+
     fn reactJsxBooleanValueStyleFromConfig(value: std.json.Value) RuleConfigError!ReactJsxBooleanValueStyle {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4041,6 +4123,11 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.react_forbid_prop_types_forbid_array);
     try std.testing.expect(options.react_forbid_prop_types_forbid_object);
 
+    try std.testing.expect(!options.react_jsx_filename_extension);
+    try std.testing.expect(options.setByCliName("react/jsx-filename-extension", true));
+    try std.testing.expect(options.react_jsx_filename_extension);
+    try std.testing.expectEqual(react_jsx_filename_extension_default_extensions.len, options.react_jsx_filename_extension_extensions.len());
+
     try std.testing.expect(!options.react_prop_types);
     try std.testing.expect(options.setByCliName("react/prop-types", true));
     try std.testing.expect(options.react_prop_types);
@@ -4109,6 +4196,18 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(!options.react_forbid_prop_types_forbid_any);
     try std.testing.expect(options.react_forbid_prop_types_forbid_array);
     try std.testing.expect(!options.react_forbid_prop_types_forbid_object);
+
+    var react_jsx_filename_extension_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"extensions\":[\".tsx\"]}]",
+        .{},
+    );
+    defer react_jsx_filename_extension_config.deinit();
+    try options.setByRuleConfigValue("react/jsx-filename-extension", react_jsx_filename_extension_config.value);
+    try std.testing.expect(options.react_jsx_filename_extension);
+    try std.testing.expectEqual(@as(usize, 1), options.react_jsx_filename_extension_extensions.len());
+    try std.testing.expectEqualStrings(".tsx", options.react_jsx_filename_extension_extensions.at(0));
 
     var react_jsx_no_target_blank_config = try std.json.parseFromSlice(
         std.json.Value,

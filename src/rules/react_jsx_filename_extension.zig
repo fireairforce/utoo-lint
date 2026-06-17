@@ -7,12 +7,8 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "react/jsx-filename-extension";
 
-const allowed_extensions = [_][]const u8{
-    ".jsx",
-    ".js",
-    ".tsx",
-    ".ts",
-    ".vue",
+pub const Options = struct {
+    extensions: core.ReactJsxFilenameExtensions = .{},
 };
 
 pub const State = struct {
@@ -26,8 +22,9 @@ pub fn check(
     file_path: []const u8,
     index: ast.NodeIndex,
     state: *State,
+    options: Options,
 ) Allocator.Error!void {
-    if (state.reported or isAllowedExtension(file_path)) return;
+    if (state.reported or options.extensions.containsFilePath(file_path)) return;
 
     state.reported = true;
     try core.addDiagnosticFmt(
@@ -39,13 +36,6 @@ pub fn check(
         "JSX not allowed in files with extension '{s}'",
         .{extension(file_path)},
     );
-}
-
-fn isAllowedExtension(file_path: []const u8) bool {
-    for (&allowed_extensions) |allowed| {
-        if (std.mem.endsWith(u8, file_path, allowed)) return true;
-    }
-    return false;
 }
 
 fn extension(file_path: []const u8) []const u8 {

@@ -2821,7 +2821,9 @@ const BasicVisitor = struct {
             try react_no_children_prop.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
         }
         if (self.options.react_jsx_filename_extension) {
-            try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state);
+            try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state, .{
+                .extensions = self.options.react_jsx_filename_extension_extensions,
+            });
         }
         if (self.options.react_button_has_type) {
             try react_button_has_type.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index, .{
@@ -2852,7 +2854,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.react_jsx_filename_extension) {
-            try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state);
+            try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state, .{
+                .extensions = self.options.react_jsx_filename_extension_extensions,
+            });
         }
         return .proceed;
     }

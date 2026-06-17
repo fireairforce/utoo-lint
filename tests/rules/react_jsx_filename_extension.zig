@@ -67,6 +67,34 @@ test "allows react/jsx-filename-extension for fishlint allowed extensions" {
     try std.testing.expect(!helpers.hasRule(tsx_result, "parse"));
 }
 
+test "supports configured react/jsx-filename-extension extensions" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"extensions\":[\".tsx\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("react/jsx-filename-extension", config.value);
+
+    const source =
+        \\const view = <div />;
+    ;
+
+    var js_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer js_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(js_result, lint.rules.react_jsx_filename_extension.id));
+    try std.testing.expect(hasMessage(js_result, "JSX not allowed in files with extension '.js'"));
+    try std.testing.expect(!helpers.hasRule(js_result, "parse"));
+
+    var tsx_result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", options);
+    defer tsx_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(tsx_result, lint.rules.react_jsx_filename_extension.id));
+    try std.testing.expect(!helpers.hasRule(tsx_result, "parse"));
+}
+
 test "preserves parser diagnostics when JSX fallback still fails" {
     const source =
         \\const view = <div;
