@@ -992,6 +992,8 @@ pub const Options = struct {
     typescript_eslint_no_unsafe_declaration_merging: bool = true,
     typescript_eslint_triple_slash_reference: bool = true,
     typescript_eslint_typedef: bool = true,
+    typescript_eslint_typedef_property_declaration: bool = true,
+    typescript_eslint_typedef_member_variable_declaration: bool = false,
     typescript_eslint_unified_signatures: bool = true,
     typescript_eslint_no_unnecessary_parameter_property_assignment: bool = true,
     typescript_eslint_no_unnecessary_type_constraint: bool = true,
@@ -1314,6 +1316,10 @@ pub const Options = struct {
             self.typescript_eslint_no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .after_used);
             self.typescript_eslint_no_unused_vars_caught_errors = try noUnusedVarsCaughtErrorsFromConfig(value, .all);
             self.typescript_eslint_no_unused_vars_ignore_rest_siblings = try noUnusedVarsIgnoreRestSiblingsFromConfig(value, true);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/typedef")) {
+            self.typescript_eslint_typedef_property_declaration = try typescriptEslintTypedefBoolOptionFromConfig(value, "propertyDeclaration", true);
+            self.typescript_eslint_typedef_member_variable_declaration = try typescriptEslintTypedefBoolOptionFromConfig(value, "memberVariableDeclaration", false);
         }
         if (std.mem.eql(u8, cli_name, "no-undef")) {
             self.no_undef_typeof = try noUndefTypeofFromConfig(value);
@@ -3011,6 +3017,23 @@ pub const Options = struct {
             names.append(name) catch return error.UnsupportedRuleConfigValue;
         }
         return names;
+    }
+
+    fn typescriptEslintTypedefBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {

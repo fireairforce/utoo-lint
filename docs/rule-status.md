@@ -276,7 +276,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-this-alias`](https://typescript-eslint.io/rules/no-this-alias/) | Implemented for `allowedNames` configuration |
 | [`@typescript-eslint/no-unsafe-declaration-merging`](https://typescript-eslint.io/rules/no-unsafe-declaration-merging/) | Implemented |
 | [`@typescript-eslint/triple-slash-reference`](https://typescript-eslint.io/rules/triple-slash-reference/) | Implemented for fishlint's `path: never, types: always, lib: always` configuration |
-| [`@typescript-eslint/typedef`](https://typescript-eslint.io/rules/typedef/) | Implemented for fishlint's `propertyDeclaration: true` configuration |
+| [`@typescript-eslint/typedef`](https://typescript-eslint.io/rules/typedef/) | Implemented for `propertyDeclaration` and `memberVariableDeclaration` configurations |
 | [`@typescript-eslint/unified-signatures`](https://typescript-eslint.io/rules/unified-signatures/) | Implemented |
 | [`@typescript-eslint/no-unnecessary-parameter-property-assignment`](https://typescript-eslint.io/rules/no-unnecessary-parameter-property-assignment/) | Implemented for constructor assignments in the constructor body |
 | [`@typescript-eslint/no-unnecessary-type-constraint`](https://typescript-eslint.io/rules/no-unnecessary-type-constraint/) | Implemented |
