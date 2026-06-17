@@ -882,6 +882,7 @@ pub const Options = struct {
     wrap_iife_style: WrapIifeStyle = .outside,
     yoda: bool = true,
     yoda_style: YodaStyle = .never,
+    yoda_only_equality: bool = false,
 
     pub fn allDisabled() Options {
         var options = Options{};
@@ -1161,6 +1162,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "yoda")) {
             self.yoda_style = try yodaStyleFromConfig(value);
+            self.yoda_only_equality = try yodaOnlyEqualityFromConfig(value);
         }
     }
 
@@ -2509,11 +2511,34 @@ pub const Options = struct {
 
         const style = switch (items[1]) {
             .string => |style| style,
+            .object => return .never,
             else => return error.UnsupportedRuleConfigValue,
         };
         if (std.mem.eql(u8, style, "never")) return .never;
         if (std.mem.eql(u8, style, "always")) return .always;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn yodaOnlyEqualityFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config_value = switch (items[1]) {
+            .object => items[1],
+            .string => if (items.len >= 3) items[2] else return false,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const config = switch (config_value) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("onlyEquality") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
@@ -3610,6 +3635,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("yoda", yoda_config.value);
     try std.testing.expect(options.yoda);
     try std.testing.expectEqual(YodaStyle.always, options.yoda_style);
+
+    var yoda_only_equality_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\",{\"onlyEquality\":true}]",
+        .{},
+    );
+    defer yoda_only_equality_config.deinit();
+    try options.setByRuleConfigValue("yoda", yoda_only_equality_config.value);
+    try std.testing.expectEqual(YodaStyle.never, options.yoda_style);
+    try std.testing.expect(options.yoda_only_equality);
 
     try std.testing.expectError(
         Options.RuleConfigError.UnsupportedRuleConfigValue,

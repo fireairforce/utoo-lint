@@ -11,6 +11,11 @@ pub const Style = enum {
     always,
 };
 
+pub const Options = struct {
+    style: Style = .never,
+    only_equality: bool = false,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -29,18 +34,30 @@ pub fn checkWithStyle(
     index: ast.NodeIndex,
     style: Style,
 ) Allocator.Error!void {
+    return checkWithOptions(allocator, diagnostics, tree, expression, index, .{ .style = style });
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.BinaryExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
     if (!isComparisonOperator(expression.operator)) return;
+    if (options.only_equality and !isEqualityOperator(expression.operator)) return;
 
     const left_literal = isLiteralLike(tree, expression.left);
     const right_literal = isLiteralLike(tree, expression.right);
-    if (hasExpectedYodaStyle(style, left_literal, right_literal)) return;
+    if (hasExpectedYodaStyle(options.style, left_literal, right_literal)) return;
 
     try core.addDiagnostic(
         allocator,
         diagnostics,
         .warning,
         id,
-        message(style),
+        message(options.style),
         tree.span(index),
     );
 }
@@ -71,6 +88,17 @@ fn isComparisonOperator(operator: ast.BinaryOperator) bool {
         .less_than_or_equal,
         .greater_than,
         .greater_than_or_equal,
+        => true,
+        else => false,
+    };
+}
+
+fn isEqualityOperator(operator: ast.BinaryOperator) bool {
+    return switch (operator) {
+        .equal,
+        .not_equal,
+        .strict_equal,
+        .strict_not_equal,
         => true,
         else => false,
     };
