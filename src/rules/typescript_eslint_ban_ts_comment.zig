@@ -7,16 +7,47 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "@typescript-eslint/ban-ts-comment";
 
-const minimum_description_length = 3;
+pub const Options = struct {
+    ts_expect_error: core.TypescriptEslintBanTsCommentMode = .allow_with_description,
+    ts_ignore: core.TypescriptEslintBanTsCommentMode = .allow_with_description,
+    ts_nocheck: core.TypescriptEslintBanTsCommentMode = .allow_with_description,
+    ts_check: core.TypescriptEslintBanTsCommentMode = .allow_with_description,
+    minimum_description_length: usize = 3,
+};
 
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
 ) Allocator.Error!void {
+    return runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
+) Allocator.Error!void {
     for (tree.comments) |comment| {
         const directive = directiveFromComment(tree, comment) orelse continue;
-        if (descriptionLength(directive.description) >= minimum_description_length) continue;
+        switch (modeForDirective(options, directive.kind)) {
+            .allow => continue,
+            .ban => {},
+            .allow_with_description => {
+                if (descriptionLength(directive.description) >= options.minimum_description_length) continue;
+                try core.addDiagnosticFmt(
+                    allocator,
+                    diagnostics,
+                    .warning,
+                    id,
+                    .{ .start = comment.start, .end = comment.end },
+                    "Include a description after the \"@ts-{s}\" directive to explain why the @ts-{s} is necessary. The description must be {d} characters or longer.",
+                    .{ directive.name, directive.name, options.minimum_description_length },
+                );
+                continue;
+            },
+        }
 
         try core.addDiagnosticFmt(
             allocator,
@@ -24,13 +55,21 @@ pub fn run(
             .warning,
             id,
             .{ .start = comment.start, .end = comment.end },
-            "Include a description after the \"@ts-{s}\" directive to explain why the @ts-{s} is necessary. The description must be {d} characters or longer.",
-            .{ directive.name, directive.name, minimum_description_length },
+            "Do not use \"@ts-{s}\" directives.",
+            .{directive.name},
         );
     }
 }
 
+const DirectiveKind = enum {
+    ts_expect_error,
+    ts_ignore,
+    ts_nocheck,
+    ts_check,
+};
+
 const Directive = struct {
+    kind: DirectiveKind,
     name: []const u8,
     description: []const u8,
 };
@@ -45,16 +84,31 @@ fn directiveFromComment(tree: *const ast.Tree, comment: ast.Comment) ?Directive 
     if (!std.mem.startsWith(u8, text, "@ts-")) return null;
     const after_prefix = text["@ts-".len..];
 
-    inline for (.{ "expect-error", "ignore", "nocheck", "check" }) |name| {
-        if (std.mem.startsWith(u8, after_prefix, name)) {
+    inline for (.{
+        .{ .kind = DirectiveKind.ts_expect_error, .name = "expect-error" },
+        .{ .kind = DirectiveKind.ts_ignore, .name = "ignore" },
+        .{ .kind = DirectiveKind.ts_nocheck, .name = "nocheck" },
+        .{ .kind = DirectiveKind.ts_check, .name = "check" },
+    }) |directive| {
+        if (std.mem.startsWith(u8, after_prefix, directive.name)) {
             return .{
-                .name = name,
-                .description = after_prefix[name.len..],
+                .kind = directive.kind,
+                .name = directive.name,
+                .description = after_prefix[directive.name.len..],
             };
         }
     }
 
     return null;
+}
+
+fn modeForDirective(options: Options, kind: DirectiveKind) core.TypescriptEslintBanTsCommentMode {
+    return switch (kind) {
+        .ts_expect_error => options.ts_expect_error,
+        .ts_ignore => options.ts_ignore,
+        .ts_nocheck => options.ts_nocheck,
+        .ts_check => options.ts_check,
+    };
 }
 
 fn trimLeftSlashesAndWhitespace(value: []const u8) []const u8 {
