@@ -26,6 +26,13 @@ pub const CurlyStyle = enum {
     multi_line,
 };
 
+pub const ObjectShorthandStyle = enum {
+    always,
+    methods,
+    properties,
+    never,
+};
+
 pub const NoCondAssignStyle = enum {
     except_parens,
     always,
@@ -729,6 +736,8 @@ pub const Options = struct {
     no_with: bool = true,
     no_var: bool = true,
     object_shorthand: bool = true,
+    object_shorthand_style: ObjectShorthandStyle = .always,
+    object_shorthand_avoid_quotes: bool = false,
     one_var: bool = true,
     operator_assignment: bool = true,
     eqeqeq: bool = true,
@@ -1106,6 +1115,10 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-use-before-define")) {
             self.no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", true);
             self.no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
+        }
+        if (std.mem.eql(u8, cli_name, "object-shorthand")) {
+            self.object_shorthand_style = try objectShorthandStyleFromConfig(value);
+            self.object_shorthand_avoid_quotes = try objectShorthandAvoidQuotesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -2259,6 +2272,47 @@ pub const Options = struct {
         return if (enabled) .yes else .no;
     }
 
+    fn objectShorthandStyleFromConfig(value: std.json.Value) RuleConfigError!ObjectShorthandStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            .object => return .always,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "always")) return .always;
+        if (std.mem.eql(u8, style, "methods")) return .methods;
+        if (std.mem.eql(u8, style, "properties")) return .properties;
+        if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn objectShorthandAvoidQuotesFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config_value = switch (items[1]) {
+            .object => items[1],
+            .string => if (items.len >= 3) items[2] else return false,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const config = switch (config_value) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("avoidQuotes") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn noUndefTypeofFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -3263,6 +3317,18 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-plusplus", no_plusplus_config.value);
     try std.testing.expect(options.no_plusplus);
     try std.testing.expectEqual(NoPlusplusAllowForLoopAfterthoughts.yes, options.no_plusplus_allow_for_loop_afterthoughts);
+
+    var object_shorthand_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"methods\",{\"avoidQuotes\":true}]",
+        .{},
+    );
+    defer object_shorthand_config.deinit();
+    try options.setByRuleConfigValue("object-shorthand", object_shorthand_config.value);
+    try std.testing.expect(options.object_shorthand);
+    try std.testing.expectEqual(ObjectShorthandStyle.methods, options.object_shorthand_style);
+    try std.testing.expect(options.object_shorthand_avoid_quotes);
 
     var prefer_const_config = try std.json.parseFromSlice(
         std.json.Value,

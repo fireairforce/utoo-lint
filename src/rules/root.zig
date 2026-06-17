@@ -2807,7 +2807,10 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.object_shorthand) {
-            try object_shorthand.check(self.allocator, self.diagnostics, ctx.tree, property, index);
+            try object_shorthand.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, property, index, .{
+                .style = self.options.object_shorthand_style,
+                .avoid_quotes = self.options.object_shorthand_avoid_quotes,
+            });
         }
         if (self.options.func_name_matching) {
             try func_name_matching.checkObjectPropertyWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
