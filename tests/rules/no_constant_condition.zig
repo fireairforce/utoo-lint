@@ -73,6 +73,61 @@ test "still reports no-constant-condition for other loop constants" {
     try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_constant_condition.id));
 }
 
+test "supports configured no-constant-condition checkLoops none" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"checkLoops\":\"none\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-constant-condition", config.value);
+    options.no_unused_vars = false;
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\while (false) { break; }
+        \\do { break; } while (true);
+        \\for (; true; ) { break; }
+        \\if (false) { use(); }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_constant_condition.id));
+}
+
+test "supports configured no-constant-condition checkLoops all" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"checkLoops\":\"all\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-constant-condition", config.value);
+    options.no_unused_vars = false;
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\while (true) { break; }
+        \\while ((true)) { break; }
+        \\while (false) { break; }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_constant_condition.id));
+}
+
 test "reports no-constant-condition for constant unary expressions" {
     const source =
         \\if (void 0) { use(); }

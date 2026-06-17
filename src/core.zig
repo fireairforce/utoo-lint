@@ -457,6 +457,12 @@ pub const FuncNameMatchingStyle = enum {
     never,
 };
 
+pub const NoConstantConditionCheckLoops = enum {
+    all,
+    all_except_while_true,
+    none,
+};
+
 pub const YodaStyle = enum {
     never,
     always,
@@ -566,6 +572,7 @@ pub const Options = struct {
     no_cond_assign_style: NoCondAssignStyle = .except_parens,
     no_compare_neg_zero: bool = true,
     no_constant_condition: bool = true,
+    no_constant_condition_check_loops: NoConstantConditionCheckLoops = .all_except_while_true,
     no_const_assign: bool = true,
     no_control_regex: bool = true,
     no_console: bool = true,
@@ -1068,6 +1075,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-cond-assign")) {
             self.no_cond_assign_style = try noCondAssignStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-constant-condition")) {
+            self.no_constant_condition_check_loops = try noConstantConditionCheckLoopsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-confusing-arrow")) {
             self.no_confusing_arrow_allow_parens = try noConfusingArrowAllowParensFromConfig(value);
@@ -1693,6 +1703,30 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "except-parens")) return .except_parens;
         if (std.mem.eql(u8, style, "always")) return .always;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn noConstantConditionCheckLoopsFromConfig(value: std.json.Value) RuleConfigError!NoConstantConditionCheckLoops {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .all_except_while_true,
+        };
+        if (items.len < 2) return .all_except_while_true;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const check_loops = config.get("checkLoops") orelse return .all_except_while_true;
+        return switch (check_loops) {
+            .bool => |enabled| if (enabled) .all else .none,
+            .string => |style| {
+                if (std.mem.eql(u8, style, "all")) return .all;
+                if (std.mem.eql(u8, style, "allExceptWhileTrue")) return .all_except_while_true;
+                if (std.mem.eql(u8, style, "none")) return .none;
+                return error.UnsupportedRuleConfigValue;
+            },
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noConfusingArrowAllowParensFromConfig(value: std.json.Value) RuleConfigError!NoConfusingArrowAllowParens {
@@ -3201,6 +3235,27 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-cond-assign", no_cond_assign_config.value);
     try std.testing.expect(options.no_cond_assign);
     try std.testing.expectEqual(NoCondAssignStyle.always, options.no_cond_assign_style);
+
+    var no_constant_condition_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"checkLoops\":\"none\"}]",
+        .{},
+    );
+    defer no_constant_condition_config.deinit();
+    try options.setByRuleConfigValue("no-constant-condition", no_constant_condition_config.value);
+    try std.testing.expect(options.no_constant_condition);
+    try std.testing.expectEqual(NoConstantConditionCheckLoops.none, options.no_constant_condition_check_loops);
+
+    var no_constant_condition_false_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"checkLoops\":false}]",
+        .{},
+    );
+    defer no_constant_condition_false_config.deinit();
+    try options.setByRuleConfigValue("no-constant-condition", no_constant_condition_false_config.value);
+    try std.testing.expectEqual(NoConstantConditionCheckLoops.none, options.no_constant_condition_check_loops);
 
     var no_confusing_arrow_config = try std.json.parseFromSlice(
         std.json.Value,
