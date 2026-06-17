@@ -1190,6 +1190,7 @@ pub const Options = struct {
     react_no_find_dom_node: bool = true,
     react_no_is_mounted: bool = true,
     react_no_multi_comp: bool = true,
+    react_no_multi_comp_ignore_stateless: bool = true,
     react_no_redundant_should_component_update: bool = true,
     react_no_render_return_value: bool = true,
     react_no_will_update_set_state: bool = true,
@@ -1622,6 +1623,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/no-string-refs")) {
             self.react_no_string_refs_no_template_literals = try reactNoStringRefsNoTemplateLiteralsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/no-multi-comp")) {
+            self.react_no_multi_comp_ignore_stateless = try reactNoMultiCompIgnoreStatelessFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/no-unknown-property")) {
             self.react_no_unknown_property_ignore = try reactNoUnknownPropertyIgnoreFromConfig(value);
@@ -3634,6 +3638,23 @@ pub const Options = struct {
         };
     }
 
+    fn reactNoMultiCompIgnoreStatelessFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return true,
+        };
+        if (items.len < 2) return true;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("ignoreStateless") orelse return true) {
+            .bool => |ignore_stateless| ignore_stateless,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn reactNoUnknownPropertyIgnoreFromConfig(value: std.json.Value) RuleConfigError!ReactNoUnknownPropertyIgnoreNames {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4338,6 +4359,11 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.react_no_string_refs);
     try std.testing.expect(!options.react_no_string_refs_no_template_literals);
 
+    try std.testing.expect(!options.react_no_multi_comp);
+    try std.testing.expect(options.setByCliName("react/no-multi-comp", true));
+    try std.testing.expect(options.react_no_multi_comp);
+    try std.testing.expect(options.react_no_multi_comp_ignore_stateless);
+
     try std.testing.expect(!options.react_no_unknown_property);
     try std.testing.expect(options.setByCliName("react/no-unknown-property", true));
     try std.testing.expect(options.react_no_unknown_property);
@@ -4493,6 +4519,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("react/no-string-refs", react_no_string_refs_config.value);
     try std.testing.expect(options.react_no_string_refs);
     try std.testing.expect(options.react_no_string_refs_no_template_literals);
+
+    var react_no_multi_comp_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreStateless\":false}]",
+        .{},
+    );
+    defer react_no_multi_comp_config.deinit();
+    try options.setByRuleConfigValue("react/no-multi-comp", react_no_multi_comp_config.value);
+    try std.testing.expect(options.react_no_multi_comp);
+    try std.testing.expect(!options.react_no_multi_comp_ignore_stateless);
 
     var react_no_unknown_property_config = try std.json.parseFromSlice(
         std.json.Value,

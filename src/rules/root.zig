@@ -1172,6 +1172,11 @@ const BasicVisitor = struct {
         if (self.options.react_display_name) {
             try react_display_name.checkFunction(self.allocator, ctx.tree, function, index, ctx.path.parent(), &self.react_display_name_state);
         }
+        if (self.options.react_no_multi_comp) {
+            try react_no_multi_comp.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, &self.react_no_multi_comp_state, .{
+                .ignore_stateless = self.options.react_no_multi_comp_ignore_stateless,
+            });
+        }
         return .proceed;
     }
 
@@ -1553,6 +1558,11 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_deprecated) {
             try react_no_deprecated.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
+        }
+        if (self.options.react_no_multi_comp) {
+            try react_no_multi_comp.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator, index, &self.react_no_multi_comp_state, .{
+                .ignore_stateless = self.options.react_no_multi_comp_ignore_stateless,
+            });
         }
         if (self.options.react_no_access_state_in_setstate) {
             try react_no_access_state_in_setstate.checkVariableDeclarator(
