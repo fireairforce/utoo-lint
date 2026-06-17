@@ -16,6 +16,7 @@ pub const Options = struct {
     severity: core.Severity = .warning,
     check_parameters: bool = false,
     args_after_used: bool = false,
+    vars: core.NoUnusedVarsVars = .all,
     check_caught_errors: bool = true,
     ignore_rest_siblings: bool = false,
     check_type_parameters: bool = false,
@@ -70,15 +71,17 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    scope_tree: traverser.semantic.ScopeTree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
-    try runWithOptions(allocator, diagnostics, tree, symbol_table, .{});
+    try runWithOptions(allocator, diagnostics, tree, scope_tree, symbol_table, .{});
 }
 
 pub fn runWithOptions(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    scope_tree: traverser.semantic.ScopeTree,
     symbol_table: traverser.semantic.SymbolTable,
     options: Options,
 ) Allocator.Error!void {
@@ -108,6 +111,7 @@ pub fn runWithOptions(
 
         if (!isLintableSymbol(flags, options)) continue;
         if (flags.exported or flags.ambient) continue;
+        if (options.vars == .local and isGlobalVariable(scope_tree, symbol.scope, flags)) continue;
         if (flags.catch_var and !options.check_caught_errors) continue;
         if (flags.parameter) {
             if (!options.check_parameters) continue;
@@ -133,6 +137,18 @@ pub fn runWithOptions(
             .{name},
         );
     }
+}
+
+fn isGlobalVariable(
+    scope_tree: traverser.semantic.ScopeTree,
+    scope_id: traverser.semantic.ScopeId,
+    flags: traverser.semantic.Symbol.Flags,
+) bool {
+    if (flags.catch_var or flags.parameter) return false;
+    if (flags.type_parameter) return false;
+    if (scope_id == .none) return false;
+    const scope = scope_tree.getScope(scope_id);
+    return scope.kind == .global;
 }
 
 fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bool {
