@@ -26,6 +26,11 @@ pub const CurlyStyle = enum {
     multi_line,
 };
 
+pub const NoCondAssignStyle = enum {
+    except_parens,
+    always,
+};
+
 pub const NoConfusingArrowAllowParens = enum {
     yes,
     no,
@@ -487,6 +492,7 @@ pub const Options = struct {
     no_confusing_arrow: bool = true,
     no_confusing_arrow_allow_parens: NoConfusingArrowAllowParens = .yes,
     no_cond_assign: bool = true,
+    no_cond_assign_style: NoCondAssignStyle = .except_parens,
     no_compare_neg_zero: bool = true,
     no_constant_condition: bool = true,
     no_const_assign: bool = true,
@@ -960,6 +966,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-console")) {
             self.no_console_allow = try noConsoleAllowFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-cond-assign")) {
+            self.no_cond_assign_style = try noCondAssignStyleFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-confusing-arrow")) {
             self.no_confusing_arrow_allow_parens = try noConfusingArrowAllowParensFromConfig(value);
@@ -1450,6 +1459,22 @@ pub const Options = struct {
             if (!allow.enable(method)) return error.UnsupportedRuleConfigValue;
         }
         return allow;
+    }
+
+    fn noCondAssignStyleFromConfig(value: std.json.Value) RuleConfigError!NoCondAssignStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .except_parens,
+        };
+        if (items.len < 2) return .except_parens;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "except-parens")) return .except_parens;
+        if (std.mem.eql(u8, style, "always")) return .always;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn noConfusingArrowAllowParensFromConfig(value: std.json.Value) RuleConfigError!NoConfusingArrowAllowParens {
@@ -2767,6 +2792,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_console_allow.contains("warn"));
     try std.testing.expect(options.no_console_allow.contains("error"));
     try std.testing.expect(!options.no_console_allow.contains("log"));
+
+    var no_cond_assign_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"always\"]",
+        .{},
+    );
+    defer no_cond_assign_config.deinit();
+    try options.setByRuleConfigValue("no-cond-assign", no_cond_assign_config.value);
+    try std.testing.expect(options.no_cond_assign);
+    try std.testing.expectEqual(NoCondAssignStyle.always, options.no_cond_assign_style);
 
     var no_confusing_arrow_config = try std.json.parseFromSlice(
         std.json.Value,

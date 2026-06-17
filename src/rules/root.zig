@@ -1208,7 +1208,9 @@ const BasicVisitor = struct {
             try curly.checkIfStatementWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, self.curlyOptions());
         }
         if (self.options.no_cond_assign) {
-            try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+            try no_cond_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.@"test", .{
+                .style = self.options.no_cond_assign_style,
+            });
         }
         if (self.options.no_constant_condition) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
@@ -1265,7 +1267,9 @@ const BasicVisitor = struct {
             try curly.checkBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.body, self.curlyOptions());
         }
         if (self.options.no_cond_assign) {
-            try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+            try no_cond_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.@"test", .{
+                .style = self.options.no_cond_assign_style,
+            });
         }
         if (self.options.no_constant_condition) {
             try no_constant_condition.checkWhile(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
@@ -1283,7 +1287,9 @@ const BasicVisitor = struct {
             try curly.checkBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.body, self.curlyOptions());
         }
         if (self.options.no_cond_assign) {
-            try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+            try no_cond_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.@"test", .{
+                .style = self.options.no_cond_assign_style,
+            });
         }
         if (self.options.no_constant_condition) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
@@ -1301,7 +1307,9 @@ const BasicVisitor = struct {
             try curly.checkBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.body, self.curlyOptions());
         }
         if (self.options.no_cond_assign and statement.@"test" != .null) {
-            try no_cond_assign.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+            try no_cond_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.@"test", .{
+                .style = self.options.no_cond_assign_style,
+            });
         }
         if (self.options.no_constant_condition and statement.@"test" != .null) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
