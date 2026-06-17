@@ -531,6 +531,12 @@ pub const TypescriptEslintMethodSignatureStyle = enum {
     method,
 };
 
+pub const TypescriptEslintArrayTypeStyle = enum {
+    array,
+    array_simple,
+    generic,
+};
+
 pub const TypescriptEslintConsistentTypeDefinitionsStyle = enum {
     interface,
     type,
@@ -958,6 +964,7 @@ pub const Options = struct {
     symbol_description: bool = true,
     typescript_eslint_adjacent_overload_signatures: bool = true,
     typescript_eslint_array_type: bool = true,
+    typescript_eslint_array_type_style: TypescriptEslintArrayTypeStyle = .array_simple,
     typescript_eslint_class_literal_property_style: bool = true,
     typescript_eslint_class_literal_property_style_style: TypescriptEslintClassLiteralPropertyStyle = .fields,
     typescript_eslint_consistent_type_assertions: bool = true,
@@ -1299,6 +1306,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-pascal-case")) {
             self.react_jsx_pascal_case_allow_all_caps = try reactJsxPascalCaseAllowAllCapsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/array-type")) {
+            self.typescript_eslint_array_type_style = try typescriptEslintArrayTypeStyleFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/class-literal-property-style")) {
             self.typescript_eslint_class_literal_property_style_style = try typescriptEslintClassLiteralPropertyStyleFromConfig(value);
@@ -2952,6 +2962,31 @@ pub const Options = struct {
         };
         if (std.mem.eql(u8, style, "property")) return .property;
         if (std.mem.eql(u8, style, "method")) return .method;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintArrayTypeStyleFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintArrayTypeStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .array_simple,
+        };
+        if (items.len < 2) return .array_simple;
+
+        const config_value = switch (items[1]) {
+            .object => items[1],
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const config = switch (config_value) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const style = switch (config.get("default") orelse return .array_simple) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "array")) return .array;
+        if (std.mem.eql(u8, style, "array-simple")) return .array_simple;
+        if (std.mem.eql(u8, style, "generic")) return .generic;
         return error.UnsupportedRuleConfigValue;
     }
 

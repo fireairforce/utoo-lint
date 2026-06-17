@@ -13,13 +13,15 @@ pub fn checkTypeReference(
     tree: *const ast.Tree,
     reference: ast.TSTypeReference,
     index: ast.NodeIndex,
+    style: core.TypescriptEslintArrayTypeStyle,
 ) Allocator.Error!void {
     const name = typeName(tree, reference.type_name) orelse return;
     const readonly = std.mem.eql(u8, name, "ReadonlyArray");
     if (!readonly and !std.mem.eql(u8, name, "Array")) return;
+    if (style == .generic) return;
 
     const element_type = singleTypeArgument(tree, reference.type_arguments) orelse return;
-    if (!isSimpleType(tree, element_type)) return;
+    if (style == .array_simple and !isSimpleType(tree, element_type)) return;
 
     const type_text = sourceText(tree, index);
     const element_text = sourceText(tree, unwrapParenthesized(tree, element_type));
@@ -53,8 +55,13 @@ pub fn checkArrayType(
     tree: *const ast.Tree,
     array_type: ast.TSArrayType,
     index: ast.NodeIndex,
+    style: core.TypescriptEslintArrayTypeStyle,
 ) Allocator.Error!void {
-    if (isSimpleType(tree, array_type.element_type)) return;
+    switch (style) {
+        .array => return,
+        .array_simple => if (isSimpleType(tree, array_type.element_type)) return,
+        .generic => {},
+    }
 
     try core.addDiagnostic(
         allocator,
