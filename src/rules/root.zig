@@ -2951,7 +2951,14 @@ const BasicVisitor = struct {
             try typescript_eslint_explicit_member_accessibility.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
         }
         if (self.options.typescript_eslint_class_literal_property_style) {
-            try typescript_eslint_class_literal_property_style.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index);
+            try typescript_eslint_class_literal_property_style.checkMethodDefinition(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                method,
+                index,
+                self.options.typescript_eslint_class_literal_property_style_style,
+            );
         }
         if (self.options.react_no_typos) {
             try react_no_typos.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index, ctx);
@@ -2998,6 +3005,16 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_inferrable_types) {
             try typescript_eslint_no_inferrable_types.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
+        }
+        if (self.options.typescript_eslint_class_literal_property_style) {
+            try typescript_eslint_class_literal_property_style.checkPropertyDefinition(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                property,
+                index,
+                self.options.typescript_eslint_class_literal_property_style_style,
+            );
         }
         if (self.options.func_name_matching) {
             try func_name_matching.checkPropertyDefinitionWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
