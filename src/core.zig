@@ -373,6 +373,42 @@ pub const NoShadowAllowNames = struct {
     }
 };
 
+pub const max_new_cap_exception_names = 32;
+pub const max_new_cap_exception_name_len = 128;
+
+pub const NewCapExceptionNamesError = error{
+    EmptyNewCapExceptionName,
+    TooManyNewCapExceptionNames,
+    NewCapExceptionNameTooLong,
+};
+
+pub const NewCapExceptionNames = struct {
+    count: usize = 0,
+    lengths: [max_new_cap_exception_names]usize = undefined,
+    storage: [max_new_cap_exception_names][max_new_cap_exception_name_len]u8 = undefined,
+
+    pub fn contains(self: *const NewCapExceptionNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const NewCapExceptionNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *NewCapExceptionNames, name: []const u8) NewCapExceptionNamesError!void {
+        if (name.len == 0) return error.EmptyNewCapExceptionName;
+        if (self.count >= max_new_cap_exception_names) return error.TooManyNewCapExceptionNames;
+        if (name.len > max_new_cap_exception_name_len) return error.NewCapExceptionNameTooLong;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const NoUselessComputedKeyEnforceForClassMembers = enum {
     yes,
     no,
@@ -504,6 +540,8 @@ pub const Options = struct {
     new_cap_new_is_cap: bool = true,
     new_cap_cap_is_new: bool = true,
     new_cap_properties: bool = true,
+    new_cap_new_is_cap_exceptions: NewCapExceptionNames = .{},
+    new_cap_cap_is_new_exceptions: NewCapExceptionNames = .{},
     new_parens: bool = true,
     no_async_promise_executor: bool = true,
     no_array_constructor: bool = true,
@@ -1012,6 +1050,8 @@ pub const Options = struct {
             self.new_cap_new_is_cap = try newCapBoolOptionFromConfig(value, "newIsCap", true);
             self.new_cap_cap_is_new = try newCapBoolOptionFromConfig(value, "capIsNew", true);
             self.new_cap_properties = try newCapBoolOptionFromConfig(value, "properties", true);
+            self.new_cap_new_is_cap_exceptions = try newCapExceptionNamesFromConfig(value, "newIsCapExceptions");
+            self.new_cap_cap_is_new_exceptions = try newCapExceptionNamesFromConfig(value, "capIsNewExceptions");
         }
         if (std.mem.eql(u8, cli_name, "no-bitwise")) {
             self.no_bitwise_allow_bitwise_and = try noBitwiseAllowFromConfig(value, "&");
@@ -1528,6 +1568,34 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn newCapExceptionNamesFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!NewCapExceptionNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const exception_value = config.get(key) orelse return .{};
+        const exception_items = switch (exception_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var exceptions = NewCapExceptionNames{};
+        for (exception_items) |item| {
+            const name = switch (item) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            exceptions.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return exceptions;
     }
 
     fn noBitwiseAllowFromConfig(value: std.json.Value, expected: []const u8) RuleConfigError!bool {
@@ -3272,7 +3340,7 @@ test "Options can apply ESLint-style rule config values" {
     var new_cap_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"newIsCap\":false,\"capIsNew\":false,\"properties\":false}]",
+        "[\"error\",{\"newIsCap\":false,\"capIsNew\":false,\"properties\":false,\"newIsCapExceptions\":[\"lowerFactory\"],\"capIsNewExceptions\":[\"UpperFactory\"]}]",
         .{},
     );
     defer new_cap_config.deinit();
@@ -3281,6 +3349,10 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(!options.new_cap_new_is_cap);
     try std.testing.expect(!options.new_cap_cap_is_new);
     try std.testing.expect(!options.new_cap_properties);
+    try std.testing.expect(options.new_cap_new_is_cap_exceptions.contains("lowerFactory"));
+    try std.testing.expect(!options.new_cap_new_is_cap_exceptions.contains("otherFactory"));
+    try std.testing.expect(options.new_cap_cap_is_new_exceptions.contains("UpperFactory"));
+    try std.testing.expect(!options.new_cap_cap_is_new_exceptions.contains("OtherFactory"));
 
     var no_multi_spaces_config = try std.json.parseFromSlice(
         std.json.Value,
