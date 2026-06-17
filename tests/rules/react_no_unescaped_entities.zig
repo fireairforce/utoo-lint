@@ -39,6 +39,34 @@ test "allows escaped entities and JavaScript expression strings" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_no_unescaped_entities.id));
 }
 
+test "supports configured react/no-unescaped-entities forbid list" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"forbid\":[\">\",{\"char\":\"}\"}]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("react/no-unescaped-entities", config.value);
+    options.eol_last = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const node = <div>Tom's "quote" > brace }</div>;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_no_unescaped_entities.id));
+    try std.testing.expectEqualStrings("`>` can be escaped with `&gt;`.", result.diagnostics[0].message);
+    try std.testing.expectEqualStrings("`}` can be escaped with `&#125;`.", result.diagnostics[1].message);
+}
+
 test "can disable react/no-unescaped-entities" {
     const source =
         \\const node = <div>Tom's ></div>;

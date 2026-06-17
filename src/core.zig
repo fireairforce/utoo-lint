@@ -1064,6 +1064,10 @@ pub const Options = struct {
     react_no_unused_state: bool = true,
     react_no_string_refs: bool = true,
     react_no_unescaped_entities: bool = true,
+    react_no_unescaped_entities_forbid_gt: bool = true,
+    react_no_unescaped_entities_forbid_double_quote: bool = true,
+    react_no_unescaped_entities_forbid_single_quote: bool = true,
+    react_no_unescaped_entities_forbid_closing_brace: bool = true,
     react_prefer_es6_class: bool = true,
     react_self_closing_comp: bool = true,
     react_style_prop_object: bool = true,
@@ -1442,6 +1446,13 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/no-unused-prop-types")) {
             self.react_no_unused_prop_types_skip_shape_props = try reactNoUnusedPropTypesSkipShapePropsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/no-unescaped-entities")) {
+            const forbid = try reactNoUnescapedEntitiesForbidFromConfig(value);
+            self.react_no_unescaped_entities_forbid_gt = forbid.gt;
+            self.react_no_unescaped_entities_forbid_double_quote = forbid.double_quote;
+            self.react_no_unescaped_entities_forbid_single_quote = forbid.single_quote;
+            self.react_no_unescaped_entities_forbid_closing_brace = forbid.closing_brace;
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/array-type")) {
             self.typescript_eslint_array_type_style = try typescriptEslintArrayTypeStyleFromConfig(value);
@@ -1859,6 +1870,59 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    const ReactNoUnescapedEntitiesForbid = struct {
+        gt: bool = true,
+        double_quote: bool = true,
+        single_quote: bool = true,
+        closing_brace: bool = true,
+    };
+
+    fn reactNoUnescapedEntitiesForbidFromConfig(value: std.json.Value) RuleConfigError!ReactNoUnescapedEntitiesForbid {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const forbid = switch (config.get("forbid") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = ReactNoUnescapedEntitiesForbid{
+            .gt = false,
+            .double_quote = false,
+            .single_quote = false,
+            .closing_brace = false,
+        };
+        for (forbid) |entry| {
+            const char = switch (entry) {
+                .string => |string| string,
+                .object => |object| switch (object.get("char") orelse return error.UnsupportedRuleConfigValue) {
+                    .string => |string| string,
+                    else => return error.UnsupportedRuleConfigValue,
+                },
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, char, ">")) {
+                result.gt = true;
+            } else if (std.mem.eql(u8, char, "\"")) {
+                result.double_quote = true;
+            } else if (std.mem.eql(u8, char, "'")) {
+                result.single_quote = true;
+            } else if (std.mem.eql(u8, char, "}")) {
+                result.closing_brace = true;
+            } else {
+                return error.UnsupportedRuleConfigValue;
+            }
+        }
+        return result;
     }
 
     fn typescriptEslintBanTypesConfigFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintBanTypesConfig {
@@ -3784,6 +3848,14 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.react_no_unused_prop_types);
     try std.testing.expect(options.react_no_unused_prop_types_skip_shape_props);
 
+    try std.testing.expect(!options.react_no_unescaped_entities);
+    try std.testing.expect(options.setByCliName("react/no-unescaped-entities", true));
+    try std.testing.expect(options.react_no_unescaped_entities);
+    try std.testing.expect(options.react_no_unescaped_entities_forbid_gt);
+    try std.testing.expect(options.react_no_unescaped_entities_forbid_double_quote);
+    try std.testing.expect(options.react_no_unescaped_entities_forbid_single_quote);
+    try std.testing.expect(options.react_no_unescaped_entities_forbid_closing_brace);
+
     try std.testing.expect(!options.react_hooks_rules_of_hooks);
     try std.testing.expect(options.setByCliName("react-hooks/rules-of-hooks", true));
     try std.testing.expect(options.react_hooks_rules_of_hooks);
@@ -3818,6 +3890,20 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("react/prop-types", react_prop_types_config.value);
     try std.testing.expect(options.react_prop_types);
     try std.testing.expect(options.react_prop_types_skip_undeclared);
+
+    var react_no_unescaped_entities_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"forbid\":[\">\",{\"char\":\"}\"}]}]",
+        .{},
+    );
+    defer react_no_unescaped_entities_config.deinit();
+    try options.setByRuleConfigValue("react/no-unescaped-entities", react_no_unescaped_entities_config.value);
+    try std.testing.expect(options.react_no_unescaped_entities);
+    try std.testing.expect(options.react_no_unescaped_entities_forbid_gt);
+    try std.testing.expect(!options.react_no_unescaped_entities_forbid_double_quote);
+    try std.testing.expect(!options.react_no_unescaped_entities_forbid_single_quote);
+    try std.testing.expect(options.react_no_unescaped_entities_forbid_closing_brace);
 
     var react_no_unused_prop_types_config = try std.json.parseFromSlice(
         std.json.Value,

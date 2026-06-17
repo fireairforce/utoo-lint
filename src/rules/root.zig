@@ -2913,7 +2913,12 @@ const BasicVisitor = struct {
             try react_jsx_no_comment_textnodes.check(self.allocator, self.diagnostics, ctx.tree, text, index);
         }
         if (self.options.react_no_unescaped_entities) {
-            try react_no_unescaped_entities.check(self.allocator, self.diagnostics, ctx.tree, index);
+            try react_no_unescaped_entities.check(self.allocator, self.diagnostics, ctx.tree, index, .{
+                .forbid_gt = self.options.react_no_unescaped_entities_forbid_gt,
+                .forbid_double_quote = self.options.react_no_unescaped_entities_forbid_double_quote,
+                .forbid_single_quote = self.options.react_no_unescaped_entities_forbid_single_quote,
+                .forbid_closing_brace = self.options.react_no_unescaped_entities_forbid_closing_brace,
+            });
         }
         return .proceed;
     }
