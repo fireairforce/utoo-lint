@@ -33,6 +33,11 @@ pub const ObjectShorthandStyle = enum {
     never,
 };
 
+pub const OperatorAssignmentStyle = enum {
+    always,
+    never,
+};
+
 pub const NoCondAssignStyle = enum {
     except_parens,
     always,
@@ -740,6 +745,7 @@ pub const Options = struct {
     object_shorthand_avoid_quotes: bool = false,
     one_var: bool = true,
     operator_assignment: bool = true,
+    operator_assignment_style: OperatorAssignmentStyle = .always,
     eqeqeq: bool = true,
     eqeqeq_style: EqeqeqStyle = .strict,
     use_isnan: bool = true,
@@ -1119,6 +1125,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "object-shorthand")) {
             self.object_shorthand_style = try objectShorthandStyleFromConfig(value);
             self.object_shorthand_avoid_quotes = try objectShorthandAvoidQuotesFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "operator-assignment")) {
+            self.operator_assignment_style = try operatorAssignmentStyleFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -2319,6 +2328,22 @@ pub const Options = struct {
         };
     }
 
+    fn operatorAssignmentStyleFromConfig(value: std.json.Value) RuleConfigError!OperatorAssignmentStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "always")) return .always;
+        if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
     fn noUndefTypeofFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -3335,6 +3360,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.object_shorthand);
     try std.testing.expectEqual(ObjectShorthandStyle.methods, options.object_shorthand_style);
     try std.testing.expect(options.object_shorthand_avoid_quotes);
+
+    var operator_assignment_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\"]",
+        .{},
+    );
+    defer operator_assignment_config.deinit();
+    try options.setByRuleConfigValue("operator-assignment", operator_assignment_config.value);
+    try std.testing.expect(options.operator_assignment);
+    try std.testing.expectEqual(OperatorAssignmentStyle.never, options.operator_assignment_style);
 
     var prefer_const_config = try std.json.parseFromSlice(
         std.json.Value,

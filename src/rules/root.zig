@@ -2158,7 +2158,9 @@ const BasicVisitor = struct {
             try no_multi_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.operator_assignment) {
-            try operator_assignment.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try operator_assignment.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .style = self.options.operator_assignment_style,
+            });
         }
         if (self.options.logical_assignment_operators) {
             try logical_assignment_operators.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
