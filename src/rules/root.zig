@@ -777,7 +777,9 @@ pub fn runSemantic(
     }
 
     if (options.no_invalid_regexp) {
-        try no_invalid_regexp.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try no_invalid_regexp.runWithOptions(allocator, diagnostics, tree, .{
+            .allow_constructor_flags = options.no_invalid_regexp_allow_constructor_flags,
+        });
     }
 
     if (options.no_regex_spaces) {

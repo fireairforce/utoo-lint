@@ -83,7 +83,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-import-assign`](https://eslint.org/docs/latest/rules/no-import-assign) | Implemented |
 | [`no-inline-comments`](https://eslint.org/docs/latest/rules/no-inline-comments) | Implemented |
 | [`no-inner-declarations`](https://eslint.org/docs/latest/rules/no-inner-declarations) | Implemented |
-| [`no-invalid-regexp`](https://eslint.org/docs/latest/rules/no-invalid-regexp) | Implemented |
+| [`no-invalid-regexp`](https://eslint.org/docs/latest/rules/no-invalid-regexp) | Implemented with optional `allowConstructorFlags` behavior |
 | [`no-irregular-whitespace`](https://eslint.org/docs/latest/rules/no-irregular-whitespace) | Implemented |
 | [`no-iterator`](https://eslint.org/docs/latest/rules/no-iterator) | Implemented |
 | [`no-label-var`](https://eslint.org/docs/latest/rules/no-label-var) | Implemented |

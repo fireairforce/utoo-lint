@@ -62,6 +62,37 @@ test "does not report no-invalid-regexp for valid or non-static RegExp calls" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_invalid_regexp.id));
 }
 
+test "supports configured no-invalid-regexp allowConstructorFlags" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowConstructorFlags\":[\"z\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .prefer_regex_literals = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-invalid-regexp", config.value);
+
+    const source =
+        \\RegExp("abc", "z");
+        \\RegExp("abc", "zz");
+        \\RegExp("abc", "gz");
+        \\RegExp("abc", "q");
+        \\RegExp("abc", "Z");
+        \\RegExp("abc", "uv");
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_invalid_regexp.id));
+}
+
 test "can disable no-invalid-regexp" {
     const source =
         \\RegExp("(", "g");
