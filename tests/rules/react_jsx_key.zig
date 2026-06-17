@@ -38,6 +38,32 @@ test "reports JSX elements without keys in map callbacks" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.react_jsx_key.id));
 }
 
+test "supports configured react jsx key must appear before spread" {
+    const source =
+        \\const nodes = [
+        \\  <Item key="stable" {...props} />,
+        \\  <Item {...props} key="late" />,
+        \\];
+        \\items.map((item) => <Item {...item} key={item.id} />);
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"checkKeyMustBeforeSpread\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = test_options;
+    try options.setByRuleConfigValue("react/jsx-key", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_jsx_key.id));
+}
+
 test "reports JSX elements without keys in block callback returns" {
     const source =
         \\items.map(function (item) {

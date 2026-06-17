@@ -2599,7 +2599,9 @@ const BasicVisitor = struct {
             try react_no_array_index_key.enterCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, &self.react_no_array_index_key_state);
         }
         if (self.options.react_jsx_key) {
-            try react_jsx_key.enterCallExpression(self.allocator, self.diagnostics, ctx.tree, call, &self.react_jsx_key_state);
+            try react_jsx_key.enterCallExpression(self.allocator, self.diagnostics, ctx.tree, call, &self.react_jsx_key_state, .{
+                .check_key_must_before_spread = self.options.react_jsx_key_check_key_must_before_spread,
+            });
         }
         if (self.options.new_cap) {
             try new_cap.checkCallExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, call, index, .{
@@ -2757,7 +2759,9 @@ const BasicVisitor = struct {
             try no_sparse_arrays.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.react_jsx_key and self.react_jsx_key_state.children_to_array_depth == 0) {
-            try react_jsx_key.checkArrayExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+            try react_jsx_key.checkArrayExpression(self.allocator, self.diagnostics, ctx.tree, expression, .{
+                .check_key_must_before_spread = self.options.react_jsx_key_check_key_must_before_spread,
+            });
         }
         return .proceed;
     }

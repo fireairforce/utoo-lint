@@ -1162,6 +1162,7 @@ pub const Options = struct {
     react_jsx_no_bind_ignore_refs: bool = false,
     react_jsx_no_bind_ignore_dom_components: bool = false,
     react_jsx_key: bool = true,
+    react_jsx_key_check_key_must_before_spread: bool = false,
     react_button_has_type: bool = true,
     react_button_has_type_button: bool = true,
     react_button_has_type_submit: bool = true,
@@ -1601,6 +1602,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-no-duplicate-props")) {
             self.react_jsx_no_duplicate_props_ignore_case = try reactJsxNoDuplicatePropsIgnoreCaseFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/jsx-key")) {
+            self.react_jsx_key_check_key_must_before_spread = try reactJsxKeyCheckKeyMustBeforeSpreadFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-no-target-blank")) {
             self.react_jsx_no_target_blank_allow_referrer = try reactJsxNoTargetBlankAllowReferrerFromConfig(value);
@@ -3596,6 +3600,23 @@ pub const Options = struct {
         };
     }
 
+    fn reactJsxKeyCheckKeyMustBeforeSpreadFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("checkKeyMustBeforeSpread") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn reactNoStringRefsNoTemplateLiteralsFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4296,6 +4317,11 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.react_jsx_no_bind_ignore_refs);
     try std.testing.expect(!options.react_jsx_no_bind_ignore_dom_components);
 
+    try std.testing.expect(!options.react_jsx_key);
+    try std.testing.expect(options.setByCliName("react/jsx-key", true));
+    try std.testing.expect(options.react_jsx_key);
+    try std.testing.expect(!options.react_jsx_key_check_key_must_before_spread);
+
     try std.testing.expect(!options.react_prop_types);
     try std.testing.expect(options.setByCliName("react/prop-types", true));
     try std.testing.expect(options.react_prop_types);
@@ -4408,6 +4434,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.react_jsx_no_bind_allow_bind);
     try std.testing.expect(options.react_jsx_no_bind_ignore_refs);
     try std.testing.expect(options.react_jsx_no_bind_ignore_dom_components);
+
+    var react_jsx_key_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"checkKeyMustBeforeSpread\":true}]",
+        .{},
+    );
+    defer react_jsx_key_config.deinit();
+    try options.setByRuleConfigValue("react/jsx-key", react_jsx_key_config.value);
+    try std.testing.expect(options.react_jsx_key);
+    try std.testing.expect(options.react_jsx_key_check_key_must_before_spread);
 
     var react_jsx_no_target_blank_config = try std.json.parseFromSlice(
         std.json.Value,
