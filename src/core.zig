@@ -1139,6 +1139,7 @@ pub const Options = struct {
     no_use_before_define: bool = true,
     no_use_before_define_check_functions: NoUseBeforeDefineCheck = .yes,
     no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
+    no_use_before_define_check_variables: NoUseBeforeDefineCheck = .yes,
     no_undef: bool = true,
     no_undef_typeof: bool = false,
     prefer_const: bool = true,
@@ -1314,6 +1315,7 @@ pub const Options = struct {
     typescript_eslint_no_use_before_define: bool = true,
     typescript_eslint_no_use_before_define_check_functions: NoUseBeforeDefineCheck = .no,
     typescript_eslint_no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
+    typescript_eslint_no_use_before_define_check_variables: NoUseBeforeDefineCheck = .yes,
     typescript_eslint_no_var_requires: bool = true,
     typescript_eslint_no_wrapper_object_types: bool = true,
     typescript_eslint_prefer_as_const: bool = true,
@@ -1590,6 +1592,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-use-before-define")) {
             self.no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", true);
             self.no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
+            self.no_use_before_define_check_variables = try noUseBeforeDefineCheckFromConfig(value, "variables", true);
         }
         if (std.mem.eql(u8, cli_name, "object-shorthand")) {
             self.object_shorthand_style = try objectShorthandStyleFromConfig(value);
@@ -1748,6 +1751,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-use-before-define")) {
             self.typescript_eslint_no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", false);
             self.typescript_eslint_no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
+            self.typescript_eslint_no_use_before_define_check_variables = try noUseBeforeDefineCheckFromConfig(value, "variables", true);
         }
         if (std.mem.eql(u8, cli_name, "no-void")) {
             self.no_void_allow_as_statement = try noVoidAllowAsStatementFromConfig(value);
@@ -5625,7 +5629,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"functions\":false,\"classes\":false}]",
+        "[\"error\",{\"functions\":false,\"classes\":false,\"variables\":false}]",
         .{},
     );
     defer no_use_before_define_config.deinit();
@@ -5633,6 +5637,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_use_before_define);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_functions);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_classes);
+    try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_variables);
 
     var no_use_before_define_nofunc_config = try std.json.parseFromSlice(
         std.json.Value,
@@ -5644,6 +5649,7 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-use-before-define", no_use_before_define_nofunc_config.value);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_functions);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.yes, options.no_use_before_define_check_classes);
+    try std.testing.expectEqual(NoUseBeforeDefineCheck.yes, options.no_use_before_define_check_variables);
 
     var no_undef_config = try std.json.parseFromSlice(
         std.json.Value,
@@ -5670,7 +5676,7 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"functions\":true,\"classes\":false}]",
+        "[\"error\",{\"functions\":true,\"classes\":false,\"variables\":false}]",
         .{},
     );
     defer typescript_no_use_before_define_config.deinit();
@@ -5678,6 +5684,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_use_before_define);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.yes, options.typescript_eslint_no_use_before_define_check_functions);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_classes);
+    try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_variables);
 
     var no_void_config = try std.json.parseFromSlice(
         std.json.Value,
