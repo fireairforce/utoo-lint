@@ -16,6 +16,7 @@ pub const Options = struct {
     severity: core.Severity = .warning,
     check_functions: bool = true,
     check_classes: bool = true,
+    check_variables: bool = true,
 };
 
 const InitRange = struct {
@@ -27,15 +28,17 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    scope_tree: traverser.semantic.ScopeTree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
-    try runWithOptions(allocator, diagnostics, tree, symbol_table, .{});
+    try runWithOptions(allocator, diagnostics, tree, scope_tree, symbol_table, .{});
 }
 
 pub fn runWithOptions(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    scope_tree: traverser.semantic.ScopeTree,
     symbol_table: traverser.semantic.SymbolTable,
     options: Options,
 ) Allocator.Error!void {
@@ -71,6 +74,7 @@ pub fn runWithOptions(
 
         const symbol = symbol_table.getSymbol(symbol_id);
         if (!isLintableSymbol(symbol.flags, options)) continue;
+        if (shouldIgnoreVariableReference(scope_tree, reference.scope, symbol.scope, symbol.flags, options)) continue;
 
         const decls = symbol_table.symbolDecls(symbol_id);
         if (decls.len == 0) continue;
@@ -181,6 +185,38 @@ fn lowerBoundInitRange(init_ranges: []const InitRange, symbol_id: SymbolId) usiz
 
 fn spanInside(span: ast.Span, container: ast.Span) bool {
     return span.start >= container.start and span.end <= container.end;
+}
+
+fn shouldIgnoreVariableReference(
+    scope_tree: traverser.semantic.ScopeTree,
+    reference_scope: traverser.semantic.ScopeId,
+    symbol_scope: traverser.semantic.ScopeId,
+    flags: traverser.semantic.Symbol.Flags,
+    options: Options,
+) bool {
+    if (options.check_variables) return false;
+    if (!isVariableSymbol(flags)) return false;
+    if (reference_scope == symbol_scope) return false;
+    return crossesFunctionScope(scope_tree, reference_scope, symbol_scope);
+}
+
+fn isVariableSymbol(flags: traverser.semantic.Symbol.Flags) bool {
+    if (flags.function or flags.class or flags.import) return false;
+    return flags.function_scoped_var or flags.block_scoped_var;
+}
+
+fn crossesFunctionScope(
+    scope_tree: traverser.semantic.ScopeTree,
+    reference_scope: traverser.semantic.ScopeId,
+    symbol_scope: traverser.semantic.ScopeId,
+) bool {
+    var current = reference_scope;
+    while (current != .none and current != symbol_scope) {
+        const scope = scope_tree.getScope(current);
+        if (scope.kind == .function) return true;
+        current = scope.parent;
+    }
+    return false;
 }
 
 fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bool {
