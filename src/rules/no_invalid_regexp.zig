@@ -8,15 +8,29 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-invalid-regexp";
 
+pub const Options = struct {
+    allow_constructor_flags: core.NoInvalidRegexpAllowConstructorFlags = .{},
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     _: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    return runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
+) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
+        .options = options,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -25,6 +39,7 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    options: Options,
 
     pub fn enter_call_expression(
         self: *Visitor,
@@ -59,7 +74,7 @@ const Visitor = struct {
 
         const flags = if (arguments.len >= 2) stringLiteralValue(tree, arguments[1]) else null;
         if (flags) |value| {
-            if (validateFlags(value)) |message| {
+            if (validateFlags(value, self.options.allow_constructor_flags)) |message| {
                 try self.addDiagnostic(tree, index, message);
                 return;
             }
@@ -88,10 +103,12 @@ const Visitor = struct {
     }
 };
 
-fn validateFlags(flags: []const u8) ?[]const u8 {
+fn validateFlags(flags: []const u8, allow_constructor_flags: core.NoInvalidRegexpAllowConstructorFlags) ?[]const u8 {
     var seen: u32 = 0;
 
     for (flags) |flag| {
+        if (allow_constructor_flags.contains(flag)) continue;
+
         const valid = switch (flag) {
             'd', 'g', 'i', 'm', 's', 'u', 'v', 'y' => true,
             else => false,

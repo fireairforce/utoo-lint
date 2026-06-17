@@ -140,6 +140,20 @@ pub const NoFallthroughAllowEmptyCase = enum {
     no,
 };
 
+pub const NoInvalidRegexpAllowConstructorFlags = struct {
+    flags: [256]bool = [_]bool{false} ** 256,
+
+    pub fn contains(self: NoInvalidRegexpAllowConstructorFlags, flag: u8) bool {
+        return self.flags[flag];
+    }
+
+    pub fn enable(self: *NoInvalidRegexpAllowConstructorFlags, flag: []const u8) bool {
+        if (flag.len != 1) return false;
+        self.flags[flag[0]] = true;
+        return true;
+    }
+};
+
 pub const NoMultiSpacesIgnoreEOLComments = enum {
     yes,
     no,
@@ -689,6 +703,7 @@ pub const Options = struct {
     jsx_a11y_role_supports_aria_props: bool = true,
     jsx_a11y_scope: bool = true,
     no_invalid_regexp: bool = true,
+    no_invalid_regexp_allow_constructor_flags: NoInvalidRegexpAllowConstructorFlags = .{},
     no_irregular_whitespace: bool = true,
     no_inline_comments: bool = true,
     no_inner_declarations: bool = true,
@@ -1122,6 +1137,9 @@ pub const Options = struct {
             self.no_implicit_coercion_allow_unary_plus = try noImplicitCoercionAllowFromConfig(value, "+");
             self.no_implicit_coercion_allow_multiply = try noImplicitCoercionAllowFromConfig(value, "*");
             self.no_implicit_coercion_allow_subtract = try noImplicitCoercionAllowFromConfig(value, "-");
+        }
+        if (std.mem.eql(u8, cli_name, "no-invalid-regexp")) {
+            self.no_invalid_regexp_allow_constructor_flags = try noInvalidRegexpAllowConstructorFlagsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-labels")) {
             self.no_labels_allow_loop = try noLabelsAllowLoopFromConfig(value);
@@ -1674,6 +1692,34 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn noInvalidRegexpAllowConstructorFlagsFromConfig(value: std.json.Value) RuleConfigError!NoInvalidRegexpAllowConstructorFlags {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow_value = config.get("allowConstructorFlags") orelse return .{};
+        const allow_items = switch (allow_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var allow: NoInvalidRegexpAllowConstructorFlags = .{};
+        for (allow_items) |item| {
+            const flag = switch (item) {
+                .string => |flag| flag,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!allow.enable(flag)) return error.UnsupportedRuleConfigValue;
+        }
+        return allow;
     }
 
     fn isNoBitwiseOperatorToken(operator: []const u8) bool {
