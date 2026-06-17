@@ -6,16 +6,32 @@ const Allocator = @import("std").mem.Allocator;
 
 pub const id = "no-else-return";
 
+pub const Options = struct {
+    allow_else_if: bool = true,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     statement: ast.IfStatement,
 ) Allocator.Error!void {
+    return checkWithOptions(allocator, diagnostics, tree, statement, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    statement: ast.IfStatement,
+    options: Options,
+) Allocator.Error!void {
     if (statement.alternate == .null) return;
-    switch (tree.data(statement.alternate)) {
-        .if_statement => return,
-        else => {},
+    if (options.allow_else_if) {
+        switch (tree.data(statement.alternate)) {
+            .if_statement => return,
+            else => {},
+        }
     }
     if (!alwaysExits(tree, statement.consequent)) return;
 

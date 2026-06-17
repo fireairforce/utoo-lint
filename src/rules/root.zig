@@ -1223,7 +1223,9 @@ const BasicVisitor = struct {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
         if (self.options.no_else_return) {
-            try no_else_return.check(self.allocator, self.diagnostics, ctx.tree, statement);
+            try no_else_return.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, .{
+                .allow_else_if = self.options.no_else_return_allow_else_if,
+            });
         }
         if (self.options.no_dupe_else_if) {
             try no_dupe_else_if.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);

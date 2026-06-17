@@ -531,6 +531,7 @@ pub const Options = struct {
     no_empty_pattern: bool = true,
     no_empty_static_block: bool = true,
     no_else_return: bool = true,
+    no_else_return_allow_else_if: bool = true,
     no_eq_null: bool = true,
     no_eval: bool = true,
     no_ex_assign: bool = true,
@@ -997,6 +998,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-empty-function")) {
             self.typescript_eslint_no_empty_function_allow = try noEmptyFunctionAllowFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-else-return")) {
+            self.no_else_return_allow_else_if = try noElseReturnAllowElseIfFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-extra-boolean-cast")) {
             self.no_extra_boolean_cast_enforce_for_inner_expressions = try noExtraBooleanCastEnforceForInnerExpressionsFromConfig(value);
@@ -1565,6 +1569,23 @@ pub const Options = struct {
             if (!allow.enable(kind)) return error.UnsupportedRuleConfigValue;
         }
         return allow;
+    }
+
+    fn noElseReturnAllowElseIfFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return true,
+        };
+        if (items.len < 2) return true;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowElseIf") orelse return true) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noExtraBooleanCastEnforceForInnerExpressionsFromConfig(value: std.json.Value) RuleConfigError!bool {
@@ -2951,6 +2972,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_empty_function_allow.arrowFunctions);
     try std.testing.expect(options.typescript_eslint_no_empty_function_allow.methods);
     try std.testing.expect(!options.typescript_eslint_no_empty_function_allow.functions);
+
+    var no_else_return_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowElseIf\":false}]",
+        .{},
+    );
+    defer no_else_return_config.deinit();
+    try options.setByRuleConfigValue("no-else-return", no_else_return_config.value);
+    try std.testing.expect(options.no_else_return);
+    try std.testing.expect(!options.no_else_return_allow_else_if);
 
     var no_extra_boolean_cast_config = try std.json.parseFromSlice(
         std.json.Value,
