@@ -741,6 +741,10 @@ pub const Options = struct {
     prefer_object_has_own: bool = true,
     prefer_promise_reject_errors: bool = true,
     prefer_destructuring: bool = true,
+    prefer_destructuring_variable_declarator_array: bool = true,
+    prefer_destructuring_variable_declarator_object: bool = true,
+    prefer_destructuring_assignment_expression_array: bool = true,
+    prefer_destructuring_assignment_expression_object: bool = true,
     prefer_regex_literals: bool = true,
     prefer_rest_params: bool = true,
     prefer_object_spread: bool = true,
@@ -1048,6 +1052,12 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "prefer-const")) {
             self.prefer_const_destructuring = try preferConstDestructuringFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "prefer-destructuring")) {
+            self.prefer_destructuring_variable_declarator_array = try preferDestructuringOptionFromConfig(value, "VariableDeclarator", "array", true);
+            self.prefer_destructuring_variable_declarator_object = try preferDestructuringOptionFromConfig(value, "VariableDeclarator", "object", true);
+            self.prefer_destructuring_assignment_expression_array = try preferDestructuringOptionFromConfig(value, "AssignmentExpression", "array", true);
+            self.prefer_destructuring_assignment_expression_object = try preferDestructuringOptionFromConfig(value, "AssignmentExpression", "object", true);
         }
         if (std.mem.eql(u8, cli_name, "radix")) {
             self.radix_style = try radixStyleFromConfig(value);
@@ -1925,6 +1935,38 @@ pub const Options = struct {
         if (std.mem.eql(u8, destructuring, "any")) return .any;
         if (std.mem.eql(u8, destructuring, "all")) return .all;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn preferDestructuringOptionFromConfig(
+        value: std.json.Value,
+        node_key: []const u8,
+        kind_key: []const u8,
+        default: bool,
+    ) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (config.get(node_key)) |node_config_value| {
+            const node_config = switch (node_config_value) {
+                .object => |object| object,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            return switch (node_config.get(kind_key) orelse return default) {
+                .bool => |enabled| enabled,
+                else => error.UnsupportedRuleConfigValue,
+            };
+        }
+        return switch (config.get(kind_key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noReturnAssignStyleFromConfig(value: std.json.Value) RuleConfigError!NoReturnAssignStyle {
@@ -3111,6 +3153,33 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("prefer-const", prefer_const_config.value);
     try std.testing.expect(options.prefer_const);
     try std.testing.expectEqual(PreferConstDestructuring.all, options.prefer_const_destructuring);
+
+    var prefer_destructuring_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"VariableDeclarator\":{\"array\":false,\"object\":true},\"AssignmentExpression\":{\"array\":true,\"object\":false}}]",
+        .{},
+    );
+    defer prefer_destructuring_config.deinit();
+    try options.setByRuleConfigValue("prefer-destructuring", prefer_destructuring_config.value);
+    try std.testing.expect(options.prefer_destructuring);
+    try std.testing.expect(!options.prefer_destructuring_variable_declarator_array);
+    try std.testing.expect(options.prefer_destructuring_variable_declarator_object);
+    try std.testing.expect(options.prefer_destructuring_assignment_expression_array);
+    try std.testing.expect(!options.prefer_destructuring_assignment_expression_object);
+
+    var prefer_destructuring_top_level_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"array\":false,\"object\":true}]",
+        .{},
+    );
+    defer prefer_destructuring_top_level_config.deinit();
+    try options.setByRuleConfigValue("prefer-destructuring", prefer_destructuring_top_level_config.value);
+    try std.testing.expect(!options.prefer_destructuring_variable_declarator_array);
+    try std.testing.expect(options.prefer_destructuring_variable_declarator_object);
+    try std.testing.expect(!options.prefer_destructuring_assignment_expression_array);
+    try std.testing.expect(options.prefer_destructuring_assignment_expression_object);
 
     var radix_config = try std.json.parseFromSlice(
         std.json.Value,
