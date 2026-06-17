@@ -7,19 +7,24 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "react/jsx-no-target-blank";
 
+pub const Options = struct {
+    allow_referrer: bool = false,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     opening: ast.JSXOpeningElement,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     if (!isAnchorElement(tree, opening.name)) return;
 
     const target = lastAttributeNamed(tree, opening, "target") orelse return;
     if (!attributeValuePossiblyBlank(tree, target.attribute)) return;
     if (!hasDangerousHref(tree, opening)) return;
-    if (hasSecureRel(tree, opening, target.attribute.value)) return;
+    if (hasSecureRel(tree, opening, target.attribute.value, options.allow_referrer)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -88,7 +93,7 @@ fn hasDangerousHref(tree: *const ast.Tree, opening: ast.JSXOpeningElement) bool 
     return tree.data(href.attribute.value) == .jsx_expression_container;
 }
 
-fn hasSecureRel(tree: *const ast.Tree, opening: ast.JSXOpeningElement, target_value: ast.NodeIndex) bool {
+fn hasSecureRel(tree: *const ast.Tree, opening: ast.JSXOpeningElement, target_value: ast.NodeIndex, allow_referrer: bool) bool {
     const rel = lastAttributeNamed(tree, opening, "rel") orelse return false;
     if (rel.attribute.value == .null) return false;
 
@@ -97,7 +102,7 @@ fn hasSecureRel(tree: *const ast.Tree, opening: ast.JSXOpeningElement, target_va
     if (count == 0) return false;
 
     for (values[0..count]) |value| {
-        if (!valueHasNoreferrer(value orelse return false)) return false;
+        if (!valueIsSecureRel(value orelse return false, allow_referrer)) return false;
     }
     return true;
 }
@@ -183,6 +188,17 @@ fn valueHasNoreferrer(value: []const u8) bool {
     var iter = std.mem.tokenizeScalar(u8, value, ' ');
     while (iter.next()) |token| {
         if (std.ascii.eqlIgnoreCase(token, "noreferrer")) return true;
+    }
+    return false;
+}
+
+fn valueIsSecureRel(value: []const u8, allow_referrer: bool) bool {
+    if (valueHasNoreferrer(value)) return true;
+    if (!allow_referrer) return false;
+
+    var iter = std.mem.tokenizeScalar(u8, value, ' ');
+    while (iter.next()) |token| {
+        if (std.ascii.eqlIgnoreCase(token, "noopener")) return true;
     }
     return false;
 }

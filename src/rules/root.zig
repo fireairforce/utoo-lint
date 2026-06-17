@@ -2890,7 +2890,9 @@ const BasicVisitor = struct {
             try jsx_a11y_scope.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
         }
         if (self.options.react_jsx_no_target_blank) {
-            try react_jsx_no_target_blank.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
+            try react_jsx_no_target_blank.check(self.allocator, self.diagnostics, ctx.tree, opening, index, .{
+                .allow_referrer = self.options.react_jsx_no_target_blank_allow_referrer,
+            });
         }
         if (self.options.react_jsx_pascal_case) {
             try react_jsx_pascal_case.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, opening, index, .{
