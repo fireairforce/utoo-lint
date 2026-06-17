@@ -1471,7 +1471,14 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_array_type) {
-            try typescript_eslint_array_type.checkArrayType(self.allocator, self.diagnostics, ctx.tree, array_type, index);
+            try typescript_eslint_array_type.checkArrayType(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                array_type,
+                index,
+                self.options.typescript_eslint_array_type_style,
+            );
         }
         return .proceed;
     }
@@ -1696,7 +1703,14 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_array_type) {
-            try typescript_eslint_array_type.checkTypeReference(self.allocator, self.diagnostics, ctx.tree, reference, index);
+            try typescript_eslint_array_type.checkTypeReference(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                reference,
+                index,
+                self.options.typescript_eslint_array_type_style,
+            );
         }
         const wrapper_object_type_reported =
             self.options.typescript_eslint_no_wrapper_object_types and
