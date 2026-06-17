@@ -764,6 +764,7 @@ pub const Options = struct {
     no_undefined: bool = true,
     unicode_bom: bool = true,
     no_unneeded_ternary: bool = true,
+    no_unneeded_ternary_default_assignment: bool = true,
     no_unused_labels: bool = true,
     no_unsafe_finally: bool = true,
     no_unsafe_negation: bool = true,
@@ -1199,6 +1200,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-undef")) {
             self.no_undef_typeof = try noUndefTypeofFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-unneeded-ternary")) {
+            self.no_unneeded_ternary_default_assignment = try noUnneededTernaryDefaultAssignmentFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-use-before-define")) {
             self.typescript_eslint_no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", false);
@@ -2490,6 +2494,23 @@ pub const Options = struct {
         };
     }
 
+    fn noUnneededTernaryDefaultAssignmentFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return true,
+        };
+        if (items.len < 2) return true;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("defaultAssignment") orelse return true) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn noVoidAllowAsStatementFromConfig(value: std.json.Value) RuleConfigError!NoVoidAllowAsStatement {
         const items = switch (value) {
             .array => |array| array.items,
@@ -3729,6 +3750,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-undef", no_undef_config.value);
     try std.testing.expect(options.no_undef);
     try std.testing.expect(options.no_undef_typeof);
+
+    var no_unneeded_ternary_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"defaultAssignment\":false}]",
+        .{},
+    );
+    defer no_unneeded_ternary_config.deinit();
+    try options.setByRuleConfigValue("no-unneeded-ternary", no_unneeded_ternary_config.value);
+    try std.testing.expect(options.no_unneeded_ternary);
+    try std.testing.expect(!options.no_unneeded_ternary_default_assignment);
 
     var typescript_no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,

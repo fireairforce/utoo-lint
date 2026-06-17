@@ -1362,7 +1362,9 @@ const BasicVisitor = struct {
             try no_nested_ternary.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_unneeded_ternary) {
-            try no_unneeded_ternary.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try no_unneeded_ternary.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .default_assignment = self.options.no_unneeded_ternary_default_assignment,
+            });
         }
         if (self.options.no_ternary) {
             try no_ternary.check(self.allocator, self.diagnostics, ctx.tree, index);
