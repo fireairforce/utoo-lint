@@ -426,6 +426,92 @@ pub const NoThisAliasAllowedNames = struct {
     }
 };
 
+pub const max_typescript_eslint_ban_type_entries = 32;
+pub const max_typescript_eslint_ban_type_name_len = 128;
+pub const max_typescript_eslint_ban_type_message_len = 512;
+
+pub const TypescriptEslintBanTypesConfigError = error{
+    EmptyBanTypeName,
+    BanTypeNameTooLong,
+    BanTypeMessageTooLong,
+    TooManyBanTypes,
+};
+
+pub const TypescriptEslintBanTypeNames = struct {
+    count: usize = 0,
+    lengths: [max_typescript_eslint_ban_type_entries]usize = undefined,
+    storage: [max_typescript_eslint_ban_type_entries][max_typescript_eslint_ban_type_name_len]u8 = undefined,
+
+    pub fn contains(self: *const TypescriptEslintBanTypeNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const TypescriptEslintBanTypeNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *TypescriptEslintBanTypeNames, name: []const u8) TypescriptEslintBanTypesConfigError!void {
+        if (name.len == 0) return error.EmptyBanTypeName;
+        if (name.len > max_typescript_eslint_ban_type_name_len) return error.BanTypeNameTooLong;
+        if (self.count >= max_typescript_eslint_ban_type_entries) return error.TooManyBanTypes;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
+pub const TypescriptEslintBanTypeEntries = struct {
+    count: usize = 0,
+    name_lengths: [max_typescript_eslint_ban_type_entries]usize = undefined,
+    message_lengths: [max_typescript_eslint_ban_type_entries]usize = undefined,
+    names: [max_typescript_eslint_ban_type_entries][max_typescript_eslint_ban_type_name_len]u8 = undefined,
+    messages: [max_typescript_eslint_ban_type_entries][max_typescript_eslint_ban_type_message_len]u8 = undefined,
+
+    pub fn messageFor(self: *const TypescriptEslintBanTypeEntries, name: []const u8) ?[]const u8 {
+        var index = self.count;
+        while (index > 0) {
+            index -= 1;
+            if (std.mem.eql(u8, self.nameAt(index), name)) return self.messageAt(index);
+        }
+        return null;
+    }
+
+    pub fn nameAt(self: *const TypescriptEslintBanTypeEntries, index: usize) []const u8 {
+        return self.names[index][0..self.name_lengths[index]];
+    }
+
+    pub fn messageAt(self: *const TypescriptEslintBanTypeEntries, index: usize) []const u8 {
+        return self.messages[index][0..self.message_lengths[index]];
+    }
+
+    pub fn append(
+        self: *TypescriptEslintBanTypeEntries,
+        name: []const u8,
+        message: []const u8,
+    ) TypescriptEslintBanTypesConfigError!void {
+        if (name.len == 0) return error.EmptyBanTypeName;
+        if (name.len > max_typescript_eslint_ban_type_name_len) return error.BanTypeNameTooLong;
+        if (message.len > max_typescript_eslint_ban_type_message_len) return error.BanTypeMessageTooLong;
+        if (self.count >= max_typescript_eslint_ban_type_entries) return error.TooManyBanTypes;
+
+        @memcpy(self.names[self.count][0..name.len], name);
+        @memcpy(self.messages[self.count][0..message.len], message);
+        self.name_lengths[self.count] = name.len;
+        self.message_lengths[self.count] = message.len;
+        self.count += 1;
+    }
+};
+
+pub const TypescriptEslintBanTypesConfig = struct {
+    extend_defaults: bool = true,
+    disabled: TypescriptEslintBanTypeNames = .{},
+    custom: TypescriptEslintBanTypeEntries = .{},
+};
+
 pub const max_new_cap_exception_names = 32;
 pub const max_new_cap_exception_name_len = 128;
 
@@ -996,6 +1082,7 @@ pub const Options = struct {
     typescript_eslint_consistent_type_definitions_style: TypescriptEslintConsistentTypeDefinitionsStyle = .interface,
     typescript_eslint_no_array_constructor: bool = true,
     typescript_eslint_ban_types: bool = true,
+    typescript_eslint_ban_types_config: TypescriptEslintBanTypesConfig = .{},
     typescript_eslint_ban_ts_comment: bool = true,
     typescript_eslint_ban_ts_comment_ts_expect_error: TypescriptEslintBanTsCommentMode = .allow_with_description,
     typescript_eslint_ban_ts_comment_ts_ignore: TypescriptEslintBanTsCommentMode = .allow_with_description,
@@ -1342,6 +1429,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/array-type")) {
             self.typescript_eslint_array_type_style = try typescriptEslintArrayTypeStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/ban-types")) {
+            self.typescript_eslint_ban_types_config = try typescriptEslintBanTypesConfigFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/ban-ts-comment")) {
             self.typescript_eslint_ban_ts_comment_ts_expect_error = try typescriptEslintBanTsCommentModeFromConfig(value, "ts-expect-error", .allow_with_description);
@@ -1719,6 +1809,84 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "getBeforeSet")) return .get_before_set;
         if (std.mem.eql(u8, style, "setBeforeGet")) return .set_before_get;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintBanTypesConfigFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintBanTypesConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config_object = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var config = TypescriptEslintBanTypesConfig{};
+        config.extend_defaults = if (config_object.get("extendDefaults")) |extend_defaults| switch (extend_defaults) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        } else true;
+
+        const types_value = config_object.get("types") orelse return config;
+        const types = switch (types_value) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var iter = types.iterator();
+        while (iter.next()) |entry| {
+            const name = entry.key_ptr.*;
+            switch (entry.value_ptr.*) {
+                .bool => |enabled| {
+                    if (enabled) {
+                        try appendBanTypeConfig(&config.custom, name, defaultBanTypeMessage(name));
+                    } else {
+                        try appendDisabledBanType(&config.disabled, name);
+                    }
+                },
+                .string => |message| try appendBanTypeConfig(&config.custom, name, message),
+                .object => |object| {
+                    const message = if (object.get("message")) |message_value| switch (message_value) {
+                        .string => |message| message,
+                        else => return error.UnsupportedRuleConfigValue,
+                    } else defaultBanTypeMessage(name);
+                    try appendBanTypeConfig(&config.custom, name, message);
+                },
+                else => return error.UnsupportedRuleConfigValue,
+            }
+        }
+
+        return config;
+    }
+
+    fn appendDisabledBanType(
+        disabled: *TypescriptEslintBanTypeNames,
+        name: []const u8,
+    ) RuleConfigError!void {
+        disabled.append(name) catch return error.UnsupportedRuleConfigValue;
+    }
+
+    fn appendBanTypeConfig(
+        entries: *TypescriptEslintBanTypeEntries,
+        name: []const u8,
+        message: []const u8,
+    ) RuleConfigError!void {
+        entries.append(name, message) catch return error.UnsupportedRuleConfigValue;
+    }
+
+    fn defaultBanTypeMessage(name: []const u8) []const u8 {
+        if (std.mem.eql(u8, name, "String")) return "Use string instead";
+        if (std.mem.eql(u8, name, "Boolean")) return "Use boolean instead";
+        if (std.mem.eql(u8, name, "Number")) return "Use number instead";
+        if (std.mem.eql(u8, name, "Symbol")) return "Use symbol instead";
+        if (std.mem.eql(u8, name, "BigInt")) return "Use bigint instead";
+        if (std.mem.eql(u8, name, "Function")) return "The `Function` type accepts any function-like value.";
+        if (std.mem.eql(u8, name, "Object")) return "Use object instead";
+        if (std.mem.eql(u8, name, "object")) return "Use a more specific object type instead";
+        if (std.mem.eql(u8, name, "{}")) return "Use a more specific object type instead";
+        return "This type is banned.";
     }
 
     fn typescriptEslintConsistentTypeAssertionsStyleFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintConsistentTypeAssertionsStyle {
@@ -4286,6 +4454,26 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUnusedVarsArgs.none, options.typescript_eslint_no_unused_vars_args);
     try std.testing.expectEqual(NoUnusedVarsCaughtErrors.none, options.typescript_eslint_no_unused_vars_caught_errors);
     try std.testing.expect(!options.typescript_eslint_no_unused_vars_ignore_rest_siblings);
+
+    var typescript_ban_types_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"extendDefaults\":false,\"types\":{\"String\":false,\"object\":\"Use a named object shape.\",\"CustomType\":{\"message\":\"Use BetterType instead.\"}}}]",
+        .{},
+    );
+    defer typescript_ban_types_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/ban-types", typescript_ban_types_config.value);
+    try std.testing.expect(options.typescript_eslint_ban_types);
+    try std.testing.expect(!options.typescript_eslint_ban_types_config.extend_defaults);
+    try std.testing.expect(options.typescript_eslint_ban_types_config.disabled.contains("String"));
+    try std.testing.expectEqualStrings(
+        "Use a named object shape.",
+        options.typescript_eslint_ban_types_config.custom.messageFor("object") orelse "",
+    );
+    try std.testing.expectEqualStrings(
+        "Use BetterType instead.",
+        options.typescript_eslint_ban_types_config.custom.messageFor("CustomType") orelse "",
+    );
 
     var typescript_consistent_type_assertions_config = try std.json.parseFromSlice(
         std.json.Value,
