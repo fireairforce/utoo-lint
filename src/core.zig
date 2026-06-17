@@ -426,6 +426,42 @@ pub const NoThisAliasAllowedNames = struct {
     }
 };
 
+pub const max_react_jsx_pascal_case_ignore_names = 32;
+pub const max_react_jsx_pascal_case_ignore_name_len = 128;
+
+pub const ReactJsxPascalCaseIgnoreNamesError = error{
+    EmptyReactJsxPascalCaseIgnoreName,
+    TooManyReactJsxPascalCaseIgnoreNames,
+    ReactJsxPascalCaseIgnoreNameTooLong,
+};
+
+pub const ReactJsxPascalCaseIgnoreNames = struct {
+    count: usize = 0,
+    lengths: [max_react_jsx_pascal_case_ignore_names]usize = undefined,
+    storage: [max_react_jsx_pascal_case_ignore_names][max_react_jsx_pascal_case_ignore_name_len]u8 = undefined,
+
+    pub fn contains(self: *const ReactJsxPascalCaseIgnoreNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const ReactJsxPascalCaseIgnoreNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *ReactJsxPascalCaseIgnoreNames, name: []const u8) ReactJsxPascalCaseIgnoreNamesError!void {
+        if (name.len == 0) return error.EmptyReactJsxPascalCaseIgnoreName;
+        if (self.count >= max_react_jsx_pascal_case_ignore_names) return error.TooManyReactJsxPascalCaseIgnoreNames;
+        if (name.len > max_react_jsx_pascal_case_ignore_name_len) return error.ReactJsxPascalCaseIgnoreNameTooLong;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const max_typescript_eslint_ban_type_entries = 32;
 pub const max_typescript_eslint_ban_type_name_len = 128;
 pub const max_typescript_eslint_ban_type_message_len = 512;
@@ -1040,6 +1076,7 @@ pub const Options = struct {
     react_jsx_no_undef: bool = true,
     react_jsx_pascal_case: bool = true,
     react_jsx_pascal_case_allow_all_caps: bool = true,
+    react_jsx_pascal_case_ignore: ReactJsxPascalCaseIgnoreNames = .{},
     react_jsx_uses_react: bool = true,
     react_jsx_uses_vars: bool = true,
     react_no_danger: bool = true,
@@ -1444,6 +1481,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-pascal-case")) {
             self.react_jsx_pascal_case_allow_all_caps = try reactJsxPascalCaseAllowAllCapsFromConfig(value);
+            self.react_jsx_pascal_case_ignore = try reactJsxPascalCaseIgnoreFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/prop-types")) {
             self.react_prop_types_skip_undeclared = try reactPropTypesSkipUndeclaredFromConfig(value);
@@ -3311,6 +3349,33 @@ pub const Options = struct {
         };
     }
 
+    fn reactJsxPascalCaseIgnoreFromConfig(value: std.json.Value) RuleConfigError!ReactJsxPascalCaseIgnoreNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const ignore_items = switch (config.get("ignore") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var ignore = ReactJsxPascalCaseIgnoreNames{};
+        for (ignore_items) |item| {
+            const name = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            ignore.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return ignore;
+    }
+
     fn wrapIifeStyleFromConfig(value: std.json.Value) RuleConfigError!WrapIifeStyle {
         const items = switch (value) {
             .array => |array| array.items,
@@ -3869,6 +3934,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.setByCliName("react/no-unused-prop-types", true));
     try std.testing.expect(options.react_no_unused_prop_types);
     try std.testing.expect(options.react_no_unused_prop_types_skip_shape_props);
+    try std.testing.expectEqual(@as(usize, 0), options.react_jsx_pascal_case_ignore.count);
 
     try std.testing.expect(!options.react_no_unescaped_entities);
     try std.testing.expect(options.setByCliName("react/no-unescaped-entities", true));
@@ -3912,6 +3978,20 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("react/jsx-no-target-blank", react_jsx_no_target_blank_config.value);
     try std.testing.expect(options.react_jsx_no_target_blank);
     try std.testing.expect(options.react_jsx_no_target_blank_allow_referrer);
+
+    var react_jsx_pascal_case_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowAllCaps\":false,\"ignore\":[\"bar\",\"Legacy_widget\"]}]",
+        .{},
+    );
+    defer react_jsx_pascal_case_config.deinit();
+    try options.setByRuleConfigValue("react/jsx-pascal-case", react_jsx_pascal_case_config.value);
+    try std.testing.expect(options.react_jsx_pascal_case);
+    try std.testing.expect(!options.react_jsx_pascal_case_allow_all_caps);
+    try std.testing.expect(options.react_jsx_pascal_case_ignore.contains("bar"));
+    try std.testing.expect(options.react_jsx_pascal_case_ignore.contains("Legacy_widget"));
+    try std.testing.expect(!options.react_jsx_pascal_case_ignore.contains("other"));
 
     var react_prop_types_config = try std.json.parseFromSlice(
         std.json.Value,
