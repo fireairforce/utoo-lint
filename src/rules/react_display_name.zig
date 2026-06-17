@@ -12,6 +12,7 @@ const message = "Component definition is missing display name";
 
 pub const Options = struct {
     check_context_objects: bool = false,
+    ignore_transpiler_name: bool = false,
 };
 
 const Component = struct {
@@ -80,13 +81,14 @@ pub fn checkClass(
     index: ast.NodeIndex,
     parent_index: ?ast.NodeIndex,
     state: *State,
+    options: Options,
 ) Allocator.Error!void {
     if (!isReactComponentClass(tree, class)) return;
     const name = componentNameFromClass(tree, class, parent_index);
     try state.addComponent(allocator, .{
         .node = index,
         .name = name,
-        .has_display_name = name != null or classHasStaticDisplayName(tree, class),
+        .has_display_name = (!options.ignore_transpiler_name and name != null) or classHasStaticDisplayName(tree, class),
     });
 }
 
@@ -97,6 +99,7 @@ pub fn checkFunction(
     index: ast.NodeIndex,
     parent_index: ?ast.NodeIndex,
     state: *State,
+    options: Options,
 ) Allocator.Error!void {
     if (!functionReturnsJSXOrNull(tree, index)) return;
     if (!isFunctionComponent(tree, function, parent_index)) return;
@@ -104,7 +107,7 @@ pub fn checkFunction(
     try state.addComponent(allocator, .{
         .node = index,
         .name = name,
-        .has_display_name = name != null,
+        .has_display_name = !options.ignore_transpiler_name and name != null,
     });
 }
 
@@ -114,6 +117,7 @@ pub fn checkArrowFunction(
     index: ast.NodeIndex,
     parent_index: ?ast.NodeIndex,
     state: *State,
+    options: Options,
 ) Allocator.Error!void {
     if (!functionReturnsJSXOrNull(tree, index)) return;
     if (!functionExpressionHasComponentParent(tree, parent_index)) return;
@@ -121,7 +125,7 @@ pub fn checkArrowFunction(
     try state.addComponent(allocator, .{
         .node = index,
         .name = name,
-        .has_display_name = name != null,
+        .has_display_name = !options.ignore_transpiler_name and name != null,
     });
 }
 
@@ -132,6 +136,7 @@ pub fn checkCallExpression(
     index: ast.NodeIndex,
     parent_index: ?ast.NodeIndex,
     state: *State,
+    options: Options,
 ) Allocator.Error!void {
     if (isCreateClassCall(tree, call)) {
         const arguments = tree.extra(call.arguments);
@@ -145,7 +150,7 @@ pub fn checkCallExpression(
         try state.addComponent(allocator, .{
             .node = object_index,
             .name = name,
-            .has_display_name = name != null or objectHasDisplayName(tree, object),
+            .has_display_name = (!options.ignore_transpiler_name and name != null) or objectHasDisplayName(tree, object),
         });
         return;
     }
@@ -159,7 +164,7 @@ pub fn checkCallExpression(
     try state.addComponent(allocator, .{
         .node = index,
         .name = name,
-        .has_display_name = name != null,
+        .has_display_name = !options.ignore_transpiler_name and name != null,
     });
 }
 
@@ -253,7 +258,7 @@ fn functionExpressionHasComponentParent(tree: *const ast.Tree, parent_index: ?as
         .variable_declarator => |declarator| identifierBindingStartsUppercase(tree, declarator.id),
         .assignment_expression => |expression| identifierReferenceStartsUppercase(tree, expression.left),
         .export_default_declaration => true,
-        .object_property => true,
+        .object_property => |property| if (propertyName(tree, property.key, property.computed)) |name| startsUppercase(name) else false,
         else => false,
     };
 }
