@@ -894,6 +894,7 @@ pub fn runSemantic(
         try no_unused_vars.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
             .check_parameters = options.no_unused_vars_args != .none,
             .args_after_used = options.no_unused_vars_args == .after_used,
+            .check_caught_errors = options.no_unused_vars_caught_errors == .all,
             .react_jsx_uses_react = options.react_jsx_uses_react,
             .react_jsx_uses_vars = options.react_jsx_uses_vars,
         });
@@ -908,6 +909,7 @@ pub fn runSemantic(
             options.react_jsx_uses_react,
             options.react_jsx_uses_vars,
             options.typescript_eslint_no_unused_vars_args,
+            options.typescript_eslint_no_unused_vars_caught_errors,
         );
     }
 

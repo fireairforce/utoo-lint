@@ -16,6 +16,7 @@ pub const Options = struct {
     severity: core.Severity = .warning,
     check_parameters: bool = false,
     args_after_used: bool = false,
+    check_caught_errors: bool = true,
     ignore_rest_siblings: bool = false,
     check_type_parameters: bool = false,
     react_jsx_uses_react: bool = false,
@@ -107,6 +108,7 @@ pub fn runWithOptions(
 
         if (!isLintableSymbol(flags, options)) continue;
         if (flags.exported or flags.ambient) continue;
+        if (flags.catch_var and !options.check_caught_errors) continue;
         if (flags.parameter) {
             if (!options.check_parameters) continue;
             if (options.args_after_used and !shouldCheckParameter(entry.id, symbol.scope, parameters.items)) continue;
