@@ -32,7 +32,7 @@ pub fn lintSourceWithIo(
     errdefer core.freeDiagnostics(allocator, &diagnostics);
 
     var effective_options = options;
-    if (isDefinitionFile(path)) {
+    if (isDefinitionFile(path) and effective_options.typescript_eslint_no_namespace_allow_definition_files) {
         effective_options.typescript_eslint_no_namespace = false;
     }
 

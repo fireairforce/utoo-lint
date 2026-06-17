@@ -47,6 +47,27 @@ test "allows declare namespaces and modules" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_namespace.id));
 }
 
+test "reports declare namespaces when allowDeclarations is false" {
+    const source =
+        \\declare namespace Internal {
+        \\  export const value: number;
+        \\}
+        \\declare module "external" {
+        \\  export const value: number;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_unused_vars = false,
+        .typescript_eslint_prefer_namespace_keyword = false,
+        .typescript_eslint_no_namespace_allow_declarations = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.typescript_eslint_no_namespace.id));
+}
+
 test "allows namespaces in definition files" {
     const source =
         \\namespace Internal {
@@ -62,6 +83,42 @@ test "allows namespaces in definition files" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_namespace.id));
+}
+
+test "reports namespaces in definition files when allowDefinitionFiles is false" {
+    const source =
+        \\namespace Internal {
+        \\  export const value: number;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.d.ts", .{
+        .no_unused_vars = false,
+        .typescript_eslint_prefer_namespace_keyword = false,
+        .typescript_eslint_no_namespace_allow_definition_files = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_namespace.id));
+}
+
+test "supports configured @typescript-eslint/no-namespace options" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        \\["error", {"allowDeclarations": false, "allowDefinitionFiles": false}]
+    ,
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-namespace", config.value);
+
+    try std.testing.expect(options.typescript_eslint_no_namespace);
+    try std.testing.expect(!options.typescript_eslint_no_namespace_allow_declarations);
+    try std.testing.expect(!options.typescript_eslint_no_namespace_allow_definition_files);
 }
 
 test "can disable @typescript-eslint/no-namespace" {
