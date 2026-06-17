@@ -1122,7 +1122,9 @@ const BasicVisitor = struct {
             react_display_name.finish(self.allocator, self.diagnostics, ctx.tree, &self.react_display_name_state) catch {};
         }
         if (self.options.react_default_props_match_prop_types) {
-            react_default_props_match_prop_types.finish(self.allocator, self.diagnostics, ctx.tree, &self.react_default_props_match_prop_types_state) catch {};
+            react_default_props_match_prop_types.finish(self.allocator, self.diagnostics, ctx.tree, &self.react_default_props_match_prop_types_state, .{
+                .allow_required_defaults = self.options.react_default_props_match_prop_types_allow_required_defaults,
+            }) catch {};
         }
     }
 
