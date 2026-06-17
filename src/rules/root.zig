@@ -2892,6 +2892,7 @@ const BasicVisitor = struct {
         if (self.options.react_jsx_no_target_blank) {
             try react_jsx_no_target_blank.check(self.allocator, self.diagnostics, ctx.tree, opening, index, .{
                 .allow_referrer = self.options.react_jsx_no_target_blank_allow_referrer,
+                .enforce_dynamic_links = self.options.react_jsx_no_target_blank_enforce_dynamic_links,
             });
         }
         if (self.options.react_jsx_pascal_case) {

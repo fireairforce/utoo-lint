@@ -9,6 +9,7 @@ pub const id = "react/jsx-no-target-blank";
 
 pub const Options = struct {
     allow_referrer: bool = false,
+    enforce_dynamic_links: bool = true,
 };
 
 pub fn check(
@@ -23,7 +24,7 @@ pub fn check(
 
     const target = lastAttributeNamed(tree, opening, "target") orelse return;
     if (!attributeValuePossiblyBlank(tree, target.attribute)) return;
-    if (!hasDangerousHref(tree, opening)) return;
+    if (!hasDangerousHref(tree, opening, options.enforce_dynamic_links)) return;
     if (hasSecureRel(tree, opening, target.attribute.value, options.allow_referrer)) return;
 
     try core.addDiagnostic(
@@ -86,11 +87,11 @@ fn attributeValuePossiblyBlank(tree: *const ast.Tree, attribute: ast.JSXAttribut
         isStringLiteralIgnoreCase(tree, conditional.alternate, "_blank");
 }
 
-fn hasDangerousHref(tree: *const ast.Tree, opening: ast.JSXOpeningElement) bool {
+fn hasDangerousHref(tree: *const ast.Tree, opening: ast.JSXOpeningElement, enforce_dynamic_links: bool) bool {
     const href = lastAttributeNamed(tree, opening, "href") orelse return false;
     if (href.attribute.value == .null) return false;
     if (stringValue(tree, href.attribute.value)) |value| return isExternalHref(value);
-    return tree.data(href.attribute.value) == .jsx_expression_container;
+    return enforce_dynamic_links and tree.data(href.attribute.value) == .jsx_expression_container;
 }
 
 fn hasSecureRel(tree: *const ast.Tree, opening: ast.JSXOpeningElement, target_value: ast.NodeIndex, allow_referrer: bool) bool {
