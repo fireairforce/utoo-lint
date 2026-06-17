@@ -1605,7 +1605,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_no_empty_interface) {
-            try typescript_eslint_no_empty_interface.check(self.allocator, self.diagnostics, ctx.tree, interface_declaration);
+            try typescript_eslint_no_empty_interface.check(self.allocator, self.diagnostics, ctx.tree, interface_declaration, .{
+                .allow_single_extends = self.options.typescript_eslint_no_empty_interface_allow_single_extends,
+            });
         }
         if (self.options.typescript_eslint_no_misused_new) {
             try typescript_eslint_no_misused_new.checkInterfaceDeclaration(self.allocator, self.diagnostics, ctx.tree, interface_declaration);

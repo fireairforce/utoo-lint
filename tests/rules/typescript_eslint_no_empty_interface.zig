@@ -36,6 +36,33 @@ test "does not report @typescript-eslint/no-empty-interface for non-empty or mul
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_empty_interface.id));
 }
 
+test "supports configured @typescript-eslint/no-empty-interface allowSingleExtends" {
+    const source =
+        \\interface Empty {}
+        \\interface SingleExtends extends Base {}
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowSingleExtends\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("@typescript-eslint/no-empty-interface", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_empty_interface.id));
+}
+
 test "can disable @typescript-eslint/no-empty-interface" {
     const source =
         \\interface Empty {}

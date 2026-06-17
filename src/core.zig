@@ -1256,6 +1256,7 @@ pub const Options = struct {
     typescript_eslint_no_empty_function: bool = true,
     typescript_eslint_no_empty_function_allow: NoEmptyFunctionAllow = .{},
     typescript_eslint_no_empty_interface: bool = true,
+    typescript_eslint_no_empty_interface_allow_single_extends: bool = false,
     typescript_eslint_no_extra_semi: bool = true,
     typescript_eslint_no_extra_non_null_assertion: bool = true,
     typescript_eslint_no_duplicate_enum_values: bool = true,
@@ -1670,6 +1671,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/explicit-member-accessibility")) {
             self.typescript_eslint_explicit_member_accessibility_accessibility = try typescriptEslintExplicitMemberAccessibilityFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-empty-interface")) {
+            self.typescript_eslint_no_empty_interface_allow_single_extends = try typescriptEslintNoEmptyInterfaceAllowSingleExtendsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-inferrable-types")) {
             self.typescript_eslint_no_inferrable_types_ignore_parameters = try typescriptEslintNoInferrableTypesBoolOptionFromConfig(value, "ignoreParameters", false);
@@ -4017,6 +4021,23 @@ pub const Options = struct {
         };
     }
 
+    fn typescriptEslintNoEmptyInterfaceAllowSingleExtendsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowSingleExtends") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn typescriptEslintTypedefBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4236,6 +4257,11 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.typescript_eslint_no_inferrable_types);
     try std.testing.expect(!options.typescript_eslint_no_inferrable_types_ignore_parameters);
     try std.testing.expect(!options.typescript_eslint_no_inferrable_types_ignore_properties);
+
+    try std.testing.expect(!options.typescript_eslint_no_empty_interface);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-empty-interface", true));
+    try std.testing.expect(options.typescript_eslint_no_empty_interface);
+    try std.testing.expect(!options.typescript_eslint_no_empty_interface_allow_single_extends);
 
     try std.testing.expect(!options.typescript_eslint_no_duplicate_enum_values);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-duplicate-enum-values", true));
@@ -4933,6 +4959,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_empty_function_allow.arrowFunctions);
     try std.testing.expect(options.typescript_eslint_no_empty_function_allow.methods);
     try std.testing.expect(!options.typescript_eslint_no_empty_function_allow.functions);
+
+    var typescript_no_empty_interface_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowSingleExtends\":true}]",
+        .{},
+    );
+    defer typescript_no_empty_interface_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-empty-interface", typescript_no_empty_interface_config.value);
+    try std.testing.expect(options.typescript_eslint_no_empty_interface);
+    try std.testing.expect(options.typescript_eslint_no_empty_interface_allow_single_extends);
 
     var no_else_return_config = try std.json.parseFromSlice(
         std.json.Value,
