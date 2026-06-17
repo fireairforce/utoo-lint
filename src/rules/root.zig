@@ -525,7 +525,7 @@ pub fn runBasic(
         try require_await.run(allocator, diagnostics, tree);
     }
     if (options.react_prop_types) {
-        try react_prop_types.run(allocator, diagnostics, tree);
+        try react_prop_types.run(allocator, diagnostics, tree, options.react_prop_types_skip_undeclared);
     }
     if (options.react_no_unused_prop_types) {
         try react_no_unused_prop_types.run(allocator, diagnostics, tree, options.react_no_unused_prop_types_skip_shape_props);

@@ -119,11 +119,12 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    skip_undeclared: bool,
 ) Allocator.Error!void {
     var state = try collect(allocator, tree);
     defer state.deinit(allocator);
 
-    try finish(allocator, diagnostics, tree, &state);
+    try finish(allocator, diagnostics, tree, &state, skip_undeclared);
 }
 
 pub fn collect(
@@ -605,7 +606,10 @@ fn finish(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     state: *State,
+    skip_undeclared: bool,
 ) Allocator.Error!void {
+    if (skip_undeclared) return;
+
     for (state.components.items) |component| {
         if (!component.detected) continue;
         for (component.used_props.items) |used| {

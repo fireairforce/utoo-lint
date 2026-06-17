@@ -1058,6 +1058,7 @@ pub const Options = struct {
     react_no_typos: bool = true,
     react_no_unknown_property: bool = true,
     react_prop_types: bool = true,
+    react_prop_types_skip_undeclared: bool = false,
     react_no_unused_prop_types: bool = true,
     react_no_unused_prop_types_skip_shape_props: bool = true,
     react_no_unused_state: bool = true,
@@ -1435,6 +1436,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-pascal-case")) {
             self.react_jsx_pascal_case_allow_all_caps = try reactJsxPascalCaseAllowAllCapsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/prop-types")) {
+            self.react_prop_types_skip_undeclared = try reactPropTypesSkipUndeclaredFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/no-unused-prop-types")) {
             self.react_no_unused_prop_types_skip_shape_props = try reactNoUnusedPropTypesSkipShapePropsFromConfig(value);
@@ -1835,6 +1839,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("skipShapeProps") orelse return true) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn reactPropTypesSkipUndeclaredFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("skipUndeclared") orelse return false) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -3756,6 +3777,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.react_prop_types);
     try std.testing.expect(options.setByCliName("react/prop-types", true));
     try std.testing.expect(options.react_prop_types);
+    try std.testing.expect(!options.react_prop_types_skip_undeclared);
 
     try std.testing.expect(!options.react_no_unused_prop_types);
     try std.testing.expect(options.setByCliName("react/no-unused-prop-types", true));
@@ -3785,6 +3807,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.jsx_a11y_aria_props);
 
     try options.setByRuleConfigValue("prettier/prettier", .{ .string = "error" });
+
+    var react_prop_types_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"skipUndeclared\":true}]",
+        .{},
+    );
+    defer react_prop_types_config.deinit();
+    try options.setByRuleConfigValue("react/prop-types", react_prop_types_config.value);
+    try std.testing.expect(options.react_prop_types);
+    try std.testing.expect(options.react_prop_types_skip_undeclared);
 
     var react_no_unused_prop_types_config = try std.json.parseFromSlice(
         std.json.Value,
