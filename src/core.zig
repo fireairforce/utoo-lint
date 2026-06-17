@@ -501,6 +501,8 @@ pub const Options = struct {
     logical_assignment_operators_style: LogicalAssignmentOperatorsStyle = .always,
     logical_assignment_operators_enforce_for_if_statements: LogicalAssignmentOperatorsEnforceForIfStatements = .no,
     new_cap: bool = true,
+    new_cap_new_is_cap: bool = true,
+    new_cap_cap_is_new: bool = true,
     new_parens: bool = true,
     no_async_promise_executor: bool = true,
     no_array_constructor: bool = true,
@@ -1005,6 +1007,10 @@ pub const Options = struct {
             self.logical_assignment_operators_style = try logicalAssignmentOperatorsStyleFromConfig(value);
             self.logical_assignment_operators_enforce_for_if_statements = try logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "new-cap")) {
+            self.new_cap_new_is_cap = try newCapBoolOptionFromConfig(value, "newIsCap", true);
+            self.new_cap_cap_is_new = try newCapBoolOptionFromConfig(value, "capIsNew", true);
+        }
         if (std.mem.eql(u8, cli_name, "no-bitwise")) {
             self.no_bitwise_allow_bitwise_and = try noBitwiseAllowFromConfig(value, "&");
             self.no_bitwise_allow_bitwise_or = try noBitwiseAllowFromConfig(value, "|");
@@ -1503,6 +1509,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (enforce) .yes else .no;
+    }
+
+    fn newCapBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noBitwiseAllowFromConfig(value: std.json.Value, expected: []const u8) RuleConfigError!bool {
@@ -3243,6 +3266,18 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_labels);
     try std.testing.expectEqual(NoLabelsAllowLoop.yes, options.no_labels_allow_loop);
     try std.testing.expectEqual(NoLabelsAllowSwitch.yes, options.no_labels_allow_switch);
+
+    var new_cap_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"newIsCap\":false,\"capIsNew\":false}]",
+        .{},
+    );
+    defer new_cap_config.deinit();
+    try options.setByRuleConfigValue("new-cap", new_cap_config.value);
+    try std.testing.expect(options.new_cap);
+    try std.testing.expect(!options.new_cap_new_is_cap);
+    try std.testing.expect(!options.new_cap_cap_is_new);
 
     var no_multi_spaces_config = try std.json.parseFromSlice(
         std.json.Value,

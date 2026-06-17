@@ -7,6 +7,11 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "new-cap";
 
+pub const Options = struct {
+    new_is_cap: bool = true,
+    cap_is_new: bool = true,
+};
+
 pub fn checkNewExpression(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -14,6 +19,19 @@ pub fn checkNewExpression(
     expression: ast.NewExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    return checkNewExpressionWithOptions(allocator, diagnostics, tree, expression, index, .{});
+}
+
+pub fn checkNewExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.NewExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (!options.new_is_cap) return;
+
     const name = constructorName(tree, expression.callee) orelse return;
     if (nameCase(name) != .lower) return;
 
@@ -34,6 +52,19 @@ pub fn checkCallExpression(
     expression: ast.CallExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    return checkCallExpressionWithOptions(allocator, diagnostics, tree, expression, index, .{});
+}
+
+pub fn checkCallExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.CallExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (!options.cap_is_new) return;
+
     const callee = unwrapTransparent(tree, expression.callee);
     const name = constructorName(tree, callee) orelse return;
     if (nameCase(name) != .upper) return;
