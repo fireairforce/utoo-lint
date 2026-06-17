@@ -66,6 +66,36 @@ test "supports configured react/jsx-pascal-case allowAllCaps false" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_jsx_pascal_case.id));
 }
 
+test "supports configured react/jsx-pascal-case ignore list" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignore\":[\"bar\",\"Legacy_widget\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("react/jsx-pascal-case", config.value);
+
+    const source =
+        \\const ignoredMember = <Foo.bar />;
+        \\const ignoredRoot = <Legacy_widget />;
+        \\const reported = <Foo.baz />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_jsx_pascal_case.id));
+    try std.testing.expectEqualStrings("Imported JSX component baz must be in PascalCase or SCREAMING_SNAKE_CASE", result.diagnostics[0].message);
+}
+
 test "can disable react/jsx-pascal-case" {
     const source =
         \\const node = <Foo.bar />;
