@@ -3,9 +3,16 @@ const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
+const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 pub const id = "@typescript-eslint/consistent-type-assertions";
+
+pub const Options = struct {
+    assertion_style: core.TypescriptEslintConsistentTypeAssertionsStyle,
+    object_literal_type_assertions: core.TypescriptEslintLiteralTypeAssertions,
+    array_literal_type_assertions: core.TypescriptEslintLiteralTypeAssertions,
+};
 
 pub fn checkAsExpression(
     allocator: Allocator,
@@ -13,18 +20,34 @@ pub fn checkAsExpression(
     tree: *const ast.Tree,
     expression: ast.TSAsExpression,
     index: ast.NodeIndex,
+    ctx: *traverser.basic.Ctx,
+    options: Options,
 ) Allocator.Error!void {
     if (isConstType(tree, expression.type_annotation)) return;
-    if (!isObjectExpression(tree, expression.expression)) return;
 
-    try core.addDiagnostic(
-        allocator,
-        diagnostics,
-        .@"error",
-        id,
-        "Always prefer const x: T = { ... }.",
-        tree.span(index),
-    );
+    if (try checkLiteralAssertion(allocator, diagnostics, tree, expression.expression, index, ctx, options)) return;
+
+    const type_text = sourceText(tree, expression.type_annotation);
+    switch (options.assertion_style) {
+        .as => {},
+        .angle_bracket => try core.addDiagnosticFmt(
+            allocator,
+            diagnostics,
+            .@"error",
+            id,
+            tree.span(index),
+            "Use '<{s}>' instead of 'as {s}'.",
+            .{ type_text, type_text },
+        ),
+        .never => try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .@"error",
+            id,
+            "Do not use type assertions.",
+            tree.span(index),
+        ),
+    }
 }
 
 pub fn checkTypeAssertion(
@@ -33,26 +56,86 @@ pub fn checkTypeAssertion(
     tree: *const ast.Tree,
     assertion: ast.TSTypeAssertion,
     index: ast.NodeIndex,
+    ctx: *traverser.basic.Ctx,
+    options: Options,
 ) Allocator.Error!void {
+    if (isConstType(tree, assertion.type_annotation)) return;
+    if (try checkLiteralAssertion(allocator, diagnostics, tree, assertion.expression, index, ctx, options)) return;
+
     const type_text = sourceText(tree, assertion.type_annotation);
 
+    switch (options.assertion_style) {
+        .as => try core.addDiagnosticFmt(
+            allocator,
+            diagnostics,
+            .@"error",
+            id,
+            tree.span(index),
+            "Use 'as {s}' instead of '<{s}>'.",
+            .{ type_text, type_text },
+        ),
+        .angle_bracket => {},
+        .never => try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .@"error",
+            id,
+            "Do not use type assertions.",
+            tree.span(index),
+        ),
+    }
+}
+
+fn checkLiteralAssertion(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.NodeIndex,
+    index: ast.NodeIndex,
+    ctx: *traverser.basic.Ctx,
+    options: Options,
+) Allocator.Error!bool {
+    const literal = literalAssertionKind(tree, expression) orelse return false;
+    const mode = switch (literal) {
+        .object => options.object_literal_type_assertions,
+        .array => options.array_literal_type_assertions,
+    };
+
+    const allowed = switch (mode) {
+        .allow => true,
+        .allow_as_parameter => isParameterAssertion(tree, index, ctx),
+        .never => false,
+    };
+    if (allowed) return false;
+
+    const placeholder = switch (literal) {
+        .object => "{ ... }",
+        .array => "[ ... ]",
+    };
     try core.addDiagnosticFmt(
         allocator,
         diagnostics,
         .@"error",
         id,
         tree.span(index),
-        "Use 'as {s}' instead of '<{s}>'.",
-        .{ type_text, type_text },
+        "Always prefer const x: T = {s}.",
+        .{placeholder},
     );
+    return true;
 }
 
-fn isObjectExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
-    if (index == .null) return false;
+const LiteralAssertionKind = enum {
+    object,
+    array,
+};
+
+fn literalAssertionKind(tree: *const ast.Tree, index: ast.NodeIndex) ?LiteralAssertionKind {
+    if (index == .null) return null;
 
     return switch (tree.data(unwrapTransparent(tree, index))) {
-        .object_expression => true,
-        else => false,
+        .object_expression => .object,
+        .array_expression => .array,
+        else => null,
     };
 }
 
@@ -88,6 +171,34 @@ fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex 
         }
     }
     return current;
+}
+
+fn isParameterAssertion(tree: *const ast.Tree, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) bool {
+    var child = index;
+    var depth: usize = 1;
+    while (ctx.path.ancestor(depth)) |parent_index| : (depth += 1) {
+        switch (tree.data(parent_index)) {
+            .parenthesized_expression => |parenthesized| {
+                if (parenthesized.expression != child) return false;
+                child = parent_index;
+            },
+            .chain_expression => |chain| {
+                if (chain.expression != child) return false;
+                child = parent_index;
+            },
+            .call_expression => |call| return rangeContains(tree, call.arguments, child),
+            .new_expression => |new_expression| return rangeContains(tree, new_expression.arguments, child),
+            else => return false,
+        }
+    }
+    return false;
+}
+
+fn rangeContains(tree: *const ast.Tree, range: ast.IndexRange, index: ast.NodeIndex) bool {
+    for (0..range.len) |i| {
+        if (tree.extra(range)[i] == index) return true;
+    }
+    return false;
 }
 
 fn sourceText(tree: *const ast.Tree, index: ast.NodeIndex) []const u8 {

@@ -1447,7 +1447,11 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_consistent_type_assertions) {
-            try typescript_eslint_consistent_type_assertions.checkAsExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try typescript_eslint_consistent_type_assertions.checkAsExpression(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx, .{
+                .assertion_style = self.options.typescript_eslint_consistent_type_assertions_assertion_style,
+                .object_literal_type_assertions = self.options.typescript_eslint_consistent_type_assertions_object_literal_type_assertions,
+                .array_literal_type_assertions = self.options.typescript_eslint_consistent_type_assertions_array_literal_type_assertions,
+            });
         }
         if (self.options.typescript_eslint_prefer_as_const) {
             try typescript_eslint_prefer_as_const.checkAsExpression(self.allocator, self.diagnostics, ctx.tree, expression);
@@ -1462,7 +1466,11 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_consistent_type_assertions) {
-            try typescript_eslint_consistent_type_assertions.checkTypeAssertion(self.allocator, self.diagnostics, ctx.tree, assertion, index);
+            try typescript_eslint_consistent_type_assertions.checkTypeAssertion(self.allocator, self.diagnostics, ctx.tree, assertion, index, ctx, .{
+                .assertion_style = self.options.typescript_eslint_consistent_type_assertions_assertion_style,
+                .object_literal_type_assertions = self.options.typescript_eslint_consistent_type_assertions_object_literal_type_assertions,
+                .array_literal_type_assertions = self.options.typescript_eslint_consistent_type_assertions_array_literal_type_assertions,
+            });
         }
         if (self.options.typescript_eslint_prefer_as_const) {
             try typescript_eslint_prefer_as_const.checkTypeAssertion(self.allocator, self.diagnostics, ctx.tree, assertion);
