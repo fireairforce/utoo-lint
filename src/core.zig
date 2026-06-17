@@ -916,6 +916,10 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@alipay/ant/no-deprecated-dependence")) {
             self.alipay_ant_no_deprecated_dependence_profile = deprecatedDependenceProfileFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "accessor-pairs")) {
+            self.accessor_pairs_get_without_set = try accessorPairsGetWithoutSetFromConfig(value);
+            self.accessor_pairs_set_without_get = try accessorPairsSetWithoutGetFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "array-callback-return")) {
             self.array_callback_return_allow_implicit = try arrayCallbackReturnAllowImplicitFromConfig(value);
             self.array_callback_return_check_for_each = try arrayCallbackReturnCheckForEachFromConfig(value);
@@ -1144,6 +1148,33 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "always")) return .strict;
         if (std.mem.eql(u8, style, "allow-null")) return .allow_null;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn accessorPairsGetWithoutSetFromConfig(value: std.json.Value) RuleConfigError!AccessorPairsGetWithoutSet {
+        const enabled = try accessorPairsOptionFromConfig(value, "getWithoutSet", false);
+        return if (enabled) .yes else .no;
+    }
+
+    fn accessorPairsSetWithoutGetFromConfig(value: std.json.Value) RuleConfigError!AccessorPairsSetWithoutGet {
+        const enabled = try accessorPairsOptionFromConfig(value, "setWithoutGet", true);
+        return if (enabled) .yes else .no;
+    }
+
+    fn accessorPairsOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn arrayCallbackReturnAllowImplicitFromConfig(value: std.json.Value) RuleConfigError!ArrayCallbackReturnAllowImplicit {
@@ -2578,6 +2609,18 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("eqeqeq", eqeqeq_config.value);
     try std.testing.expect(options.eqeqeq);
     try std.testing.expectEqual(EqeqeqStyle.allow_null, options.eqeqeq_style);
+
+    var accessor_pairs_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"getWithoutSet\":true,\"setWithoutGet\":false}]",
+        .{},
+    );
+    defer accessor_pairs_config.deinit();
+    try options.setByRuleConfigValue("accessor-pairs", accessor_pairs_config.value);
+    try std.testing.expect(options.accessor_pairs);
+    try std.testing.expectEqual(AccessorPairsGetWithoutSet.yes, options.accessor_pairs_get_without_set);
+    try std.testing.expectEqual(AccessorPairsSetWithoutGet.no, options.accessor_pairs_set_without_get);
 
     var profile_a_config = try std.json.parseFromSlice(
         std.json.Value,
