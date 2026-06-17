@@ -11,6 +11,8 @@ pub const Options = struct {
     new_is_cap: bool = true,
     cap_is_new: bool = true,
     properties: bool = true,
+    new_is_cap_exceptions: core.NewCapExceptionNames = .{},
+    cap_is_new_exceptions: core.NewCapExceptionNames = .{},
 };
 
 pub fn checkNewExpression(
@@ -34,6 +36,7 @@ pub fn checkNewExpressionWithOptions(
     if (!options.new_is_cap) return;
 
     const name = constructorName(tree, expression.callee, options) orelse return;
+    if (options.new_is_cap_exceptions.contains(name)) return;
     if (nameCase(name) != .lower) return;
 
     try core.addDiagnostic(
@@ -68,6 +71,7 @@ pub fn checkCallExpressionWithOptions(
 
     const callee = unwrapTransparent(tree, expression.callee);
     const name = constructorName(tree, callee, options) orelse return;
+    if (options.cap_is_new_exceptions.contains(name)) return;
     if (nameCase(name) != .upper) return;
     if (isAllowedCallableBuiltin(tree, callee, name)) return;
 

@@ -136,3 +136,34 @@ test "supports configured new-cap properties option" {
 
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.new_cap.id));
 }
+
+test "supports configured new-cap exception name options" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"newIsCapExceptions\":[\"lowerFactory\"],\"capIsNewExceptions\":[\"UpperFactory\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("new-cap", config.value);
+    options.no_new = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\new lowerFactory();
+        \\new otherFactory();
+        \\UpperFactory();
+        \\OtherFactory();
+        \\new namespace.lowerFactory();
+        \\namespace.UpperFactory();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.new_cap.id));
+}
