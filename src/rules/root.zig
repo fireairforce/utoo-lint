@@ -2740,7 +2740,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.react_jsx_no_duplicate_props) {
-            try react_jsx_no_duplicate_props.check(self.allocator, self.diagnostics, ctx.tree, opening);
+            try react_jsx_no_duplicate_props.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, opening, .{
+                .ignore_case = self.options.react_jsx_no_duplicate_props_ignore_case,
+            });
         }
         if (self.options.jsx_a11y_alt_text) {
             try jsx_a11y_alt_text.checkOpeningElement(self.allocator, self.diagnostics, ctx.tree, opening, index);
