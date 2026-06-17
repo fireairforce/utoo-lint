@@ -10,6 +10,10 @@ pub const id = "react/display-name";
 
 const message = "Component definition is missing display name";
 
+pub const Options = struct {
+    check_context_objects: bool = false,
+};
+
 const Component = struct {
     node: ast.NodeIndex,
     name: ?[]const u8,
@@ -165,6 +169,30 @@ pub fn checkMemberExpression(allocator: Allocator, tree: *const ast.Tree, member
     if (identifierReferenceName(tree, unwrapTransparent(tree, member.object))) |name| {
         try state.markName(allocator, name);
     }
+}
+
+pub fn checkVariableDeclarator(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    declarator: ast.VariableDeclarator,
+    index: ast.NodeIndex,
+    state: *State,
+    options: Options,
+) Allocator.Error!void {
+    if (!options.check_context_objects) return;
+    if (declarator.init == .null) return;
+    const name = bindingIdentifierName(tree, declarator.id) orelse return;
+    const call = switch (tree.data(unwrapTransparent(tree, declarator.init))) {
+        .call_expression => |call| call,
+        else => return,
+    };
+    if (!isCreateContextCall(tree, call)) return;
+
+    try state.addComponent(allocator, .{
+        .node = index,
+        .name = name,
+        .has_display_name = false,
+    });
 }
 
 pub fn finish(
@@ -327,6 +355,23 @@ fn isComponentWrapperCall(tree: *const ast.Tree, call: ast.CallExpression) bool 
     if (member.computed) return false;
     const property = propertyName(tree, member.property, false) orelse return false;
     return std.mem.eql(u8, property, "memo") or std.mem.eql(u8, property, "forwardRef");
+}
+
+fn isCreateContextCall(tree: *const ast.Tree, call: ast.CallExpression) bool {
+    const callee = unwrapTransparent(tree, call.callee);
+    if (identifierReferenceName(tree, callee)) |name| {
+        return std.mem.eql(u8, name, "createContext");
+    }
+
+    const member = switch (tree.data(callee)) {
+        .member_expression => |member| member,
+        else => return false,
+    };
+    if (member.computed) return false;
+    const object = identifierReferenceName(tree, unwrapTransparent(tree, member.object)) orelse return false;
+    if (!std.mem.eql(u8, object, "React")) return false;
+    const property = propertyName(tree, member.property, false) orelse return false;
+    return std.mem.eql(u8, property, "createContext");
 }
 
 fn functionReturnsJSXOrNull(tree: *const ast.Tree, index: ast.NodeIndex) bool {
