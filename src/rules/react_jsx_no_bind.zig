@@ -8,6 +8,14 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "react/jsx-no-bind";
 
+pub const Options = struct {
+    allow_arrow_functions: bool = false,
+    allow_functions: bool = false,
+    allow_bind: bool = false,
+    ignore_refs: bool = false,
+    ignore_dom_components: bool = false,
+};
+
 const Violation = enum {
     bind_call,
     arrow_func,
@@ -98,7 +106,10 @@ pub fn checkJSXAttribute(
     attribute: ast.JSXAttribute,
     index: ast.NodeIndex,
     state: State,
+    parent_index: ?ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
+    if (shouldIgnoreAttribute(tree, attribute, parent_index, options)) return;
     if (attribute.value == .null) return;
     const container = switch (tree.data(attribute.value)) {
         .jsx_expression_container => |container| container,
@@ -109,12 +120,14 @@ pub fn checkJSXAttribute(
     const expression = unwrapTransparent(tree, container.expression);
     if (identifierReferenceName(tree, expression)) |name| {
         if (findBinding(state, name)) |violation| {
+            if (!shouldReportViolation(violation, options)) return;
             try report(allocator, diagnostics, tree, index, violation);
         }
         return;
     }
 
     const violation = nodeViolationType(tree, expression) orelse return;
+    if (!shouldReportViolation(violation, options)) return;
     try report(allocator, diagnostics, tree, index, violation);
 }
 
@@ -143,6 +156,29 @@ fn findBinding(state: State, name: []const u8) ?Violation {
     return null;
 }
 
+fn shouldReportViolation(violation: Violation, options: Options) bool {
+    return switch (violation) {
+        .bind_call => !options.allow_bind,
+        .arrow_func => !options.allow_arrow_functions,
+        .func => !options.allow_functions,
+    };
+}
+
+fn shouldIgnoreAttribute(tree: *const ast.Tree, attribute: ast.JSXAttribute, parent_index: ?ast.NodeIndex, options: Options) bool {
+    if (options.ignore_refs) {
+        if (jsxIdentifierName(tree, attribute.name)) |name| {
+            if (std.mem.eql(u8, name, "ref")) return true;
+        }
+    }
+
+    if (options.ignore_dom_components) {
+        const opening = jsxOpeningElement(tree, parent_index) orelse return false;
+        if (isDomComponent(tree, opening.name)) return true;
+    }
+
+    return false;
+}
+
 fn nodeViolationType(tree: *const ast.Tree, index: ast.NodeIndex) ?Violation {
     const current = unwrapTransparent(tree, index);
     return switch (tree.data(current)) {
@@ -157,6 +193,26 @@ fn nodeViolationType(tree: *const ast.Tree, index: ast.NodeIndex) ?Violation {
             => .func,
             else => null,
         },
+        else => null,
+    };
+}
+
+fn jsxOpeningElement(tree: *const ast.Tree, parent_index: ?ast.NodeIndex) ?ast.JSXOpeningElement {
+    const parent = parent_index orelse return null;
+    return switch (tree.data(parent)) {
+        .jsx_opening_element => |opening| opening,
+        else => null,
+    };
+}
+
+fn isDomComponent(tree: *const ast.Tree, name_index: ast.NodeIndex) bool {
+    const name = jsxIdentifierName(tree, name_index) orelse return false;
+    return name.len > 0 and std.ascii.isLower(name[0]);
+}
+
+fn jsxIdentifierName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    return switch (tree.data(index)) {
+        .jsx_identifier => |identifier| tree.string(identifier.name),
         else => null,
     };
 }

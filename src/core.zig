@@ -1120,6 +1120,11 @@ pub const Options = struct {
     react_jsx_no_duplicate_props_ignore_case: bool = true,
     react_jsx_no_comment_textnodes: bool = true,
     react_jsx_no_bind: bool = true,
+    react_jsx_no_bind_allow_arrow_functions: bool = false,
+    react_jsx_no_bind_allow_functions: bool = false,
+    react_jsx_no_bind_allow_bind: bool = false,
+    react_jsx_no_bind_ignore_refs: bool = false,
+    react_jsx_no_bind_ignore_dom_components: bool = false,
     react_jsx_key: bool = true,
     react_button_has_type: bool = true,
     react_button_has_type_button: bool = true,
@@ -1546,6 +1551,13 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-boolean-value")) {
             self.react_jsx_boolean_value_style = try reactJsxBooleanValueStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/jsx-no-bind")) {
+            self.react_jsx_no_bind_allow_arrow_functions = try reactJsxNoBindBoolOptionFromConfig(value, "allowArrowFunctions", false);
+            self.react_jsx_no_bind_allow_functions = try reactJsxNoBindBoolOptionFromConfig(value, "allowFunctions", false);
+            self.react_jsx_no_bind_allow_bind = try reactJsxNoBindBoolOptionFromConfig(value, "allowBind", false);
+            self.react_jsx_no_bind_ignore_refs = try reactJsxNoBindBoolOptionFromConfig(value, "ignoreRefs", false);
+            self.react_jsx_no_bind_ignore_dom_components = try reactJsxNoBindBoolOptionFromConfig(value, "ignoreDOMComponents", false);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-no-duplicate-props")) {
             self.react_jsx_no_duplicate_props_ignore_case = try reactJsxNoDuplicatePropsIgnoreCaseFromConfig(value);
@@ -3502,6 +3514,23 @@ pub const Options = struct {
         return error.UnsupportedRuleConfigValue;
     }
 
+    fn reactJsxNoBindBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn reactJsxNoDuplicatePropsIgnoreCaseFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4149,6 +4178,15 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.react_jsx_filename_extension);
     try std.testing.expectEqual(react_jsx_filename_extension_default_extensions.len, options.react_jsx_filename_extension_extensions.len());
 
+    try std.testing.expect(!options.react_jsx_no_bind);
+    try std.testing.expect(options.setByCliName("react/jsx-no-bind", true));
+    try std.testing.expect(options.react_jsx_no_bind);
+    try std.testing.expect(!options.react_jsx_no_bind_allow_arrow_functions);
+    try std.testing.expect(!options.react_jsx_no_bind_allow_functions);
+    try std.testing.expect(!options.react_jsx_no_bind_allow_bind);
+    try std.testing.expect(!options.react_jsx_no_bind_ignore_refs);
+    try std.testing.expect(!options.react_jsx_no_bind_ignore_dom_components);
+
     try std.testing.expect(!options.react_prop_types);
     try std.testing.expect(options.setByCliName("react/prop-types", true));
     try std.testing.expect(options.react_prop_types);
@@ -4234,6 +4272,21 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.react_jsx_filename_extension);
     try std.testing.expectEqual(@as(usize, 1), options.react_jsx_filename_extension_extensions.len());
     try std.testing.expectEqualStrings(".tsx", options.react_jsx_filename_extension_extensions.at(0));
+
+    var react_jsx_no_bind_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowArrowFunctions\":true,\"allowFunctions\":true,\"allowBind\":true,\"ignoreRefs\":true,\"ignoreDOMComponents\":true}]",
+        .{},
+    );
+    defer react_jsx_no_bind_config.deinit();
+    try options.setByRuleConfigValue("react/jsx-no-bind", react_jsx_no_bind_config.value);
+    try std.testing.expect(options.react_jsx_no_bind);
+    try std.testing.expect(options.react_jsx_no_bind_allow_arrow_functions);
+    try std.testing.expect(options.react_jsx_no_bind_allow_functions);
+    try std.testing.expect(options.react_jsx_no_bind_allow_bind);
+    try std.testing.expect(options.react_jsx_no_bind_ignore_refs);
+    try std.testing.expect(options.react_jsx_no_bind_ignore_dom_components);
 
     var react_jsx_no_target_blank_config = try std.json.parseFromSlice(
         std.json.Value,
