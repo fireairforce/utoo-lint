@@ -1482,7 +1482,13 @@ const BasicVisitor = struct {
             try typescript_eslint_prefer_as_const.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
         }
         if (self.options.typescript_eslint_no_this_alias) {
-            try typescript_eslint_no_this_alias.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
+            try typescript_eslint_no_this_alias.checkVariableDeclarator(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                declarator,
+                &self.options.typescript_eslint_no_this_alias_allowed_names,
+            );
         }
         if (self.options.typescript_eslint_no_inferrable_types) {
             try typescript_eslint_no_inferrable_types.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
@@ -2254,7 +2260,13 @@ const BasicVisitor = struct {
             try typescript_eslint_no_confusing_non_null_assertion.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.typescript_eslint_no_this_alias) {
-            try typescript_eslint_no_this_alias.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+            try typescript_eslint_no_this_alias.checkAssignmentExpression(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                expression,
+                &self.options.typescript_eslint_no_this_alias_allowed_names,
+            );
         }
         if (self.options.react_no_typos) {
             try react_no_typos.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_no_typos_state);

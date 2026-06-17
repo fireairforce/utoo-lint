@@ -37,6 +37,46 @@ test "does not report @typescript-eslint/no-this-alias for fishlint allowed self
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_this_alias.id));
 }
 
+test "uses configured @typescript-eslint/no-this-alias allowedNames" {
+    const source =
+        \\const that = this;
+        \\let context;
+        \\context = this;
+        \\const self = this;
+    ;
+
+    var allowed_names: @TypeOf((lint.Options{}).typescript_eslint_no_this_alias_allowed_names) = .{ .custom = true };
+    try allowed_names.append("that");
+    try allowed_names.append("context");
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_unused_vars = false,
+        .typescript_eslint_no_this_alias_allowed_names = allowed_names,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_this_alias.id));
+}
+
+test "supports configured @typescript-eslint/no-this-alias allowedNames option" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        \\["error", {"allowedNames": ["that"]}]
+    ,
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-this-alias", config.value);
+
+    try std.testing.expect(options.typescript_eslint_no_this_alias);
+    try std.testing.expect(options.typescript_eslint_no_this_alias_allowed_names.contains("that"));
+    try std.testing.expect(!options.typescript_eslint_no_this_alias_allowed_names.contains("self"));
+}
+
 test "can disable @typescript-eslint/no-this-alias" {
     const source =
         \\const that = this;

@@ -387,6 +387,45 @@ pub const NoShadowAllowNames = struct {
     }
 };
 
+pub const max_no_this_alias_allowed_names = 32;
+pub const max_no_this_alias_allowed_name_len = 128;
+
+pub const NoThisAliasAllowedNamesError = error{
+    EmptyNoThisAliasAllowedName,
+    TooManyNoThisAliasAllowedNames,
+    NoThisAliasAllowedNameTooLong,
+};
+
+pub const NoThisAliasAllowedNames = struct {
+    custom: bool = false,
+    count: usize = 0,
+    lengths: [max_no_this_alias_allowed_names]usize = undefined,
+    storage: [max_no_this_alias_allowed_names][max_no_this_alias_allowed_name_len]u8 = undefined,
+
+    pub fn contains(self: *const NoThisAliasAllowedNames, name: []const u8) bool {
+        if (!self.custom) return std.mem.eql(u8, name, "self");
+
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const NoThisAliasAllowedNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *NoThisAliasAllowedNames, name: []const u8) NoThisAliasAllowedNamesError!void {
+        if (name.len == 0) return error.EmptyNoThisAliasAllowedName;
+        if (self.count >= max_no_this_alias_allowed_names) return error.TooManyNoThisAliasAllowedNames;
+        if (name.len > max_no_this_alias_allowed_name_len) return error.NoThisAliasAllowedNameTooLong;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const max_new_cap_exception_names = 32;
 pub const max_new_cap_exception_name_len = 128;
 
@@ -949,6 +988,7 @@ pub const Options = struct {
     typescript_eslint_no_shadow_allow: NoShadowAllowNames = .{},
     typescript_eslint_no_shadow_builtin_globals: bool = false,
     typescript_eslint_no_this_alias: bool = true,
+    typescript_eslint_no_this_alias_allowed_names: NoThisAliasAllowedNames = .{},
     typescript_eslint_no_unsafe_declaration_merging: bool = true,
     typescript_eslint_triple_slash_reference: bool = true,
     typescript_eslint_typedef: bool = true,
@@ -1266,6 +1306,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-namespace")) {
             self.typescript_eslint_no_namespace_allow_declarations = try typescriptEslintNoNamespaceBoolOptionFromConfig(value, "allowDeclarations", true);
             self.typescript_eslint_no_namespace_allow_definition_files = try typescriptEslintNoNamespaceBoolOptionFromConfig(value, "allowDefinitionFiles", true);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-this-alias")) {
+            self.typescript_eslint_no_this_alias_allowed_names = try typescriptEslintNoThisAliasAllowedNamesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-unused-vars")) {
             self.typescript_eslint_no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .after_used);
@@ -2940,6 +2983,34 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn typescriptEslintNoThisAliasAllowedNamesFromConfig(value: std.json.Value) RuleConfigError!NoThisAliasAllowedNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allowed_names_value = config.get("allowedNames") orelse return .{};
+        const allowed_names = switch (allowed_names_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var names = NoThisAliasAllowedNames{ .custom = true };
+        for (allowed_names) |name_value| {
+            const name = switch (name_value) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            names.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return names;
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
