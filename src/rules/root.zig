@@ -1095,7 +1095,9 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.consistent_return) {
-            try consistent_return.checkFunction(self.allocator, self.diagnostics, ctx.tree, function);
+            try consistent_return.checkFunctionWithOptions(self.allocator, self.diagnostics, ctx.tree, function, .{
+                .treat_undefined_as_unspecified = self.options.consistent_return_treat_undefined_as_unspecified,
+            });
         }
         if (self.options.func_names) {
             try func_names.checkWithStyle(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, switch (self.options.func_names_style) {
@@ -2076,7 +2078,9 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.consistent_return) {
-            try consistent_return.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression);
+            try consistent_return.checkArrowFunctionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
+                .treat_undefined_as_unspecified = self.options.consistent_return_treat_undefined_as_unspecified,
+            });
         }
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, expression.params);

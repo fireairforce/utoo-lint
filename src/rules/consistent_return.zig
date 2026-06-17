@@ -1,8 +1,9 @@
+const std = @import("std");
 const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
-const Allocator = @import("std").mem.Allocator;
+const Allocator = std.mem.Allocator;
 
 pub const id = "consistent-return";
 
@@ -11,9 +12,14 @@ const ReturnKind = enum {
     bare,
 };
 
+pub const Options = struct {
+    treat_undefined_as_unspecified: bool = false,
+};
+
 const ScanState = struct {
     expected: ?ReturnKind = null,
     reported: bool = false,
+    options: Options = .{},
 };
 
 pub fn checkFunction(
@@ -22,9 +28,19 @@ pub fn checkFunction(
     tree: *const ast.Tree,
     function: ast.Function,
 ) Allocator.Error!void {
+    try checkFunctionWithOptions(allocator, diagnostics, tree, function, .{});
+}
+
+pub fn checkFunctionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    function: ast.Function,
+    options: Options,
+) Allocator.Error!void {
     if (function.body == .null) return;
 
-    var state = ScanState{};
+    var state = ScanState{ .options = options };
     try scanNode(allocator, diagnostics, tree, function.body, &state);
     try checkFallthrough(allocator, diagnostics, tree, function.body, &state);
 }
@@ -35,9 +51,19 @@ pub fn checkArrowFunction(
     tree: *const ast.Tree,
     expression: ast.ArrowFunctionExpression,
 ) Allocator.Error!void {
+    try checkArrowFunctionWithOptions(allocator, diagnostics, tree, expression, .{});
+}
+
+pub fn checkArrowFunctionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.ArrowFunctionExpression,
+    options: Options,
+) Allocator.Error!void {
     if (expression.expression) return;
 
-    var state = ScanState{};
+    var state = ScanState{ .options = options };
     try scanNode(allocator, diagnostics, tree, expression.body, &state);
     try checkFallthrough(allocator, diagnostics, tree, expression.body, &state);
 }
@@ -110,7 +136,7 @@ fn checkReturn(
     index: ast.NodeIndex,
     state: *ScanState,
 ) Allocator.Error!void {
-    const kind: ReturnKind = if (statement.argument == .null) .bare else .value;
+    const kind: ReturnKind = if (returnArgumentIsUnspecified(tree, statement.argument, state.options)) .bare else .value;
     if (state.expected) |expected| {
         if (expected == kind) return;
         state.reported = true;
@@ -125,6 +151,17 @@ fn checkReturn(
         return;
     }
     state.expected = kind;
+}
+
+fn returnArgumentIsUnspecified(tree: *const ast.Tree, argument: ast.NodeIndex, options: Options) bool {
+    if (argument == .null) return true;
+    if (!options.treat_undefined_as_unspecified) return false;
+
+    return switch (tree.data(argument)) {
+        .identifier_reference => |identifier| std.mem.eql(u8, tree.string(identifier.name), "undefined"),
+        .unary_expression => |expression| expression.operator == .void,
+        else => false,
+    };
 }
 
 fn checkFallthrough(
