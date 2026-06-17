@@ -63,6 +63,42 @@ test "tracks react/display-name assignments before component definitions" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_display_name.id));
 }
 
+test "supports configured react/display-name checkContextObjects" {
+    const source =
+        \\const MissingContext = React.createContext(null);
+        \\const NamedContext = createContext(null);
+        \\NamedContext.displayName = 'NamedContext';
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"checkContextObjects\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("react/display-name", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_display_name.id));
+    try std.testing.expect(hasMessage(result, "Component definition is missing display name"));
+}
+
+test "allows react/display-name context objects by default" {
+    const source =
+        \\const ThemeContext = React.createContext(null);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.react_display_name.id));
+}
+
 test "can disable react/display-name" {
     const source =
         \\export default () => <div />;

@@ -1568,6 +1568,11 @@ const BasicVisitor = struct {
         if (self.options.react_jsx_no_bind) {
             try react_jsx_no_bind.checkVariableDeclarator(self.allocator, ctx.tree, declarator, ctx.path.ancestor(1), &self.react_jsx_no_bind_state);
         }
+        if (self.options.react_display_name) {
+            try react_display_name.checkVariableDeclarator(self.allocator, ctx.tree, declarator, index, &self.react_display_name_state, .{
+                .check_context_objects = self.options.react_display_name_check_context_objects,
+            });
+        }
         if (self.options.react_no_deprecated) {
             try react_no_deprecated.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
         }
