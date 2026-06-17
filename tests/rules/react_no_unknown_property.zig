@@ -58,6 +58,53 @@ test "allows react/no-unknown-property for known DOM props and skipped JSX tags"
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_no_unknown_property.id));
 }
 
+test "supports configured react/no-unknown-property ignore list" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignore\":[\"class\",\"unknownProp\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("react/no-unknown-property", config.value);
+
+    const source =
+        \\const view = <div class="box" unknownProp="x" tabindex="0" />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_no_unknown_property.id));
+    try std.testing.expect(hasMessage(result, "Unknown property 'tabindex' found, use 'tabIndex' instead"));
+}
+
+test "supports configured react/no-unknown-property requireDataLowercase" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"requireDataLowercase\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("react/no-unknown-property", config.value);
+
+    const source =
+        \\const view = <div data-foo="a" data-Foo="b" data-fooBar="c" />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_no_unknown_property.id));
+    try std.testing.expect(hasMessage(result, "Unknown property 'data-Foo' found"));
+    try std.testing.expect(hasMessage(result, "Unknown property 'data-fooBar' found"));
+}
+
 test "reports react/no-unknown-property for namespaced SVG attributes" {
     const source =
         \\const view = <svg xlink:href="#a" xml:lang="en" />;

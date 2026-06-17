@@ -7,6 +7,11 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "react/no-unknown-property";
 
+pub const Options = struct {
+    ignore: core.ReactNoUnknownPropertyIgnoreNames = .{},
+    require_data_lowercase: bool = false,
+};
+
 const NameMap = struct {
     from: []const u8,
     to: []const u8,
@@ -286,6 +291,7 @@ pub fn check(
     attribute: ast.JSXAttribute,
     index: ast.NodeIndex,
     parent_index: ?ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     const actual_name_text = try jsxNameText(allocator, tree, attribute.name) orelse return;
     defer actual_name_text.deinit(allocator);
@@ -293,9 +299,13 @@ pub fn check(
     if (tagNameHasDot(tree, parent_index)) return;
 
     const actual_name = actual_name_text.value;
+    if (options.ignore.contains(actual_name)) return;
+
     const name = normalizeAttributeCase(actual_name);
 
-    if (isValidDataAttribute(name)) return;
+    if (isValidDataAttribute(name)) {
+        if (!options.require_data_lowercase or isLowercaseDataAttributeName(name)) return;
+    }
     if (isValidAriaAttribute(name)) return;
 
     const opening = jsxOpeningElement(tree, parent_index) orelse return;
@@ -394,6 +404,13 @@ fn normalizeAttributeCase(name: []const u8) []const u8 {
 fn isValidDataAttribute(name: []const u8) bool {
     if (startsWithIgnoreCase(name, "data-xml")) return false;
     return std.mem.startsWith(u8, name, "data-") and std.mem.indexOfScalar(u8, name, ':') == null;
+}
+
+fn isLowercaseDataAttributeName(name: []const u8) bool {
+    for (name["data-".len..]) |byte| {
+        if (std.ascii.isUpper(byte)) return false;
+    }
+    return true;
 }
 
 fn isValidAriaAttribute(name: []const u8) bool {
