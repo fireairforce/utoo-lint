@@ -31,6 +31,16 @@ pub const NoCondAssignStyle = enum {
     always,
 };
 
+pub const NoLabelsAllowLoop = enum {
+    yes,
+    no,
+};
+
+pub const NoLabelsAllowSwitch = enum {
+    yes,
+    no,
+};
+
 pub const NoConfusingArrowAllowParens = enum {
     yes,
     no,
@@ -606,6 +616,8 @@ pub const Options = struct {
     no_iterator: bool = true,
     no_label_var: bool = true,
     no_labels: bool = true,
+    no_labels_allow_loop: NoLabelsAllowLoop = .no,
+    no_labels_allow_switch: NoLabelsAllowSwitch = .no,
     no_lone_blocks: bool = true,
     no_lonely_if: bool = true,
     no_loop_func: bool = true,
@@ -997,6 +1009,10 @@ pub const Options = struct {
             self.no_implicit_coercion_allow_unary_plus = try noImplicitCoercionAllowFromConfig(value, "+");
             self.no_implicit_coercion_allow_multiply = try noImplicitCoercionAllowFromConfig(value, "*");
             self.no_implicit_coercion_allow_subtract = try noImplicitCoercionAllowFromConfig(value, "-");
+        }
+        if (std.mem.eql(u8, cli_name, "no-labels")) {
+            self.no_labels_allow_loop = try noLabelsAllowLoopFromConfig(value);
+            self.no_labels_allow_switch = try noLabelsAllowSwitchFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-multi-spaces")) {
             self.no_multi_spaces_ignore_eol_comments = try noMultiSpacesIgnoreEOLCommentsFromConfig(value);
@@ -1643,6 +1659,33 @@ pub const Options = struct {
             std.mem.eql(u8, value, "+") or
             std.mem.eql(u8, value, "*") or
             std.mem.eql(u8, value, "-");
+    }
+
+    fn noLabelsAllowLoopFromConfig(value: std.json.Value) RuleConfigError!NoLabelsAllowLoop {
+        const enabled = try noLabelsBoolOptionFromConfig(value, "allowLoop", false);
+        return if (enabled) .yes else .no;
+    }
+
+    fn noLabelsAllowSwitchFromConfig(value: std.json.Value) RuleConfigError!NoLabelsAllowSwitch {
+        const enabled = try noLabelsBoolOptionFromConfig(value, "allowSwitch", false);
+        return if (enabled) .yes else .no;
+    }
+
+    fn noLabelsBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noMultiSpacesIgnoreEOLCommentsFromConfig(value: std.json.Value) RuleConfigError!NoMultiSpacesIgnoreEOLComments {
@@ -2915,6 +2958,18 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_implicit_coercion_allow_unary_plus);
     try std.testing.expect(options.no_implicit_coercion_allow_multiply);
     try std.testing.expect(options.no_implicit_coercion_allow_subtract);
+
+    var no_labels_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowLoop\":true,\"allowSwitch\":true}]",
+        .{},
+    );
+    defer no_labels_config.deinit();
+    try options.setByRuleConfigValue("no-labels", no_labels_config.value);
+    try std.testing.expect(options.no_labels);
+    try std.testing.expectEqual(NoLabelsAllowLoop.yes, options.no_labels_allow_loop);
+    try std.testing.expectEqual(NoLabelsAllowSwitch.yes, options.no_labels_allow_switch);
 
     var no_multi_spaces_config = try std.json.parseFromSlice(
         std.json.Value,
