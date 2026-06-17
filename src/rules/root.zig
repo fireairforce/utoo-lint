@@ -985,6 +985,19 @@ const BasicVisitor = struct {
         };
     }
 
+    fn noBitwiseOptions(self: *const BasicVisitor) no_bitwise.Options {
+        return .{
+            .allow_bitwise_and = self.options.no_bitwise_allow_bitwise_and,
+            .allow_bitwise_or = self.options.no_bitwise_allow_bitwise_or,
+            .allow_bitwise_xor = self.options.no_bitwise_allow_bitwise_xor,
+            .allow_bitwise_not = self.options.no_bitwise_allow_bitwise_not,
+            .allow_left_shift = self.options.no_bitwise_allow_left_shift,
+            .allow_right_shift = self.options.no_bitwise_allow_right_shift,
+            .allow_unsigned_right_shift = self.options.no_bitwise_allow_unsigned_right_shift,
+            .int32_hint = self.options.no_bitwise_int32_hint,
+        };
+    }
+
     pub fn enter_node(
         self: *BasicVisitor,
         data: ast.NodeData,
@@ -2139,7 +2152,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_bitwise) {
-            try no_bitwise.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try no_bitwise.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noBitwiseOptions());
         }
         if (self.options.no_multi_assign) {
             try no_multi_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
@@ -2214,7 +2227,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_bitwise) {
-            try no_bitwise.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try no_bitwise.checkBinaryExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noBitwiseOptions());
         }
         if (self.options.typescript_eslint_restrict_plus_operands) {
             try typescript_eslint_restrict_plus_operands.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
@@ -2273,7 +2286,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_bitwise) {
-            try no_bitwise.checkUnaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try no_bitwise.checkUnaryExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noBitwiseOptions());
         }
         if (self.options.no_delete_var) {
             try no_delete_var.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
