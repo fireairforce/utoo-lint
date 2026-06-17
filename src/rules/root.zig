@@ -2797,7 +2797,9 @@ const BasicVisitor = struct {
             try react_no_children_prop.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index);
         }
         if (self.options.react_no_string_refs) {
-            try react_no_string_refs.check(self.allocator, self.diagnostics, ctx.tree, attribute, index);
+            try react_no_string_refs.check(self.allocator, self.diagnostics, ctx.tree, attribute, index, .{
+                .no_template_literals = self.options.react_no_string_refs_no_template_literals,
+            });
         }
         if (self.options.react_no_array_index_key) {
             try react_no_array_index_key.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, self.react_no_array_index_key_state);
