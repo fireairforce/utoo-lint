@@ -12,8 +12,9 @@ pub fn check(
     tree: *const ast.Tree,
     declaration: ast.TSModuleDeclaration,
     index: ast.NodeIndex,
+    allow_declarations: bool,
 ) Allocator.Error!void {
-    if (declaration.declare) return;
+    if (allow_declarations and declaration.declare) return;
 
     try core.addDiagnostic(
         allocator,

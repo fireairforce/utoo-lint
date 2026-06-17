@@ -268,7 +268,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-invalid-void-type`](https://typescript-eslint.io/rules/no-invalid-void-type/) | Implemented |
 | [`@typescript-eslint/no-loss-of-precision`](https://typescript-eslint.io/rules/no-loss-of-precision/) | Implemented |
 | [`@typescript-eslint/no-misused-new`](https://typescript-eslint.io/rules/no-misused-new/) | Implemented |
-| [`@typescript-eslint/no-namespace`](https://typescript-eslint.io/rules/no-namespace/) | Implemented for fishlint's `allowDeclarations: true, allowDefinitionFiles: true` configuration |
+| [`@typescript-eslint/no-namespace`](https://typescript-eslint.io/rules/no-namespace/) | Implemented for `allowDeclarations` and `allowDefinitionFiles` configurations |
 | [`@typescript-eslint/no-non-null-asserted-optional-chain`](https://typescript-eslint.io/rules/no-non-null-asserted-optional-chain/) | Implemented |
 | [`@typescript-eslint/no-redeclare`](https://typescript-eslint.io/rules/no-redeclare/) | Implemented |
 | [`@typescript-eslint/no-require-imports`](https://typescript-eslint.io/rules/no-require-imports/) | Implemented |

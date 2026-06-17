@@ -1754,7 +1754,14 @@ const BasicVisitor = struct {
             try typescript_eslint_prefer_namespace_keyword.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
         }
         if (self.options.typescript_eslint_no_namespace) {
-            try typescript_eslint_no_namespace.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
+            try typescript_eslint_no_namespace.check(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                declaration,
+                index,
+                self.options.typescript_eslint_no_namespace_allow_declarations,
+            );
         }
         return .proceed;
     }

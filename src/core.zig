@@ -939,6 +939,8 @@ pub const Options = struct {
     typescript_eslint_no_misused_new: bool = true,
     typescript_eslint_no_non_null_asserted_optional_chain: bool = true,
     typescript_eslint_no_namespace: bool = true,
+    typescript_eslint_no_namespace_allow_declarations: bool = true,
+    typescript_eslint_no_namespace_allow_definition_files: bool = true,
     typescript_eslint_no_redeclare: bool = true,
     typescript_eslint_no_require_imports: bool = true,
     typescript_eslint_no_shadow: bool = true,
@@ -1254,6 +1256,10 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/method-signature-style")) {
             self.typescript_eslint_method_signature_style_style = try typescriptEslintMethodSignatureStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-namespace")) {
+            self.typescript_eslint_no_namespace_allow_declarations = try typescriptEslintNoNamespaceBoolOptionFromConfig(value, "allowDeclarations", true);
+            self.typescript_eslint_no_namespace_allow_definition_files = try typescriptEslintNoNamespaceBoolOptionFromConfig(value, "allowDefinitionFiles", true);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-unused-vars")) {
             self.typescript_eslint_no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .after_used);
@@ -2875,6 +2881,23 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "fields")) return .fields;
         if (std.mem.eql(u8, style, "getters")) return .getters;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintNoNamespaceBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
