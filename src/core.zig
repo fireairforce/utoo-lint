@@ -1073,6 +1073,7 @@ pub const Options = struct {
     react_require_render_return: bool = true,
     react_jsx_no_target_blank: bool = true,
     react_jsx_no_target_blank_allow_referrer: bool = false,
+    react_jsx_no_target_blank_enforce_dynamic_links: bool = true,
     react_jsx_no_undef: bool = true,
     react_jsx_pascal_case: bool = true,
     react_jsx_pascal_case_allow_all_caps: bool = true,
@@ -1478,6 +1479,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-no-target-blank")) {
             self.react_jsx_no_target_blank_allow_referrer = try reactJsxNoTargetBlankAllowReferrerFromConfig(value);
+            self.react_jsx_no_target_blank_enforce_dynamic_links = try reactJsxNoTargetBlankEnforceDynamicLinksFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-pascal-case")) {
             self.react_jsx_pascal_case_allow_all_caps = try reactJsxPascalCaseAllowAllCapsFromConfig(value);
@@ -1929,6 +1931,26 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn reactJsxNoTargetBlankEnforceDynamicLinksFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return true,
+        };
+        if (items.len < 2) return true;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const mode = switch (config.get("enforceDynamicLinks") orelse return true) {
+            .string => |mode| mode,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, mode, "always")) return true;
+        if (std.mem.eql(u8, mode, "never")) return false;
+        return error.UnsupportedRuleConfigValue;
     }
 
     const ReactNoUnescapedEntitiesForbid = struct {
@@ -3852,6 +3874,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.setByCliName("react/jsx-no-target-blank", true));
     try std.testing.expect(options.react_jsx_no_target_blank);
     try std.testing.expect(!options.react_jsx_no_target_blank_allow_referrer);
+    try std.testing.expect(options.react_jsx_no_target_blank_enforce_dynamic_links);
 
     try std.testing.expect(!options.import_no_duplicates);
     try std.testing.expect(options.setByCliName("import/no-duplicates", true));
@@ -3971,13 +3994,14 @@ test "Options can apply ESLint-style rule config values" {
     var react_jsx_no_target_blank_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowReferrer\":true}]",
+        "[\"error\",{\"allowReferrer\":true,\"enforceDynamicLinks\":\"never\"}]",
         .{},
     );
     defer react_jsx_no_target_blank_config.deinit();
     try options.setByRuleConfigValue("react/jsx-no-target-blank", react_jsx_no_target_blank_config.value);
     try std.testing.expect(options.react_jsx_no_target_blank);
     try std.testing.expect(options.react_jsx_no_target_blank_allow_referrer);
+    try std.testing.expect(!options.react_jsx_no_target_blank_enforce_dynamic_links);
 
     var react_jsx_pascal_case_config = try std.json.parseFromSlice(
         std.json.Value,
