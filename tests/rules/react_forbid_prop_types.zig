@@ -28,6 +28,40 @@ test "reports react/forbid-prop-types for forbidden direct prop types" {
     try std.testing.expect(hasMessage(result, "Prop type \"object\" is forbidden"));
 }
 
+test "supports configured react/forbid-prop-types forbid list" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"forbid\":[\"array\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("react/forbid-prop-types", config.value);
+
+    const source =
+        \\class View extends React.Component {
+        \\  static propTypes = {
+        \\    anyValue: PropTypes.any,
+        \\    arrayValue: PropTypes.array,
+        \\    objectValue: PropTypes.object,
+        \\  };
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_forbid_prop_types.id));
+    try std.testing.expect(hasMessage(result, "Prop type \"array\" is forbidden"));
+}
+
 test "reports react/forbid-prop-types in assignments and variable references" {
     const source =
         \\const declaredTypes = {

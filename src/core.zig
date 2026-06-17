@@ -1088,6 +1088,9 @@ pub const Options = struct {
     react_no_access_state_in_setstate: bool = true,
     react_no_deprecated: bool = true,
     react_forbid_prop_types: bool = true,
+    react_forbid_prop_types_forbid_any: bool = true,
+    react_forbid_prop_types_forbid_array: bool = true,
+    react_forbid_prop_types_forbid_object: bool = true,
     react_no_array_index_key: bool = true,
     react_no_children_prop: bool = true,
     react_no_find_dom_node: bool = true,
@@ -1478,6 +1481,12 @@ pub const Options = struct {
             self.react_button_has_type_button = try reactButtonHasTypeBoolOptionFromConfig(value, "button", true);
             self.react_button_has_type_submit = try reactButtonHasTypeBoolOptionFromConfig(value, "submit", true);
             self.react_button_has_type_reset = try reactButtonHasTypeBoolOptionFromConfig(value, "reset", true);
+        }
+        if (std.mem.eql(u8, cli_name, "react/forbid-prop-types")) {
+            const forbid = try reactForbidPropTypesForbidFromConfig(value);
+            self.react_forbid_prop_types_forbid_any = forbid.any;
+            self.react_forbid_prop_types_forbid_array = forbid.array;
+            self.react_forbid_prop_types_forbid_object = forbid.object;
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-boolean-value")) {
             self.react_jsx_boolean_value_style = try reactJsxBooleanValueStyleFromConfig(value);
@@ -3346,6 +3355,51 @@ pub const Options = struct {
         };
     }
 
+    const ReactForbidPropTypesForbid = struct {
+        any: bool = true,
+        array: bool = true,
+        object: bool = true,
+    };
+
+    fn reactForbidPropTypesForbidFromConfig(value: std.json.Value) RuleConfigError!ReactForbidPropTypesForbid {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const forbid_items = switch (config.get("forbid") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var forbid = ReactForbidPropTypesForbid{
+            .any = false,
+            .array = false,
+            .object = false,
+        };
+        for (forbid_items) |item| {
+            const name = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, name, "any")) {
+                forbid.any = true;
+            } else if (std.mem.eql(u8, name, "array")) {
+                forbid.array = true;
+            } else if (std.mem.eql(u8, name, "object")) {
+                forbid.object = true;
+            } else {
+                return error.UnsupportedRuleConfigValue;
+            }
+        }
+        return forbid;
+    }
+
     fn reactJsxBooleanValueStyleFromConfig(value: std.json.Value) RuleConfigError!ReactJsxBooleanValueStyle {
         const items = switch (value) {
             .array => |array| array.items,
@@ -3980,6 +4034,13 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.react_button_has_type_submit);
     try std.testing.expect(options.react_button_has_type_reset);
 
+    try std.testing.expect(!options.react_forbid_prop_types);
+    try std.testing.expect(options.setByCliName("react/forbid-prop-types", true));
+    try std.testing.expect(options.react_forbid_prop_types);
+    try std.testing.expect(options.react_forbid_prop_types_forbid_any);
+    try std.testing.expect(options.react_forbid_prop_types_forbid_array);
+    try std.testing.expect(options.react_forbid_prop_types_forbid_object);
+
     try std.testing.expect(!options.react_prop_types);
     try std.testing.expect(options.setByCliName("react/prop-types", true));
     try std.testing.expect(options.react_prop_types);
@@ -4035,6 +4096,19 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.react_button_has_type_button);
     try std.testing.expect(!options.react_button_has_type_submit);
     try std.testing.expect(!options.react_button_has_type_reset);
+
+    var react_forbid_prop_types_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"forbid\":[\"array\"]}]",
+        .{},
+    );
+    defer react_forbid_prop_types_config.deinit();
+    try options.setByRuleConfigValue("react/forbid-prop-types", react_forbid_prop_types_config.value);
+    try std.testing.expect(options.react_forbid_prop_types);
+    try std.testing.expect(!options.react_forbid_prop_types_forbid_any);
+    try std.testing.expect(options.react_forbid_prop_types_forbid_array);
+    try std.testing.expect(!options.react_forbid_prop_types_forbid_object);
 
     var react_jsx_no_target_blank_config = try std.json.parseFromSlice(
         std.json.Value,

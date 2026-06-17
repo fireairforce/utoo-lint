@@ -7,11 +7,15 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "react/forbid-prop-types";
 
-const forbidden = [_][]const u8{ "any", "array", "object" };
-
 const ObjectBinding = struct {
     name: []const u8,
     value: ast.NodeIndex,
+};
+
+pub const Options = struct {
+    forbid_any: bool = true,
+    forbid_array: bool = true,
+    forbid_object: bool = true,
 };
 
 pub const State = struct {
@@ -68,9 +72,10 @@ pub fn checkPropertyDefinition(
     tree: *const ast.Tree,
     property: ast.PropertyDefinition,
     state: State,
+    options: Options,
 ) Allocator.Error!void {
     if (!isPropTypesKey(tree, property.key, property.computed)) return;
-    try checkNode(allocator, diagnostics, tree, property.value, state);
+    try checkNode(allocator, diagnostics, tree, property.value, state, options);
 }
 
 pub fn checkAssignmentExpression(
@@ -79,13 +84,14 @@ pub fn checkAssignmentExpression(
     tree: *const ast.Tree,
     expression: ast.AssignmentExpression,
     state: State,
+    options: Options,
 ) Allocator.Error!void {
     const member = switch (tree.data(unwrapTransparent(tree, expression.left))) {
         .member_expression => |member| member,
         else => return,
     };
     if (!isPropTypesKey(tree, member.property, member.computed)) return;
-    try checkNode(allocator, diagnostics, tree, expression.right, state);
+    try checkNode(allocator, diagnostics, tree, expression.right, state, options);
 }
 
 pub fn checkObjectExpression(
@@ -94,6 +100,7 @@ pub fn checkObjectExpression(
     tree: *const ast.Tree,
     object: ast.ObjectExpression,
     state: State,
+    options: Options,
 ) Allocator.Error!void {
     for (tree.extra(object.properties)) |property_index| {
         const property = switch (tree.data(property_index)) {
@@ -101,7 +108,7 @@ pub fn checkObjectExpression(
             else => continue,
         };
         if (!isPropTypesKey(tree, property.key, property.computed)) continue;
-        try checkNode(allocator, diagnostics, tree, property.value, state);
+        try checkNode(allocator, diagnostics, tree, property.value, state, options);
     }
 }
 
@@ -111,10 +118,11 @@ pub fn checkMethodDefinition(
     tree: *const ast.Tree,
     method: ast.MethodDefinition,
     state: State,
+    options: Options,
 ) Allocator.Error!void {
     if (!isPropTypesKey(tree, method.key, method.computed)) return;
     const argument = returnArgument(tree, method.value) orelse return;
-    try checkNode(allocator, diagnostics, tree, argument, state);
+    try checkNode(allocator, diagnostics, tree, argument, state, options);
 }
 
 fn scanImportDeclaration(tree: *const ast.Tree, declaration: ast.ImportDeclaration, state: *State) void {
@@ -161,18 +169,19 @@ fn checkNode(
     tree: *const ast.Tree,
     node: ast.NodeIndex,
     state: State,
+    options: Options,
 ) Allocator.Error!void {
     if (node == .null) return;
     const current = unwrapTransparent(tree, node);
     switch (tree.data(current)) {
-        .object_expression => |object| try checkProperties(allocator, diagnostics, tree, object.properties, state),
+        .object_expression => |object| try checkProperties(allocator, diagnostics, tree, object.properties, state, options),
         .identifier_reference => |identifier| {
             const name = tree.string(identifier.name);
             if (objectBinding(state, name)) |value| {
-                try checkNode(allocator, diagnostics, tree, value, state);
+                try checkNode(allocator, diagnostics, tree, value, state, options);
             }
         },
-        .call_expression => |call| try checkCallExpressionValue(allocator, diagnostics, tree, call, state),
+        .call_expression => |call| try checkCallExpressionValue(allocator, diagnostics, tree, call, state, options),
         else => {},
     }
 }
@@ -183,13 +192,14 @@ fn checkProperties(
     tree: *const ast.Tree,
     properties: ast.IndexRange,
     state: State,
+    options: Options,
 ) Allocator.Error!void {
     for (tree.extra(properties)) |property_index| {
         const property = switch (tree.data(property_index)) {
             .object_property => |property| property,
             else => continue,
         };
-        try checkPropValue(allocator, diagnostics, tree, property.value, property_index, state);
+        try checkPropValue(allocator, diagnostics, tree, property.value, property_index, state, options);
     }
 }
 
@@ -200,6 +210,7 @@ fn checkPropValue(
     value_index: ast.NodeIndex,
     diagnostic_node: ast.NodeIndex,
     state: State,
+    options: Options,
 ) Allocator.Error!void {
     var value = stripIsRequired(tree, value_index);
 
@@ -207,15 +218,15 @@ fn checkPropValue(
         if (!isPropTypesPackage(tree, call.callee, state)) return;
         for (tree.extra(call.arguments)) |argument| {
             const name = propTypeTargetName(tree, argument) orelse continue;
-            try reportIfForbidden(allocator, diagnostics, tree, diagnostic_node, name);
+            try reportIfForbidden(allocator, diagnostics, tree, diagnostic_node, name, options);
         }
-        try checkCallExpressionValue(allocator, diagnostics, tree, call, state);
+        try checkCallExpressionValue(allocator, diagnostics, tree, call, state, options);
         value = call.callee;
     }
 
     if (!isPropTypesPackage(tree, value, state)) return;
     const target = propTypeTargetName(tree, value) orelse return;
-    try reportIfForbidden(allocator, diagnostics, tree, diagnostic_node, target);
+    try reportIfForbidden(allocator, diagnostics, tree, diagnostic_node, target, options);
 }
 
 fn checkCallExpressionValue(
@@ -224,12 +235,13 @@ fn checkCallExpressionValue(
     tree: *const ast.Tree,
     call: ast.CallExpression,
     state: State,
+    options: Options,
 ) Allocator.Error!void {
     const callee_name = propTypeTargetName(tree, call.callee) orelse identifierReferenceName(tree, call.callee) orelse return;
     const arguments = tree.extra(call.arguments);
 
     if (std.mem.eql(u8, callee_name, "shape")) {
-        if (arguments.len > 0) try checkNode(allocator, diagnostics, tree, arguments[0], state);
+        if (arguments.len > 0) try checkNode(allocator, diagnostics, tree, arguments[0], state, options);
     }
 }
 
@@ -292,9 +304,9 @@ fn reportIfForbidden(
     tree: *const ast.Tree,
     node: ast.NodeIndex,
     target: []const u8,
+    options: Options,
 ) Allocator.Error!void {
-    for (forbidden) |name| {
-        if (!std.mem.eql(u8, name, target)) continue;
+    if (isForbidden(target, options)) {
         return core.addDiagnosticFmt(
             allocator,
             diagnostics,
@@ -305,6 +317,12 @@ fn reportIfForbidden(
             .{target},
         );
     }
+}
+
+fn isForbidden(target: []const u8, options: Options) bool {
+    return (options.forbid_any and std.mem.eql(u8, target, "any")) or
+        (options.forbid_array and std.mem.eql(u8, target, "array")) or
+        (options.forbid_object and std.mem.eql(u8, target, "object"));
 }
 
 fn objectBinding(state: State, name: []const u8) ?ast.NodeIndex {
