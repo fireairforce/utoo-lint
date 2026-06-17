@@ -1294,7 +1294,11 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.no_constant_condition) {
-            try no_constant_condition.checkWhile(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+            switch (self.options.no_constant_condition_check_loops) {
+                .all => try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test"),
+                .all_except_while_true => try no_constant_condition.checkWhile(self.allocator, self.diagnostics, ctx.tree, statement.@"test"),
+                .none => {},
+            }
         }
         return .proceed;
     }
@@ -1313,7 +1317,7 @@ const BasicVisitor = struct {
                 .style = self.options.no_cond_assign_style,
             });
         }
-        if (self.options.no_constant_condition) {
+        if (self.options.no_constant_condition and self.options.no_constant_condition_check_loops != .none) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
         return .proceed;
@@ -1333,7 +1337,10 @@ const BasicVisitor = struct {
                 .style = self.options.no_cond_assign_style,
             });
         }
-        if (self.options.no_constant_condition and statement.@"test" != .null) {
+        if (self.options.no_constant_condition and
+            self.options.no_constant_condition_check_loops != .none and
+            statement.@"test" != .null)
+        {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
         }
         if (self.options.for_direction) {
