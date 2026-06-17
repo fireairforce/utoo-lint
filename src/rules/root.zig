@@ -1673,7 +1673,7 @@ const BasicVisitor = struct {
     pub fn enter_ts_type_literal(
         self: *BasicVisitor,
         type_literal: ast.TSTypeLiteral,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
@@ -1684,6 +1684,16 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_misused_new) {
             try typescript_eslint_no_misused_new.checkTypeLiteral(self.allocator, self.diagnostics, ctx.tree, type_literal);
+        }
+        if (self.options.typescript_eslint_ban_types) {
+            try typescript_eslint_ban_types.checkTypeLiteral(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                type_literal,
+                index,
+                self.options.typescript_eslint_ban_types_config,
+            );
         }
         return .proceed;
     }
@@ -1730,7 +1740,13 @@ const BasicVisitor = struct {
             self.options.typescript_eslint_no_wrapper_object_types and
             typescript_eslint_no_wrapper_object_types.isWrapperObjectTypeReference(ctx.tree, reference);
         if (self.options.typescript_eslint_ban_types and !wrapper_object_type_reported) {
-            try typescript_eslint_ban_types.checkTypeReference(self.allocator, self.diagnostics, ctx.tree, reference);
+            try typescript_eslint_ban_types.checkTypeReference(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                reference,
+                self.options.typescript_eslint_ban_types_config,
+            );
         }
         if (self.options.typescript_eslint_no_wrapper_object_types) {
             try typescript_eslint_no_wrapper_object_types.checkTypeReference(self.allocator, self.diagnostics, ctx.tree, reference);
@@ -1785,6 +1801,24 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_no_invalid_void_type) {
             try typescript_eslint_no_invalid_void_type.check(self.allocator, self.diagnostics, ctx.tree, index, ctx);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_object_keyword(
+        self: *BasicVisitor,
+        _: ast.TSObjectKeyword,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_ban_types) {
+            try typescript_eslint_ban_types.checkObjectKeyword(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                index,
+                self.options.typescript_eslint_ban_types_config,
+            );
         }
         return .proceed;
     }

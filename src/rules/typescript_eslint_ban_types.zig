@@ -17,9 +17,10 @@ pub fn checkTypeReference(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     reference: ast.TSTypeReference,
+    config: core.TypescriptEslintBanTypesConfig,
 ) Allocator.Error!void {
     const name = typeName(tree, reference.type_name) orelse return;
-    const banned = bannedType(name) orelse return;
+    const banned = bannedType(name, &config) orelse return;
 
     try core.addDiagnosticFmt(
         allocator,
@@ -32,7 +33,59 @@ pub fn checkTypeReference(
     );
 }
 
-fn bannedType(name: []const u8) ?BannedType {
+pub fn checkTypeLiteral(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    type_literal: ast.TSTypeLiteral,
+    index: ast.NodeIndex,
+    config: core.TypescriptEslintBanTypesConfig,
+) Allocator.Error!void {
+    if (type_literal.members.len != 0) return;
+    const banned = bannedType("{}", &config) orelse return;
+
+    try core.addDiagnosticFmt(
+        allocator,
+        diagnostics,
+        .@"error",
+        id,
+        tree.span(index),
+        "Don't use `{s}` as a type. {s}",
+        .{ banned.name, banned.message },
+    );
+}
+
+pub fn checkObjectKeyword(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    config: core.TypescriptEslintBanTypesConfig,
+) Allocator.Error!void {
+    const banned = bannedType("object", &config) orelse return;
+
+    try core.addDiagnosticFmt(
+        allocator,
+        diagnostics,
+        .@"error",
+        id,
+        tree.span(index),
+        "Don't use `{s}` as a type. {s}",
+        .{ banned.name, banned.message },
+    );
+}
+
+fn bannedType(name: []const u8, config: *const core.TypescriptEslintBanTypesConfig) ?BannedType {
+    if (config.custom.messageFor(name)) |message| return .{
+        .name = name,
+        .message = message,
+    };
+    if (config.disabled.contains(name)) return null;
+    if (!config.extend_defaults) return null;
+    return defaultBannedType(name);
+}
+
+fn defaultBannedType(name: []const u8) ?BannedType {
     if (std.mem.eql(u8, name, "String")) return .{
         .name = "String",
         .message = "Use string instead",
