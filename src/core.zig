@@ -553,6 +553,12 @@ pub const TypescriptEslintClassLiteralPropertyStyle = enum {
     getters,
 };
 
+pub const TypescriptEslintExplicitMemberAccessibility = enum {
+    explicit,
+    no_public,
+    off,
+};
+
 pub const TypescriptEslintTripleSlashReferenceMode = enum {
     always,
     never,
@@ -986,6 +992,7 @@ pub const Options = struct {
     typescript_eslint_ban_ts_comment_minimum_description_length: usize = 3,
     typescript_eslint_ban_tslint_comment: bool = true,
     typescript_eslint_explicit_member_accessibility: bool = true,
+    typescript_eslint_explicit_member_accessibility_accessibility: TypescriptEslintExplicitMemberAccessibility = .no_public,
     typescript_eslint_member_ordering: bool = true,
     typescript_eslint_method_signature_style: bool = true,
     typescript_eslint_method_signature_style_style: TypescriptEslintMethodSignatureStyle = .property,
@@ -1333,6 +1340,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/consistent-type-definitions")) {
             self.typescript_eslint_consistent_type_definitions_style = try typescriptEslintConsistentTypeDefinitionsStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/explicit-member-accessibility")) {
+            self.typescript_eslint_explicit_member_accessibility_accessibility = try typescriptEslintExplicitMemberAccessibilityFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -1688,6 +1698,27 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "anyOrder")) return .any_order;
         if (std.mem.eql(u8, style, "getBeforeSet")) return .get_before_set;
         if (std.mem.eql(u8, style, "setBeforeGet")) return .set_before_get;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintExplicitMemberAccessibilityFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintExplicitMemberAccessibility {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .no_public,
+        };
+        if (items.len < 2) return .no_public;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const accessibility = switch (config.get("accessibility") orelse return .no_public) {
+            .string => |accessibility| accessibility,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, accessibility, "explicit")) return .explicit;
+        if (std.mem.eql(u8, accessibility, "no-public")) return .no_public;
+        if (std.mem.eql(u8, accessibility, "off")) return .off;
         return error.UnsupportedRuleConfigValue;
     }
 
@@ -4189,6 +4220,33 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUnusedVarsArgs.none, options.typescript_eslint_no_unused_vars_args);
     try std.testing.expectEqual(NoUnusedVarsCaughtErrors.none, options.typescript_eslint_no_unused_vars_caught_errors);
     try std.testing.expect(!options.typescript_eslint_no_unused_vars_ignore_rest_siblings);
+
+    var typescript_explicit_member_accessibility_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"accessibility\":\"explicit\"}]",
+        .{},
+    );
+    defer typescript_explicit_member_accessibility_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/explicit-member-accessibility", typescript_explicit_member_accessibility_config.value);
+    try std.testing.expect(options.typescript_eslint_explicit_member_accessibility);
+    try std.testing.expectEqual(
+        TypescriptEslintExplicitMemberAccessibility.explicit,
+        options.typescript_eslint_explicit_member_accessibility_accessibility,
+    );
+
+    var typescript_explicit_member_accessibility_off_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"accessibility\":\"off\"}]",
+        .{},
+    );
+    defer typescript_explicit_member_accessibility_off_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/explicit-member-accessibility", typescript_explicit_member_accessibility_off_config.value);
+    try std.testing.expectEqual(
+        TypescriptEslintExplicitMemberAccessibility.off,
+        options.typescript_eslint_explicit_member_accessibility_accessibility,
+    );
 
     var no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,

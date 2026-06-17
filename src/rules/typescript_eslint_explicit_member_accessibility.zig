@@ -13,9 +13,8 @@ pub fn checkMethodDefinition(
     tree: *const ast.Tree,
     method: ast.MethodDefinition,
     index: ast.NodeIndex,
+    accessibility: core.TypescriptEslintExplicitMemberAccessibility,
 ) Allocator.Error!void {
-    if (method.accessibility != .public) return;
-
     const member_name = methodName(tree, method);
     const description = switch (method.kind) {
         .get => "get property accessor",
@@ -23,14 +22,17 @@ pub fn checkMethodDefinition(
         else => "method definition",
     };
 
+    if (!shouldReport(method.accessibility, accessibility)) return;
+    const message = messageForAccessibility(method.accessibility);
+
     try core.addDiagnosticFmt(
         allocator,
         diagnostics,
         .warning,
         id,
         tree.span(index),
-        "Public accessibility modifier on {s} {s}.",
-        .{ description, member_name },
+        "{s} {s} {s}.",
+        .{ message, description, member_name },
     );
 }
 
@@ -40,11 +42,13 @@ pub fn checkPropertyDefinition(
     tree: *const ast.Tree,
     property: ast.PropertyDefinition,
     index: ast.NodeIndex,
+    accessibility: core.TypescriptEslintExplicitMemberAccessibility,
 ) Allocator.Error!void {
-    if (property.accessibility != .public) return;
-
     const member_name = staticKeyName(tree, property.key, property.computed) orelse "member";
     const description = if (property.accessor) "accessor property" else "class property";
+
+    if (!shouldReport(property.accessibility, accessibility)) return;
+    const message = messageForAccessibility(property.accessibility);
 
     try core.addDiagnosticFmt(
         allocator,
@@ -52,9 +56,28 @@ pub fn checkPropertyDefinition(
         .warning,
         id,
         tree.span(index),
-        "Public accessibility modifier on {s} {s}.",
-        .{ description, member_name },
+        "{s} {s} {s}.",
+        .{ message, description, member_name },
     );
+}
+
+fn shouldReport(
+    member_accessibility: ast.Accessibility,
+    accessibility: core.TypescriptEslintExplicitMemberAccessibility,
+) bool {
+    return switch (accessibility) {
+        .explicit => member_accessibility == .none,
+        .no_public => member_accessibility == .public,
+        .off => false,
+    };
+}
+
+fn messageForAccessibility(member_accessibility: ast.Accessibility) []const u8 {
+    return switch (member_accessibility) {
+        .none => "Missing accessibility modifier on",
+        .public => "Public accessibility modifier on",
+        else => "Accessibility modifier on",
+    };
 }
 
 fn methodName(tree: *const ast.Tree, method: ast.MethodDefinition) []const u8 {
