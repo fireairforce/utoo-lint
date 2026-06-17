@@ -1303,6 +1303,7 @@ pub const Options = struct {
     typescript_eslint_prefer_as_const: bool = true,
     typescript_eslint_prefer_namespace_keyword: bool = true,
     typescript_eslint_restrict_plus_operands: bool = true,
+    typescript_eslint_restrict_plus_operands_allow_number_and_string: bool = false,
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
     vars_on_top: bool = true,
@@ -1706,6 +1707,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/typedef")) {
             self.typescript_eslint_typedef_property_declaration = try typescriptEslintTypedefBoolOptionFromConfig(value, "propertyDeclaration", true);
             self.typescript_eslint_typedef_member_variable_declaration = try typescriptEslintTypedefBoolOptionFromConfig(value, "memberVariableDeclaration", false);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/restrict-plus-operands")) {
+            self.typescript_eslint_restrict_plus_operands_allow_number_and_string = try typescriptEslintRestrictPlusOperandsBoolOptionFromConfig(value, "allowNumberAndString", false);
         }
         if (std.mem.eql(u8, cli_name, "no-undef")) {
             self.no_undef_typeof = try noUndefTypeofFromConfig(value);
@@ -4055,6 +4059,23 @@ pub const Options = struct {
         };
     }
 
+    fn typescriptEslintRestrictPlusOperandsBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
         inline for (@typeInfo(Options).@"struct".fields) |field| {
             if (field.type == bool) {
@@ -4262,6 +4283,11 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-empty-interface", true));
     try std.testing.expect(options.typescript_eslint_no_empty_interface);
     try std.testing.expect(!options.typescript_eslint_no_empty_interface_allow_single_extends);
+
+    try std.testing.expect(!options.typescript_eslint_restrict_plus_operands);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/restrict-plus-operands", true));
+    try std.testing.expect(options.typescript_eslint_restrict_plus_operands);
+    try std.testing.expect(!options.typescript_eslint_restrict_plus_operands_allow_number_and_string);
 
     try std.testing.expect(!options.typescript_eslint_no_duplicate_enum_values);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-duplicate-enum-values", true));
@@ -5440,6 +5466,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_inferrable_types);
     try std.testing.expect(options.typescript_eslint_no_inferrable_types_ignore_parameters);
     try std.testing.expect(options.typescript_eslint_no_inferrable_types_ignore_properties);
+
+    var typescript_restrict_plus_operands_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowNumberAndString\":true}]",
+        .{},
+    );
+    defer typescript_restrict_plus_operands_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/restrict-plus-operands", typescript_restrict_plus_operands_config.value);
+    try std.testing.expect(options.typescript_eslint_restrict_plus_operands);
+    try std.testing.expect(options.typescript_eslint_restrict_plus_operands_allow_number_and_string);
 
     var no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,

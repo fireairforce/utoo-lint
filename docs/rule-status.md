@@ -298,4 +298,4 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-wrapper-object-types`](https://typescript-eslint.io/rules/no-wrapper-object-types/) | Implemented |
 | [`@typescript-eslint/prefer-as-const`](https://typescript-eslint.io/rules/prefer-as-const/) | Implemented |
 | [`@typescript-eslint/prefer-namespace-keyword`](https://typescript-eslint.io/rules/prefer-namespace-keyword/) | Implemented |
-| [`@typescript-eslint/restrict-plus-operands`](https://typescript-eslint.io/rules/restrict-plus-operands/) | Implemented for primitive literals and explicit primitive annotations |
+| [`@typescript-eslint/restrict-plus-operands`](https://typescript-eslint.io/rules/restrict-plus-operands/) | Supports `allowNumberAndString` configuration for primitive literals and explicit primitive annotations |
