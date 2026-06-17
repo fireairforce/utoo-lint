@@ -500,7 +500,11 @@ pub fn runBasic(
         try typescript_eslint_ban_tslint_comment.run(allocator, diagnostics, tree);
     }
     if (options.typescript_eslint_triple_slash_reference) {
-        try typescript_eslint_triple_slash_reference.run(allocator, diagnostics, tree);
+        try typescript_eslint_triple_slash_reference.runWithOptions(allocator, diagnostics, tree, .{
+            .path = options.typescript_eslint_triple_slash_reference_path,
+            .types = options.typescript_eslint_triple_slash_reference_types,
+            .lib = options.typescript_eslint_triple_slash_reference_lib,
+        });
     }
     if (options.alipay_ant_no_too_large_file) {
         try alipay_ant_no_too_large_file.run(allocator, diagnostics, tree, file_path);
