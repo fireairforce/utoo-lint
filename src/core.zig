@@ -1059,6 +1059,7 @@ pub const Options = struct {
     react_no_unknown_property: bool = true,
     react_prop_types: bool = true,
     react_no_unused_prop_types: bool = true,
+    react_no_unused_prop_types_skip_shape_props: bool = true,
     react_no_unused_state: bool = true,
     react_no_string_refs: bool = true,
     react_no_unescaped_entities: bool = true,
@@ -1434,6 +1435,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-pascal-case")) {
             self.react_jsx_pascal_case_allow_all_caps = try reactJsxPascalCaseAllowAllCapsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/no-unused-prop-types")) {
+            self.react_no_unused_prop_types_skip_shape_props = try reactNoUnusedPropTypesSkipShapePropsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/array-type")) {
             self.typescript_eslint_array_type_style = try typescriptEslintArrayTypeStyleFromConfig(value);
@@ -1817,6 +1821,23 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "getBeforeSet")) return .get_before_set;
         if (std.mem.eql(u8, style, "setBeforeGet")) return .set_before_get;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn reactNoUnusedPropTypesSkipShapePropsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return true,
+        };
+        if (items.len < 2) return true;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("skipShapeProps") orelse return true) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn typescriptEslintBanTypesConfigFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintBanTypesConfig {
@@ -3739,6 +3760,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.react_no_unused_prop_types);
     try std.testing.expect(options.setByCliName("react/no-unused-prop-types", true));
     try std.testing.expect(options.react_no_unused_prop_types);
+    try std.testing.expect(options.react_no_unused_prop_types_skip_shape_props);
 
     try std.testing.expect(!options.react_hooks_rules_of_hooks);
     try std.testing.expect(options.setByCliName("react-hooks/rules-of-hooks", true));
@@ -3763,6 +3785,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.jsx_a11y_aria_props);
 
     try options.setByRuleConfigValue("prettier/prettier", .{ .string = "error" });
+
+    var react_no_unused_prop_types_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"skipShapeProps\":false}]",
+        .{},
+    );
+    defer react_no_unused_prop_types_config.deinit();
+    try options.setByRuleConfigValue("react/no-unused-prop-types", react_no_unused_prop_types_config.value);
+    try std.testing.expect(options.react_no_unused_prop_types);
+    try std.testing.expect(!options.react_no_unused_prop_types_skip_shape_props);
 
     var array_callback_return_config = try std.json.parseFromSlice(
         std.json.Value,
