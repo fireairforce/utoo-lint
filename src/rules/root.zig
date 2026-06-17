@@ -1029,7 +1029,14 @@ const BasicVisitor = struct {
             try import_first.check(self.allocator, self.diagnostics, ctx.tree, program);
         }
         if (self.options.import_newline_after_import) {
-            try import_newline_after_import.check(self.allocator, self.diagnostics, ctx.tree, program);
+            try import_newline_after_import.check(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                program,
+                self.options.import_newline_after_import_count,
+                self.options.import_newline_after_import_exact_count,
+            );
         }
         if (self.options.import_no_duplicates) {
             try import_no_duplicates.check(self.allocator, self.diagnostics, ctx.tree, program);
