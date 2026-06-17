@@ -99,3 +99,30 @@ test "supports configured no-unused-vars caughtErrors none" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unused_vars.id));
 }
+
+test "supports configured no-unused-vars ignoreRestSiblings" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreRestSiblings\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-unused-vars", config.value);
+    options.no_undef = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const data = { a: 1, b: 2 };
+        \\const { a, ...rest } = data;
+        \\console.log(rest);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unused_vars.id));
+}

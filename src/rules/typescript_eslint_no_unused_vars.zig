@@ -16,6 +16,7 @@ pub fn run(
     react_jsx_uses_vars: bool,
     args: core.NoUnusedVarsArgs,
     caught_errors: core.NoUnusedVarsCaughtErrors,
+    ignore_rest_siblings: bool,
 ) Allocator.Error!void {
     try no_unused_vars.runWithOptions(allocator, diagnostics, tree, symbol_table, .{
         .rule_id = id,
@@ -23,7 +24,7 @@ pub fn run(
         .check_parameters = args != .none,
         .args_after_used = args == .after_used,
         .check_caught_errors = caught_errors == .all,
-        .ignore_rest_siblings = true,
+        .ignore_rest_siblings = ignore_rest_siblings,
         .check_type_parameters = true,
         .react_jsx_uses_react = react_jsx_uses_react,
         .react_jsx_uses_vars = react_jsx_uses_vars,

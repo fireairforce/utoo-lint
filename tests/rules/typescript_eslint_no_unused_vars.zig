@@ -52,6 +52,32 @@ test "ignores rest siblings for object destructuring" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
 }
 
+test "supports configured @typescript-eslint/no-unused-vars ignoreRestSiblings false" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreRestSiblings\":false}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-unused-vars", config.value);
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const data = { a: 1, b: 2 };
+        \\const { a, ...rest } = data;
+        \\console.log(rest);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
+}
+
 test "supports configured @typescript-eslint/no-unused-vars args none" {
     var config = try std.json.parseFromSlice(
         std.json.Value,
