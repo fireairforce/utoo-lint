@@ -65,6 +65,54 @@ test "allows react/self-closing-comp when elements have children or are already 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_self_closing_comp.id));
 }
 
+test "supports configured react/self-closing-comp component option" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"component\":false,\"html\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("react/self-closing-comp", config.value);
+
+    const source =
+        \\const html = <div></div>;
+        \\const component = <Widget></Widget>;
+        \\const member = <UI.Widget></UI.Widget>;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_self_closing_comp.id));
+}
+
+test "supports configured react/self-closing-comp html option" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"component\":true,\"html\":false}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("react/self-closing-comp", config.value);
+
+    const source =
+        \\const html = <div></div>;
+        \\const component = <Widget></Widget>;
+        \\const member = <UI.Widget></UI.Widget>;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_self_closing_comp.id));
+}
+
 test "can disable react/self-closing-comp" {
     const source =
         \\const html = <div></div>;
@@ -81,4 +129,14 @@ test "can disable react/self-closing-comp" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_self_closing_comp.id));
+}
+
+fn baseOptions() lint.Options {
+    return .{
+        .eol_last = false,
+        .react_void_dom_elements_no_children = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
 }

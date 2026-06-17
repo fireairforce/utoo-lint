@@ -238,6 +238,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`react/no-unescaped-entities`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-unescaped-entities.md) | Supports `forbid` configuration |
 | [`react/no-unused-prop-types`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-unused-prop-types.md) | Supports `skipShapeProps` configuration |
 | [`react/prop-types`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/prop-types.md) | Supports `skipUndeclared` configuration |
+| [`react/self-closing-comp`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/self-closing-comp.md) | Supports `component` and `html` configuration |
 
 ## React Hooks rules
 

@@ -7,6 +7,11 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "react/self-closing-comp";
 
+pub const Options = struct {
+    component: bool = true,
+    html: bool = true,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -14,9 +19,10 @@ pub fn check(
     opening: ast.JSXOpeningElement,
     index: ast.NodeIndex,
     parent: ?ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     if (opening.self_closing) return;
-    if (!isConfiguredElementName(tree, opening.name)) return;
+    if (!isConfiguredElementName(tree, opening.name, options)) return;
 
     const element = switch (tree.data(parent orelse return)) {
         .jsx_element => |element| element,
@@ -34,10 +40,13 @@ pub fn check(
     );
 }
 
-fn isConfiguredElementName(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+fn isConfiguredElementName(tree: *const ast.Tree, index: ast.NodeIndex, options: Options) bool {
     return switch (tree.data(index)) {
-        .jsx_identifier => true,
-        .jsx_member_expression => true,
+        .jsx_identifier => |identifier| {
+            const name = tree.string(identifier.name);
+            return if (name.len > 0 and std.ascii.isLower(name[0])) options.html else options.component;
+        },
+        .jsx_member_expression => options.component,
         else => false,
     };
 }
