@@ -1160,6 +1160,7 @@ pub const Options = struct {
     react_no_unused_prop_types_skip_shape_props: bool = true,
     react_no_unused_state: bool = true,
     react_no_string_refs: bool = true,
+    react_no_string_refs_no_template_literals: bool = false,
     react_no_unescaped_entities: bool = true,
     react_no_unescaped_entities_forbid_gt: bool = true,
     react_no_unescaped_entities_forbid_double_quote: bool = true,
@@ -1562,6 +1563,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/no-unused-prop-types")) {
             self.react_no_unused_prop_types_skip_shape_props = try reactNoUnusedPropTypesSkipShapePropsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/no-string-refs")) {
+            self.react_no_string_refs_no_template_literals = try reactNoStringRefsNoTemplateLiteralsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/no-unescaped-entities")) {
             const forbid = try reactNoUnescapedEntitiesForbidFromConfig(value);
@@ -3515,6 +3519,23 @@ pub const Options = struct {
         };
     }
 
+    fn reactNoStringRefsNoTemplateLiteralsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("noTemplateLiterals") orelse return false) {
+            .bool => |no_template_literals| no_template_literals,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn reactJsxPascalCaseAllowAllCapsFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4139,6 +4160,11 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.react_no_unused_prop_types_skip_shape_props);
     try std.testing.expectEqual(@as(usize, 0), options.react_jsx_pascal_case_ignore.count);
 
+    try std.testing.expect(!options.react_no_string_refs);
+    try std.testing.expect(options.setByCliName("react/no-string-refs", true));
+    try std.testing.expect(options.react_no_string_refs);
+    try std.testing.expect(!options.react_no_string_refs_no_template_literals);
+
     try std.testing.expect(!options.react_no_unescaped_entities);
     try std.testing.expect(options.setByCliName("react/no-unescaped-entities", true));
     try std.testing.expect(options.react_no_unescaped_entities);
@@ -4245,6 +4271,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("react/prop-types", react_prop_types_config.value);
     try std.testing.expect(options.react_prop_types);
     try std.testing.expect(options.react_prop_types_skip_undeclared);
+
+    var react_no_string_refs_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"noTemplateLiterals\":true}]",
+        .{},
+    );
+    defer react_no_string_refs_config.deinit();
+    try options.setByRuleConfigValue("react/no-string-refs", react_no_string_refs_config.value);
+    try std.testing.expect(options.react_no_string_refs);
+    try std.testing.expect(options.react_no_string_refs_no_template_literals);
 
     var react_no_unescaped_entities_config = try std.json.parseFromSlice(
         std.json.Value,

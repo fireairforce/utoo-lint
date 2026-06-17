@@ -42,6 +42,34 @@ test "allows non-string refs and default template literals" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_no_string_refs.id));
 }
 
+test "supports configured react/no-string-refs noTemplateLiterals" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"noTemplateLiterals\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("react/no-string-refs", config.value);
+
+    const source =
+        \\const template = <div ref={`root`} />;
+        \\const dynamic = <div ref={`root-${id}`} />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_no_string_refs.id));
+}
+
 test "can disable react/no-string-refs" {
     const source =
         \\const direct = <div ref="root" />;
