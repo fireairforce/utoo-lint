@@ -494,7 +494,13 @@ pub fn runBasic(
         });
     }
     if (options.typescript_eslint_ban_ts_comment) {
-        try typescript_eslint_ban_ts_comment.run(allocator, diagnostics, tree);
+        try typescript_eslint_ban_ts_comment.runWithOptions(allocator, diagnostics, tree, .{
+            .ts_expect_error = options.typescript_eslint_ban_ts_comment_ts_expect_error,
+            .ts_ignore = options.typescript_eslint_ban_ts_comment_ts_ignore,
+            .ts_nocheck = options.typescript_eslint_ban_ts_comment_ts_nocheck,
+            .ts_check = options.typescript_eslint_ban_ts_comment_ts_check,
+            .minimum_description_length = options.typescript_eslint_ban_ts_comment_minimum_description_length,
+        });
     }
     if (options.typescript_eslint_ban_tslint_comment) {
         try typescript_eslint_ban_tslint_comment.run(allocator, diagnostics, tree);

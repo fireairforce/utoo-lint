@@ -537,6 +537,12 @@ pub const TypescriptEslintArrayTypeStyle = enum {
     generic,
 };
 
+pub const TypescriptEslintBanTsCommentMode = enum {
+    allow,
+    ban,
+    allow_with_description,
+};
+
 pub const TypescriptEslintConsistentTypeDefinitionsStyle = enum {
     interface,
     type,
@@ -973,6 +979,11 @@ pub const Options = struct {
     typescript_eslint_no_array_constructor: bool = true,
     typescript_eslint_ban_types: bool = true,
     typescript_eslint_ban_ts_comment: bool = true,
+    typescript_eslint_ban_ts_comment_ts_expect_error: TypescriptEslintBanTsCommentMode = .allow_with_description,
+    typescript_eslint_ban_ts_comment_ts_ignore: TypescriptEslintBanTsCommentMode = .allow_with_description,
+    typescript_eslint_ban_ts_comment_ts_nocheck: TypescriptEslintBanTsCommentMode = .allow_with_description,
+    typescript_eslint_ban_ts_comment_ts_check: TypescriptEslintBanTsCommentMode = .allow_with_description,
+    typescript_eslint_ban_ts_comment_minimum_description_length: usize = 3,
     typescript_eslint_ban_tslint_comment: bool = true,
     typescript_eslint_explicit_member_accessibility: bool = true,
     typescript_eslint_member_ordering: bool = true,
@@ -1309,6 +1320,13 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/array-type")) {
             self.typescript_eslint_array_type_style = try typescriptEslintArrayTypeStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/ban-ts-comment")) {
+            self.typescript_eslint_ban_ts_comment_ts_expect_error = try typescriptEslintBanTsCommentModeFromConfig(value, "ts-expect-error", .allow_with_description);
+            self.typescript_eslint_ban_ts_comment_ts_ignore = try typescriptEslintBanTsCommentModeFromConfig(value, "ts-ignore", .allow_with_description);
+            self.typescript_eslint_ban_ts_comment_ts_nocheck = try typescriptEslintBanTsCommentModeFromConfig(value, "ts-nocheck", .allow_with_description);
+            self.typescript_eslint_ban_ts_comment_ts_check = try typescriptEslintBanTsCommentModeFromConfig(value, "ts-check", .allow_with_description);
+            self.typescript_eslint_ban_ts_comment_minimum_description_length = try typescriptEslintBanTsCommentMinimumDescriptionLengthFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/class-literal-property-style")) {
             self.typescript_eslint_class_literal_property_style_style = try typescriptEslintClassLiteralPropertyStyleFromConfig(value);
@@ -2988,6 +3006,46 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "array-simple")) return .array_simple;
         if (std.mem.eql(u8, style, "generic")) return .generic;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintBanTsCommentModeFromConfig(value: std.json.Value, key: []const u8, default: TypescriptEslintBanTsCommentMode) RuleConfigError!TypescriptEslintBanTsCommentMode {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| if (enabled) .ban else .allow,
+            .string => |mode| if (std.mem.eql(u8, mode, "allow-with-description"))
+                .allow_with_description
+            else
+                error.UnsupportedRuleConfigValue,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn typescriptEslintBanTsCommentMinimumDescriptionLengthFromConfig(value: std.json.Value) RuleConfigError!usize {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return 3,
+        };
+        if (items.len < 2) return 3;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const length = switch (config.get("minimumDescriptionLength") orelse return 3) {
+            .integer => |length| length,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (length < 0) return error.UnsupportedRuleConfigValue;
+        return @intCast(length);
     }
 
     fn typescriptEslintConsistentTypeDefinitionsStyleFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintConsistentTypeDefinitionsStyle {
