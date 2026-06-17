@@ -12,11 +12,28 @@ const DestructuringKind = enum {
     array,
 };
 
+pub const Options = struct {
+    variable_declarator_array: bool = true,
+    variable_declarator_object: bool = true,
+    assignment_expression_array: bool = true,
+    assignment_expression_object: bool = true,
+};
+
 pub fn checkVariableDeclaration(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     declaration: ast.VariableDeclaration,
+) Allocator.Error!void {
+    return checkVariableDeclarationWithOptions(allocator, diagnostics, tree, declaration, .{});
+}
+
+pub fn checkVariableDeclarationWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    declaration: ast.VariableDeclaration,
+    options: Options,
 ) Allocator.Error!void {
     for (tree.extra(declaration.declarators)) |declarator_index| {
         const declarator = switch (tree.data(declarator_index)) {
@@ -24,6 +41,7 @@ pub fn checkVariableDeclaration(
             else => continue,
         };
         const kind = preferredDestructuringKind(tree, declarator) orelse continue;
+        if (!allowsVariableDeclarator(options, kind)) continue;
 
         try core.addDiagnostic(
             allocator,
@@ -42,9 +60,20 @@ pub fn checkAssignmentExpression(
     tree: *const ast.Tree,
     expression: ast.AssignmentExpression,
 ) Allocator.Error!void {
+    return checkAssignmentExpressionWithOptions(allocator, diagnostics, tree, expression, .{});
+}
+
+pub fn checkAssignmentExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+    options: Options,
+) Allocator.Error!void {
     if (expression.operator != .assign) return;
 
     const kind = preferredAssignmentDestructuringKind(tree, expression) orelse return;
+    if (!allowsAssignmentExpression(options, kind)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -92,6 +121,20 @@ fn diagnosticMessage(kind: DestructuringKind) []const u8 {
     return switch (kind) {
         .object => "Use object destructuring.",
         .array => "Use array destructuring.",
+    };
+}
+
+fn allowsVariableDeclarator(options: Options, kind: DestructuringKind) bool {
+    return switch (kind) {
+        .object => options.variable_declarator_object,
+        .array => options.variable_declarator_array,
+    };
+}
+
+fn allowsAssignmentExpression(options: Options, kind: DestructuringKind) bool {
+    return switch (kind) {
+        .object => options.assignment_expression_object,
+        .array => options.assignment_expression_array,
     };
 }
 

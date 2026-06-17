@@ -2004,7 +2004,12 @@ const BasicVisitor = struct {
             try one_var.check(self.allocator, self.diagnostics, ctx.tree, declaration, index, ctx);
         }
         if (self.options.prefer_destructuring) {
-            try prefer_destructuring.checkVariableDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration);
+            try prefer_destructuring.checkVariableDeclarationWithOptions(self.allocator, self.diagnostics, ctx.tree, declaration, .{
+                .variable_declarator_array = self.options.prefer_destructuring_variable_declarator_array,
+                .variable_declarator_object = self.options.prefer_destructuring_variable_declarator_object,
+                .assignment_expression_array = self.options.prefer_destructuring_assignment_expression_array,
+                .assignment_expression_object = self.options.prefer_destructuring_assignment_expression_object,
+            });
         }
         return .proceed;
     }
@@ -2154,7 +2159,12 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.prefer_destructuring) {
-            try prefer_destructuring.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+            try prefer_destructuring.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
+                .variable_declarator_array = self.options.prefer_destructuring_variable_declarator_array,
+                .variable_declarator_object = self.options.prefer_destructuring_variable_declarator_object,
+                .assignment_expression_array = self.options.prefer_destructuring_assignment_expression_array,
+                .assignment_expression_object = self.options.prefer_destructuring_assignment_expression_object,
+            });
         }
         if (self.options.no_useless_rename) {
             try no_useless_rename.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);

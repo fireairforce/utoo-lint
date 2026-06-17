@@ -84,6 +84,72 @@ test "does not report prefer-destructuring for renamed dynamic or optional cases
     try std.testing.expect(!helpers.hasRule(result, lint.rules.prefer_destructuring.id));
 }
 
+test "supports configured prefer-destructuring node type options" {
+    const source =
+        \\let first = object.first;
+        \\let item = array[0];
+        \\first = object.first;
+        \\item = array[0];
+    ;
+
+    var options = lint.Options{
+        .dot_notation = false,
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+        .typescript_eslint_dot_notation = false,
+    };
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"VariableDeclarator\":{\"array\":false,\"object\":true},\"AssignmentExpression\":{\"array\":true,\"object\":false}}]",
+        .{},
+    );
+    defer config.deinit();
+    try options.setByRuleConfigValue("prefer-destructuring", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_destructuring.id));
+    try std.testing.expectEqualStrings("Use object destructuring.", result.diagnostics[0].message);
+    try std.testing.expectEqualStrings("Use array destructuring.", result.diagnostics[1].message);
+}
+
+test "supports top-level prefer-destructuring kind options" {
+    const source =
+        \\let first = object.first;
+        \\let item = array[0];
+        \\first = object.first;
+        \\item = array[0];
+    ;
+
+    var options = lint.Options{
+        .dot_notation = false,
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+        .typescript_eslint_dot_notation = false,
+    };
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"array\":false,\"object\":true}]",
+        .{},
+    );
+    defer config.deinit();
+    try options.setByRuleConfigValue("prefer-destructuring", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_destructuring.id));
+    try std.testing.expectEqualStrings("Use object destructuring.", result.diagnostics[0].message);
+    try std.testing.expectEqualStrings("Use object destructuring.", result.diagnostics[1].message);
+}
+
 test "can disable prefer-destructuring" {
     const source =
         \\const first = object.first;
