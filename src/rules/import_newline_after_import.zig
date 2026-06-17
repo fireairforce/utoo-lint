@@ -11,6 +11,8 @@ pub fn check(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     program: ast.Program,
+    count: usize,
+    exact_count: bool,
 ) Allocator.Error!void {
     const body = tree.extra(program.body);
     for (body, 0..) |statement_index, i| {
@@ -22,15 +24,19 @@ pub fn check(
 
         const import_end = offsetToLine(tree.source, tree.span(statement_index).end);
         const next_start = offsetToLine(tree.source, tree.span(next_index).start);
-        if (next_start > import_end + 1) continue;
+        const blank_lines = if (next_start > import_end) next_start - import_end - 1 else 0;
+        if (exact_count) {
+            if (blank_lines == count) continue;
+        } else if (blank_lines >= count) continue;
 
-        try core.addDiagnostic(
+        try core.addDiagnosticFmt(
             allocator,
             diagnostics,
             .warning,
             id,
-            "Expected 1 empty line after import statement not followed by another import.",
             tree.span(statement_index),
+            "Expected {d} empty line{s} after import statement not followed by another import.",
+            .{ count, if (count == 1) "" else "s" },
         );
     }
 }
