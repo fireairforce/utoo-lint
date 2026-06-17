@@ -7,6 +7,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "operator-assignment";
 
+pub const Options = struct {
+    style: core.OperatorAssignmentStyle = .always,
+};
+
 const Reference = union(enum) {
     this,
     identifier: []const u8,
@@ -23,6 +27,29 @@ pub fn check(
     expression: ast.AssignmentExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    return checkWithOptions(allocator, diagnostics, tree, expression, index, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (options.style == .never) {
+        if (!isCompoundAssignmentOperator(expression.operator)) return;
+        return core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Assignment operator shorthand is not allowed.",
+            tree.span(index),
+        );
+    }
+
     if (expression.operator != .assign) return;
 
     const binary = switch (tree.data(unwrapTransparent(tree, expression.right))) {
@@ -51,6 +78,25 @@ pub fn check(
         "Assignment can be replaced with operator assignment.",
         tree.span(index),
     );
+}
+
+fn isCompoundAssignmentOperator(operator: ast.AssignmentOperator) bool {
+    return switch (operator) {
+        .add_assign,
+        .subtract_assign,
+        .multiply_assign,
+        .divide_assign,
+        .modulo_assign,
+        .exponent_assign,
+        .left_shift_assign,
+        .right_shift_assign,
+        .unsigned_right_shift_assign,
+        .bitwise_or_assign,
+        .bitwise_xor_assign,
+        .bitwise_and_assign,
+        => true,
+        else => false,
+    };
 }
 
 fn hasAssignmentOperator(operator: ast.BinaryOperator) bool {

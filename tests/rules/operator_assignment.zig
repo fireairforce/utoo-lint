@@ -59,6 +59,46 @@ test "does not report operator-assignment when shorthand would change the expres
     try std.testing.expect(!helpers.hasRule(result, lint.rules.operator_assignment.id));
 }
 
+test "reports operator-assignment for shorthand when configured never" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\"]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_bitwise = false,
+        .no_multi_assign = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("operator-assignment", config.value);
+
+    const source =
+        \\value += amount;
+        \\value -= amount;
+        \\value *= amount;
+        \\value /= amount;
+        \\value %= amount;
+        \\value **= amount;
+        \\value <<= amount;
+        \\value >>= amount;
+        \\value >>>= amount;
+        \\value |= amount;
+        \\value ^= amount;
+        \\value &= amount;
+        \\value = value + amount;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 12), helpers.countRule(result, lint.rules.operator_assignment.id));
+}
+
 test "can disable operator-assignment" {
     const source =
         \\let value = 1;
