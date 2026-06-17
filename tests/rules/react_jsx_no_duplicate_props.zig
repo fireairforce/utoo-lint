@@ -36,6 +36,34 @@ test "ignores spread attributes and distinct JSX props" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_jsx_no_duplicate_props.id));
 }
 
+test "supports configured react/jsx-no-duplicate-props ignoreCase false" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreCase\":false}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .react_jsx_boolean_value = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("react/jsx-no-duplicate-props", config.value);
+
+    const source =
+        \\const node = <Widget name="a" Name="b" enabled enabled={true} />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_jsx_no_duplicate_props.id));
+}
+
 test "can disable react/jsx-no-duplicate-props" {
     const source =
         \\const node = <Widget name="a" name="b" />;

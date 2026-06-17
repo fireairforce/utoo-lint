@@ -859,6 +859,7 @@ pub const Options = struct {
     react_jsx_boolean_value_style: ReactJsxBooleanValueStyle = .never,
     react_jsx_filename_extension: bool = true,
     react_jsx_no_duplicate_props: bool = true,
+    react_jsx_no_duplicate_props_ignore_case: bool = true,
     react_jsx_no_comment_textnodes: bool = true,
     react_jsx_no_bind: bool = true,
     react_jsx_key: bool = true,
@@ -1227,6 +1228,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-boolean-value")) {
             self.react_jsx_boolean_value_style = try reactJsxBooleanValueStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/jsx-no-duplicate-props")) {
+            self.react_jsx_no_duplicate_props_ignore_case = try reactJsxNoDuplicatePropsIgnoreCaseFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/class-literal-property-style")) {
             self.typescript_eslint_class_literal_property_style_style = try typescriptEslintClassLiteralPropertyStyleFromConfig(value);
@@ -2720,6 +2724,23 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "never")) return .never;
         if (std.mem.eql(u8, style, "always")) return .always;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn reactJsxNoDuplicatePropsIgnoreCaseFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return true,
+        };
+        if (items.len < 2) return true;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("ignoreCase") orelse return true) {
+            .bool => |ignore_case| ignore_case,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn wrapIifeStyleFromConfig(value: std.json.Value) RuleConfigError!WrapIifeStyle {
