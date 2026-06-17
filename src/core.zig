@@ -553,6 +553,18 @@ pub const TypescriptEslintClassLiteralPropertyStyle = enum {
     getters,
 };
 
+pub const TypescriptEslintConsistentTypeAssertionsStyle = enum {
+    as,
+    angle_bracket,
+    never,
+};
+
+pub const TypescriptEslintLiteralTypeAssertions = enum {
+    allow,
+    allow_as_parameter,
+    never,
+};
+
 pub const TypescriptEslintExplicitMemberAccessibility = enum {
     explicit,
     no_public,
@@ -993,6 +1005,9 @@ pub const Options = struct {
     typescript_eslint_ban_tslint_comment: bool = true,
     typescript_eslint_explicit_member_accessibility: bool = true,
     typescript_eslint_explicit_member_accessibility_accessibility: TypescriptEslintExplicitMemberAccessibility = .no_public,
+    typescript_eslint_consistent_type_assertions_assertion_style: TypescriptEslintConsistentTypeAssertionsStyle = .as,
+    typescript_eslint_consistent_type_assertions_object_literal_type_assertions: TypescriptEslintLiteralTypeAssertions = .never,
+    typescript_eslint_consistent_type_assertions_array_literal_type_assertions: TypescriptEslintLiteralTypeAssertions = .allow,
     typescript_eslint_member_ordering: bool = true,
     typescript_eslint_method_signature_style: bool = true,
     typescript_eslint_method_signature_style_style: TypescriptEslintMethodSignatureStyle = .property,
@@ -1340,6 +1355,11 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/consistent-type-definitions")) {
             self.typescript_eslint_consistent_type_definitions_style = try typescriptEslintConsistentTypeDefinitionsStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/consistent-type-assertions")) {
+            self.typescript_eslint_consistent_type_assertions_assertion_style = try typescriptEslintConsistentTypeAssertionsStyleFromConfig(value);
+            self.typescript_eslint_consistent_type_assertions_object_literal_type_assertions = try typescriptEslintLiteralTypeAssertionsFromConfig(value, "objectLiteralTypeAssertions", .never);
+            self.typescript_eslint_consistent_type_assertions_array_literal_type_assertions = try typescriptEslintLiteralTypeAssertionsFromConfig(value, "arrayLiteralTypeAssertions", .allow);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/explicit-member-accessibility")) {
             self.typescript_eslint_explicit_member_accessibility_accessibility = try typescriptEslintExplicitMemberAccessibilityFromConfig(value);
@@ -1698,6 +1718,52 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "anyOrder")) return .any_order;
         if (std.mem.eql(u8, style, "getBeforeSet")) return .get_before_set;
         if (std.mem.eql(u8, style, "setBeforeGet")) return .set_before_get;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintConsistentTypeAssertionsStyleFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintConsistentTypeAssertionsStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .as,
+        };
+        if (items.len < 2) return .as;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const style = switch (config.get("assertionStyle") orelse return .as) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "as")) return .as;
+        if (std.mem.eql(u8, style, "angle-bracket")) return .angle_bracket;
+        if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintLiteralTypeAssertionsFromConfig(
+        value: std.json.Value,
+        key: []const u8,
+        default: TypescriptEslintLiteralTypeAssertions,
+    ) RuleConfigError!TypescriptEslintLiteralTypeAssertions {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const style = switch (config.get(key) orelse return default) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "allow")) return .allow;
+        if (std.mem.eql(u8, style, "allow-as-parameter")) return .allow_as_parameter;
+        if (std.mem.eql(u8, style, "never")) return .never;
         return error.UnsupportedRuleConfigValue;
     }
 
@@ -4220,6 +4286,28 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUnusedVarsArgs.none, options.typescript_eslint_no_unused_vars_args);
     try std.testing.expectEqual(NoUnusedVarsCaughtErrors.none, options.typescript_eslint_no_unused_vars_caught_errors);
     try std.testing.expect(!options.typescript_eslint_no_unused_vars_ignore_rest_siblings);
+
+    var typescript_consistent_type_assertions_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"assertionStyle\":\"angle-bracket\",\"objectLiteralTypeAssertions\":\"allow-as-parameter\",\"arrayLiteralTypeAssertions\":\"never\"}]",
+        .{},
+    );
+    defer typescript_consistent_type_assertions_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/consistent-type-assertions", typescript_consistent_type_assertions_config.value);
+    try std.testing.expect(options.typescript_eslint_consistent_type_assertions);
+    try std.testing.expectEqual(
+        TypescriptEslintConsistentTypeAssertionsStyle.angle_bracket,
+        options.typescript_eslint_consistent_type_assertions_assertion_style,
+    );
+    try std.testing.expectEqual(
+        TypescriptEslintLiteralTypeAssertions.allow_as_parameter,
+        options.typescript_eslint_consistent_type_assertions_object_literal_type_assertions,
+    );
+    try std.testing.expectEqual(
+        TypescriptEslintLiteralTypeAssertions.never,
+        options.typescript_eslint_consistent_type_assertions_array_literal_type_assertions,
+    );
 
     var typescript_explicit_member_accessibility_config = try std.json.parseFromSlice(
         std.json.Value,
