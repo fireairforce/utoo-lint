@@ -468,6 +468,11 @@ pub const YodaStyle = enum {
     always,
 };
 
+pub const TypescriptEslintMethodSignatureStyle = enum {
+    property,
+    method,
+};
+
 pub const PreferConstDestructuring = enum {
     any,
     all,
@@ -884,6 +889,7 @@ pub const Options = struct {
     typescript_eslint_explicit_member_accessibility: bool = true,
     typescript_eslint_member_ordering: bool = true,
     typescript_eslint_method_signature_style: bool = true,
+    typescript_eslint_method_signature_style_style: TypescriptEslintMethodSignatureStyle = .property,
     typescript_eslint_no_confusing_non_null_assertion: bool = true,
     typescript_eslint_no_empty_function: bool = true,
     typescript_eslint_no_empty_function_allow: NoEmptyFunctionAllow = .{},
@@ -1192,6 +1198,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
             self.typescript_eslint_no_shadow_builtin_globals = try noShadowBuiltinGlobalsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/method-signature-style")) {
+            self.typescript_eslint_method_signature_style_style = try typescriptEslintMethodSignatureStyleFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-unused-vars")) {
             self.typescript_eslint_no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .after_used);
@@ -2687,6 +2696,22 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn typescriptEslintMethodSignatureStyleFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintMethodSignatureStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .property,
+        };
+        if (items.len < 2) return .property;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "property")) return .property;
+        if (std.mem.eql(u8, style, "method")) return .method;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
