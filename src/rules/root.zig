@@ -2570,7 +2570,11 @@ const BasicVisitor = struct {
             try react_display_name.checkCallExpression(self.allocator, ctx.tree, call, index, ctx.path.parent(), &self.react_display_name_state);
         }
         if (self.options.react_button_has_type) {
-            try react_button_has_type.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_button_has_type_state);
+            try react_button_has_type.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_button_has_type_state, .{
+                .allow_button = self.options.react_button_has_type_button,
+                .allow_submit = self.options.react_button_has_type_submit,
+                .allow_reset = self.options.react_button_has_type_reset,
+            });
         }
         if (self.options.react_require_render_return) {
             try react_require_render_return.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_require_render_return_state);
@@ -2816,7 +2820,11 @@ const BasicVisitor = struct {
             try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state);
         }
         if (self.options.react_button_has_type) {
-            try react_button_has_type.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
+            try react_button_has_type.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index, .{
+                .allow_button = self.options.react_button_has_type_button,
+                .allow_submit = self.options.react_button_has_type_submit,
+                .allow_reset = self.options.react_button_has_type_reset,
+            });
         }
         if (self.options.react_no_danger_with_children) {
             try react_no_danger_with_children.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index, &self.react_no_danger_with_children_bindings);

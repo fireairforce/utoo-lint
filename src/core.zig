@@ -1070,6 +1070,9 @@ pub const Options = struct {
     react_jsx_no_bind: bool = true,
     react_jsx_key: bool = true,
     react_button_has_type: bool = true,
+    react_button_has_type_button: bool = true,
+    react_button_has_type_submit: bool = true,
+    react_button_has_type_reset: bool = true,
     react_require_render_return: bool = true,
     react_jsx_no_target_blank: bool = true,
     react_jsx_no_target_blank_allow_referrer: bool = false,
@@ -1470,6 +1473,11 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "operator-assignment")) {
             self.operator_assignment_style = try operatorAssignmentStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/button-has-type")) {
+            self.react_button_has_type_button = try reactButtonHasTypeBoolOptionFromConfig(value, "button", true);
+            self.react_button_has_type_submit = try reactButtonHasTypeBoolOptionFromConfig(value, "submit", true);
+            self.react_button_has_type_reset = try reactButtonHasTypeBoolOptionFromConfig(value, "reset", true);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-boolean-value")) {
             self.react_jsx_boolean_value_style = try reactJsxBooleanValueStyleFromConfig(value);
@@ -3321,6 +3329,23 @@ pub const Options = struct {
         return error.UnsupportedRuleConfigValue;
     }
 
+    fn reactButtonHasTypeBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn reactJsxBooleanValueStyleFromConfig(value: std.json.Value) RuleConfigError!ReactJsxBooleanValueStyle {
         const items = switch (value) {
             .array => |array| array.items,
@@ -3948,6 +3973,13 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.setByCliName("react/default-props-match-prop-types", true));
     try std.testing.expect(options.react_default_props_match_prop_types);
 
+    try std.testing.expect(!options.react_button_has_type);
+    try std.testing.expect(options.setByCliName("react/button-has-type", true));
+    try std.testing.expect(options.react_button_has_type);
+    try std.testing.expect(options.react_button_has_type_button);
+    try std.testing.expect(options.react_button_has_type_submit);
+    try std.testing.expect(options.react_button_has_type_reset);
+
     try std.testing.expect(!options.react_prop_types);
     try std.testing.expect(options.setByCliName("react/prop-types", true));
     try std.testing.expect(options.react_prop_types);
@@ -3990,6 +4022,19 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.jsx_a11y_aria_props);
 
     try options.setByRuleConfigValue("prettier/prettier", .{ .string = "error" });
+
+    var react_button_has_type_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"button\":true,\"submit\":false,\"reset\":false}]",
+        .{},
+    );
+    defer react_button_has_type_config.deinit();
+    try options.setByRuleConfigValue("react/button-has-type", react_button_has_type_config.value);
+    try std.testing.expect(options.react_button_has_type);
+    try std.testing.expect(options.react_button_has_type_button);
+    try std.testing.expect(!options.react_button_has_type_submit);
+    try std.testing.expect(!options.react_button_has_type_reset);
 
     var react_jsx_no_target_blank_config = try std.json.parseFromSlice(
         std.json.Value,
