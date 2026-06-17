@@ -59,6 +59,42 @@ test "allows react/no-multi-comp ignored stateless and single class components" 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_no_multi_comp.id));
 }
 
+test "supports configured react/no-multi-comp ignoreStateless false" {
+    const source =
+        \\class One extends React.Component {
+        \\  render() {
+        \\    return null;
+        \\  }
+        \\}
+        \\function Two() {
+        \\  return <div />;
+        \\}
+        \\const Three = () => <span />;
+        \\const four = () => <span />;
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreStateless\":false}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("react/no-multi-comp", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_no_multi_comp.id));
+}
+
 test "can disable react/no-multi-comp" {
     const source =
         \\class One extends React.Component {
