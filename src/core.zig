@@ -503,6 +503,7 @@ pub const Options = struct {
     new_cap: bool = true,
     new_cap_new_is_cap: bool = true,
     new_cap_cap_is_new: bool = true,
+    new_cap_properties: bool = true,
     new_parens: bool = true,
     no_async_promise_executor: bool = true,
     no_array_constructor: bool = true,
@@ -1010,6 +1011,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "new-cap")) {
             self.new_cap_new_is_cap = try newCapBoolOptionFromConfig(value, "newIsCap", true);
             self.new_cap_cap_is_new = try newCapBoolOptionFromConfig(value, "capIsNew", true);
+            self.new_cap_properties = try newCapBoolOptionFromConfig(value, "properties", true);
         }
         if (std.mem.eql(u8, cli_name, "no-bitwise")) {
             self.no_bitwise_allow_bitwise_and = try noBitwiseAllowFromConfig(value, "&");
@@ -3270,7 +3272,7 @@ test "Options can apply ESLint-style rule config values" {
     var new_cap_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"newIsCap\":false,\"capIsNew\":false}]",
+        "[\"error\",{\"newIsCap\":false,\"capIsNew\":false,\"properties\":false}]",
         .{},
     );
     defer new_cap_config.deinit();
@@ -3278,6 +3280,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.new_cap);
     try std.testing.expect(!options.new_cap_new_is_cap);
     try std.testing.expect(!options.new_cap_cap_is_new);
+    try std.testing.expect(!options.new_cap_properties);
 
     var no_multi_spaces_config = try std.json.parseFromSlice(
         std.json.Value,

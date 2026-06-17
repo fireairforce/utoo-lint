@@ -2457,6 +2457,7 @@ const BasicVisitor = struct {
             try new_cap.checkCallExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, call, index, .{
                 .new_is_cap = self.options.new_cap_new_is_cap,
                 .cap_is_new = self.options.new_cap_cap_is_new,
+                .properties = self.options.new_cap_properties,
             });
         }
         if (self.options.no_extra_bind) {
@@ -2504,6 +2505,7 @@ const BasicVisitor = struct {
             try new_cap.checkNewExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
                 .new_is_cap = self.options.new_cap_new_is_cap,
                 .cap_is_new = self.options.new_cap_cap_is_new,
+                .properties = self.options.new_cap_properties,
             });
         }
         if (self.options.new_parens) {
