@@ -1173,6 +1173,8 @@ pub const Options = struct {
     react_no_unescaped_entities_forbid_closing_brace: bool = true,
     react_prefer_es6_class: bool = true,
     react_self_closing_comp: bool = true,
+    react_self_closing_comp_component: bool = true,
+    react_self_closing_comp_html: bool = true,
     react_style_prop_object: bool = true,
     react_void_dom_elements_no_children: bool = true,
     react_hooks_rules_of_hooks: bool = true,
@@ -1585,6 +1587,10 @@ pub const Options = struct {
             self.react_no_unescaped_entities_forbid_double_quote = forbid.double_quote;
             self.react_no_unescaped_entities_forbid_single_quote = forbid.single_quote;
             self.react_no_unescaped_entities_forbid_closing_brace = forbid.closing_brace;
+        }
+        if (std.mem.eql(u8, cli_name, "react/self-closing-comp")) {
+            self.react_self_closing_comp_component = try reactSelfClosingCompBoolOptionFromConfig(value, "component", true);
+            self.react_self_closing_comp_html = try reactSelfClosingCompBoolOptionFromConfig(value, "html", true);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/array-type")) {
             self.typescript_eslint_array_type_style = try typescriptEslintArrayTypeStyleFromConfig(value);
@@ -3565,6 +3571,23 @@ pub const Options = struct {
         };
     }
 
+    fn reactSelfClosingCompBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn reactJsxPascalCaseAllowAllCapsFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4203,6 +4226,12 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.react_no_string_refs);
     try std.testing.expect(!options.react_no_string_refs_no_template_literals);
 
+    try std.testing.expect(!options.react_self_closing_comp);
+    try std.testing.expect(options.setByCliName("react/self-closing-comp", true));
+    try std.testing.expect(options.react_self_closing_comp);
+    try std.testing.expect(options.react_self_closing_comp_component);
+    try std.testing.expect(options.react_self_closing_comp_html);
+
     try std.testing.expect(!options.react_no_unescaped_entities);
     try std.testing.expect(options.setByCliName("react/no-unescaped-entities", true));
     try std.testing.expect(options.react_no_unescaped_entities);
@@ -4335,6 +4364,18 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("react/no-string-refs", react_no_string_refs_config.value);
     try std.testing.expect(options.react_no_string_refs);
     try std.testing.expect(options.react_no_string_refs_no_template_literals);
+
+    var react_self_closing_comp_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"component\":false,\"html\":true}]",
+        .{},
+    );
+    defer react_self_closing_comp_config.deinit();
+    try options.setByRuleConfigValue("react/self-closing-comp", react_self_closing_comp_config.value);
+    try std.testing.expect(options.react_self_closing_comp);
+    try std.testing.expect(!options.react_self_closing_comp_component);
+    try std.testing.expect(options.react_self_closing_comp_html);
 
     var react_no_unescaped_entities_config = try std.json.parseFromSlice(
         std.json.Value,

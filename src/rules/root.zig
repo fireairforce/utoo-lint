@@ -2926,7 +2926,10 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.react_self_closing_comp) {
-            try react_self_closing_comp.check(self.allocator, self.diagnostics, ctx.tree, opening, index, ctx.path.ancestor(1));
+            try react_self_closing_comp.check(self.allocator, self.diagnostics, ctx.tree, opening, index, ctx.path.ancestor(1), .{
+                .component = self.options.react_self_closing_comp_component,
+                .html = self.options.react_self_closing_comp_html,
+            });
         }
         return .proceed;
     }
