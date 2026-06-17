@@ -1590,7 +1590,10 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_no_inferrable_types) {
-            try typescript_eslint_no_inferrable_types.checkAssignmentPattern(self.allocator, self.diagnostics, ctx.tree, pattern);
+            try typescript_eslint_no_inferrable_types.checkAssignmentPattern(self.allocator, self.diagnostics, ctx.tree, pattern, .{
+                .ignore_parameters = self.options.typescript_eslint_no_inferrable_types_ignore_parameters,
+                .ignore_properties = self.options.typescript_eslint_no_inferrable_types_ignore_properties,
+            });
         }
         return .proceed;
     }
@@ -3204,7 +3207,10 @@ const BasicVisitor = struct {
             try typescript_eslint_prefer_as_const.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
         }
         if (self.options.typescript_eslint_no_inferrable_types) {
-            try typescript_eslint_no_inferrable_types.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
+            try typescript_eslint_no_inferrable_types.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, .{
+                .ignore_parameters = self.options.typescript_eslint_no_inferrable_types_ignore_parameters,
+                .ignore_properties = self.options.typescript_eslint_no_inferrable_types_ignore_properties,
+            });
         }
         if (self.options.typescript_eslint_typedef and self.options.typescript_eslint_typedef_member_variable_declaration) {
             try typescript_eslint_typedef.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, index);
