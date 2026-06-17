@@ -2805,7 +2805,13 @@ const BasicVisitor = struct {
             try react_no_array_index_key.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, self.react_no_array_index_key_state);
         }
         if (self.options.react_jsx_no_bind) {
-            try react_jsx_no_bind.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index, self.react_jsx_no_bind_state);
+            try react_jsx_no_bind.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index, self.react_jsx_no_bind_state, ctx.path.ancestor(1), .{
+                .allow_arrow_functions = self.options.react_jsx_no_bind_allow_arrow_functions,
+                .allow_functions = self.options.react_jsx_no_bind_allow_functions,
+                .allow_bind = self.options.react_jsx_no_bind_allow_bind,
+                .ignore_refs = self.options.react_jsx_no_bind_ignore_refs,
+                .ignore_dom_components = self.options.react_jsx_no_bind_ignore_dom_components,
+            });
         }
         if (self.options.react_no_unknown_property) {
             try react_no_unknown_property.check(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1));

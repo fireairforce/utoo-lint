@@ -54,6 +54,64 @@ test "does not report safe prop references" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_jsx_no_bind.id));
 }
 
+test "supports configured react/jsx-no-bind allow options" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowArrowFunctions\":true,\"allowFunctions\":true,\"allowBind\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = test_options;
+    try options.setByRuleConfigValue("react/jsx-no-bind", config.value);
+
+    const source =
+        \\function Demo() {
+        \\  const alias = () => action();
+        \\  function handler() {}
+        \\  return (
+        \\    <Button
+        \\      onClick={() => action()}
+        \\      onFocus={function () { action(); }}
+        \\      onMouseDown={this.handle.bind(this)}
+        \\      onKeyDown={alias}
+        \\      onBlur={handler}
+        \\    />
+        \\  );
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.react_jsx_no_bind.id));
+}
+
+test "supports configured react/jsx-no-bind ignore options" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreRefs\":true,\"ignoreDOMComponents\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = test_options;
+    try options.setByRuleConfigValue("react/jsx-no-bind", config.value);
+
+    const source =
+        \\const ignoredRef = <Button ref={() => action()} />;
+        \\const ignoredDom = <button onClick={() => action()} />;
+        \\const reported = <Button onClick={() => action()} />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_jsx_no_bind.id));
+}
+
 test "can disable react jsx no bind" {
     const source = "const node = <Button onClick={() => action()} />;";
 
