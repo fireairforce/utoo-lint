@@ -29,6 +29,31 @@ test "reports react/prop-types for missing function component props" {
     try std.testing.expect(std.mem.eql(u8, result.diagnostics[1].message, "'user.name' is missing in props validation"));
 }
 
+test "supports configured react/prop-types skipUndeclared" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"skipUndeclared\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("react/prop-types", config.value);
+
+    const source =
+        \\import React from 'react';
+        \\function Foo(props) {
+        \\  return <div>{props.name}</div>;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "sample.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.react_prop_types.id));
+}
+
 test "allows react/prop-types declared object children" {
     const source =
         \\import React from 'react';
