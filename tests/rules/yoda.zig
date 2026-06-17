@@ -95,6 +95,37 @@ test "allows yoda always when literals are on the left side or both sides" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.yoda.id));
 }
 
+test "supports configured yoda onlyEquality option" {
+    const source =
+        \\if ("red" === color) {}
+        \\if (0 < count) {}
+        \\if (value >= -1) {}
+    ;
+
+    var options = lint.Options{
+        .eqeqeq = false,
+        .eol_last = false,
+        .no_empty_block_statements = false,
+        .no_constant_condition = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\",{\"onlyEquality\":true}]",
+        .{},
+    );
+    defer config.deinit();
+    try options.setByRuleConfigValue("yoda", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.yoda.id));
+}
+
 test "can disable yoda" {
     const source =
         \\if ("red" === color) {}

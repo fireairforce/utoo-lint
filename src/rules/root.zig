@@ -2270,9 +2270,12 @@ const BasicVisitor = struct {
             try no_path_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.yoda) {
-            try yoda.checkWithStyle(self.allocator, self.diagnostics, ctx.tree, expression, index, switch (self.options.yoda_style) {
-                .never => .never,
-                .always => .always,
+            try yoda.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .style = switch (self.options.yoda_style) {
+                    .never => .never,
+                    .always => .always,
+                },
+                .only_equality = self.options.yoda_only_equality,
             });
         }
         if (self.options.typescript_eslint_no_confusing_non_null_assertion) {
