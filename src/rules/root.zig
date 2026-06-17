@@ -2781,7 +2781,9 @@ const BasicVisitor = struct {
             try react_jsx_no_target_blank.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
         }
         if (self.options.react_jsx_pascal_case) {
-            try react_jsx_pascal_case.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
+            try react_jsx_pascal_case.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, opening, index, .{
+                .allow_all_caps = self.options.react_jsx_pascal_case_allow_all_caps,
+            });
         }
         if (self.options.react_self_closing_comp) {
             try react_self_closing_comp.check(self.allocator, self.diagnostics, ctx.tree, opening, index, ctx.path.ancestor(1));

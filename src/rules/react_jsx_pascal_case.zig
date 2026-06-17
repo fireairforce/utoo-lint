@@ -7,6 +7,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "react/jsx-pascal-case";
 
+pub const Options = struct {
+    allow_all_caps: bool = true,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -14,9 +18,20 @@ pub fn check(
     opening: ast.JSXOpeningElement,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    return checkWithOptions(allocator, diagnostics, tree, opening, index, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    opening: ast.JSXOpeningElement,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
     if (isDomComponent(tree, opening.name)) return;
 
-    const invalid_name = invalidNamePart(tree, opening.name) orelse return;
+    const invalid_name = invalidNamePart(tree, opening.name, options) orelse return;
     try core.addDiagnosticFmt(
         allocator,
         diagnostics,
@@ -42,20 +57,20 @@ fn firstNamePart(tree: *const ast.Tree, name_index: ast.NodeIndex) ?[]const u8 {
     };
 }
 
-fn invalidNamePart(tree: *const ast.Tree, name_index: ast.NodeIndex) ?[]const u8 {
+fn invalidNamePart(tree: *const ast.Tree, name_index: ast.NodeIndex, options: Options) ?[]const u8 {
     switch (tree.data(name_index)) {
         .jsx_identifier => |identifier| {
             const name = tree.string(identifier.name);
             if (name.len == 1) return null;
-            return if (isPascalCase(name) or isAllCaps(name)) null else name;
+            return if (isPascalCase(name) or (options.allow_all_caps and isAllCaps(name))) null else name;
         },
         .jsx_namespaced_name => |name| {
-            if (invalidNamePart(tree, name.namespace)) |invalid| return invalid;
-            return invalidNamePart(tree, name.name);
+            if (invalidNamePart(tree, name.namespace, options)) |invalid| return invalid;
+            return invalidNamePart(tree, name.name, options);
         },
         .jsx_member_expression => |member| {
-            if (invalidNamePart(tree, member.object)) |invalid| return invalid;
-            return invalidNamePart(tree, member.property);
+            if (invalidNamePart(tree, member.object, options)) |invalid| return invalid;
+            return invalidNamePart(tree, member.property, options);
         },
         else => return null,
     }
