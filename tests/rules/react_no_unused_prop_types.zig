@@ -5,6 +5,7 @@ const helpers = @import("../helpers.zig");
 fn noUnusedPropTypesOnly() lint.Options {
     var options = lint.Options.allDisabled();
     options.react_no_unused_prop_types = true;
+    options.react_no_unused_prop_types_skip_shape_props = true;
     return options;
 }
 
@@ -45,6 +46,31 @@ test "skips react/no-unused-prop-types shape props for fishlint configuration" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_no_unused_prop_types.id));
+}
+
+test "reports react/no-unused-prop-types shape props when configured" {
+    const source =
+        \\import React from 'react';
+        \\function Foo(props) {
+        \\  return <div>{props.name}</div>;
+        \\}
+        \\Foo.propTypes = {
+        \\  name: PropTypes.string,
+        \\  user: PropTypes.shape({
+        \\    age: PropTypes.number,
+        \\  }),
+        \\};
+    ;
+
+    var options = noUnusedPropTypesOnly();
+    options.react_no_unused_prop_types_skip_shape_props = false;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "sample.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_no_unused_prop_types.id));
+    try std.testing.expect(hasMessage(result, "'user' PropType is defined but prop is never used"));
+    try std.testing.expect(hasMessage(result, "'user.age' PropType is defined but prop is never used"));
 }
 
 test "reports react/no-unused-prop-types object props" {
@@ -105,4 +131,11 @@ test "can disable react/no-unused-prop-types" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_no_unused_prop_types.id));
+}
+
+fn hasMessage(result: lint.Result, expected: []const u8) bool {
+    for (result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.message, expected)) return true;
+    }
+    return false;
 }

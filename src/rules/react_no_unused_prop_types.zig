@@ -12,13 +12,14 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    skip_shape_props: bool,
 ) Allocator.Error!void {
     var state = try react_prop_types.collect(allocator, tree);
     defer state.deinit(allocator);
 
     for (state.components.items) |component| {
         if (!component.detected) continue;
-        try reportUnusedProps(allocator, diagnostics, tree, component, component.declared_props.items, "");
+        try reportUnusedProps(allocator, diagnostics, tree, component, component.declared_props.items, "", skip_shape_props);
     }
 }
 
@@ -29,6 +30,7 @@ fn reportUnusedProps(
     component: react_prop_types.ComponentInfo,
     props: []const react_prop_types.DeclaredProp,
     prefix: []const u8,
+    skip_shape_props: bool,
 ) Allocator.Error!void {
     for (props) |prop| {
         const full_name = if (prefix.len == 0)
@@ -37,7 +39,7 @@ fn reportUnusedProps(
             try std.fmt.allocPrint(allocator, "{s}.{s}", .{ prefix, prop.name });
         defer allocator.free(full_name);
 
-        if (prop.kind == .shape or prop.kind == .exact) {
+        if (skip_shape_props and (prop.kind == .shape or prop.kind == .exact)) {
             continue;
         }
 
@@ -53,7 +55,7 @@ fn reportUnusedProps(
             );
         }
 
-        try reportUnusedProps(allocator, diagnostics, tree, component, prop.children.items, full_name);
+        try reportUnusedProps(allocator, diagnostics, tree, component, prop.children.items, full_name, skip_shape_props);
     }
 }
 
