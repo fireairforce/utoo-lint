@@ -2262,6 +2262,12 @@ pub const Options = struct {
         if (items.len < 2) return if (default) .yes else .no;
 
         const config = switch (items[1]) {
+            .string => |style| {
+                if (std.mem.eql(u8, style, "nofunc")) {
+                    return if (std.mem.eql(u8, key, "functions")) .no else if (default) .yes else .no;
+                }
+                return error.UnsupportedRuleConfigValue;
+            },
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -3475,6 +3481,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_use_before_define);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_functions);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_classes);
+
+    var no_use_before_define_nofunc_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"nofunc\"]",
+        .{},
+    );
+    defer no_use_before_define_nofunc_config.deinit();
+    try options.setByRuleConfigValue("no-use-before-define", no_use_before_define_nofunc_config.value);
+    try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_functions);
+    try std.testing.expectEqual(NoUseBeforeDefineCheck.yes, options.no_use_before_define_check_classes);
 
     var no_undef_config = try std.json.parseFromSlice(
         std.json.Value,
