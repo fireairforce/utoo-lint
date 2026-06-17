@@ -10,6 +10,7 @@ pub const id = "new-cap";
 pub const Options = struct {
     new_is_cap: bool = true,
     cap_is_new: bool = true,
+    properties: bool = true,
 };
 
 pub fn checkNewExpression(
@@ -32,7 +33,7 @@ pub fn checkNewExpressionWithOptions(
 ) Allocator.Error!void {
     if (!options.new_is_cap) return;
 
-    const name = constructorName(tree, expression.callee) orelse return;
+    const name = constructorName(tree, expression.callee, options) orelse return;
     if (nameCase(name) != .lower) return;
 
     try core.addDiagnostic(
@@ -66,7 +67,7 @@ pub fn checkCallExpressionWithOptions(
     if (!options.cap_is_new) return;
 
     const callee = unwrapTransparent(tree, expression.callee);
-    const name = constructorName(tree, callee) orelse return;
+    const name = constructorName(tree, callee, options) orelse return;
     if (nameCase(name) != .upper) return;
     if (isAllowedCallableBuiltin(tree, callee, name)) return;
 
@@ -80,12 +81,12 @@ pub fn checkCallExpressionWithOptions(
     );
 }
 
-fn constructorName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+fn constructorName(tree: *const ast.Tree, index: ast.NodeIndex, options: Options) ?[]const u8 {
     if (index == .null) return null;
 
     return switch (tree.data(unwrapTransparent(tree, index))) {
         .identifier_reference => |identifier| tree.string(identifier.name),
-        .member_expression => |member| propertyName(tree, member),
+        .member_expression => |member| if (options.properties) propertyName(tree, member) else null,
         else => null,
     };
 }
