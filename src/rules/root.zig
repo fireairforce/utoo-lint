@@ -978,6 +978,13 @@ const BasicVisitor = struct {
         };
     }
 
+    fn noLabelsOptions(self: *const BasicVisitor) no_labels.Options {
+        return .{
+            .allow_loop = self.options.no_labels_allow_loop == .yes,
+            .allow_switch = self.options.no_labels_allow_switch == .yes,
+        };
+    }
+
     pub fn enter_node(
         self: *BasicVisitor,
         data: ast.NodeData,
@@ -1806,7 +1813,7 @@ const BasicVisitor = struct {
             try no_continue.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
         if (self.options.no_labels) {
-            try no_labels.checkContinueStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
+            try no_labels.checkContinueStatementWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, index, &ctx.path, self.noLabelsOptions());
         }
         return .proceed;
     }
@@ -1818,7 +1825,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_labels) {
-            try no_labels.checkBreakStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
+            try no_labels.checkBreakStatementWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, index, &ctx.path, self.noLabelsOptions());
         }
         return .proceed;
     }
@@ -1836,7 +1843,7 @@ const BasicVisitor = struct {
             try no_unused_labels.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
         if (self.options.no_labels) {
-            try no_labels.checkLabeledStatement(self.allocator, self.diagnostics, ctx.tree, index);
+            try no_labels.checkLabeledStatementWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noLabelsOptions());
         }
         return .proceed;
     }
