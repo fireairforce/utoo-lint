@@ -15,6 +15,12 @@ pub const State = struct {
     has_bare_create_element: bool = false,
 };
 
+pub const Options = struct {
+    allow_button: bool = true,
+    allow_submit: bool = true,
+    allow_reset: bool = true,
+};
+
 pub fn collectProgram(tree: *const ast.Tree, program: ast.Program, state: *State) void {
     state.pragma = pragmaFromComments(tree) orelse "React";
     for (tree.extra(program.body)) |statement_index| {
@@ -45,6 +51,7 @@ pub fn checkJSXElement(
     tree: *const ast.Tree,
     element: ast.JSXElement,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     const opening = switch (tree.data(element.opening_element)) {
         .jsx_opening_element => |opening| opening,
@@ -57,7 +64,7 @@ pub fn checkJSXElement(
         try report(allocator, diagnostics, tree, index, missing_type_message);
         return;
     };
-    try checkJSXAttributeValue(allocator, diagnostics, tree, type_attribute);
+    try checkJSXAttributeValue(allocator, diagnostics, tree, type_attribute, options);
 }
 
 pub fn checkCallExpression(
@@ -67,6 +74,7 @@ pub fn checkCallExpression(
     call: ast.CallExpression,
     index: ast.NodeIndex,
     state: State,
+    options: Options,
 ) Allocator.Error!void {
     if (!isCreateElementCall(tree, call, state)) return;
 
@@ -94,7 +102,7 @@ pub fn checkCallExpression(
         };
         const key = objectPropertyKeyName(tree, property) orelse continue;
         if (!std.mem.eql(u8, key, "type")) continue;
-        try checkExpressionValue(allocator, diagnostics, tree, property.value);
+        try checkExpressionValue(allocator, diagnostics, tree, property.value, options);
         return;
     }
 
@@ -106,6 +114,7 @@ fn checkJSXAttributeValue(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     attribute: ast.JSXAttribute,
+    options: Options,
 ) Allocator.Error!void {
     if (attribute.value == .null) {
         try reportInvalidValue(allocator, diagnostics, tree, attribute.name, "true");
@@ -113,8 +122,8 @@ fn checkJSXAttributeValue(
     }
 
     switch (tree.data(attribute.value)) {
-        .string_literal => |literal| try checkValue(allocator, diagnostics, tree, attribute.value, tree.string(literal.value)),
-        .jsx_expression_container => |container| try checkExpressionValue(allocator, diagnostics, tree, container.expression),
+        .string_literal => |literal| try checkValue(allocator, diagnostics, tree, attribute.value, tree.string(literal.value), options),
+        .jsx_expression_container => |container| try checkExpressionValue(allocator, diagnostics, tree, container.expression, options),
         else => try report(allocator, diagnostics, tree, attribute.value, complex_type_message),
     }
 }
@@ -124,6 +133,7 @@ fn checkExpressionValue(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     if (index == .null) {
         try report(allocator, diagnostics, tree, index, complex_type_message);
@@ -132,7 +142,7 @@ fn checkExpressionValue(
 
     const current = unwrapTransparent(tree, index);
     switch (tree.data(current)) {
-        .string_literal => |literal| try checkValue(allocator, diagnostics, tree, current, tree.string(literal.value)),
+        .string_literal => |literal| try checkValue(allocator, diagnostics, tree, current, tree.string(literal.value), options),
         .template_literal => |literal| {
             if (literal.expressions.len != 0) {
                 try report(allocator, diagnostics, tree, current, complex_type_message);
@@ -147,11 +157,11 @@ fn checkExpressionValue(
                 .template_element => |element| element,
                 else => return,
             };
-            try checkValue(allocator, diagnostics, tree, current, tree.string(element.cooked));
+            try checkValue(allocator, diagnostics, tree, current, tree.string(element.cooked), options);
         },
         .conditional_expression => |conditional| {
-            try checkExpressionValue(allocator, diagnostics, tree, conditional.consequent);
-            try checkExpressionValue(allocator, diagnostics, tree, conditional.alternate);
+            try checkExpressionValue(allocator, diagnostics, tree, conditional.consequent, options);
+            try checkExpressionValue(allocator, diagnostics, tree, conditional.alternate, options);
         },
         else => try report(allocator, diagnostics, tree, current, complex_type_message),
     }
@@ -163,15 +173,16 @@ fn checkValue(
     tree: *const ast.Tree,
     index: ast.NodeIndex,
     value: []const u8,
+    options: Options,
 ) Allocator.Error!void {
-    if (isAllowedButtonType(value)) return;
+    if (isAllowedButtonType(value, options)) return;
     try reportInvalidValue(allocator, diagnostics, tree, index, value);
 }
 
-fn isAllowedButtonType(value: []const u8) bool {
-    return std.mem.eql(u8, value, "button") or
-        std.mem.eql(u8, value, "submit") or
-        std.mem.eql(u8, value, "reset");
+fn isAllowedButtonType(value: []const u8, options: Options) bool {
+    return (options.allow_button and std.mem.eql(u8, value, "button")) or
+        (options.allow_submit and std.mem.eql(u8, value, "submit")) or
+        (options.allow_reset and std.mem.eql(u8, value, "reset"));
 }
 
 fn findTypeAttribute(tree: *const ast.Tree, opening: ast.JSXOpeningElement) ?ast.JSXAttribute {

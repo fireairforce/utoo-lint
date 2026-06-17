@@ -51,6 +51,31 @@ test "allows static valid button type values" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_button_has_type.id));
 }
 
+test "supports configured react/button-has-type allowed values" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"button\":true,\"submit\":false,\"reset\":false}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = test_options;
+    try options.setByRuleConfigValue("react/button-has-type", config.value);
+
+    const source =
+        \\const a = <button type="button" />;
+        \\const b = <button type="submit" />;
+        \\const c = <button type={`reset`} />;
+        \\const d = React.createElement("button", { type: "submit" });
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.react_button_has_type.id));
+}
+
 test "checks React createElement button calls" {
     const source =
         \\import { createElement } from "react";
