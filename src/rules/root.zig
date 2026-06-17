@@ -358,6 +358,13 @@ fn reactPreferEs6ClassStyle(style: core.ReactPreferEs6ClassStyle) react_prefer_e
     };
 }
 
+fn reactDisplayNameOptions(options: core.Options) react_display_name.Options {
+    return .{
+        .check_context_objects = options.react_display_name_check_context_objects,
+        .ignore_transpiler_name = options.react_display_name_ignore_transpiler_name,
+    };
+}
+
 fn isCatchBody(tree: *const ast.Tree, index: ast.NodeIndex, parent: ?ast.NodeIndex) bool {
     const parent_index = parent orelse return false;
     return switch (tree.data(parent_index)) {
@@ -1179,7 +1186,7 @@ const BasicVisitor = struct {
             try react_jsx_no_bind.checkFunctionDeclaration(self.allocator, ctx.tree, function, &self.react_jsx_no_bind_state);
         }
         if (self.options.react_display_name) {
-            try react_display_name.checkFunction(self.allocator, ctx.tree, function, index, ctx.path.parent(), &self.react_display_name_state);
+            try react_display_name.checkFunction(self.allocator, ctx.tree, function, index, ctx.path.parent(), &self.react_display_name_state, reactDisplayNameOptions(self.options));
         }
         if (self.options.react_no_multi_comp) {
             try react_no_multi_comp.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, &self.react_no_multi_comp_state, .{
@@ -1205,7 +1212,7 @@ const BasicVisitor = struct {
             try react_require_render_return.checkClass(self.allocator, self.diagnostics, ctx.tree, class, self.react_require_render_return_state);
         }
         if (self.options.react_display_name) {
-            try react_display_name.checkClass(self.allocator, ctx.tree, class, index, ctx.path.parent(), &self.react_display_name_state);
+            try react_display_name.checkClass(self.allocator, ctx.tree, class, index, ctx.path.parent(), &self.react_display_name_state, reactDisplayNameOptions(self.options));
         }
         if (self.options.react_no_multi_comp) {
             try react_no_multi_comp.checkClass(self.allocator, self.diagnostics, ctx.tree, class, index, &self.react_no_multi_comp_state);
@@ -1571,6 +1578,7 @@ const BasicVisitor = struct {
         if (self.options.react_display_name) {
             try react_display_name.checkVariableDeclarator(self.allocator, ctx.tree, declarator, index, &self.react_display_name_state, .{
                 .check_context_objects = self.options.react_display_name_check_context_objects,
+                .ignore_transpiler_name = self.options.react_display_name_ignore_transpiler_name,
             });
         }
         if (self.options.react_no_deprecated) {
@@ -2306,7 +2314,7 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.react_display_name) {
-            try react_display_name.checkArrowFunction(self.allocator, ctx.tree, index, ctx.path.parent(), &self.react_display_name_state);
+            try react_display_name.checkArrowFunction(self.allocator, ctx.tree, index, ctx.path.parent(), &self.react_display_name_state, reactDisplayNameOptions(self.options));
         }
         return .proceed;
     }
@@ -2605,7 +2613,7 @@ const BasicVisitor = struct {
             try react_no_unused_state.checkCallExpression(self.allocator, ctx.tree, call, &self.react_no_unused_state_state);
         }
         if (self.options.react_display_name) {
-            try react_display_name.checkCallExpression(self.allocator, ctx.tree, call, index, ctx.path.parent(), &self.react_display_name_state);
+            try react_display_name.checkCallExpression(self.allocator, ctx.tree, call, index, ctx.path.parent(), &self.react_display_name_state, reactDisplayNameOptions(self.options));
         }
         if (self.options.react_button_has_type) {
             try react_button_has_type.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_button_has_type_state, .{

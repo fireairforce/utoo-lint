@@ -1155,6 +1155,7 @@ pub const Options = struct {
     react_default_props_match_prop_types_allow_required_defaults: bool = false,
     react_display_name: bool = true,
     react_display_name_check_context_objects: bool = false,
+    react_display_name_ignore_transpiler_name: bool = false,
     react_jsx_boolean_value: bool = true,
     react_jsx_boolean_value_style: ReactJsxBooleanValueStyle = .never,
     react_jsx_filename_extension: bool = true,
@@ -1594,6 +1595,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/display-name")) {
             self.react_display_name_check_context_objects = try reactDisplayNameBoolOptionFromConfig(value, "checkContextObjects", false);
+            self.react_display_name_ignore_transpiler_name = try reactDisplayNameBoolOptionFromConfig(value, "ignoreTranspilerName", false);
         }
         if (std.mem.eql(u8, cli_name, "react/button-has-type")) {
             self.react_button_has_type_button = try reactButtonHasTypeBoolOptionFromConfig(value, "button", true);
@@ -4603,6 +4605,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("react/display-name", react_display_name_config.value);
     try std.testing.expect(options.react_display_name);
     try std.testing.expect(options.react_display_name_check_context_objects);
+
+    var react_display_name_ignore_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreTranspilerName\":true}]",
+        .{},
+    );
+    defer react_display_name_ignore_config.deinit();
+    try options.setByRuleConfigValue("react/display-name", react_display_name_ignore_config.value);
+    try std.testing.expect(options.react_display_name);
+    try std.testing.expect(options.react_display_name_ignore_transpiler_name);
 
     var react_jsx_filename_extension_config = try std.json.parseFromSlice(
         std.json.Value,

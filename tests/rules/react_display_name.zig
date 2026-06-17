@@ -99,6 +99,44 @@ test "allows react/display-name context objects by default" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_display_name.id));
 }
 
+test "supports configured react/display-name ignoreTranspilerName" {
+    const source =
+        \\function FunctionView() {
+        \\  return <div />;
+        \\}
+        \\class ClassView extends React.Component {
+        \\  render() { return <div />; }
+        \\}
+        \\const ArrowView = () => <div />;
+        \\const CreatedView = React.createClass({
+        \\  render() { return <div />; },
+        \\});
+        \\const ExplicitView = React.memo(() => <div />);
+        \\ExplicitView.displayName = 'ExplicitView';
+        \\class StaticView extends React.Component {
+        \\  static displayName = 'StaticView';
+        \\  render() { return <div />; }
+        \\}
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreTranspilerName\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("react/display-name", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.react_display_name.id));
+    try std.testing.expect(hasMessage(result, "Component definition is missing display name"));
+}
+
 test "can disable react/display-name" {
     const source =
         \\export default () => <div />;
