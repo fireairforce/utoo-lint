@@ -54,6 +54,41 @@ test "allows @typescript-eslint/restrict-plus-operands compatible primitive oper
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_restrict_plus_operands.id));
 }
 
+test "supports configured @typescript-eslint/restrict-plus-operands allowNumberAndString" {
+    const source =
+        \\const count: number = 1;
+        \\const label: string = "items";
+        \\const enabled: boolean = true;
+        \\const mystery: unknown = 1;
+        \\count + label;
+        \\enabled + count;
+        \\mystery + count;
+        \\1 + "x";
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowNumberAndString\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .no_unused_vars = false,
+        .typescript_eslint_no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("@typescript-eslint/restrict-plus-operands", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.typescript_eslint_restrict_plus_operands.id));
+}
+
 test "can disable @typescript-eslint/restrict-plus-operands" {
     const source =
         \\const count: number = 1;

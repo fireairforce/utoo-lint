@@ -2391,7 +2391,9 @@ const BasicVisitor = struct {
             try no_bitwise.checkBinaryExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noBitwiseOptions());
         }
         if (self.options.typescript_eslint_restrict_plus_operands) {
-            try typescript_eslint_restrict_plus_operands.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try typescript_eslint_restrict_plus_operands.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .allow_number_and_string = self.options.typescript_eslint_restrict_plus_operands_allow_number_and_string,
+            });
         }
         if (self.options.no_compare_neg_zero) {
             try no_compare_neg_zero.check(self.allocator, self.diagnostics, ctx.tree, expression, index);

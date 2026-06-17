@@ -8,6 +8,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "@typescript-eslint/restrict-plus-operands";
 
+pub const Options = struct {
+    allow_number_and_string: bool = false,
+};
+
 const ValueType = enum {
     string,
     number,
@@ -38,6 +42,7 @@ pub fn checkBinaryExpression(
     tree: *const ast.Tree,
     expression: ast.BinaryExpression,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     if (expression.operator != .add) return;
 
@@ -50,7 +55,7 @@ pub fn checkBinaryExpression(
     const left = inferExpressionType(tree, env, expression.left);
     const right = inferExpressionType(tree, env, expression.right);
     if (left == .unknown_expression or right == .unknown_expression) return;
-    if (isAllowedPair(left, right)) return;
+    if (isAllowedPair(left, right, options)) return;
 
     if (isAllowedOperand(left) and isAllowedOperand(right)) {
         try core.addDiagnosticFmt(
@@ -77,9 +82,17 @@ pub fn checkBinaryExpression(
     );
 }
 
-fn isAllowedPair(left: ValueType, right: ValueType) bool {
-    return (left == .number and right == .number) or
-        (left == .string and right == .string);
+fn isAllowedPair(left: ValueType, right: ValueType, options: Options) bool {
+    if ((left == .number and right == .number) or
+        (left == .string and right == .string))
+    {
+        return true;
+    }
+    if (options.allow_number_and_string) {
+        return (left == .number and right == .string) or
+            (left == .string and right == .number);
+    }
+    return false;
 }
 
 fn isAllowedOperand(value_type: ValueType) bool {
