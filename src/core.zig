@@ -460,6 +460,11 @@ pub const LogicalAssignmentOperatorsStyle = enum {
     never,
 };
 
+pub const ReactJsxBooleanValueStyle = enum {
+    never,
+    always,
+};
+
 pub const FuncNamesStyle = enum {
     always,
     as_needed,
@@ -851,6 +856,7 @@ pub const Options = struct {
     react_default_props_match_prop_types: bool = true,
     react_display_name: bool = true,
     react_jsx_boolean_value: bool = true,
+    react_jsx_boolean_value_style: ReactJsxBooleanValueStyle = .never,
     react_jsx_filename_extension: bool = true,
     react_jsx_no_duplicate_props: bool = true,
     react_jsx_no_comment_textnodes: bool = true,
@@ -1218,6 +1224,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "operator-assignment")) {
             self.operator_assignment_style = try operatorAssignmentStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/jsx-boolean-value")) {
+            self.react_jsx_boolean_value_style = try reactJsxBooleanValueStyleFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/class-literal-property-style")) {
             self.typescript_eslint_class_literal_property_style_style = try typescriptEslintClassLiteralPropertyStyleFromConfig(value);
@@ -2694,6 +2703,22 @@ pub const Options = struct {
         };
         if (std.mem.eql(u8, style, "always")) return .always;
         if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn reactJsxBooleanValueStyleFromConfig(value: std.json.Value) RuleConfigError!ReactJsxBooleanValueStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .never,
+        };
+        if (items.len < 2) return .never;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "never")) return .never;
+        if (std.mem.eql(u8, style, "always")) return .always;
         return error.UnsupportedRuleConfigValue;
     }
 

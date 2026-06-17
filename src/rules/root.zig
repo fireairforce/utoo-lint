@@ -2661,7 +2661,14 @@ const BasicVisitor = struct {
             try react_no_danger.check(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1));
         }
         if (self.options.react_jsx_boolean_value) {
-            try react_jsx_boolean_value.check(self.allocator, self.diagnostics, ctx.tree, attribute, index);
+            try react_jsx_boolean_value.checkWithStyle(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                attribute,
+                index,
+                self.options.react_jsx_boolean_value_style,
+            );
         }
         if (self.options.react_style_prop_object) {
             try react_style_prop_object.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1), &self.react_style_prop_object_bindings);

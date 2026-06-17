@@ -221,7 +221,7 @@ Each rule links to the corresponding ESLint rule reference.
 
 | Rule | Status |
 | --- | --- |
-| [`react/jsx-boolean-value`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md) | Implemented for fishlint's `never` configuration |
+| [`react/jsx-boolean-value`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md) | Implemented for `never` and `always` configurations |
 | [`react/jsx-no-comment-textnodes`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-comment-textnodes.md) | Implemented |
 | [`react/jsx-no-duplicate-props`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-duplicate-props.md) | Implemented for fishlint's `ignoreCase: true` configuration |
 | [`react/jsx-no-target-blank`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-target-blank.md) | Implemented for eslint-plugin-react's default link configuration |

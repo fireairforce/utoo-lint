@@ -14,8 +14,34 @@ pub fn check(
     attribute: ast.JSXAttribute,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    return checkWithStyle(allocator, diagnostics, tree, attribute, index, .never);
+}
+
+pub fn checkWithStyle(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    attribute: ast.JSXAttribute,
+    index: ast.NodeIndex,
+    style: core.ReactJsxBooleanValueStyle,
+) Allocator.Error!void {
     const name = attributeName(tree, attribute.name) orelse return;
-    if (!isExplicitTrue(tree, attribute.value)) return;
+    if (style == .never) {
+        if (!isExplicitTrue(tree, attribute.value)) return;
+
+        try core.addDiagnosticFmt(
+            allocator,
+            diagnostics,
+            .@"error",
+            id,
+            tree.span(index),
+            "Value must be omitted for boolean attribute `{s}`",
+            .{name},
+        );
+        return;
+    }
+
+    if (attribute.value != .null) return;
 
     try core.addDiagnosticFmt(
         allocator,
@@ -23,7 +49,7 @@ pub fn check(
         .@"error",
         id,
         tree.span(index),
-        "Value must be omitted for boolean attribute `{s}`",
+        "Value must be set for boolean attribute `{s}`",
         .{name},
     );
 }
