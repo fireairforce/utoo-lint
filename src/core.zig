@@ -1260,6 +1260,8 @@ pub const Options = struct {
     typescript_eslint_no_extra_non_null_assertion: bool = true,
     typescript_eslint_no_duplicate_enum_values: bool = true,
     typescript_eslint_no_inferrable_types: bool = true,
+    typescript_eslint_no_inferrable_types_ignore_parameters: bool = false,
+    typescript_eslint_no_inferrable_types_ignore_properties: bool = false,
     typescript_eslint_no_invalid_void_type: bool = true,
     typescript_eslint_no_loss_of_precision: bool = true,
     typescript_eslint_no_loop_func: bool = true,
@@ -1668,6 +1670,10 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/explicit-member-accessibility")) {
             self.typescript_eslint_explicit_member_accessibility_accessibility = try typescriptEslintExplicitMemberAccessibilityFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-inferrable-types")) {
+            self.typescript_eslint_no_inferrable_types_ignore_parameters = try typescriptEslintNoInferrableTypesBoolOptionFromConfig(value, "ignoreParameters", false);
+            self.typescript_eslint_no_inferrable_types_ignore_properties = try typescriptEslintNoInferrableTypesBoolOptionFromConfig(value, "ignoreProperties", false);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -3994,6 +4000,23 @@ pub const Options = struct {
         return names;
     }
 
+    fn typescriptEslintNoInferrableTypesBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn typescriptEslintTypedefBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4207,6 +4230,12 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unused-vars", true));
     try std.testing.expect(options.typescript_eslint_no_unused_vars);
     try std.testing.expect(!options.no_unused_vars);
+
+    try std.testing.expect(!options.typescript_eslint_no_inferrable_types);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-inferrable-types", true));
+    try std.testing.expect(options.typescript_eslint_no_inferrable_types);
+    try std.testing.expect(!options.typescript_eslint_no_inferrable_types_ignore_parameters);
+    try std.testing.expect(!options.typescript_eslint_no_inferrable_types_ignore_properties);
 
     try std.testing.expect(!options.typescript_eslint_no_duplicate_enum_values);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-duplicate-enum-values", true));
@@ -5362,6 +5391,18 @@ test "Options can apply ESLint-style rule config values" {
         TypescriptEslintExplicitMemberAccessibility.off,
         options.typescript_eslint_explicit_member_accessibility_accessibility,
     );
+
+    var typescript_no_inferrable_types_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreParameters\":true,\"ignoreProperties\":true}]",
+        .{},
+    );
+    defer typescript_no_inferrable_types_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-inferrable-types", typescript_no_inferrable_types_config.value);
+    try std.testing.expect(options.typescript_eslint_no_inferrable_types);
+    try std.testing.expect(options.typescript_eslint_no_inferrable_types_ignore_parameters);
+    try std.testing.expect(options.typescript_eslint_no_inferrable_types_ignore_properties);
 
     var no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,

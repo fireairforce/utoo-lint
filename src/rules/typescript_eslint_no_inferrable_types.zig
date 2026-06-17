@@ -7,6 +7,11 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "@typescript-eslint/no-inferrable-types";
 
+pub const Options = struct {
+    ignore_parameters: bool = false,
+    ignore_properties: bool = false,
+};
+
 pub fn checkVariableDeclarator(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -23,7 +28,10 @@ pub fn checkAssignmentPattern(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     pattern: ast.AssignmentPattern,
+    options: Options,
 ) Allocator.Error!void {
+    if (options.ignore_parameters) return;
+
     const type_annotation = if (pattern.type_annotation != .null)
         pattern.type_annotation
     else
@@ -37,7 +45,9 @@ pub fn checkPropertyDefinition(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     property: ast.PropertyDefinition,
+    options: Options,
 ) Allocator.Error!void {
+    if (options.ignore_properties) return;
     if (property.readonly or property.optional) return;
     if (property.value == .null) return;
     try reportInferrableType(allocator, diagnostics, tree, property.type_annotation, property.value);

@@ -45,6 +45,37 @@ test "reports @typescript-eslint/no-inferrable-types for defaulted parameters" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.typescript_eslint_no_inferrable_types.id));
 }
 
+test "supports configured @typescript-eslint/no-inferrable-types ignored parameters and properties" {
+    const source =
+        \\const name: string = "Ada";
+        \\function visit(count: number = 1) {
+        \\  return count;
+        \\}
+        \\class Example {
+        \\  value: number = 1;
+        \\}
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreParameters\":true,\"ignoreProperties\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("@typescript-eslint/no-inferrable-types", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_inferrable_types.id));
+}
+
 test "does not report @typescript-eslint/no-inferrable-types for non-inferrable annotations" {
     const source =
         \\const value: string | number = "Ada";

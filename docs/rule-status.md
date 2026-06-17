@@ -273,7 +273,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-duplicate-enum-values`](https://typescript-eslint.io/rules/no-duplicate-enum-values/) | Implemented |
 | [`@typescript-eslint/no-extra-semi`](https://typescript-eslint.io/rules/no-extra-semi/) | Implemented |
 | [`@typescript-eslint/no-extra-non-null-assertion`](https://typescript-eslint.io/rules/no-extra-non-null-assertion/) | Implemented |
-| [`@typescript-eslint/no-inferrable-types`](https://typescript-eslint.io/rules/no-inferrable-types/) | Implemented |
+| [`@typescript-eslint/no-inferrable-types`](https://typescript-eslint.io/rules/no-inferrable-types/) | Supports `ignoreParameters` and `ignoreProperties` configuration |
 | [`@typescript-eslint/no-invalid-void-type`](https://typescript-eslint.io/rules/no-invalid-void-type/) | Implemented |
 | [`@typescript-eslint/no-loss-of-precision`](https://typescript-eslint.io/rules/no-loss-of-precision/) | Implemented |
 | [`@typescript-eslint/no-misused-new`](https://typescript-eslint.io/rules/no-misused-new/) | Implemented |
