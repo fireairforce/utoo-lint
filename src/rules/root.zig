@@ -1602,7 +1602,14 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_method_signature_style) {
-            try typescript_eslint_method_signature_style.check(self.allocator, self.diagnostics, ctx.tree, signature, index);
+            try typescript_eslint_method_signature_style.checkMethodSignature(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                signature,
+                index,
+                self.options.typescript_eslint_method_signature_style_style,
+            );
         }
         return .proceed;
     }
@@ -1633,6 +1640,16 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_typedef) {
             try typescript_eslint_typedef.checkPropertySignature(self.allocator, self.diagnostics, ctx.tree, signature, index);
+        }
+        if (self.options.typescript_eslint_method_signature_style) {
+            try typescript_eslint_method_signature_style.checkPropertySignature(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                signature,
+                index,
+                self.options.typescript_eslint_method_signature_style_style,
+            );
         }
         return .proceed;
     }
