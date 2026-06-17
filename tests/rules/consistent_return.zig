@@ -26,6 +26,39 @@ test "reports consistent-return for mixed return values" {
     try std.testing.expectEqualStrings("Expected no return value.", result.diagnostics[1].message);
 }
 
+test "supports configured consistent-return treatUndefinedAsUnspecified" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"treatUndefinedAsUnspecified\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("consistent-return", config.value);
+    options.curly = false;
+    options.no_undefined = false;
+    options.no_unused_vars = false;
+    options.no_useless_return = false;
+    options.no_void = false;
+
+    const source =
+        "function undefinedThenBare(flag) {\n" ++
+        "  if (flag) return undefined;\n" ++
+        "  return;\n" ++
+        "}\n" ++
+        "const voidThenBare = (flag) => {\n" ++
+        "  if (flag) return void 0;\n" ++
+        "  return;\n" ++
+        "};\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.consistent_return.id));
+}
+
 test "reports consistent-return when value-returning functions can fall through" {
     const source =
         "function maybeValue(flag) {\n" ++

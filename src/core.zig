@@ -447,6 +447,7 @@ pub const Options = struct {
     capitalized_comments_mode: CapitalizedCommentsMode = .always,
     capitalized_comments_ignore_inline_comments: CapitalizedCommentsIgnoreInlineComments = .no,
     consistent_return: bool = true,
+    consistent_return_treat_undefined_as_unspecified: bool = false,
     constructor_super: bool = true,
     curly: bool = true,
     curly_style: CurlyStyle = .all,
@@ -929,6 +930,9 @@ pub const Options = struct {
             self.capitalized_comments_mode = try capitalizedCommentsModeFromConfig(value);
             self.capitalized_comments_ignore_inline_comments = try capitalizedCommentsIgnoreInlineCommentsFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "consistent-return")) {
+            self.consistent_return_treat_undefined_as_unspecified = try consistentReturnTreatUndefinedAsUnspecifiedFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "curly")) {
             self.curly_style = try curlyStyleFromConfig(value);
         }
@@ -1148,6 +1152,23 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "always")) return .strict;
         if (std.mem.eql(u8, style, "allow-null")) return .allow_null;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn consistentReturnTreatUndefinedAsUnspecifiedFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("treatUndefinedAsUnspecified") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn accessorPairsGetWithoutSetFromConfig(value: std.json.Value) RuleConfigError!AccessorPairsGetWithoutSet {
@@ -2561,6 +2582,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.capitalized_comments);
     try std.testing.expectEqual(CapitalizedCommentsMode.never, options.capitalized_comments_mode);
     try std.testing.expectEqual(CapitalizedCommentsIgnoreInlineComments.yes, options.capitalized_comments_ignore_inline_comments);
+
+    var consistent_return_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"treatUndefinedAsUnspecified\":true}]",
+        .{},
+    );
+    defer consistent_return_config.deinit();
+    try options.setByRuleConfigValue("consistent-return", consistent_return_config.value);
+    try std.testing.expect(options.consistent_return);
+    try std.testing.expect(options.consistent_return_treat_undefined_as_unspecified);
 
     var dot_notation_config = try std.json.parseFromSlice(
         std.json.Value,
