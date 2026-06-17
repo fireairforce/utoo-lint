@@ -978,6 +978,9 @@ pub const Options = struct {
     no_unused_expressions_allow_ternary: NoUnusedExpressionsAllowTernary = .no,
     no_unused_expressions_allow_tagged_templates: NoUnusedExpressionsAllowTaggedTemplates = .no,
     typescript_eslint_no_unused_expressions: bool = true,
+    typescript_eslint_no_unused_expressions_allow_short_circuit: NoUnusedExpressionsAllowShortCircuit = .yes,
+    typescript_eslint_no_unused_expressions_allow_ternary: NoUnusedExpressionsAllowTernary = .yes,
+    typescript_eslint_no_unused_expressions_allow_tagged_templates: NoUnusedExpressionsAllowTaggedTemplates = .yes,
     no_warning_comments: bool = true,
     no_warning_comments_location: NoWarningCommentsLocation = .start,
     no_warning_comments_decoration: NoWarningCommentsDecoration = .none,
@@ -1401,6 +1404,11 @@ pub const Options = struct {
             self.no_unused_expressions_allow_short_circuit = try noUnusedExpressionsAllowShortCircuitFromConfig(value);
             self.no_unused_expressions_allow_ternary = try noUnusedExpressionsAllowTernaryFromConfig(value);
             self.no_unused_expressions_allow_tagged_templates = try noUnusedExpressionsAllowTaggedTemplatesFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-unused-expressions")) {
+            self.typescript_eslint_no_unused_expressions_allow_short_circuit = try noUnusedExpressionsAllowShortCircuitFromConfig(value);
+            self.typescript_eslint_no_unused_expressions_allow_ternary = try noUnusedExpressionsAllowTernaryFromConfig(value);
+            self.typescript_eslint_no_unused_expressions_allow_tagged_templates = try noUnusedExpressionsAllowTaggedTemplatesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-unused-vars")) {
             self.no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .none);
@@ -4428,6 +4436,19 @@ test "Options can apply ESLint-style rule config values" {
     defer no_unused_expressions_default_config.deinit();
     try options.setByRuleConfigValue("no-unused-expressions", no_unused_expressions_default_config.value);
     try std.testing.expectEqual(NoUnusedExpressionsAllowTaggedTemplates.no, options.no_unused_expressions_allow_tagged_templates);
+
+    var typescript_no_unused_expressions_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowShortCircuit\":false,\"allowTernary\":false,\"allowTaggedTemplates\":false}]",
+        .{},
+    );
+    defer typescript_no_unused_expressions_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-unused-expressions", typescript_no_unused_expressions_config.value);
+    try std.testing.expect(options.typescript_eslint_no_unused_expressions);
+    try std.testing.expectEqual(NoUnusedExpressionsAllowShortCircuit.no, options.typescript_eslint_no_unused_expressions_allow_short_circuit);
+    try std.testing.expectEqual(NoUnusedExpressionsAllowTernary.no, options.typescript_eslint_no_unused_expressions_allow_ternary);
+    try std.testing.expectEqual(NoUnusedExpressionsAllowTaggedTemplates.no, options.typescript_eslint_no_unused_expressions_allow_tagged_templates);
 
     var no_unused_vars_config = try std.json.parseFromSlice(
         std.json.Value,
