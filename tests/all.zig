@@ -1007,6 +1007,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_default_props_match_prop_types.zig");
+}
+
+comptime {
     _ = @import("rules/react_require_render_return.zig");
 }
 

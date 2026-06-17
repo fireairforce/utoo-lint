@@ -1152,6 +1152,7 @@ pub const Options = struct {
     prefer_spread: bool = true,
     prefer_template: bool = true,
     react_default_props_match_prop_types: bool = true,
+    react_default_props_match_prop_types_allow_required_defaults: bool = false,
     react_display_name: bool = true,
     react_jsx_boolean_value: bool = true,
     react_jsx_boolean_value_style: ReactJsxBooleanValueStyle = .never,
@@ -1586,6 +1587,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "operator-assignment")) {
             self.operator_assignment_style = try operatorAssignmentStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/default-props-match-prop-types")) {
+            self.react_default_props_match_prop_types_allow_required_defaults = try reactDefaultPropsMatchPropTypesAllowRequiredDefaultsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/button-has-type")) {
             self.react_button_has_type_button = try reactButtonHasTypeBoolOptionFromConfig(value, "button", true);
@@ -3609,6 +3613,23 @@ pub const Options = struct {
         return error.UnsupportedRuleConfigValue;
     }
 
+    fn reactDefaultPropsMatchPropTypesAllowRequiredDefaultsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowRequiredDefaults") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn reactJsxNoBindBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -4539,6 +4560,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(!options.react_forbid_prop_types_forbid_any);
     try std.testing.expect(options.react_forbid_prop_types_forbid_array);
     try std.testing.expect(!options.react_forbid_prop_types_forbid_object);
+
+    var react_default_props_match_prop_types_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowRequiredDefaults\":true}]",
+        .{},
+    );
+    defer react_default_props_match_prop_types_config.deinit();
+    try options.setByRuleConfigValue("react/default-props-match-prop-types", react_default_props_match_prop_types_config.value);
+    try std.testing.expect(options.react_default_props_match_prop_types);
+    try std.testing.expect(options.react_default_props_match_prop_types_allow_required_defaults);
 
     var react_jsx_filename_extension_config = try std.json.parseFromSlice(
         std.json.Value,

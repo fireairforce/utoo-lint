@@ -7,6 +7,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "react/default-props-match-prop-types";
 
+pub const Options = struct {
+    allow_required_defaults: bool = false,
+};
+
 const PropInfo = struct {
     name: []const u8,
     required: bool,
@@ -220,6 +224,7 @@ pub fn finish(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     state: *State,
+    options: Options,
 ) Allocator.Error!void {
     for (state.components.items) |component| {
         if (!component.detected) continue;
@@ -238,7 +243,7 @@ pub fn finish(
                     "defaultProp \"{s}\" has no corresponding propTypes declaration.",
                     .{default_prop.name},
                 );
-            } else if (prop.?.required) {
+            } else if (prop.?.required and !options.allow_required_defaults) {
                 try core.addDiagnosticFmt(
                     allocator,
                     diagnostics,
