@@ -62,6 +62,64 @@ test "does not report no-bitwise for logical or arithmetic operators" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_bitwise.id));
 }
 
+test "supports configured no-bitwise allow operators" {
+    const source =
+        \\const a = left | right;
+        \\value |= mask;
+        \\const b = ~value;
+        \\const c = left >> right;
+        \\value >>= bits;
+        \\const d = left & right;
+        \\value &= mask;
+    ;
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"|\",\"~\",\">>\"]}]",
+        .{},
+    );
+    defer config.deinit();
+    try options.setByRuleConfigValue("no-bitwise", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_bitwise.id));
+}
+
+test "supports configured no-bitwise int32Hint" {
+    const source =
+        \\const a = value | 0;
+        \\const b = value | 1;
+        \\const c = value | zero;
+    ;
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"int32Hint\":true}]",
+        .{},
+    );
+    defer config.deinit();
+    try options.setByRuleConfigValue("no-bitwise", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_bitwise.id));
+}
+
 test "can disable no-bitwise" {
     const source =
         \\const value = left | right;

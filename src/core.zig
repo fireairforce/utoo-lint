@@ -495,6 +495,14 @@ pub const Options = struct {
     no_await_in_loop: bool = true,
     no_alert: bool = true,
     no_bitwise: bool = true,
+    no_bitwise_allow_bitwise_and: bool = false,
+    no_bitwise_allow_bitwise_or: bool = false,
+    no_bitwise_allow_bitwise_xor: bool = false,
+    no_bitwise_allow_bitwise_not: bool = false,
+    no_bitwise_allow_left_shift: bool = false,
+    no_bitwise_allow_right_shift: bool = false,
+    no_bitwise_allow_unsigned_right_shift: bool = false,
+    no_bitwise_int32_hint: bool = false,
     no_buffer_constructor: bool = true,
     no_caller: bool = true,
     no_case_declarations: bool = true,
@@ -981,6 +989,16 @@ pub const Options = struct {
             self.logical_assignment_operators_style = try logicalAssignmentOperatorsStyleFromConfig(value);
             self.logical_assignment_operators_enforce_for_if_statements = try logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "no-bitwise")) {
+            self.no_bitwise_allow_bitwise_and = try noBitwiseAllowFromConfig(value, "&");
+            self.no_bitwise_allow_bitwise_or = try noBitwiseAllowFromConfig(value, "|");
+            self.no_bitwise_allow_bitwise_xor = try noBitwiseAllowFromConfig(value, "^");
+            self.no_bitwise_allow_bitwise_not = try noBitwiseAllowFromConfig(value, "~");
+            self.no_bitwise_allow_left_shift = try noBitwiseAllowFromConfig(value, "<<");
+            self.no_bitwise_allow_right_shift = try noBitwiseAllowFromConfig(value, ">>");
+            self.no_bitwise_allow_unsigned_right_shift = try noBitwiseAllowFromConfig(value, ">>>");
+            self.no_bitwise_int32_hint = try noBitwiseInt32HintFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "no-console")) {
             self.no_console_allow = try noConsoleAllowFromConfig(value);
         }
@@ -1461,6 +1479,59 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (enforce) .yes else .no;
+    }
+
+    fn noBitwiseAllowFromConfig(value: std.json.Value, expected: []const u8) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow_value = config.get("allow") orelse return false;
+        const allow_items = switch (allow_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        for (allow_items) |item| {
+            const operator = switch (item) {
+                .string => |operator| operator,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!isNoBitwiseOperatorToken(operator)) return error.UnsupportedRuleConfigValue;
+            if (std.mem.eql(u8, operator, expected)) return true;
+        }
+
+        return false;
+    }
+
+    fn noBitwiseInt32HintFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("int32Hint") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn isNoBitwiseOperatorToken(operator: []const u8) bool {
+        inline for (.{ "&", "|", "^", "~", "<<", ">>", ">>>" }) |allowed| {
+            if (std.mem.eql(u8, operator, allowed)) return true;
+        }
+        return false;
     }
 
     fn noConsoleAllowFromConfig(value: std.json.Value) RuleConfigError!NoConsoleAllow {
@@ -2885,6 +2956,24 @@ test "Options can apply ESLint-style rule config values" {
         LogicalAssignmentOperatorsEnforceForIfStatements.yes,
         options.logical_assignment_operators_enforce_for_if_statements,
     );
+
+    var no_bitwise_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"|\",\"~\",\">>\"],\"int32Hint\":true}]",
+        .{},
+    );
+    defer no_bitwise_config.deinit();
+    try options.setByRuleConfigValue("no-bitwise", no_bitwise_config.value);
+    try std.testing.expect(options.no_bitwise);
+    try std.testing.expect(!options.no_bitwise_allow_bitwise_and);
+    try std.testing.expect(options.no_bitwise_allow_bitwise_or);
+    try std.testing.expect(!options.no_bitwise_allow_bitwise_xor);
+    try std.testing.expect(options.no_bitwise_allow_bitwise_not);
+    try std.testing.expect(!options.no_bitwise_allow_left_shift);
+    try std.testing.expect(options.no_bitwise_allow_right_shift);
+    try std.testing.expect(!options.no_bitwise_allow_unsigned_right_shift);
+    try std.testing.expect(options.no_bitwise_int32_hint);
 
     var no_console_config = try std.json.parseFromSlice(
         std.json.Value,
