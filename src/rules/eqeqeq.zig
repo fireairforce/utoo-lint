@@ -35,6 +35,7 @@ pub fn checkWithOptions(
     {
         return;
     }
+    if (options.style == .smart and isSmartException(tree, expression)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -46,10 +47,46 @@ pub fn checkWithOptions(
     );
 }
 
+fn isSmartException(tree: *const ast.Tree, expression: ast.BinaryExpression) bool {
+    if (isNullLiteral(tree, expression.left) or isNullLiteral(tree, expression.right)) return true;
+    if (isTypeofExpression(tree, expression.left) or isTypeofExpression(tree, expression.right)) return true;
+    const left_kind = literalKind(tree, expression.left) orelse return false;
+    const right_kind = literalKind(tree, expression.right) orelse return false;
+    return left_kind == right_kind;
+}
+
 fn isNullLiteral(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     return switch (tree.data(unwrapTransparent(tree, index))) {
         .null_literal => true,
         else => false,
+    };
+}
+
+fn isTypeofExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .unary_expression => |unary| unary.operator == .typeof,
+        else => false,
+    };
+}
+
+const LiteralKind = enum {
+    bigint,
+    boolean,
+    null,
+    number,
+    object,
+    string,
+};
+
+fn literalKind(tree: *const ast.Tree, index: ast.NodeIndex) ?LiteralKind {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .bigint_literal => .bigint,
+        .boolean_literal => .boolean,
+        .null_literal => .null,
+        .numeric_literal => .number,
+        .regexp_literal => .object,
+        .string_literal => .string,
+        else => null,
     };
 }
 

@@ -47,3 +47,36 @@ test "supports configured eqeqeq allow-null style" {
 
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.eqeqeq.id));
 }
+
+test "supports configured eqeqeq smart style" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"smart\"]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("eqeqeq", config.value);
+    options.no_eq_null = false;
+    options.no_unused_vars = false;
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\if (value == null) { use(value); }
+        \\if (typeof value == "undefined") { use(value); }
+        \\if ("number" != typeof value) { use(value); }
+        \\if (1 == 1) { use(value); }
+        \\if (true != false) { use(value); }
+        \\if ("text" == 1) { use(value); }
+        \\if (value == 1) { use(value); }
+        \\if (value != other) { use(value); }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.eqeqeq.id));
+}
