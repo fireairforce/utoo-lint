@@ -40,6 +40,34 @@ test "does not report no-useless-rename for meaningful aliases or shorthand" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_useless_rename.id));
 }
 
+test "supports configured no-useless-rename ignore options" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreDestructuring\":true,\"ignoreImport\":true,\"ignoreExport\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-useless-rename", config.value);
+    options.no_unused_vars = false;
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\import { foo as foo } from "mod";
+        \\export { foo as foo };
+        \\const { bar: bar, baz: baz = fallback } = source;
+        \\({ qux: qux } = source);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_useless_rename.id));
+}
+
 test "can disable no-useless-rename" {
     const source =
         \\import { foo as foo } from "mod";

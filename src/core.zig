@@ -1145,6 +1145,9 @@ pub const Options = struct {
     no_useless_catch: bool = true,
     no_useless_escape: bool = true,
     no_useless_rename: bool = true,
+    no_useless_rename_ignore_destructuring: bool = false,
+    no_useless_rename_ignore_import: bool = false,
+    no_useless_rename_ignore_export: bool = false,
     no_unused_expressions: bool = true,
     no_unused_expressions_allow_short_circuit: NoUnusedExpressionsAllowShortCircuit = .no,
     no_unused_expressions_allow_ternary: NoUnusedExpressionsAllowTernary = .no,
@@ -1590,6 +1593,11 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-redeclare")) {
             self.no_redeclare_builtin_globals = try noRedeclareBuiltinGlobalsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-useless-rename")) {
+            self.no_useless_rename_ignore_destructuring = try noUselessRenameBoolOptionFromConfig(value, "ignoreDestructuring");
+            self.no_useless_rename_ignore_import = try noUselessRenameBoolOptionFromConfig(value, "ignoreImport");
+            self.no_useless_rename_ignore_export = try noUselessRenameBoolOptionFromConfig(value, "ignoreExport");
         }
         if (std.mem.eql(u8, cli_name, "no-shadow")) {
             self.no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -3584,6 +3592,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("allowIndirect") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn noUselessRenameBoolOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return false) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -5748,6 +5773,19 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("radix", radix_config.value);
     try std.testing.expect(options.radix);
     try std.testing.expectEqual(RadixStyle.as_needed, options.radix_style);
+
+    var no_useless_rename_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreDestructuring\":true,\"ignoreImport\":true,\"ignoreExport\":true}]",
+        .{},
+    );
+    defer no_useless_rename_config.deinit();
+    try options.setByRuleConfigValue("no-useless-rename", no_useless_rename_config.value);
+    try std.testing.expect(options.no_useless_rename);
+    try std.testing.expect(options.no_useless_rename_ignore_destructuring);
+    try std.testing.expect(options.no_useless_rename_ignore_import);
+    try std.testing.expect(options.no_useless_rename_ignore_export);
 
     var no_return_assign_config = try std.json.parseFromSlice(
         std.json.Value,
