@@ -144,6 +144,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-unreachable`](https://eslint.org/docs/latest/rules/no-unreachable) | Implemented |
 | [`no-unsafe-finally`](https://eslint.org/docs/latest/rules/no-unsafe-finally) | Implemented |
 | [`no-unsafe-negation`](https://eslint.org/docs/latest/rules/no-unsafe-negation) | Implemented |
+| [`no-use-before-define`](https://eslint.org/docs/latest/rules/no-use-before-define) | Supports `functions`, `classes`, `variables`, and `allowNamedExports` configuration |
 | [`no-unused-expressions`](https://eslint.org/docs/latest/rules/no-unused-expressions) | Implemented with optional `allowShortCircuit`, `allowTernary`, and `allowTaggedTemplates` behavior |
 | [`no-unused-labels`](https://eslint.org/docs/latest/rules/no-unused-labels) | Implemented |
 | [`no-unused-vars`](https://eslint.org/docs/latest/rules/no-unused-vars) | Supports `vars`, `args`, `caughtErrors`, and `ignoreRestSiblings` configuration |
@@ -296,7 +297,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-useless-empty-export`](https://typescript-eslint.io/rules/no-useless-empty-export/) | Implemented |
 | [`@typescript-eslint/no-unused-expressions`](https://typescript-eslint.io/rules/no-unused-expressions/) | Supports `allowShortCircuit`, `allowTernary`, and `allowTaggedTemplates` configuration |
 | [`@typescript-eslint/no-unused-vars`](https://typescript-eslint.io/rules/no-unused-vars/) | Supports `vars`, `args`, `caughtErrors`, and `ignoreRestSiblings` configuration |
-| [`@typescript-eslint/no-use-before-define`](https://typescript-eslint.io/rules/no-use-before-define/) | Supports `functions`, `classes`, and `variables` configuration |
+| [`@typescript-eslint/no-use-before-define`](https://typescript-eslint.io/rules/no-use-before-define/) | Supports `functions`, `classes`, `variables`, and `allowNamedExports` configuration |
 | [`@typescript-eslint/no-var-requires`](https://typescript-eslint.io/rules/no-var-requires/) | Implemented |
 | [`@typescript-eslint/no-wrapper-object-types`](https://typescript-eslint.io/rules/no-wrapper-object-types/) | Implemented |
 | [`@typescript-eslint/prefer-as-const`](https://typescript-eslint.io/rules/prefer-as-const/) | Implemented |

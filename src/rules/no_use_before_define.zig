@@ -10,6 +10,7 @@ pub const id = "no-use-before-define";
 
 const SymbolId = traverser.semantic.SymbolId;
 const DeclSymbolMap = std.AutoHashMap(ast.NodeIndex, SymbolId);
+const NodeSet = std.AutoHashMap(ast.NodeIndex, void);
 
 pub const Options = struct {
     rule_id: []const u8 = id,
@@ -17,6 +18,7 @@ pub const Options = struct {
     check_functions: bool = true,
     check_classes: bool = true,
     check_variables: bool = true,
+    allow_named_exports: bool = false,
 };
 
 const InitRange = struct {
@@ -64,10 +66,21 @@ pub fn runWithOptions(
     try traverser.basic.traverse(InitVisitor, tree, &visitor);
     std.mem.sort(InitRange, init_ranges.items, {}, lessThanInitRange);
 
+    var named_export_refs = NodeSet.init(allocator);
+    defer named_export_refs.deinit();
+
+    if (options.allow_named_exports) {
+        var named_export_visitor = NamedExportVisitor{
+            .refs = &named_export_refs,
+        };
+        try traverser.basic.traverse(NamedExportVisitor, tree, &named_export_visitor);
+    }
+
     var reference_iter = symbol_table.iterReferences();
     while (reference_iter.next()) |entry| {
         const reference = entry.reference;
         if (reference.kind != .value) continue;
+        if (options.allow_named_exports and named_export_refs.contains(reference.node)) continue;
 
         const symbol_id = symbol_table.referenceSymbol(entry.id);
         if (symbol_id == .none) continue;
@@ -149,6 +162,31 @@ const InitVisitor = struct {
             },
             else => {},
         }
+    }
+};
+
+const NamedExportVisitor = struct {
+    refs: *NodeSet,
+
+    pub fn enter_export_specifier(
+        self: *NamedExportVisitor,
+        specifier: ast.ExportSpecifier,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (specifier.export_kind == .type) return .proceed;
+
+        if (ctx.path.parent()) |parent| {
+            const parent_data = ctx.tree.data(parent);
+            if (parent_data == .export_named_declaration and
+                parent_data.export_named_declaration.source == .null and
+                parent_data.export_named_declaration.export_kind != .type)
+            {
+                try self.refs.put(specifier.local, {});
+            }
+        }
+
+        return .proceed;
     }
 };
 

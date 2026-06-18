@@ -1188,6 +1188,7 @@ pub const Options = struct {
     no_use_before_define_check_functions: NoUseBeforeDefineCheck = .yes,
     no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
     no_use_before_define_check_variables: NoUseBeforeDefineCheck = .yes,
+    no_use_before_define_allow_named_exports: bool = false,
     no_undef: bool = true,
     no_undef_typeof: bool = false,
     prefer_const: bool = true,
@@ -1376,6 +1377,7 @@ pub const Options = struct {
     typescript_eslint_no_use_before_define_check_functions: NoUseBeforeDefineCheck = .no,
     typescript_eslint_no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
     typescript_eslint_no_use_before_define_check_variables: NoUseBeforeDefineCheck = .yes,
+    typescript_eslint_no_use_before_define_allow_named_exports: bool = false,
     typescript_eslint_no_var_requires: bool = true,
     typescript_eslint_no_wrapper_object_types: bool = true,
     typescript_eslint_prefer_as_const: bool = true,
@@ -1673,6 +1675,7 @@ pub const Options = struct {
             self.no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", true);
             self.no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
             self.no_use_before_define_check_variables = try noUseBeforeDefineCheckFromConfig(value, "variables", true);
+            self.no_use_before_define_allow_named_exports = try noUseBeforeDefineAllowNamedExportsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "object-shorthand")) {
             self.object_shorthand_style = try objectShorthandStyleFromConfig(value);
@@ -1846,6 +1849,7 @@ pub const Options = struct {
             self.typescript_eslint_no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", false);
             self.typescript_eslint_no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
             self.typescript_eslint_no_use_before_define_check_variables = try noUseBeforeDefineCheckFromConfig(value, "variables", true);
+            self.typescript_eslint_no_use_before_define_allow_named_exports = try noUseBeforeDefineAllowNamedExportsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-void")) {
             self.no_void_allow_as_statement = try noVoidAllowAsStatementFromConfig(value);
@@ -3517,6 +3521,24 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (enabled) .yes else .no;
+    }
+
+    fn noUseBeforeDefineAllowNamedExportsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            .string => return false,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowNamedExports") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn objectShorthandStyleFromConfig(value: std.json.Value) RuleConfigError!ObjectShorthandStyle {
@@ -6085,7 +6107,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"functions\":false,\"classes\":false,\"variables\":false}]",
+        "[\"error\",{\"functions\":false,\"classes\":false,\"variables\":false,\"allowNamedExports\":true}]",
         .{},
     );
     defer no_use_before_define_config.deinit();
@@ -6094,6 +6116,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_functions);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_classes);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.no_use_before_define_check_variables);
+    try std.testing.expect(options.no_use_before_define_allow_named_exports);
 
     var no_use_before_define_nofunc_config = try std.json.parseFromSlice(
         std.json.Value,
@@ -6132,7 +6155,7 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"functions\":true,\"classes\":false,\"variables\":false}]",
+        "[\"error\",{\"functions\":true,\"classes\":false,\"variables\":false,\"allowNamedExports\":true}]",
         .{},
     );
     defer typescript_no_use_before_define_config.deinit();
@@ -6141,6 +6164,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUseBeforeDefineCheck.yes, options.typescript_eslint_no_use_before_define_check_functions);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_classes);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_variables);
+    try std.testing.expect(options.typescript_eslint_no_use_before_define_allow_named_exports);
 
     var no_void_config = try std.json.parseFromSlice(
         std.json.Value,
