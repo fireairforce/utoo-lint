@@ -17,6 +17,7 @@ pub fn run(
     check_no_async_promise_executor: bool,
     check_no_promise_executor_return: bool,
     check_prefer_promise_reject_errors: bool,
+    prefer_promise_reject_errors_allow_empty_reject: bool,
 ) Allocator.Error!void {
     if (!check_no_async_promise_executor and
         !check_no_promise_executor_return and
@@ -29,6 +30,7 @@ pub fn run(
         .check_no_async_promise_executor = check_no_async_promise_executor,
         .check_no_promise_executor_return = check_no_promise_executor_return,
         .check_prefer_promise_reject_errors = check_prefer_promise_reject_errors,
+        .prefer_promise_reject_errors_allow_empty_reject = prefer_promise_reject_errors_allow_empty_reject,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -41,6 +43,7 @@ const Visitor = struct {
     check_no_async_promise_executor: bool,
     check_no_promise_executor_return: bool,
     check_prefer_promise_reject_errors: bool,
+    prefer_promise_reject_errors_allow_empty_reject: bool,
 
     pub fn enter_call_expression(
         self: *Visitor,
@@ -51,7 +54,14 @@ const Visitor = struct {
         if (self.check_prefer_promise_reject_errors and
             isPromiseRejectCall(ctx.tree, call))
         {
-            try checkRejectArgument(self.allocator, self.diagnostics, ctx.tree, call.arguments, index);
+            try checkRejectArgument(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                call.arguments,
+                index,
+                .{ .allow_empty_reject = self.prefer_promise_reject_errors_allow_empty_reject },
+            );
         }
 
         return .proceed;
@@ -90,7 +100,14 @@ const Visitor = struct {
             executor != null)
         {
             const reject_name = executorRejectName(ctx.tree, executor.?) orelse return .proceed;
-            try scanExecutorRejects(self.allocator, self.diagnostics, ctx.tree, reject_name, executor.?);
+            try scanExecutorRejects(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                reject_name,
+                executor.?,
+                .{ .allow_empty_reject = self.prefer_promise_reject_errors_allow_empty_reject },
+            );
         }
 
         return .proceed;
@@ -277,10 +294,11 @@ fn scanExecutorRejects(
     tree: *const ast.Tree,
     reject_name: []const u8,
     executor: ast.NodeIndex,
+    options: prefer_promise_reject_errors.Options,
 ) Allocator.Error!void {
     switch (tree.data(executor)) {
-        .function => |function| try scanRejectNode(allocator, diagnostics, tree, reject_name, function.body),
-        .arrow_function_expression => |arrow| try scanRejectNode(allocator, diagnostics, tree, reject_name, arrow.body),
+        .function => |function| try scanRejectNode(allocator, diagnostics, tree, reject_name, function.body, options),
+        .arrow_function_expression => |arrow| try scanRejectNode(allocator, diagnostics, tree, reject_name, arrow.body, options),
         else => {},
     }
 }
@@ -291,21 +309,22 @@ fn scanRejectNode(
     tree: *const ast.Tree,
     reject_name: []const u8,
     index: ast.NodeIndex,
+    options: prefer_promise_reject_errors.Options,
 ) Allocator.Error!void {
     if (index == .null) return;
 
     switch (tree.data(index)) {
         .call_expression => |call| {
             if (isRejectCall(tree, reject_name, call)) {
-                try checkRejectArgument(allocator, diagnostics, tree, call.arguments, index);
+                try checkRejectArgument(allocator, diagnostics, tree, call.arguments, index, options);
             }
-            try scanRejectChildren(allocator, diagnostics, tree, reject_name, call);
+            try scanRejectChildren(allocator, diagnostics, tree, reject_name, call, options);
         },
         .function,
         .arrow_function_expression,
         .class,
         => return,
-        inline else => |node| try scanRejectChildren(allocator, diagnostics, tree, reject_name, node),
+        inline else => |node| try scanRejectChildren(allocator, diagnostics, tree, reject_name, node, options),
     }
 }
 
@@ -315,16 +334,17 @@ fn scanRejectChildren(
     tree: *const ast.Tree,
     reject_name: []const u8,
     node: anytype,
+    options: prefer_promise_reject_errors.Options,
 ) Allocator.Error!void {
     const T = @TypeOf(node);
     if (@typeInfo(T) != .@"struct") return;
 
     inline for (@typeInfo(T).@"struct".fields) |field| {
         if (field.type == ast.NodeIndex) {
-            try scanRejectNode(allocator, diagnostics, tree, reject_name, @field(node, field.name));
+            try scanRejectNode(allocator, diagnostics, tree, reject_name, @field(node, field.name), options);
         } else if (field.type == ast.IndexRange) {
             for (tree.extra(@field(node, field.name))) |child| {
-                try scanRejectNode(allocator, diagnostics, tree, reject_name, child);
+                try scanRejectNode(allocator, diagnostics, tree, reject_name, child, options);
             }
         }
     }
@@ -340,11 +360,26 @@ fn checkRejectArgument(
     tree: *const ast.Tree,
     arguments: ast.IndexRange,
     index: ast.NodeIndex,
+    options: prefer_promise_reject_errors.Options,
 ) Allocator.Error!void {
-    if (arguments.len == 0) return;
+    if (arguments.len == 0) {
+        if (!options.allow_empty_reject) {
+            try addPreferPromiseRejectErrorsDiagnostic(allocator, diagnostics, tree, index);
+        }
+        return;
+    }
     const argument = tree.extra(arguments)[0];
     if (!isInvalidRejectReason(tree, unwrapTransparent(tree, argument))) return;
 
+    try addPreferPromiseRejectErrorsDiagnostic(allocator, diagnostics, tree, index);
+}
+
+fn addPreferPromiseRejectErrorsDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+) Allocator.Error!void {
     try core.addDiagnostic(
         allocator,
         diagnostics,

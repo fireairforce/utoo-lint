@@ -883,6 +883,7 @@ pub fn runSemantic(
             options.no_async_promise_executor,
             options.no_promise_executor_return,
             options.prefer_promise_reject_errors,
+            options.prefer_promise_reject_errors_allow_empty_reject,
         );
     }
 
