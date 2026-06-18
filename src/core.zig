@@ -501,6 +501,30 @@ pub const NoShadowAllowNames = struct {
     }
 };
 
+pub const max_no_unused_vars_ignore_pattern_len = 256;
+
+pub const NoUnusedVarsIgnorePatternError = error{
+    NoUnusedVarsIgnorePatternTooLong,
+};
+
+pub const NoUnusedVarsIgnorePattern = struct {
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_no_unused_vars_ignore_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const NoUnusedVarsIgnorePattern) ?[]const u8 {
+        if (!self.custom) return null;
+        return self.storage[0..self.length];
+    }
+
+    pub fn set(self: *NoUnusedVarsIgnorePattern, pattern_value: []const u8) NoUnusedVarsIgnorePatternError!void {
+        if (pattern_value.len > max_no_unused_vars_ignore_pattern_len) return error.NoUnusedVarsIgnorePatternTooLong;
+        @memcpy(self.storage[0..pattern_value.len], pattern_value);
+        self.custom = true;
+        self.length = pattern_value.len;
+    }
+};
+
 pub const max_no_useless_escape_allow_regex_characters = 32;
 
 pub const NoUselessEscapeAllowRegexCharactersError = error{
@@ -1428,6 +1452,7 @@ pub const Options = struct {
     no_unused_vars_args: NoUnusedVarsArgs = .none,
     no_unused_vars_caught_errors: NoUnusedVarsCaughtErrors = .all,
     no_unused_vars_ignore_rest_siblings: bool = false,
+    no_unused_vars_vars_ignore_pattern: NoUnusedVarsIgnorePattern = .{},
     no_use_before_define: bool = true,
     no_use_before_define_check_functions: NoUseBeforeDefineCheck = .yes,
     no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
@@ -1618,6 +1643,7 @@ pub const Options = struct {
     typescript_eslint_no_unused_vars_args: NoUnusedVarsArgs = .after_used,
     typescript_eslint_no_unused_vars_caught_errors: NoUnusedVarsCaughtErrors = .all,
     typescript_eslint_no_unused_vars_ignore_rest_siblings: bool = true,
+    typescript_eslint_no_unused_vars_vars_ignore_pattern: NoUnusedVarsIgnorePattern = .{},
     typescript_eslint_no_use_before_define: bool = true,
     typescript_eslint_no_use_before_define_check_functions: NoUseBeforeDefineCheck = .no,
     typescript_eslint_no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
@@ -1989,6 +2015,7 @@ pub const Options = struct {
             self.no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .none);
             self.no_unused_vars_caught_errors = try noUnusedVarsCaughtErrorsFromConfig(value, .all);
             self.no_unused_vars_ignore_rest_siblings = try noUnusedVarsIgnoreRestSiblingsFromConfig(value, false);
+            self.no_unused_vars_vars_ignore_pattern = try noUnusedVarsIgnorePatternFromConfig(value, "varsIgnorePattern");
         }
         if (std.mem.eql(u8, cli_name, "no-use-before-define")) {
             self.no_use_before_define_check_functions = try noUseBeforeDefineCheckFromConfig(value, "functions", true);
@@ -2141,6 +2168,7 @@ pub const Options = struct {
             self.typescript_eslint_no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .after_used);
             self.typescript_eslint_no_unused_vars_caught_errors = try noUnusedVarsCaughtErrorsFromConfig(value, .all);
             self.typescript_eslint_no_unused_vars_ignore_rest_siblings = try noUnusedVarsIgnoreRestSiblingsFromConfig(value, true);
+            self.typescript_eslint_no_unused_vars_vars_ignore_pattern = try noUnusedVarsIgnorePatternFromConfig(value, "varsIgnorePattern");
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/triple-slash-reference")) {
             self.typescript_eslint_triple_slash_reference_path = try typescriptEslintTripleSlashReferenceModeFromConfig(value, "path", .never);
@@ -4125,6 +4153,28 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn noUnusedVarsIgnorePatternFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!NoUnusedVarsIgnorePattern {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const pattern_value = switch (config.get(key) orelse return .{}) {
+            .string => |pattern_value| pattern_value,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (pattern_value.len == 0) return .{};
+
+        var pattern = NoUnusedVarsIgnorePattern{};
+        pattern.set(pattern_value) catch return error.UnsupportedRuleConfigValue;
+        return pattern;
     }
 
     fn noUseBeforeDefineCheckFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!NoUseBeforeDefineCheck {
@@ -7014,7 +7064,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_unused_vars_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"args\":\"all\",\"caughtErrors\":\"none\",\"ignoreRestSiblings\":true}]",
+        "[\"error\",{\"args\":\"all\",\"caughtErrors\":\"none\",\"ignoreRestSiblings\":true,\"varsIgnorePattern\":\"^ignored\"}]",
         .{},
     );
     defer no_unused_vars_config.deinit();
@@ -7024,11 +7074,12 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUnusedVarsArgs.all, options.no_unused_vars_args);
     try std.testing.expectEqual(NoUnusedVarsCaughtErrors.none, options.no_unused_vars_caught_errors);
     try std.testing.expect(options.no_unused_vars_ignore_rest_siblings);
+    try std.testing.expectEqualStrings("^ignored", options.no_unused_vars_vars_ignore_pattern.pattern().?);
 
     var typescript_no_unused_vars_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"vars\":\"local\",\"args\":\"none\",\"caughtErrors\":\"none\",\"ignoreRestSiblings\":false}]",
+        "[\"error\",{\"vars\":\"local\",\"args\":\"none\",\"caughtErrors\":\"none\",\"ignoreRestSiblings\":false,\"varsIgnorePattern\":\"Ignored$\"}]",
         .{},
     );
     defer typescript_no_unused_vars_config.deinit();
@@ -7038,6 +7089,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUnusedVarsArgs.none, options.typescript_eslint_no_unused_vars_args);
     try std.testing.expectEqual(NoUnusedVarsCaughtErrors.none, options.typescript_eslint_no_unused_vars_caught_errors);
     try std.testing.expect(!options.typescript_eslint_no_unused_vars_ignore_rest_siblings);
+    try std.testing.expectEqualStrings("Ignored$", options.typescript_eslint_no_unused_vars_vars_ignore_pattern.pattern().?);
 
     var typescript_ban_types_config = try std.json.parseFromSlice(
         std.json.Value,
