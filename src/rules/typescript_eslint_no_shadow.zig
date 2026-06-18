@@ -33,5 +33,6 @@ pub fn runWithOptions(
         .builtin_globals = options.builtin_globals,
         .hoist = options.hoist,
         .ignore_type_value_shadow = options.ignore_type_value_shadow,
+        .ignore_function_type_parameter_name_value_shadow = options.ignore_function_type_parameter_name_value_shadow,
     });
 }

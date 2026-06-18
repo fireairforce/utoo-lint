@@ -1667,6 +1667,7 @@ pub const Options = struct {
     typescript_eslint_no_shadow_builtin_globals: bool = false,
     typescript_eslint_no_shadow_hoist: NoShadowHoist = .functions_and_types,
     typescript_eslint_no_shadow_ignore_type_value_shadow: bool = false,
+    typescript_eslint_no_shadow_ignore_function_type_parameter_name_value_shadow: bool = true,
     typescript_eslint_no_this_alias: bool = true,
     typescript_eslint_no_this_alias_allowed_names: NoThisAliasAllowedNames = .{},
     typescript_eslint_no_unsafe_declaration_merging: bool = true,
@@ -2212,7 +2213,8 @@ pub const Options = struct {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
             self.typescript_eslint_no_shadow_builtin_globals = try noShadowBuiltinGlobalsFromConfig(value);
             self.typescript_eslint_no_shadow_hoist = try noShadowHoistFromConfig(value, .functions_and_types);
-            self.typescript_eslint_no_shadow_ignore_type_value_shadow = try noShadowIgnoreTypeValueShadowFromConfig(value);
+            self.typescript_eslint_no_shadow_ignore_type_value_shadow = try noShadowBoolOptionFromConfig(value, "ignoreTypeValueShadow", false);
+            self.typescript_eslint_no_shadow_ignore_function_type_parameter_name_value_shadow = try noShadowBoolOptionFromConfig(value, "ignoreFunctionTypeParameterNameValueShadow", true);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/method-signature-style")) {
             self.typescript_eslint_method_signature_style_style = try typescriptEslintMethodSignatureStyleFromConfig(value);
@@ -3872,18 +3874,18 @@ pub const Options = struct {
         return error.UnsupportedRuleConfigValue;
     }
 
-    fn noShadowIgnoreTypeValueShadowFromConfig(value: std.json.Value) RuleConfigError!bool {
+    fn noShadowBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
-            else => return false,
+            else => return default,
         };
-        if (items.len < 2) return false;
+        if (items.len < 2) return default;
 
         const config = switch (items[1]) {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        return switch (config.get("ignoreTypeValueShadow") orelse return false) {
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -6988,7 +6990,7 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"value\"],\"builtinGlobals\":true,\"hoist\":\"never\",\"ignoreTypeValueShadow\":true}]",
+        "[\"error\",{\"allow\":[\"value\"],\"builtinGlobals\":true,\"hoist\":\"never\",\"ignoreTypeValueShadow\":true,\"ignoreFunctionTypeParameterNameValueShadow\":false}]",
         .{},
     );
     defer typescript_no_shadow_config.deinit();
@@ -6999,6 +7001,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_shadow_builtin_globals);
     try std.testing.expectEqual(NoShadowHoist.never, options.typescript_eslint_no_shadow_hoist);
     try std.testing.expect(options.typescript_eslint_no_shadow_ignore_type_value_shadow);
+    try std.testing.expect(!options.typescript_eslint_no_shadow_ignore_function_type_parameter_name_value_shadow);
 
     var no_plusplus_config = try std.json.parseFromSlice(
         std.json.Value,
