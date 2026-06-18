@@ -2451,7 +2451,9 @@ const BasicVisitor = struct {
             try no_bitwise.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noBitwiseOptions());
         }
         if (self.options.no_multi_assign) {
-            try no_multi_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try no_multi_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .ignore_non_declaration = self.options.no_multi_assign_ignore_non_declaration,
+            });
         }
         if (self.options.operator_assignment) {
             try operator_assignment.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
@@ -3383,6 +3385,9 @@ const BasicVisitor = struct {
                 .allow = self.options.no_underscore_dangle_allow,
                 .enforce_in_class_fields = self.options.no_underscore_dangle_enforce_in_class_fields,
             });
+        }
+        if (self.options.no_multi_assign) {
+            try no_multi_assign.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
         }
         if (self.options.typescript_eslint_explicit_member_accessibility) {
             try typescript_eslint_explicit_member_accessibility.checkPropertyDefinition(
