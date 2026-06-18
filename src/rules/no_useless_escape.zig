@@ -29,7 +29,10 @@ pub fn checkTemplateLiteral(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     literal: ast.TemplateLiteral,
+    parent: ast.NodeIndex,
 ) Allocator.Error!void {
+    if (isTaggedTemplateParent(tree, parent)) return;
+
     const quasis = tree.extra(literal.quasis);
 
     for (quasis) |quasi| {
@@ -102,6 +105,9 @@ fn isNecessaryStringEscape(
     if (is_template and escaped == '$') {
         return offset + 2 < source.len and source[offset + 2] == '{';
     }
+    if (is_template and escaped == '{') {
+        return offset > 0 and source[offset - 1] == '$';
+    }
 
     return switch (escaped) {
         '0'...'9',
@@ -116,6 +122,14 @@ fn isNecessaryStringEscape(
         '\n',
         '\r',
         => true,
+        else => false,
+    };
+}
+
+fn isTaggedTemplateParent(tree: *const ast.Tree, parent: ast.NodeIndex) bool {
+    if (parent == .null) return false;
+    return switch (tree.data(parent)) {
+        .tagged_template_expression => true,
         else => false,
     };
 }
