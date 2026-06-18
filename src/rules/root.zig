@@ -482,7 +482,9 @@ pub fn runBasic(
         });
     }
     if (options.no_mixed_spaces_and_tabs) {
-        try no_mixed_spaces_and_tabs.run(allocator, diagnostics, tree);
+        try no_mixed_spaces_and_tabs.runWithOptions(allocator, diagnostics, tree, .{
+            .smart_tabs = options.no_mixed_spaces_and_tabs_smart_tabs,
+        });
     }
     if (options.linebreak_style) {
         try linebreak_style.runWithOptions(allocator, diagnostics, tree, .{

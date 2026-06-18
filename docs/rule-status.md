@@ -92,7 +92,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-lonely-if`](https://eslint.org/docs/latest/rules/no-lonely-if) | Implemented |
 | [`no-loop-func`](https://eslint.org/docs/latest/rules/no-loop-func) | Implemented |
 | [`no-loss-of-precision`](https://eslint.org/docs/latest/rules/no-loss-of-precision) | Implemented |
-| [`no-mixed-spaces-and-tabs`](https://eslint.org/docs/latest/rules/no-mixed-spaces-and-tabs) | Implemented |
+| [`no-mixed-spaces-and-tabs`](https://eslint.org/docs/latest/rules/no-mixed-spaces-and-tabs) | Supports `smart-tabs` configuration |
 | [`no-misleading-character-class`](https://eslint.org/docs/latest/rules/no-misleading-character-class) | Implemented |
 | [`no-multi-assign`](https://eslint.org/docs/latest/rules/no-multi-assign) | Implemented |
 | [`no-multi-spaces`](https://eslint.org/docs/latest/rules/no-multi-spaces) | Supports `ignoreEOLComments` and common `exceptions` configuration |

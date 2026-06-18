@@ -7,10 +7,23 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-mixed-spaces-and-tabs";
 
+pub const Options = struct {
+    smart_tabs: bool = false,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
 ) Allocator.Error!void {
     const source = tree.source;
     var line_start: usize = 0;
@@ -19,7 +32,7 @@ pub fn run(
     while (line_start <= source.len) : (line_number += 1) {
         const line_end = findLineEnd(source, line_start);
         if (!isIgnoredCommentLine(source, tree.comments, line_number)) {
-            if (mixedIndentSpan(source, line_start, line_end)) |span| {
+            if (mixedIndentSpan(source, line_start, line_end, options.smart_tabs)) |span| {
                 if (!isInsideIgnoredLiteral(tree, span.start)) {
                     try core.addDiagnostic(
                         allocator,
@@ -42,7 +55,7 @@ pub fn run(
     }
 }
 
-fn mixedIndentSpan(source: []const u8, line_start: usize, line_end: usize) ?ast.Span {
+fn mixedIndentSpan(source: []const u8, line_start: usize, line_end: usize, smart_tabs: bool) ?ast.Span {
     if (line_start >= line_end) return null;
 
     const first = source[line_start];
@@ -52,6 +65,7 @@ fn mixedIndentSpan(source: []const u8, line_start: usize, line_end: usize) ?ast.
     while (index < line_end and source[index] == first) : (index += 1) {}
 
     if (index >= line_end or !isIndent(source[index])) return null;
+    if (smart_tabs and first == '\t' and source[index] == ' ') return null;
 
     const end = index + 1;
     return .{

@@ -1174,6 +1174,7 @@ pub const Options = struct {
     no_multi_spaces_ignore_eol_comments: NoMultiSpacesIgnoreEOLComments = .no,
     no_multi_spaces_exceptions: NoMultiSpacesExceptions = .{},
     no_mixed_spaces_and_tabs: bool = true,
+    no_mixed_spaces_and_tabs_smart_tabs: bool = false,
     no_misleading_character_class: bool = true,
     no_multiple_empty_lines: bool = true,
     no_multiple_empty_lines_max: usize = 2,
@@ -1723,6 +1724,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-labels")) {
             self.no_labels_allow_loop = try noLabelsAllowLoopFromConfig(value);
             self.no_labels_allow_switch = try noLabelsAllowSwitchFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-mixed-spaces-and-tabs")) {
+            self.no_mixed_spaces_and_tabs_smart_tabs = try noMixedSpacesAndTabsSmartTabsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-multi-spaces")) {
             self.no_multi_spaces_ignore_eol_comments = try noMultiSpacesIgnoreEOLCommentsFromConfig(value);
@@ -3191,6 +3195,21 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn noMixedSpacesAndTabsSmartTabsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "smart-tabs")) return true;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn noMultiSpacesIgnoreEOLCommentsFromConfig(value: std.json.Value) RuleConfigError!NoMultiSpacesIgnoreEOLComments {
