@@ -108,6 +108,28 @@ test "does not report no-global-assign for shadowed names or property writes" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_global_assign.id));
 }
 
+test "supports no-global-assign exceptions option" {
+    const source =
+        \\Object = null;
+        \\NaN = 1;
+        \\undefined = 2;
+    ;
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_undef = false,
+        .no_undefined = false,
+        .parser_semantic_errors = false,
+    };
+    try options.no_global_assign_exceptions.append("Object");
+    try options.no_global_assign_exceptions.append("NaN");
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_global_assign.id));
+}
+
 test "can disable no-global-assign" {
     const source =
         \\Object = null;

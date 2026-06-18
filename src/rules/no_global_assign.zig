@@ -8,16 +8,31 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-global-assign";
 
+pub const Options = struct {
+    exceptions: core.NoShadowAllowNames = .{},
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, symbol_table, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
+) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
         .symbol_table = symbol_table,
+        .options = options,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -27,6 +42,7 @@ const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
 
     pub fn enter_assignment_expression(
         self: *Visitor,
@@ -88,6 +104,7 @@ const Visitor = struct {
     ) Allocator.Error!void {
         const name = tree.string(name_string);
         if (!isReadonlyGlobal(name)) return;
+        if (self.options.exceptions.contains(name)) return;
         if (!isUnresolvedReference(self.symbol_table, node)) return;
 
         try core.addDiagnosticFmt(
