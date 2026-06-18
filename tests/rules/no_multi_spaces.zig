@@ -85,6 +85,63 @@ test "does not report no-multi-spaces for object property alignment" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_multi_spaces.id));
 }
 
+test "supports configured no-multi-spaces Property exception" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"exceptions\":{\"Property\":false}}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-multi-spaces", config.value);
+
+    const source =
+        "const obj = {\n" ++
+        "  a  : 1,\n" ++
+        "  bb:  2,\n" ++
+        "};\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_multi_spaces.id));
+}
+
+test "supports configured no-multi-spaces expression declaration and import exceptions" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"exceptions\":{\"BinaryExpression\":true,\"VariableDeclarator\":true,\"ImportDeclaration\":true}}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-multi-spaces", config.value);
+
+    const source =
+        "import mod          from \"mod\";\n" ++
+        "const aligned      = 1;\n" ++
+        "const product = 1  *  2;\n" ++
+        "reported(  1);\n";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_multi_spaces.id));
+}
+
 test "still reports no-multi-spaces inside object property values" {
     const source =
         "const obj = {\n" ++

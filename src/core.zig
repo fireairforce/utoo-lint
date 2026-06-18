@@ -160,6 +160,13 @@ pub const NoMultiSpacesIgnoreEOLComments = enum {
     no,
 };
 
+pub const NoMultiSpacesExceptions = struct {
+    property: bool = true,
+    binary_expression: bool = false,
+    variable_declarator: bool = false,
+    import_declaration: bool = false,
+};
+
 pub const NoReturnAssignStyle = enum {
     except_parens,
     always,
@@ -1110,6 +1117,7 @@ pub const Options = struct {
     no_multi_assign: bool = true,
     no_multi_spaces: bool = true,
     no_multi_spaces_ignore_eol_comments: NoMultiSpacesIgnoreEOLComments = .no,
+    no_multi_spaces_exceptions: NoMultiSpacesExceptions = .{},
     no_mixed_spaces_and_tabs: bool = true,
     no_misleading_character_class: bool = true,
     no_multiple_empty_lines: bool = true,
@@ -1641,6 +1649,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-multi-spaces")) {
             self.no_multi_spaces_ignore_eol_comments = try noMultiSpacesIgnoreEOLCommentsFromConfig(value);
+            self.no_multi_spaces_exceptions = try noMultiSpacesExceptionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-multiple-empty-lines")) {
             self.no_multiple_empty_lines_max = try noMultipleEmptyLinesMaxFromConfig(value);
@@ -3017,6 +3026,37 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (ignore) .yes else .no;
+    }
+
+    fn noMultiSpacesExceptionsFromConfig(value: std.json.Value) RuleConfigError!NoMultiSpacesExceptions {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const exceptions = switch (config.get("exceptions") orelse return .{}) {
+            .object => |exceptions| exceptions,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var options = NoMultiSpacesExceptions{};
+        if (exceptions.get("Property")) |entry| options.property = try noMultiSpacesExceptionEnabled(entry);
+        if (exceptions.get("BinaryExpression")) |entry| options.binary_expression = try noMultiSpacesExceptionEnabled(entry);
+        if (exceptions.get("VariableDeclarator")) |entry| options.variable_declarator = try noMultiSpacesExceptionEnabled(entry);
+        if (exceptions.get("ImportDeclaration")) |entry| options.import_declaration = try noMultiSpacesExceptionEnabled(entry);
+        return options;
+    }
+
+    fn noMultiSpacesExceptionEnabled(value: std.json.Value) RuleConfigError!bool {
+        return switch (value) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noMultipleEmptyLinesMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
@@ -5790,13 +5830,17 @@ test "Options can apply ESLint-style rule config values" {
     var no_multi_spaces_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"ignoreEOLComments\":true}]",
+        "[\"error\",{\"ignoreEOLComments\":true,\"exceptions\":{\"Property\":false,\"BinaryExpression\":true,\"VariableDeclarator\":true,\"ImportDeclaration\":true}}]",
         .{},
     );
     defer no_multi_spaces_config.deinit();
     try options.setByRuleConfigValue("no-multi-spaces", no_multi_spaces_config.value);
     try std.testing.expect(options.no_multi_spaces);
     try std.testing.expectEqual(NoMultiSpacesIgnoreEOLComments.yes, options.no_multi_spaces_ignore_eol_comments);
+    try std.testing.expect(!options.no_multi_spaces_exceptions.property);
+    try std.testing.expect(options.no_multi_spaces_exceptions.binary_expression);
+    try std.testing.expect(options.no_multi_spaces_exceptions.variable_declarator);
+    try std.testing.expect(options.no_multi_spaces_exceptions.import_declaration);
 
     var no_multiple_empty_lines_config = try std.json.parseFromSlice(
         std.json.Value,
