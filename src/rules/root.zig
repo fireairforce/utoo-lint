@@ -2221,6 +2221,7 @@ const BasicVisitor = struct {
                 .variable_declarator_object = self.options.prefer_destructuring_variable_declarator_object,
                 .assignment_expression_array = self.options.prefer_destructuring_assignment_expression_array,
                 .assignment_expression_object = self.options.prefer_destructuring_assignment_expression_object,
+                .enforce_for_renamed_properties = self.options.prefer_destructuring_enforce_for_renamed_properties,
             });
         }
         return .proceed;
@@ -2381,6 +2382,7 @@ const BasicVisitor = struct {
                 .variable_declarator_object = self.options.prefer_destructuring_variable_declarator_object,
                 .assignment_expression_array = self.options.prefer_destructuring_assignment_expression_array,
                 .assignment_expression_object = self.options.prefer_destructuring_assignment_expression_object,
+                .enforce_for_renamed_properties = self.options.prefer_destructuring_enforce_for_renamed_properties,
             });
         }
         if (self.options.no_useless_rename) {

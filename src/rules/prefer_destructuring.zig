@@ -17,6 +17,7 @@ pub const Options = struct {
     variable_declarator_object: bool = true,
     assignment_expression_array: bool = true,
     assignment_expression_object: bool = true,
+    enforce_for_renamed_properties: bool = false,
 };
 
 pub fn checkVariableDeclaration(
@@ -40,7 +41,7 @@ pub fn checkVariableDeclarationWithOptions(
             .variable_declarator => |declarator| declarator,
             else => continue,
         };
-        const kind = preferredDestructuringKind(tree, declarator) orelse continue;
+        const kind = preferredDestructuringKind(tree, declarator, options) orelse continue;
         if (!allowsVariableDeclarator(options, kind)) continue;
 
         try core.addDiagnostic(
@@ -72,7 +73,7 @@ pub fn checkAssignmentExpressionWithOptions(
 ) Allocator.Error!void {
     if (expression.operator != .assign) return;
 
-    const kind = preferredAssignmentDestructuringKind(tree, expression) orelse return;
+    const kind = preferredAssignmentDestructuringKind(tree, expression, options) orelse return;
     if (!allowsAssignmentExpression(options, kind)) return;
 
     try core.addDiagnostic(
@@ -85,7 +86,7 @@ pub fn checkAssignmentExpressionWithOptions(
     );
 }
 
-fn preferredDestructuringKind(tree: *const ast.Tree, declarator: ast.VariableDeclarator) ?DestructuringKind {
+fn preferredDestructuringKind(tree: *const ast.Tree, declarator: ast.VariableDeclarator, options: Options) ?DestructuringKind {
     if (declarator.init == .null) return null;
 
     const local_name = bindingIdentifierName(tree, declarator.id) orelse return null;
@@ -99,10 +100,10 @@ fn preferredDestructuringKind(tree: *const ast.Tree, declarator: ast.VariableDec
     if (isArrayIndexProperty(tree, member)) return .array;
 
     const property_name = propertyName(tree, member) orelse return null;
-    return if (std.mem.eql(u8, local_name, property_name)) .object else null;
+    return if (options.enforce_for_renamed_properties or std.mem.eql(u8, local_name, property_name)) .object else null;
 }
 
-fn preferredAssignmentDestructuringKind(tree: *const ast.Tree, expression: ast.AssignmentExpression) ?DestructuringKind {
+fn preferredAssignmentDestructuringKind(tree: *const ast.Tree, expression: ast.AssignmentExpression, options: Options) ?DestructuringKind {
     const target_name = identifierReferenceName(tree, expression.left) orelse return null;
 
     const member = switch (tree.data(unwrapTransparent(tree, expression.right))) {
@@ -114,7 +115,7 @@ fn preferredAssignmentDestructuringKind(tree: *const ast.Tree, expression: ast.A
     if (isArrayIndexProperty(tree, member)) return .array;
 
     const property_name = propertyName(tree, member) orelse return null;
-    return if (std.mem.eql(u8, target_name, property_name)) .object else null;
+    return if (options.enforce_for_renamed_properties or std.mem.eql(u8, target_name, property_name)) .object else null;
 }
 
 fn diagnosticMessage(kind: DestructuringKind) []const u8 {
