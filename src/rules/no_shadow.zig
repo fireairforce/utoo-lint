@@ -15,6 +15,7 @@ pub const Options = struct {
     allow: core.NoShadowAllowNames = .{},
     builtin_globals: bool = false,
     hoist: core.NoShadowHoist = .functions,
+    ignore_type_value_shadow: bool = false,
 };
 
 pub const Mode = enum {
@@ -129,8 +130,22 @@ fn isAllowedTypescriptShadow(
     options: Options,
 ) bool {
     if (options.mode != .typescript) return false;
+    if (options.ignore_type_value_shadow and isTypeValueShadow(self_flags, candidate_flags)) return true;
     return (self_flags.interface and candidate_flags.class) or
         (self_flags.class and candidate_flags.interface);
+}
+
+fn isTypeValueShadow(self_flags: traverser.semantic.Symbol.Flags, candidate_flags: traverser.semantic.Symbol.Flags) bool {
+    return (isTypeOnlySymbol(self_flags) and isValueOnlySymbol(candidate_flags)) or
+        (isValueOnlySymbol(self_flags) and isTypeOnlySymbol(candidate_flags));
+}
+
+fn isTypeOnlySymbol(flags: traverser.semantic.Symbol.Flags) bool {
+    return flags.inTypeSpace() and !flags.inValueSpace();
+}
+
+fn isValueOnlySymbol(flags: traverser.semantic.Symbol.Flags) bool {
+    return flags.inValueSpace() and !flags.inTypeSpace();
 }
 
 fn isAllowedByHoist(
