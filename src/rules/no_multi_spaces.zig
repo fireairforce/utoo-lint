@@ -9,6 +9,7 @@ pub const id = "no-multi-spaces";
 
 pub const Options = struct {
     ignore_eol_comments: core.NoMultiSpacesIgnoreEOLComments = .no,
+    exceptions: core.NoMultiSpacesExceptions = .{},
 };
 
 const IgnoredSpan = struct {
@@ -31,7 +32,7 @@ pub fn runWithOptions(
     options: Options,
 ) Allocator.Error!void {
     const source = tree.source;
-    const ignored_spans = try collectIgnoredSpans(allocator, tree);
+    const ignored_spans = try collectIgnoredSpans(allocator, tree, options);
     defer allocator.free(ignored_spans);
 
     var line_start: usize = 0;
@@ -121,7 +122,7 @@ fn isOnlyWhitespace(source: []const u8) bool {
     return true;
 }
 
-fn collectIgnoredSpans(allocator: Allocator, tree: *const ast.Tree) Allocator.Error![]IgnoredSpan {
+fn collectIgnoredSpans(allocator: Allocator, tree: *const ast.Tree, options: Options) Allocator.Error![]IgnoredSpan {
     var ignored_spans: std.ArrayList(IgnoredSpan) = .empty;
     errdefer ignored_spans.deinit(allocator);
 
@@ -136,7 +137,23 @@ fn collectIgnoredSpans(allocator: Allocator, tree: *const ast.Tree) Allocator.Er
             .string_literal, .template_element, .regexp_literal => {
                 try ignored_spans.append(allocator, .{ .start = span.start, .end = span.end });
             },
+            .binary_expression => {
+                if (options.exceptions.binary_expression) {
+                    try ignored_spans.append(allocator, .{ .start = span.start, .end = span.end });
+                }
+            },
+            .variable_declarator => {
+                if (options.exceptions.variable_declarator) {
+                    try ignored_spans.append(allocator, .{ .start = span.start, .end = span.end });
+                }
+            },
+            .import_declaration => {
+                if (options.exceptions.import_declaration) {
+                    try ignored_spans.append(allocator, .{ .start = span.start, .end = span.end });
+                }
+            },
             .object_property => |property| {
+                if (!options.exceptions.property) continue;
                 const value_span = tree.span(property.value);
                 if (span.start < value_span.start) {
                     try ignored_spans.append(allocator, .{ .start = span.start, .end = value_span.start });

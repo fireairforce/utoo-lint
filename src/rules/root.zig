@@ -497,6 +497,7 @@ pub fn runBasic(
     if (options.no_multi_spaces) {
         try no_multi_spaces.runWithOptions(allocator, diagnostics, tree, .{
             .ignore_eol_comments = options.no_multi_spaces_ignore_eol_comments,
+            .exceptions = options.no_multi_spaces_exceptions,
         });
     }
     if (options.spaced_comment) {
