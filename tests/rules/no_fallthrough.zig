@@ -185,6 +185,41 @@ test "supports configured no-fallthrough reportUnusedFallthroughComment" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_fallthrough.id));
 }
 
+test "supports configured no-fallthrough commentPattern" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"commentPattern\":\"^ intentional fallthrough$\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-fallthrough", config.value);
+
+    const source =
+        \\switch (value) {
+        \\  case 1:
+        \\    one();
+        \\    // intentional fallthrough
+        \\  case 2:
+        \\    two();
+        \\    // falls through
+        \\  default:
+        \\    done();
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_fallthrough.id));
+}
+
 test "can disable no-fallthrough" {
     const source =
         \\switch (value) {

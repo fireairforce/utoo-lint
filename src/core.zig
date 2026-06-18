@@ -1098,6 +1098,30 @@ pub const DefaultCaseCommentPattern = struct {
     }
 };
 
+pub const max_no_fallthrough_comment_pattern_len = 256;
+
+pub const NoFallthroughCommentPatternError = error{
+    NoFallthroughCommentPatternTooLong,
+};
+
+pub const NoFallthroughCommentPattern = struct {
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_no_fallthrough_comment_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const NoFallthroughCommentPattern) ?[]const u8 {
+        if (!self.custom) return null;
+        return self.storage[0..self.length];
+    }
+
+    pub fn set(self: *NoFallthroughCommentPattern, pattern_value: []const u8) NoFallthroughCommentPatternError!void {
+        if (pattern_value.len > max_no_fallthrough_comment_pattern_len) return error.NoFallthroughCommentPatternTooLong;
+        @memcpy(self.storage[0..pattern_value.len], pattern_value);
+        self.custom = true;
+        self.length = pattern_value.len;
+    }
+};
+
 pub const Options = struct {
     accessor_pairs: bool = true,
     accessor_pairs_get_without_set: AccessorPairsGetWithoutSet = .no,
@@ -1221,6 +1245,7 @@ pub const Options = struct {
     no_floating_decimal: bool = true,
     no_fallthrough: bool = true,
     no_fallthrough_allow_empty_case: NoFallthroughAllowEmptyCase = .no,
+    no_fallthrough_comment_pattern: NoFallthroughCommentPattern = .{},
     no_fallthrough_report_unused_fallthrough_comment: bool = false,
     no_for_in: bool = true,
     no_func_assign: bool = true,
@@ -1873,6 +1898,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-fallthrough")) {
             self.no_fallthrough_allow_empty_case = try noFallthroughAllowEmptyCaseFromConfig(value);
+            self.no_fallthrough_comment_pattern = try noFallthroughCommentPatternFromConfig(value);
             self.no_fallthrough_report_unused_fallthrough_comment = try noFallthroughReportUnusedFallthroughCommentFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-implicit-coercion")) {
@@ -3316,6 +3342,27 @@ pub const Options = struct {
 
     fn noFallthroughReportUnusedFallthroughCommentFromConfig(value: std.json.Value) RuleConfigError!bool {
         return noFallthroughBoolOptionFromConfig(value, "reportUnusedFallthroughComment", false);
+    }
+
+    fn noFallthroughCommentPatternFromConfig(value: std.json.Value) RuleConfigError!NoFallthroughCommentPattern {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const pattern_value = switch (config.get("commentPattern") orelse return .{}) {
+            .string => |pattern_value| pattern_value,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var pattern = NoFallthroughCommentPattern{};
+        pattern.set(pattern_value) catch return error.UnsupportedRuleConfigValue;
+        return pattern;
     }
 
     fn noFallthroughBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
@@ -6589,13 +6636,14 @@ test "Options can apply ESLint-style rule config values" {
     var no_fallthrough_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowEmptyCase\":true,\"reportUnusedFallthroughComment\":true}]",
+        "[\"error\",{\"allowEmptyCase\":true,\"commentPattern\":\"^ intentional fallthrough$\",\"reportUnusedFallthroughComment\":true}]",
         .{},
     );
     defer no_fallthrough_config.deinit();
     try options.setByRuleConfigValue("no-fallthrough", no_fallthrough_config.value);
     try std.testing.expect(options.no_fallthrough);
     try std.testing.expectEqual(NoFallthroughAllowEmptyCase.yes, options.no_fallthrough_allow_empty_case);
+    try std.testing.expectEqualStrings(" intentional fallthrough", options.no_fallthrough_comment_pattern.pattern().?);
     try std.testing.expect(options.no_fallthrough_report_unused_fallthrough_comment);
 
     var no_implicit_coercion_config = try std.json.parseFromSlice(

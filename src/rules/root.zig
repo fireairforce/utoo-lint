@@ -1996,6 +1996,7 @@ const BasicVisitor = struct {
         if (self.options.no_fallthrough) {
             try no_fallthrough.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, .{
                 .allow_empty_case = self.options.no_fallthrough_allow_empty_case == .yes,
+                .comment_pattern = self.options.no_fallthrough_comment_pattern,
                 .report_unused_fallthrough_comment = self.options.no_fallthrough_report_unused_fallthrough_comment,
             });
         }
