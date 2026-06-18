@@ -86,7 +86,7 @@ test "supports configured @typescript-eslint/typedef declaration options" {
     var config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        \\["error", {"propertyDeclaration": false, "memberVariableDeclaration": true, "parameter": true, "arrowParameter": true, "variableDeclaration": true, "variableDeclarationIgnoreFunction": true}]
+        \\["error", {"propertyDeclaration": false, "memberVariableDeclaration": true, "parameter": true, "arrowParameter": true, "arrayDestructuring": true, "objectDestructuring": true, "variableDeclaration": true, "variableDeclarationIgnoreFunction": true}]
     ,
         .{},
     );
@@ -100,8 +100,42 @@ test "supports configured @typescript-eslint/typedef declaration options" {
     try std.testing.expect(options.typescript_eslint_typedef_member_variable_declaration);
     try std.testing.expect(options.typescript_eslint_typedef_parameter);
     try std.testing.expect(options.typescript_eslint_typedef_arrow_parameter);
+    try std.testing.expect(options.typescript_eslint_typedef_array_destructuring);
+    try std.testing.expect(options.typescript_eslint_typedef_object_destructuring);
     try std.testing.expect(options.typescript_eslint_typedef_variable_declaration);
     try std.testing.expect(options.typescript_eslint_typedef_variable_declaration_ignore_function);
+}
+
+test "supports configured @typescript-eslint/typedef destructuring options" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        \\["error", {"propertyDeclaration": false, "arrayDestructuring": true, "objectDestructuring": true}]
+    ,
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/typedef", config.value);
+    options.no_unused_vars = false;
+    options.typescript_eslint_no_inferrable_types = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const plain = 1;
+        \\const typedPlain: number = 1;
+        \\const { value } = { value: 1 };
+        \\const { typedValue }: { typedValue: number } = { typedValue: 1 };
+        \\const [item] = [1];
+        \\const [typedItem]: [number] = [1];
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.typescript_eslint_typedef.id));
 }
 
 test "supports configured @typescript-eslint/typedef variable declaration option" {

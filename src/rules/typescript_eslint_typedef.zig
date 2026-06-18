@@ -8,6 +8,9 @@ const Allocator = std.mem.Allocator;
 pub const id = "@typescript-eslint/typedef";
 
 pub const VariableDeclarationOptions = struct {
+    variable_declaration: bool = false,
+    array_destructuring: bool = false,
+    object_destructuring: bool = false,
     ignore_function: bool = false,
 };
 
@@ -42,6 +45,7 @@ pub fn checkVariableDeclaration(
             else => continue,
         };
         if (options.ignore_function and isFunctionInitializer(tree, declarator.init)) continue;
+        if (!shouldCheckVariablePattern(tree, declarator.id, options)) continue;
         try checkDeclarationPattern(allocator, diagnostics, tree, declarator.id);
     }
 }
@@ -156,6 +160,19 @@ fn checkParameters(
         const pattern = parameterPattern(tree, parameter_index) orelse continue;
         try checkDeclarationPattern(allocator, diagnostics, tree, pattern);
     }
+}
+
+fn shouldCheckVariablePattern(tree: *const ast.Tree, index: ast.NodeIndex, options: VariableDeclarationOptions) bool {
+    if (index == .null) return false;
+    if (options.variable_declaration) return true;
+
+    return switch (tree.data(index)) {
+        .array_pattern => options.array_destructuring,
+        .object_pattern => options.object_destructuring,
+        .assignment_pattern => |pattern| shouldCheckVariablePattern(tree, pattern.left, options),
+        .binding_rest_element => |element| shouldCheckVariablePattern(tree, element.argument, options),
+        else => false,
+    };
 }
 
 fn isFunctionInitializer(tree: *const ast.Tree, index: ast.NodeIndex) bool {
