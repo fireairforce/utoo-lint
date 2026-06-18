@@ -19,6 +19,7 @@ pub const Severity = enum {
 pub const EqeqeqStyle = enum {
     strict,
     allow_null,
+    smart,
 };
 
 pub const CurlyStyle = enum {
@@ -1906,6 +1907,7 @@ pub const Options = struct {
         };
         if (std.mem.eql(u8, style, "always")) return .strict;
         if (std.mem.eql(u8, style, "allow-null")) return .allow_null;
+        if (std.mem.eql(u8, style, "smart")) return .smart;
         return error.UnsupportedRuleConfigValue;
     }
 
@@ -5116,6 +5118,16 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("eqeqeq", eqeqeq_config.value);
     try std.testing.expect(options.eqeqeq);
     try std.testing.expectEqual(EqeqeqStyle.allow_null, options.eqeqeq_style);
+
+    var eqeqeq_smart_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"smart\"]",
+        .{},
+    );
+    defer eqeqeq_smart_config.deinit();
+    try options.setByRuleConfigValue("eqeqeq", eqeqeq_smart_config.value);
+    try std.testing.expectEqual(EqeqeqStyle.smart, options.eqeqeq_style);
 
     var accessor_pairs_config = try std.json.parseFromSlice(
         std.json.Value,

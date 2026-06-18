@@ -17,7 +17,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`default-param-last`](https://eslint.org/docs/latest/rules/default-param-last) | Implemented |
 | [`dot-notation`](https://eslint.org/docs/latest/rules/dot-notation) | Implemented |
 | [`eol-last`](https://eslint.org/docs/latest/rules/eol-last) | Implemented |
-| [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Implemented |
+| [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Supports `always`, `allow-null`, and `smart` configuration |
 | [`for-direction`](https://eslint.org/docs/latest/rules/for-direction) | Implemented |
 | [`func-name-matching`](https://eslint.org/docs/latest/rules/func-name-matching) | Implemented for `always` and optional `never` behavior |
 | [`func-names`](https://eslint.org/docs/latest/rules/func-names) | Implemented for `always`, `as-needed`, and `never` options |
