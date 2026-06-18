@@ -150,6 +150,38 @@ test "supports top-level prefer-destructuring kind options" {
     try std.testing.expectEqualStrings("Use object destructuring.", result.diagnostics[1].message);
 }
 
+test "supports configured prefer-destructuring renamed property enforcement" {
+    const source =
+        \\let alias = object.first;
+        \\alias = object.second;
+        \\let item = array[0];
+    ;
+
+    var options = lint.Options{
+        .dot_notation = false,
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+        .typescript_eslint_dot_notation = false,
+    };
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"object\":true,\"array\":false},{\"enforceForRenamedProperties\":true}]",
+        .{},
+    );
+    defer config.deinit();
+    try options.setByRuleConfigValue("prefer-destructuring", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_destructuring.id));
+    try std.testing.expectEqualStrings("Use object destructuring.", result.diagnostics[0].message);
+    try std.testing.expectEqualStrings("Use object destructuring.", result.diagnostics[1].message);
+}
+
 test "can disable prefer-destructuring" {
     const source =
         \\const first = object.first;

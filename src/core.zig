@@ -1156,6 +1156,7 @@ pub const Options = struct {
     prefer_destructuring_variable_declarator_object: bool = true,
     prefer_destructuring_assignment_expression_array: bool = true,
     prefer_destructuring_assignment_expression_object: bool = true,
+    prefer_destructuring_enforce_for_renamed_properties: bool = false,
     prefer_regex_literals: bool = true,
     prefer_rest_params: bool = true,
     prefer_object_spread: bool = true,
@@ -1570,6 +1571,7 @@ pub const Options = struct {
             self.prefer_destructuring_variable_declarator_object = try preferDestructuringOptionFromConfig(value, "VariableDeclarator", "object", true);
             self.prefer_destructuring_assignment_expression_array = try preferDestructuringOptionFromConfig(value, "AssignmentExpression", "array", true);
             self.prefer_destructuring_assignment_expression_object = try preferDestructuringOptionFromConfig(value, "AssignmentExpression", "object", true);
+            self.prefer_destructuring_enforce_for_renamed_properties = try preferDestructuringEnforceForRenamedPropertiesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "radix")) {
             self.radix_style = try radixStyleFromConfig(value);
@@ -3113,6 +3115,23 @@ pub const Options = struct {
             };
         }
         return switch (config.get(kind_key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn preferDestructuringEnforceForRenamedPropertiesFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 3) return false;
+
+        const config = switch (items[2]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("enforceForRenamedProperties") orelse return false) {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
@@ -5530,11 +5549,12 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.prefer_destructuring_variable_declarator_object);
     try std.testing.expect(options.prefer_destructuring_assignment_expression_array);
     try std.testing.expect(!options.prefer_destructuring_assignment_expression_object);
+    try std.testing.expect(!options.prefer_destructuring_enforce_for_renamed_properties);
 
     var prefer_destructuring_top_level_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"array\":false,\"object\":true}]",
+        "[\"error\",{\"array\":false,\"object\":true},{\"enforceForRenamedProperties\":true}]",
         .{},
     );
     defer prefer_destructuring_top_level_config.deinit();
@@ -5543,6 +5563,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.prefer_destructuring_variable_declarator_object);
     try std.testing.expect(!options.prefer_destructuring_assignment_expression_array);
     try std.testing.expect(options.prefer_destructuring_assignment_expression_object);
+    try std.testing.expect(options.prefer_destructuring_enforce_for_renamed_properties);
 
     var radix_config = try std.json.parseFromSlice(
         std.json.Value,
