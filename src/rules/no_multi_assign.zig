@@ -6,6 +6,10 @@ const Allocator = @import("std").mem.Allocator;
 
 pub const id = "no-multi-assign";
 
+pub const Options = struct {
+    ignore_non_declaration: bool = false,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -13,14 +17,23 @@ pub fn check(
     expression: ast.AssignmentExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkWithOptions(allocator, diagnostics, tree, expression, index, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (options.ignore_non_declaration) return;
     if (!isAssignmentExpression(tree, expression.right)) return;
 
-    try core.addDiagnostic(
+    try addDiagnostic(
         allocator,
         diagnostics,
-        .warning,
-        id,
-        "Unexpected chained assignment.",
         tree.span(index),
     );
 }
@@ -33,13 +46,40 @@ pub fn checkVariableDeclarator(
 ) Allocator.Error!void {
     if (!isAssignmentExpression(tree, declarator.init)) return;
 
+    try addDiagnostic(
+        allocator,
+        diagnostics,
+        tree.span(declarator.init),
+    );
+}
+
+pub fn checkPropertyDefinition(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    property: ast.PropertyDefinition,
+) Allocator.Error!void {
+    if (!isAssignmentExpression(tree, property.value)) return;
+
+    try addDiagnostic(
+        allocator,
+        diagnostics,
+        tree.span(property.value),
+    );
+}
+
+fn addDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    span: ast.Span,
+) Allocator.Error!void {
     try core.addDiagnostic(
         allocator,
         diagnostics,
         .warning,
         id,
         "Unexpected chained assignment.",
-        tree.span(declarator.init),
+        span,
     );
 }
 

@@ -94,7 +94,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-loss-of-precision`](https://eslint.org/docs/latest/rules/no-loss-of-precision) | Implemented |
 | [`no-mixed-spaces-and-tabs`](https://eslint.org/docs/latest/rules/no-mixed-spaces-and-tabs) | Supports `smart-tabs` configuration |
 | [`no-misleading-character-class`](https://eslint.org/docs/latest/rules/no-misleading-character-class) | Implemented |
-| [`no-multi-assign`](https://eslint.org/docs/latest/rules/no-multi-assign) | Implemented |
+| [`no-multi-assign`](https://eslint.org/docs/latest/rules/no-multi-assign) | Supports `ignoreNonDeclaration` configuration and class field initializers |
 | [`no-multi-spaces`](https://eslint.org/docs/latest/rules/no-multi-spaces) | Supports `ignoreEOLComments` and common `exceptions` configuration |
 | [`no-multi-str`](https://eslint.org/docs/latest/rules/no-multi-str) | Implemented |
 | [`no-multiple-empty-lines`](https://eslint.org/docs/latest/rules/no-multiple-empty-lines) | Implemented with optional `max`, `maxBOF`, and `maxEOF` behavior |

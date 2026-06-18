@@ -1238,6 +1238,7 @@ pub const Options = struct {
     no_loss_of_precision: bool = true,
     no_multi_str: bool = true,
     no_multi_assign: bool = true,
+    no_multi_assign_ignore_non_declaration: bool = false,
     no_multi_spaces: bool = true,
     no_multi_spaces_ignore_eol_comments: NoMultiSpacesIgnoreEOLComments = .no,
     no_multi_spaces_exceptions: NoMultiSpacesExceptions = .{},
@@ -1818,6 +1819,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-mixed-spaces-and-tabs")) {
             self.no_mixed_spaces_and_tabs_smart_tabs = try noMixedSpacesAndTabsSmartTabsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-multi-assign")) {
+            self.no_multi_assign_ignore_non_declaration = try noMultiAssignBoolOptionFromConfig(value, "ignoreNonDeclaration", false);
         }
         if (std.mem.eql(u8, cli_name, "no-multi-spaces")) {
             self.no_multi_spaces_ignore_eol_comments = try noMultiSpacesIgnoreEOLCommentsFromConfig(value);
@@ -4278,6 +4282,23 @@ pub const Options = struct {
         };
     }
 
+    fn noMultiAssignBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn noEvalAllowIndirectFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -6130,6 +6151,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-duplicate-imports", no_duplicate_imports_config.value);
     try std.testing.expect(options.no_duplicate_imports);
     try std.testing.expect(options.no_duplicate_imports_allow_separate_type_imports);
+
+    var no_multi_assign_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreNonDeclaration\":true}]",
+        .{},
+    );
+    defer no_multi_assign_config.deinit();
+    try options.setByRuleConfigValue("no-multi-assign", no_multi_assign_config.value);
+    try std.testing.expect(options.no_multi_assign);
+    try std.testing.expect(options.no_multi_assign_ignore_non_declaration);
 
     var no_cond_assign_config = try std.json.parseFromSlice(
         std.json.Value,
