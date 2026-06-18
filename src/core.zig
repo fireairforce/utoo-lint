@@ -384,6 +384,8 @@ pub const NoParamReassignProps = enum {
 
 pub const max_no_param_reassign_ignored_names = 32;
 pub const max_no_param_reassign_ignored_name_len = 128;
+pub const max_no_param_reassign_ignored_name_patterns = 32;
+pub const max_no_param_reassign_ignored_name_pattern_len = 256;
 
 pub const NoParamReassignIgnoredNamesError = error{
     EmptyNoParamReassignIgnoredName,
@@ -414,6 +416,32 @@ pub const NoParamReassignIgnoredNames = struct {
 
         @memcpy(self.storage[self.count][0..name.len], name);
         self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
+pub const NoParamReassignIgnoredNamePatternsError = error{
+    EmptyNoParamReassignIgnoredNamePattern,
+    TooManyNoParamReassignIgnoredNamePatterns,
+    NoParamReassignIgnoredNamePatternTooLong,
+};
+
+pub const NoParamReassignIgnoredNamePatterns = struct {
+    count: usize = 0,
+    lengths: [max_no_param_reassign_ignored_name_patterns]usize = undefined,
+    storage: [max_no_param_reassign_ignored_name_patterns][max_no_param_reassign_ignored_name_pattern_len]u8 = undefined,
+
+    pub fn at(self: *const NoParamReassignIgnoredNamePatterns, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *NoParamReassignIgnoredNamePatterns, pattern: []const u8) NoParamReassignIgnoredNamePatternsError!void {
+        if (pattern.len == 0) return error.EmptyNoParamReassignIgnoredNamePattern;
+        if (self.count >= max_no_param_reassign_ignored_name_patterns) return error.TooManyNoParamReassignIgnoredNamePatterns;
+        if (pattern.len > max_no_param_reassign_ignored_name_pattern_len) return error.NoParamReassignIgnoredNamePatternTooLong;
+
+        @memcpy(self.storage[self.count][0..pattern.len], pattern);
+        self.lengths[self.count] = pattern.len;
         self.count += 1;
     }
 };
@@ -1358,6 +1386,7 @@ pub const Options = struct {
     no_param_reassign: bool = true,
     no_param_reassign_props: NoParamReassignProps = .no,
     no_param_reassign_ignore_property_modifications_for: NoParamReassignIgnoredNames = .{},
+    no_param_reassign_ignore_property_modifications_for_regex: NoParamReassignIgnoredNamePatterns = .{},
     no_path_concat: bool = true,
     no_plusplus: bool = true,
     no_plusplus_allow_for_loop_afterthoughts: NoPlusplusAllowForLoopAfterthoughts = .no,
@@ -1949,6 +1978,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-param-reassign")) {
             self.no_param_reassign_props = try noParamReassignPropsFromConfig(value);
             self.no_param_reassign_ignore_property_modifications_for = try noParamReassignIgnoredNamesFromConfig(value);
+            self.no_param_reassign_ignore_property_modifications_for_regex = try noParamReassignIgnoredNamePatternsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-redeclare")) {
             self.no_redeclare_builtin_globals = try noRedeclareBuiltinGlobalsFromConfig(value);
@@ -3735,6 +3765,34 @@ pub const Options = struct {
                 else => return error.UnsupportedRuleConfigValue,
             };
             ignored.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return ignored;
+    }
+
+    fn noParamReassignIgnoredNamePatternsFromConfig(value: std.json.Value) RuleConfigError!NoParamReassignIgnoredNamePatterns {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const ignored_value = config.get("ignorePropertyModificationsForRegex") orelse return .{};
+        const ignored_items = switch (ignored_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var ignored = NoParamReassignIgnoredNamePatterns{};
+        for (ignored_items) |item| {
+            const pattern = switch (item) {
+                .string => |pattern| pattern,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            ignored.append(pattern) catch return error.UnsupportedRuleConfigValue;
         }
         return ignored;
     }
@@ -6816,7 +6874,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_param_reassign_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"props\":true,\"ignorePropertyModificationsFor\":[\"req\",\"res\"]}]",
+        "[\"error\",{\"props\":true,\"ignorePropertyModificationsFor\":[\"req\",\"res\"],\"ignorePropertyModificationsForRegex\":[\"^ctx\",\"Response$\"]}]",
         .{},
     );
     defer no_param_reassign_config.deinit();
@@ -6826,6 +6884,9 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_param_reassign_ignore_property_modifications_for.contains("req"));
     try std.testing.expect(options.no_param_reassign_ignore_property_modifications_for.contains("res"));
     try std.testing.expect(!options.no_param_reassign_ignore_property_modifications_for.contains("ctx"));
+    try std.testing.expectEqual(@as(usize, 2), options.no_param_reassign_ignore_property_modifications_for_regex.count);
+    try std.testing.expectEqualStrings("^ctx", options.no_param_reassign_ignore_property_modifications_for_regex.at(0));
+    try std.testing.expectEqualStrings("Response$", options.no_param_reassign_ignore_property_modifications_for_regex.at(1));
 
     var no_redeclare_config = try std.json.parseFromSlice(
         std.json.Value,

@@ -1261,6 +1261,7 @@ const BasicVisitor = struct {
             try no_param_reassign.checkFunctionWithOptions(self.allocator, self.diagnostics, ctx.tree, function, .{
                 .props = self.options.no_param_reassign_props == .yes,
                 .ignore_property_modifications_for = self.options.no_param_reassign_ignore_property_modifications_for,
+                .ignore_property_modifications_for_regex = self.options.no_param_reassign_ignore_property_modifications_for_regex,
             });
         }
         if (self.options.no_inner_declarations) {
@@ -2451,6 +2452,7 @@ const BasicVisitor = struct {
             try no_param_reassign.checkArrowFunctionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
                 .props = self.options.no_param_reassign_props == .yes,
                 .ignore_property_modifications_for = self.options.no_param_reassign_ignore_property_modifications_for,
+                .ignore_property_modifications_for_regex = self.options.no_param_reassign_ignore_property_modifications_for_regex,
             });
         }
         if (self.options.react_display_name) {
