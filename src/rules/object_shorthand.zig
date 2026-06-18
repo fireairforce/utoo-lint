@@ -10,6 +10,7 @@ pub const id = "object-shorthand";
 pub const Options = struct {
     style: core.ObjectShorthandStyle = .always,
     avoid_quotes: bool = false,
+    ignore_constructors: bool = false,
 };
 
 pub fn check(
@@ -47,6 +48,7 @@ pub fn checkWithOptions(
     if (options.avoid_quotes and isStringLiteralKey(tree, property.key)) return;
 
     const shorthand_kind = shorthandKind(tree, property) orelse return;
+    if (options.ignore_constructors and shorthand_kind == .method and isConstructorKey(tree, property.key)) return;
     if (!styleAllowsKind(options.style, shorthand_kind)) return;
 
     try addDiagnostic(allocator, diagnostics, tree, index, shorthand_kind, options.style);
@@ -105,6 +107,15 @@ fn isStringLiteralKey(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .string_literal => true,
         else => false,
     };
+}
+
+fn isConstructorKey(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    const name = propertyKeyName(tree, index) orelse return false;
+    for (name) |char| {
+        if (char == '_' or char == '$' or (char >= '0' and char <= '9')) continue;
+        return std.ascii.toUpper(char) == char;
+    }
+    return false;
 }
 
 fn propertyKeyName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {

@@ -1167,6 +1167,7 @@ pub const Options = struct {
     object_shorthand: bool = true,
     object_shorthand_style: ObjectShorthandStyle = .always,
     object_shorthand_avoid_quotes: bool = false,
+    object_shorthand_ignore_constructors: bool = false,
     one_var: bool = true,
     one_var_check_var: bool = true,
     one_var_check_let: bool = true,
@@ -1663,6 +1664,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "object-shorthand")) {
             self.object_shorthand_style = try objectShorthandStyleFromConfig(value);
             self.object_shorthand_avoid_quotes = try objectShorthandAvoidQuotesFromConfig(value);
+            self.object_shorthand_ignore_constructors = try objectShorthandIgnoreConstructorsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "one-var")) {
             const config = try oneVarNeverConfigFromConfig(value);
@@ -3469,6 +3471,14 @@ pub const Options = struct {
     }
 
     fn objectShorthandAvoidQuotesFromConfig(value: std.json.Value) RuleConfigError!bool {
+        return objectShorthandBoolOptionFromConfig(value, "avoidQuotes");
+    }
+
+    fn objectShorthandIgnoreConstructorsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        return objectShorthandBoolOptionFromConfig(value, "ignoreConstructors");
+    }
+
+    fn objectShorthandBoolOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
             else => return false,
@@ -3484,7 +3494,7 @@ pub const Options = struct {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        return switch (config.get("avoidQuotes") orelse return false) {
+        return switch (config.get(key) orelse return false) {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
@@ -5703,7 +5713,7 @@ test "Options can apply ESLint-style rule config values" {
     var object_shorthand_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",\"methods\",{\"avoidQuotes\":true}]",
+        "[\"error\",\"methods\",{\"avoidQuotes\":true,\"ignoreConstructors\":true}]",
         .{},
     );
     defer object_shorthand_config.deinit();
@@ -5711,6 +5721,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.object_shorthand);
     try std.testing.expectEqual(ObjectShorthandStyle.methods, options.object_shorthand_style);
     try std.testing.expect(options.object_shorthand_avoid_quotes);
+    try std.testing.expect(options.object_shorthand_ignore_constructors);
 
     var operator_assignment_config = try std.json.parseFromSlice(
         std.json.Value,

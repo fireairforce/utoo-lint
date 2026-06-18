@@ -3116,6 +3116,7 @@ const BasicVisitor = struct {
             try object_shorthand.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, property, index, .{
                 .style = self.options.object_shorthand_style,
                 .avoid_quotes = self.options.object_shorthand_avoid_quotes,
+                .ignore_constructors = self.options.object_shorthand_ignore_constructors,
             });
         }
         if (self.options.func_name_matching) {
