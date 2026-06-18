@@ -16,6 +16,7 @@ pub fn run(
     symbol_table: traverser.semantic.SymbolTable,
     check_no_async_promise_executor: bool,
     check_no_promise_executor_return: bool,
+    no_promise_executor_return_allow_void: bool,
     check_prefer_promise_reject_errors: bool,
     prefer_promise_reject_errors_allow_empty_reject: bool,
 ) Allocator.Error!void {
@@ -29,6 +30,7 @@ pub fn run(
         .symbol_table = symbol_table,
         .check_no_async_promise_executor = check_no_async_promise_executor,
         .check_no_promise_executor_return = check_no_promise_executor_return,
+        .no_promise_executor_return_allow_void = no_promise_executor_return_allow_void,
         .check_prefer_promise_reject_errors = check_prefer_promise_reject_errors,
         .prefer_promise_reject_errors_allow_empty_reject = prefer_promise_reject_errors_allow_empty_reject,
     };
@@ -42,6 +44,7 @@ const Visitor = struct {
     symbol_table: traverser.semantic.SymbolTable,
     check_no_async_promise_executor: bool,
     check_no_promise_executor_return: bool,
+    no_promise_executor_return_allow_void: bool,
     check_prefer_promise_reject_errors: bool,
     prefer_promise_reject_errors_allow_empty_reject: bool,
 
@@ -92,7 +95,9 @@ const Visitor = struct {
         }
 
         if (is_global_promise and self.check_no_promise_executor_return and executor != null) {
-            try checkExecutorReturn(self.allocator, self.diagnostics, ctx.tree, executor.?);
+            try checkExecutorReturn(self.allocator, self.diagnostics, ctx.tree, executor.?, .{
+                .allow_void = self.no_promise_executor_return_allow_void,
+            });
         }
 
         if (self.check_prefer_promise_reject_errors and
@@ -112,6 +117,10 @@ const Visitor = struct {
 
         return .proceed;
     }
+};
+
+const NoPromiseExecutorReturnOptions = struct {
+    allow_void: bool = false,
 };
 
 fn isPromiseRejectCall(
@@ -153,16 +162,18 @@ fn checkExecutorReturn(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     executor: ast.NodeIndex,
+    options: NoPromiseExecutorReturnOptions,
 ) Allocator.Error!void {
     switch (tree.data(executor)) {
         .arrow_function_expression => |arrow| {
             if (arrow.expression) {
+                if (options.allow_void and isVoidExpression(tree, arrow.body)) return;
                 try addPromiseReturnDiagnostic(allocator, diagnostics, tree, arrow.body);
             } else {
-                try scanFunctionBodyForReturns(allocator, diagnostics, tree, arrow.body);
+                try scanFunctionBodyForReturns(allocator, diagnostics, tree, arrow.body, options);
             }
         },
-        .function => |function| try scanFunctionBodyForReturns(allocator, diagnostics, tree, function.body),
+        .function => |function| try scanFunctionBodyForReturns(allocator, diagnostics, tree, function.body, options),
         else => {},
     }
 }
@@ -172,6 +183,7 @@ fn scanFunctionBodyForReturns(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     body_index: ast.NodeIndex,
+    options: NoPromiseExecutorReturnOptions,
 ) Allocator.Error!void {
     if (body_index == .null) return;
 
@@ -180,7 +192,7 @@ fn scanFunctionBodyForReturns(
         else => return,
     };
 
-    try scanReturnRange(allocator, diagnostics, tree, body.body);
+    try scanReturnRange(allocator, diagnostics, tree, body.body, options);
 }
 
 fn scanReturnNode(
@@ -188,20 +200,22 @@ fn scanReturnNode(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     index: ast.NodeIndex,
+    options: NoPromiseExecutorReturnOptions,
 ) Allocator.Error!void {
     if (index == .null) return;
 
     switch (tree.data(index)) {
         .return_statement => |statement| {
             if (statement.argument != .null) {
+                if (options.allow_void and isVoidExpression(tree, statement.argument)) return;
                 try addPromiseReturnDiagnostic(allocator, diagnostics, tree, index);
             }
         },
-        .block_statement => |block| try scanReturnRange(allocator, diagnostics, tree, block.body),
-        .static_block => |block| try scanReturnRange(allocator, diagnostics, tree, block.body),
+        .block_statement => |block| try scanReturnRange(allocator, diagnostics, tree, block.body, options),
+        .static_block => |block| try scanReturnRange(allocator, diagnostics, tree, block.body, options),
         .if_statement => |statement| {
-            try scanReturnNode(allocator, diagnostics, tree, statement.consequent);
-            try scanReturnNode(allocator, diagnostics, tree, statement.alternate);
+            try scanReturnNode(allocator, diagnostics, tree, statement.consequent, options);
+            try scanReturnNode(allocator, diagnostics, tree, statement.alternate, options);
         },
         .switch_statement => |statement| {
             for (tree.extra(statement.cases)) |case_index| {
@@ -209,26 +223,26 @@ fn scanReturnNode(
                     .switch_case => |switch_case| switch_case,
                     else => continue,
                 };
-                try scanReturnRange(allocator, diagnostics, tree, switch_case.consequent);
+                try scanReturnRange(allocator, diagnostics, tree, switch_case.consequent, options);
             }
         },
-        .for_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body),
-        .for_in_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body),
-        .for_of_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body),
-        .while_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body),
-        .do_while_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body),
-        .with_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body),
-        .labeled_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body),
+        .for_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body, options),
+        .for_in_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body, options),
+        .for_of_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body, options),
+        .while_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body, options),
+        .do_while_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body, options),
+        .with_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body, options),
+        .labeled_statement => |statement| try scanReturnNode(allocator, diagnostics, tree, statement.body, options),
         .try_statement => |statement| {
-            try scanReturnNode(allocator, diagnostics, tree, statement.block);
+            try scanReturnNode(allocator, diagnostics, tree, statement.block, options);
             if (statement.handler != .null) {
                 const handler = switch (tree.data(statement.handler)) {
                     .catch_clause => |handler| handler,
                     else => return,
                 };
-                try scanReturnNode(allocator, diagnostics, tree, handler.body);
+                try scanReturnNode(allocator, diagnostics, tree, handler.body, options);
             }
-            try scanReturnNode(allocator, diagnostics, tree, statement.finalizer);
+            try scanReturnNode(allocator, diagnostics, tree, statement.finalizer, options);
         },
         .function,
         .arrow_function_expression,
@@ -243,10 +257,18 @@ fn scanReturnRange(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     range: ast.IndexRange,
+    options: NoPromiseExecutorReturnOptions,
 ) Allocator.Error!void {
     for (tree.extra(range)) |child| {
-        try scanReturnNode(allocator, diagnostics, tree, child);
+        try scanReturnNode(allocator, diagnostics, tree, child, options);
     }
+}
+
+fn isVoidExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .unary_expression => |expression| expression.operator == .void,
+        else => false,
+    };
 }
 
 fn addPromiseReturnDiagnostic(
