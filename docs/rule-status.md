@@ -68,7 +68,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-ex-assign`](https://eslint.org/docs/latest/rules/no-ex-assign) | Implemented |
 | [`no-extend-native`](https://eslint.org/docs/latest/rules/no-extend-native) | Implemented |
 | [`no-extra-bind`](https://eslint.org/docs/latest/rules/no-extra-bind) | Implemented |
-| [`no-extra-boolean-cast`](https://eslint.org/docs/latest/rules/no-extra-boolean-cast) | Implemented |
+| [`no-extra-boolean-cast`](https://eslint.org/docs/latest/rules/no-extra-boolean-cast) | Supports `enforceForInnerExpressions` and legacy `enforceForLogicalOperands` configuration |
 | [`no-extra-label`](https://eslint.org/docs/latest/rules/no-extra-label) | Implemented |
 | [`no-extra-semi`](https://eslint.org/docs/latest/rules/no-extra-semi) | Implemented |
 | [`no-fallthrough`](https://eslint.org/docs/latest/rules/no-fallthrough) | Implemented with optional `allowEmptyCase` behavior |

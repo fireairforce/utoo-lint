@@ -2690,7 +2690,8 @@ pub const Options = struct {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        return switch (config.get("enforceForInnerExpressions") orelse return false) {
+        const option = config.get("enforceForInnerExpressions") orelse config.get("enforceForLogicalOperands") orelse return false;
+        return switch (option) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -5262,6 +5263,28 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-extra-boolean-cast", no_extra_boolean_cast_config.value);
     try std.testing.expect(options.no_extra_boolean_cast);
     try std.testing.expect(options.no_extra_boolean_cast_enforce_for_inner_expressions);
+
+    var no_extra_boolean_cast_legacy_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"enforceForLogicalOperands\":true}]",
+        .{},
+    );
+    defer no_extra_boolean_cast_legacy_config.deinit();
+    options.no_extra_boolean_cast_enforce_for_inner_expressions = false;
+    try options.setByRuleConfigValue("no-extra-boolean-cast", no_extra_boolean_cast_legacy_config.value);
+    try std.testing.expect(options.no_extra_boolean_cast);
+    try std.testing.expect(options.no_extra_boolean_cast_enforce_for_inner_expressions);
+
+    var no_extra_boolean_cast_precedence_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"enforceForInnerExpressions\":false,\"enforceForLogicalOperands\":true}]",
+        .{},
+    );
+    defer no_extra_boolean_cast_precedence_config.deinit();
+    try options.setByRuleConfigValue("no-extra-boolean-cast", no_extra_boolean_cast_precedence_config.value);
+    try std.testing.expect(!options.no_extra_boolean_cast_enforce_for_inner_expressions);
 
     var no_fallthrough_config = try std.json.parseFromSlice(
         std.json.Value,
