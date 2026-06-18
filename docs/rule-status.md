@@ -142,7 +142,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-underscore-dangle`](https://eslint.org/docs/latest/rules/no-underscore-dangle) | Supports `allow`, `allowAfterThis`, `allowAfterSuper`, `allowAfterThisConstructor`, `allowFunctionParams`, `allowInArrayDestructuring`, `allowInObjectDestructuring`, `enforceInMethodNames`, and `enforceInClassFields` configuration |
 | [`no-undefined`](https://eslint.org/docs/latest/rules/no-undefined) | Implemented for identifier references and binding names |
 | [`no-unneeded-ternary`](https://eslint.org/docs/latest/rules/no-unneeded-ternary) | Implemented |
-| [`no-unreachable`](https://eslint.org/docs/latest/rules/no-unreachable) | Implemented |
+| [`no-unreachable`](https://eslint.org/docs/latest/rules/no-unreachable) | Implemented with hoisted declaration handling |
 | [`no-unsafe-finally`](https://eslint.org/docs/latest/rules/no-unsafe-finally) | Implemented |
 | [`no-unsafe-negation`](https://eslint.org/docs/latest/rules/no-unsafe-negation) | Implemented |
 | [`no-use-before-define`](https://eslint.org/docs/latest/rules/no-use-before-define) | Supports `functions`, `classes`, `variables`, and `allowNamedExports` configuration |
