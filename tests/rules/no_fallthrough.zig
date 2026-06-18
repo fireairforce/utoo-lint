@@ -150,6 +150,41 @@ test "allows separated empty cases when configured" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_fallthrough.id));
 }
 
+test "supports configured no-fallthrough reportUnusedFallthroughComment" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"reportUnusedFallthroughComment\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-fallthrough", config.value);
+
+    const source =
+        \\switch (value) {
+        \\  case 1:
+        \\    one();
+        \\    break;
+        \\    // falls through
+        \\  case 2:
+        \\    two();
+        \\  case 3:
+        \\    three();
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_fallthrough.id));
+}
+
 test "can disable no-fallthrough" {
     const source =
         \\switch (value) {

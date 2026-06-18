@@ -9,6 +9,7 @@ pub const id = "no-fallthrough";
 
 pub const Options = struct {
     allow_empty_case: bool = false,
+    report_unused_fallthrough_comment: bool = false,
 };
 
 pub fn check(
@@ -39,7 +40,12 @@ pub fn checkWithOptions(
         if (switch_case.consequent.len == 0) {
             if (allowsEmptyCase(tree, case_index, next_case_index, options)) continue;
         } else {
-            if (caseAlwaysExits(tree, switch_case)) continue;
+            if (caseAlwaysExits(tree, switch_case)) {
+                if (options.report_unused_fallthrough_comment and hasFallthroughComment(tree, switch_case, next_case_index)) {
+                    try addUnusedFallthroughCommentDiagnostic(allocator, diagnostics, tree, case_index);
+                }
+                continue;
+            }
             if (hasFallthroughComment(tree, switch_case, next_case_index)) continue;
         }
 
@@ -52,6 +58,22 @@ pub fn checkWithOptions(
             tree.span(case_index),
         );
     }
+}
+
+fn addUnusedFallthroughCommentDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+) Allocator.Error!void {
+    try core.addDiagnostic(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        "Found a fallthrough comment, but this case cannot fall through.",
+        tree.span(index),
+    );
 }
 
 fn allowsEmptyCase(tree: *const ast.Tree, case_index: ast.NodeIndex, next_case_index: ast.NodeIndex, options: Options) bool {

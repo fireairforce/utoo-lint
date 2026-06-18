@@ -1197,6 +1197,7 @@ pub const Options = struct {
     no_floating_decimal: bool = true,
     no_fallthrough: bool = true,
     no_fallthrough_allow_empty_case: NoFallthroughAllowEmptyCase = .no,
+    no_fallthrough_report_unused_fallthrough_comment: bool = false,
     no_for_in: bool = true,
     no_func_assign: bool = true,
     no_global_assign: bool = true,
@@ -1846,6 +1847,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-fallthrough")) {
             self.no_fallthrough_allow_empty_case = try noFallthroughAllowEmptyCaseFromConfig(value);
+            self.no_fallthrough_report_unused_fallthrough_comment = try noFallthroughReportUnusedFallthroughCommentFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-implicit-coercion")) {
             self.no_implicit_coercion_boolean = try noImplicitCoercionBooleanFromConfig(value);
@@ -3280,21 +3282,29 @@ pub const Options = struct {
     }
 
     fn noFallthroughAllowEmptyCaseFromConfig(value: std.json.Value) RuleConfigError!NoFallthroughAllowEmptyCase {
+        const allow = try noFallthroughBoolOptionFromConfig(value, "allowEmptyCase", false);
+        return if (allow) .yes else .no;
+    }
+
+    fn noFallthroughReportUnusedFallthroughCommentFromConfig(value: std.json.Value) RuleConfigError!bool {
+        return noFallthroughBoolOptionFromConfig(value, "reportUnusedFallthroughComment", false);
+    }
+
+    fn noFallthroughBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
-            else => return .no,
+            else => return default,
         };
-        if (items.len < 2) return .no;
+        if (items.len < 2) return default;
 
         const config = switch (items[1]) {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        const allow = switch (config.get("allowEmptyCase") orelse return .no) {
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
-        return if (allow) .yes else .no;
     }
 
     fn importNewlineAfterImportCountFromConfig(value: std.json.Value) RuleConfigError!usize {
@@ -6529,13 +6539,14 @@ test "Options can apply ESLint-style rule config values" {
     var no_fallthrough_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowEmptyCase\":true}]",
+        "[\"error\",{\"allowEmptyCase\":true,\"reportUnusedFallthroughComment\":true}]",
         .{},
     );
     defer no_fallthrough_config.deinit();
     try options.setByRuleConfigValue("no-fallthrough", no_fallthrough_config.value);
     try std.testing.expect(options.no_fallthrough);
     try std.testing.expectEqual(NoFallthroughAllowEmptyCase.yes, options.no_fallthrough_allow_empty_case);
+    try std.testing.expect(options.no_fallthrough_report_unused_fallthrough_comment);
 
     var no_implicit_coercion_config = try std.json.parseFromSlice(
         std.json.Value,
