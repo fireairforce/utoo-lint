@@ -141,6 +141,37 @@ test "allows configured parameter property modification names" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_param_reassign.id));
 }
 
+test "allows configured parameter property modification name patterns" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"props\":true,\"ignorePropertyModificationsFor\":[\"exact\"],\"ignorePropertyModificationsForRegex\":[\"^req\",\"Response$\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-param-reassign", config.value);
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\function middleware(req, apiResponse, exact, ctx) {
+        \\  req.body = next;
+        \\  apiResponse.statusCode = next;
+        \\  exact.value = next;
+        \\  ctx.value = next;
+        \\  req = next;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_param_reassign.id));
+}
+
 test "can disable no-param-reassign" {
     const source =
         \\function run(value) {
