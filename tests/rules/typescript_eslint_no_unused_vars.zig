@@ -105,6 +105,33 @@ test "supports configured @typescript-eslint/no-unused-vars args none" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
 }
 
+test "supports configured @typescript-eslint/no-unused-vars argsIgnorePattern" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"args\":\"all\",\"argsIgnorePattern\":\"^ignored\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-unused-vars", config.value);
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\function demo(ignoredParam: string, unusedParam: string, usedParam: string) {
+        \\  console.log(usedParam);
+        \\}
+        \\demo("ignored", "unused", "used");
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
+}
+
 test "supports configured @typescript-eslint/no-unused-vars vars local" {
     var config = try std.json.parseFromSlice(
         std.json.Value,
