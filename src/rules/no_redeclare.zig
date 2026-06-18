@@ -13,6 +13,7 @@ pub const Options = struct {
     severity: core.Severity = .warning,
     mode: Mode = .javascript,
     builtin_globals: bool = false,
+    ignore_declaration_merge: bool = true,
 };
 
 pub const Mode = enum {
@@ -129,7 +130,7 @@ fn checkTypescriptRedeclarations(
 
     for (decls) |decl| {
         const current = decl_info.get(decl) orelse DeclInfo{ .kind = .other };
-        if (isAllowedAfterSeen(current, seen.items)) {
+        if (isAllowedAfterSeen(current, seen.items, options)) {
             try seen.append(allocator, current);
             continue;
         }
@@ -139,16 +140,16 @@ fn checkTypescriptRedeclarations(
     }
 }
 
-fn isAllowedAfterSeen(current: DeclInfo, seen: []const DeclInfo) bool {
+fn isAllowedAfterSeen(current: DeclInfo, seen: []const DeclInfo, options: Options) bool {
     if (seen.len == 0) return true;
 
     for (seen) |previous| {
-        if (!isAllowedTypescriptMerge(previous, current, seen)) return false;
+        if (!isAllowedTypescriptMerge(previous, current, seen, options)) return false;
     }
     return true;
 }
 
-fn isAllowedTypescriptMerge(previous: DeclInfo, current: DeclInfo, seen: []const DeclInfo) bool {
+fn isAllowedTypescriptMerge(previous: DeclInfo, current: DeclInfo, seen: []const DeclInfo, options: Options) bool {
     if (previous.kind == .function and current.kind == .function) {
         return functionBodyCount(seen) + @intFromBool(current.function_has_body) <= 1;
     }
@@ -157,11 +158,12 @@ fn isAllowedTypescriptMerge(previous: DeclInfo, current: DeclInfo, seen: []const
         (previous.kind == .interface and current.kind == .class) or
         (previous.kind == .class and current.kind == .interface))
     {
-        return true;
+        return options.ignore_declaration_merge;
     }
 
     if (previous.kind == .namespace or current.kind == .namespace) {
         const other = if (previous.kind == .namespace) current.kind else previous.kind;
+        if (!options.ignore_declaration_merge) return false;
         return switch (other) {
             .class, .function, .@"enum", .namespace => true,
             else => false,
