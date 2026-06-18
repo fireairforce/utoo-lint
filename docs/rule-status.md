@@ -61,7 +61,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-empty-block-statements`](https://eslint.org/docs/latest/rules/no-empty-block-statements) | Implemented |
 | [`no-empty-character-class`](https://eslint.org/docs/latest/rules/no-empty-character-class) | Implemented |
 | [`no-empty-function`](https://eslint.org/docs/latest/rules/no-empty-function) | Implemented with `allow` behavior for functions, arrow functions, async/generator functions, methods, async/generator methods, getters, setters, and constructors |
-| [`no-empty-pattern`](https://eslint.org/docs/latest/rules/no-empty-pattern) | Implemented |
+| [`no-empty-pattern`](https://eslint.org/docs/latest/rules/no-empty-pattern) | Implemented with optional `allowObjectPatternsAsParameters` behavior |
 | [`no-empty-static-block`](https://eslint.org/docs/latest/rules/no-empty-static-block) | Implemented |
 | [`no-eq-null`](https://eslint.org/docs/latest/rules/no-eq-null) | Implemented |
 | [`no-eval`](https://eslint.org/docs/latest/rules/no-eval) | Supports `allowIndirect` configuration |

@@ -3243,7 +3243,18 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_empty_pattern) {
-            try no_empty_pattern.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern, index);
+            try no_empty_pattern.checkObjectPatternWithOptions(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                pattern,
+                index,
+                ctx.path.parent(),
+                ctx.path.ancestor(2),
+                .{
+                    .allow_object_patterns_as_parameters = self.options.no_empty_pattern_allow_object_patterns_as_parameters,
+                },
+            );
         }
         if (self.options.no_useless_rename) {
             try no_useless_rename.checkObjectPatternWithOptions(self.allocator, self.diagnostics, ctx.tree, pattern, self.noUselessRenameOptions());
