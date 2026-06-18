@@ -250,9 +250,16 @@ fn hasStringFirstArgument(tree: *const ast.Tree, arguments: ast.IndexRange) bool
     if (arguments.len == 0) return false;
 
     const first = unwrapTransparent(tree, tree.extra(arguments)[0]);
-    return switch (tree.data(first)) {
+    return isEvaluatedString(tree, first);
+}
+
+fn isEvaluatedString(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(index)) {
         .string_literal => true,
-        .template_literal => |template| template.expressions.len == 0,
+        .template_literal => true,
+        .binary_expression => |expression| expression.operator == .add and
+            (isEvaluatedString(tree, unwrapTransparent(tree, expression.left)) or
+                isEvaluatedString(tree, unwrapTransparent(tree, expression.right))),
         else => false,
     };
 }
@@ -263,6 +270,10 @@ fn isImpliedEvalCallee(
     callee: ast.NodeIndex,
 ) bool {
     const unwrapped = unwrapTransparent(tree, callee);
+
+    if (identifierReferenceName(tree, unwrapped)) |name| {
+        return isImpliedEvalName(name) and isUnresolvedReference(symbol_table, unwrapped);
+    }
 
     const member = switch (tree.data(unwrapped)) {
         .member_expression => |member| member,
@@ -363,5 +374,8 @@ fn isEvalGlobalObjectName(name: []const u8) bool {
 }
 
 fn isImpliedEvalGlobalObjectName(name: []const u8) bool {
-    return std.mem.eql(u8, name, "globalThis");
+    return std.mem.eql(u8, name, "global") or
+        std.mem.eql(u8, name, "window") or
+        std.mem.eql(u8, name, "globalThis") or
+        std.mem.eql(u8, name, "self");
 }

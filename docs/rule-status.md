@@ -79,7 +79,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-global-is-finite`](https://eslint.org/docs/latest/rules/no-global-is-finite) | Implemented |
 | [`no-global-is-nan`](https://eslint.org/docs/latest/rules/no-global-is-nan) | Implemented |
 | [`no-implicit-coercion`](https://eslint.org/docs/latest/rules/no-implicit-coercion) | Supports `boolean`, `number`, `string`, `allow`, and `disallowTemplateShorthand` configuration |
-| [`no-implied-eval`](https://eslint.org/docs/latest/rules/no-implied-eval) | Implemented |
+| [`no-implied-eval`](https://eslint.org/docs/latest/rules/no-implied-eval) | Implemented for global timer and `execScript` calls with evaluated string arguments |
 | [`no-import-assign`](https://eslint.org/docs/latest/rules/no-import-assign) | Implemented |
 | [`no-inline-comments`](https://eslint.org/docs/latest/rules/no-inline-comments) | Implemented |
 | [`no-inner-declarations`](https://eslint.org/docs/latest/rules/no-inner-declarations) | Supports default `functions` mode and `both` mode for nested `var` declarations |

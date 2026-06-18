@@ -4,6 +4,14 @@ const helpers = @import("../helpers.zig");
 
 test "reports no-implied-eval for string timer and execScript calls" {
     const source =
+        \\setTimeout("alert(1)", 100);
+        \\setInterval(`tick()`, 100);
+        \\execScript("alert(1)");
+        \\setTimeout("alert(" + value + ")", 100);
+        \\setInterval(`tick(${value})`, 100);
+        \\window.setTimeout("alert(1)");
+        \\self.setInterval("tick()", 100);
+        \\global.setTimeout("alert(1)");
         \\globalThis.setTimeout("alert(1)");
         \\globalThis["setInterval"]("tick()", 100);
         \\globalThis[`setInterval`]("tick()", 100);
@@ -19,25 +27,42 @@ test "reports no-implied-eval for string timer and execScript calls" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_implied_eval.id));
+    try std.testing.expectEqual(@as(usize, 12), helpers.countRule(result, lint.rules.no_implied_eval.id));
 }
 
-test "does not report no-implied-eval for direct calls function arguments or shadowed calls" {
+test "does not report no-implied-eval for function or dynamic arguments" {
     const source =
-        \\setTimeout("alert(1)", 100);
-        \\setInterval(`tick()`, 100);
-        \\execScript("alert(1)");
         \\setTimeout(() => alert(1), 100);
         \\setInterval(handler, 100);
+        \\setTimeout(1 + timeout, 100);
+        \\setInterval(tagged`tick()`, 100);
+        \\globalThis[`set${suffix}`]("not static");
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_alert = false,
+        .no_empty_function = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_implied_eval.id));
+}
+
+test "does not report no-implied-eval for shadowed calls" {
+    const source =
         \\const setTimeout = customTimer;
         \\setTimeout("not global");
+        \\const setInterval = customInterval;
+        \\setInterval("not global");
+        \\const execScript = customExec;
+        \\execScript("not global");
         \\const window = sandbox;
         \\window.setTimeout("not global");
         \\window.setInterval("not global");
-        \\global.setTimeout("not global");
-        \\self.setTimeout("not global");
         \\object.setInterval("not global");
-        \\globalThis[`set${suffix}`]("not static");
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
