@@ -1204,6 +1204,7 @@ pub const Options = struct {
     prefer_destructuring_assignment_expression_object: bool = true,
     prefer_destructuring_enforce_for_renamed_properties: bool = false,
     prefer_regex_literals: bool = true,
+    prefer_regex_literals_disallow_redundant_wrapping: bool = false,
     prefer_rest_params: bool = true,
     prefer_object_spread: bool = true,
     prefer_spread: bool = true,
@@ -1636,6 +1637,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "prefer-promise-reject-errors")) {
             self.prefer_promise_reject_errors_allow_empty_reject = try preferPromiseRejectErrorsAllowEmptyRejectFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "prefer-regex-literals")) {
+            self.prefer_regex_literals_disallow_redundant_wrapping = try preferRegexLiteralsDisallowRedundantWrappingFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "radix")) {
             self.radix_style = try radixStyleFromConfig(value);
@@ -3269,6 +3273,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("allowEmptyReject") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn preferRegexLiteralsDisallowRedundantWrappingFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("disallowRedundantWrapping") orelse return false) {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
@@ -5833,6 +5854,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("prefer-promise-reject-errors", prefer_promise_reject_errors_config.value);
     try std.testing.expect(options.prefer_promise_reject_errors);
     try std.testing.expect(options.prefer_promise_reject_errors_allow_empty_reject);
+
+    var prefer_regex_literals_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"disallowRedundantWrapping\":true}]",
+        .{},
+    );
+    defer prefer_regex_literals_config.deinit();
+    try options.setByRuleConfigValue("prefer-regex-literals", prefer_regex_literals_config.value);
+    try std.testing.expect(options.prefer_regex_literals);
+    try std.testing.expect(options.prefer_regex_literals_disallow_redundant_wrapping);
 
     var radix_config = try std.json.parseFromSlice(
         std.json.Value,

@@ -8,16 +8,31 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "prefer-regex-literals";
 
+pub const Options = struct {
+    disallow_redundant_wrapping: bool = false,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    return runWithOptions(allocator, diagnostics, tree, symbol_table, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
+) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
         .symbol_table = symbol_table,
+        .options = options,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -27,6 +42,7 @@ const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
 
     pub fn enter_call_expression(
         self: *Visitor,
@@ -34,7 +50,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (isStaticRegExpConstructor(ctx.tree, self.symbol_table, call.callee, call.arguments)) {
+        if (isStaticRegExpConstructor(ctx.tree, self.symbol_table, call.callee, call.arguments, self.options)) {
             try self.report(ctx.tree, index);
         }
 
@@ -47,7 +63,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (isStaticRegExpConstructor(ctx.tree, self.symbol_table, expression.callee, expression.arguments)) {
+        if (isStaticRegExpConstructor(ctx.tree, self.symbol_table, expression.callee, expression.arguments, self.options)) {
             try self.report(ctx.tree, index);
         }
 
@@ -71,12 +87,14 @@ fn isStaticRegExpConstructor(
     symbol_table: traverser.semantic.SymbolTable,
     callee: ast.NodeIndex,
     argument_range: ast.IndexRange,
+    options: Options,
 ) bool {
     const arguments = tree.extra(argument_range);
     if (arguments.len == 0 or arguments.len > 2) return false;
     if (!isGlobalRegExpReference(tree, symbol_table, callee)) return false;
 
     const pattern = arguments[0];
+    if (options.disallow_redundant_wrapping and isRedundantlyWrappedRegexLiteral(tree, arguments)) return true;
     if (!isStaticLiteral(tree, pattern)) return false;
 
     if (arguments.len == 2 and !isStaticLiteral(tree, arguments[1])) return false;
@@ -97,6 +115,18 @@ fn isStaticLiteral(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     return switch (tree.data(unwrapTransparent(tree, index))) {
         .string_literal => true,
         .template_literal => |literal| literal.expressions.len == 0,
+        else => false,
+    };
+}
+
+fn isRedundantlyWrappedRegexLiteral(tree: *const ast.Tree, arguments: []const ast.NodeIndex) bool {
+    if (!isRegexLiteral(tree, arguments[0])) return false;
+    return arguments.len == 1 or isStaticLiteral(tree, arguments[1]);
+}
+
+fn isRegexLiteral(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .regexp_literal => true,
         else => false,
     };
 }
