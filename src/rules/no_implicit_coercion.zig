@@ -13,9 +13,11 @@ pub const Options = struct {
     string: bool = true,
     allow_double_negation: bool = false,
     allow_bitwise_not: bool = false,
-    allow_unary_plus: bool = false,
+    allow_plus: bool = false,
     allow_multiply: bool = false,
     allow_subtract: bool = false,
+    allow_double_negative: bool = false,
+    disallow_template_shorthand: bool = false,
 };
 
 pub fn checkUnaryExpression(
@@ -48,12 +50,12 @@ pub fn checkUnaryExpressionWithOptions(
             }
         },
         .positive => {
-            if (options.number and !options.allow_unary_plus and !isNumeric(tree, expression.argument)) {
+            if (options.number and !options.allow_plus and !isNumeric(tree, expression.argument)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Number()` instead of unary plus.");
             }
         },
         .negate => {
-            if (options.number and isNegatedExpression(tree, expression.argument)) {
+            if (options.number and !options.allow_double_negative and isNegatedExpression(tree, expression.argument)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `Number()` instead of double negation.");
             }
         },
@@ -81,7 +83,7 @@ pub fn checkBinaryExpressionWithOptions(
 ) Allocator.Error!void {
     switch (expression.operator) {
         .add => {
-            if (options.string and isConcatWithEmptyString(tree, expression)) {
+            if (options.string and !options.allow_plus and isConcatWithEmptyString(tree, expression)) {
                 try addDiagnostic(allocator, diagnostics, tree, index, "Use `String()` instead of string concatenation.");
             }
         },
@@ -119,9 +121,33 @@ pub fn checkAssignmentExpressionWithOptions(
     index: ast.NodeIndex,
     options: Options,
 ) Allocator.Error!void {
-    if (options.string and expression.operator == .add_assign and isEmptyStringLiteral(tree, expression.right)) {
+    if (options.string and !options.allow_plus and expression.operator == .add_assign and isEmptyStringLiteral(tree, expression.right)) {
         try addDiagnostic(allocator, diagnostics, tree, index, "Use `String()` instead of appending an empty string.");
     }
+}
+
+pub fn checkTemplateLiteralWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    literal: ast.TemplateLiteral,
+    index: ast.NodeIndex,
+    parent: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (!options.string or !options.disallow_template_shorthand) return;
+    if (isTaggedTemplateParent(tree, parent)) return;
+    if (!isTemplateShorthand(tree, literal)) return;
+
+    try addDiagnostic(allocator, diagnostics, tree, index, "Use `String()` instead of template string expression.");
+}
+
+fn isTaggedTemplateParent(tree: *const ast.Tree, parent: ast.NodeIndex) bool {
+    if (parent == .null) return false;
+    return switch (tree.data(parent)) {
+        .tagged_template_expression => true,
+        else => false,
+    };
 }
 
 fn isDoubleNegation(tree: *const ast.Tree, expression: ast.UnaryExpression) bool {
@@ -180,6 +206,23 @@ fn templateStringValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]c
         .template_element => |element| tree.string(element.cooked),
         else => null,
     };
+}
+
+fn isTemplateShorthand(tree: *const ast.Tree, literal: ast.TemplateLiteral) bool {
+    if (literal.expressions.len != 1) return false;
+
+    const quasis = tree.extra(literal.quasis);
+    if (quasis.len != 2) return false;
+
+    for (quasis) |quasi_index| {
+        switch (tree.data(quasi_index)) {
+            .template_element => |element| {
+                if (element.is_cooked_undefined or tree.string(element.cooked).len != 0) return false;
+            },
+            else => return false,
+        }
+    }
+    return true;
 }
 
 fn isEmptyStringLiteral(tree: *const ast.Tree, index: ast.NodeIndex) bool {

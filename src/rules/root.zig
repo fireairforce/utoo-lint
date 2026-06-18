@@ -2309,6 +2309,9 @@ const BasicVisitor = struct {
         if (self.options.alipay_ant_disallow_typos) {
             try alipay_ant_disallow_typos.checkTemplateLiteral(self.allocator, self.diagnostics, ctx.tree, literal);
         }
+        if (self.options.no_implicit_coercion) {
+            try no_implicit_coercion.checkTemplateLiteralWithOptions(self.allocator, self.diagnostics, ctx.tree, literal, index, ctx.path.parent() orelse .null, self.noImplicitCoercionOptions());
+        }
         return .proceed;
     }
 
@@ -2565,9 +2568,11 @@ const BasicVisitor = struct {
             .string = self.options.no_implicit_coercion_string == .yes,
             .allow_double_negation = self.options.no_implicit_coercion_allow_double_negation,
             .allow_bitwise_not = self.options.no_implicit_coercion_allow_bitwise_not,
-            .allow_unary_plus = self.options.no_implicit_coercion_allow_unary_plus,
+            .allow_plus = self.options.no_implicit_coercion_allow_plus,
             .allow_multiply = self.options.no_implicit_coercion_allow_multiply,
             .allow_subtract = self.options.no_implicit_coercion_allow_subtract,
+            .allow_double_negative = self.options.no_implicit_coercion_allow_double_negative,
+            .disallow_template_shorthand = self.options.no_implicit_coercion_disallow_template_shorthand,
         };
     }
 

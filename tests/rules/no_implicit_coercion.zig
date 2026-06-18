@@ -158,7 +158,7 @@ test "supports no-implicit-coercion allow option" {
     var config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"!!\",\"~\",\"+\",\"*\",\"-\"]}]",
+        "[\"error\",{\"allow\":[\"!!\",\"~\",\"+\",\"*\",\"-\",\"- -\"]}]",
         .{},
     );
     defer config.deinit();
@@ -185,7 +185,71 @@ test "supports no-implicit-coercion allow option" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_implicit_coercion.id));
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_implicit_coercion.id));
+}
+
+test "supports distinct no-implicit-coercion numeric allow tokens" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"+\",\"-\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-implicit-coercion", config.value);
+    options.eol_last = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const first = +value;
+        \\const second = value - 0;
+        \\const third = -(-value);
+        \\const fourth = value + "";
+        \\let fifth = value;
+        \\fifth += "";
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_implicit_coercion.id));
+    try std.testing.expectEqualStrings("Use `Number()` instead of double negation.", result.diagnostics[0].message);
+}
+
+test "supports no-implicit-coercion disallowTemplateShorthand option" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"disallowTemplateShorthand\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-implicit-coercion", config.value);
+    options.eol_last = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const first = `${value}`;
+        \\const second = `${value}${other}`;
+        \\const third = `prefix${value}`;
+        \\const fourth = `${value}suffix`;
+        \\const fifth = tag`${value}`;
+        \\const sixth = `${value + other}`;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_implicit_coercion.id));
+    try std.testing.expectEqualStrings("Use `String()` instead of template string expression.", result.diagnostics[0].message);
 }
 
 test "can disable no-implicit-coercion" {
