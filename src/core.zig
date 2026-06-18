@@ -1225,6 +1225,8 @@ pub const Options = struct {
     no_tabs: bool = true,
     no_tabs_allow_indentation_tabs: bool = false,
     no_trailing_spaces: bool = true,
+    no_trailing_spaces_skip_blank_lines: bool = false,
+    no_trailing_spaces_ignore_comments: bool = false,
     no_unreachable: bool = true,
     no_undef_init: bool = true,
     no_underscore_dangle: bool = true,
@@ -1731,6 +1733,10 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-self-assign")) {
             self.no_self_assign_props = try noSelfAssignPropsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-trailing-spaces")) {
+            self.no_trailing_spaces_skip_blank_lines = try noTrailingSpacesBoolOptionFromConfig(value, "skipBlankLines");
+            self.no_trailing_spaces_ignore_comments = try noTrailingSpacesBoolOptionFromConfig(value, "ignoreComments");
         }
         if (std.mem.eql(u8, cli_name, "no-useless-rename")) {
             self.no_useless_rename_ignore_destructuring = try noUselessRenameBoolOptionFromConfig(value, "ignoreDestructuring");
@@ -3981,6 +3987,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn noTrailingSpacesBoolOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return false) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };

@@ -136,7 +136,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-ternary`](https://eslint.org/docs/latest/rules/no-ternary) | Implemented |
 | [`no-this-before-super`](https://eslint.org/docs/latest/rules/no-this-before-super) | Implemented |
 | [`no-throw-literal`](https://eslint.org/docs/latest/rules/no-throw-literal) | Implemented |
-| [`no-trailing-spaces`](https://eslint.org/docs/latest/rules/no-trailing-spaces) | Implemented |
+| [`no-trailing-spaces`](https://eslint.org/docs/latest/rules/no-trailing-spaces) | Supports `skipBlankLines` and `ignoreComments` configuration |
 | [`no-undef`](https://eslint.org/docs/latest/rules/no-undef) | Implemented |
 | [`no-undef-init`](https://eslint.org/docs/latest/rules/no-undef-init) | Implemented |
 | [`no-underscore-dangle`](https://eslint.org/docs/latest/rules/no-underscore-dangle) | Supports `allow`, `allowAfterThis`, `allowAfterSuper`, `allowAfterThisConstructor`, `allowFunctionParams`, `allowInArrayDestructuring`, `allowInObjectDestructuring`, `enforceInMethodNames`, and `enforceInClassFields` configuration |

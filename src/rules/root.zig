@@ -455,7 +455,10 @@ pub fn runBasic(
         });
     }
     if (options.no_trailing_spaces) {
-        try no_trailing_spaces.run(allocator, diagnostics, tree);
+        try no_trailing_spaces.runWithOptions(allocator, diagnostics, tree, .{
+            .skip_blank_lines = options.no_trailing_spaces_skip_blank_lines,
+            .ignore_comments = options.no_trailing_spaces_ignore_comments,
+        });
     }
     if (options.eol_last) {
         try eol_last.run(allocator, diagnostics, tree);
