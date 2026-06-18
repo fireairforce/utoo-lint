@@ -24,7 +24,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`getter-return`](https://eslint.org/docs/latest/rules/getter-return) | Implemented |
 | [`grouped-accessor-pairs`](https://eslint.org/docs/latest/rules/grouped-accessor-pairs) | Implemented for `anyOrder`, `getBeforeSet`, and `setBeforeGet` options |
 | [`guard-for-in`](https://eslint.org/docs/latest/rules/guard-for-in) | Implemented |
-| [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Implemented |
+| [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Supports `unix` and `windows` configuration |
 | [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for `always`, optional `never`, and optional `enforceForIfStatements: true` behavior |
 | [`new-cap`](https://eslint.org/docs/latest/rules/new-cap) | Implemented |
 | [`new-parens`](https://eslint.org/docs/latest/rules/new-parens) | Implemented |

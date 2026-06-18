@@ -39,6 +39,11 @@ pub const OperatorAssignmentStyle = enum {
     never,
 };
 
+pub const LinebreakStyle = enum {
+    unix,
+    windows,
+};
+
 pub const NoCondAssignStyle = enum {
     except_parens,
     always,
@@ -1002,6 +1007,7 @@ pub const Options = struct {
     grouped_accessor_pairs_style: GroupedAccessorPairsStyle = .any_order,
     guard_for_in: bool = true,
     linebreak_style: bool = true,
+    linebreak_style_style: LinebreakStyle = .unix,
     logical_assignment_operators: bool = true,
     logical_assignment_operators_style: LogicalAssignmentOperatorsStyle = .always,
     logical_assignment_operators_enforce_for_if_statements: LogicalAssignmentOperatorsEnforceForIfStatements = .no,
@@ -1628,6 +1634,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "eqeqeq")) {
             self.eqeqeq_style = try eqeqeqStyleFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "linebreak-style")) {
+            self.linebreak_style_style = try linebreakStyleFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "use-isnan")) {
             self.use_isnan_enforce_for_index_of = try useIsnanBoolOptionFromConfig(value, "enforceForIndexOf", false);
             self.use_isnan_enforce_for_switch_case = try useIsnanBoolOptionFromConfig(value, "enforceForSwitchCase", true);
@@ -2086,6 +2095,22 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "always")) return .strict;
         if (std.mem.eql(u8, style, "allow-null")) return .allow_null;
         if (std.mem.eql(u8, style, "smart")) return .smart;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn linebreakStyleFromConfig(value: std.json.Value) RuleConfigError!LinebreakStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .unix,
+        };
+        if (items.len < 2) return .unix;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "unix")) return .unix;
+        if (std.mem.eql(u8, style, "windows")) return .windows;
         return error.UnsupportedRuleConfigValue;
     }
 
