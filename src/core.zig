@@ -1659,6 +1659,7 @@ pub const Options = struct {
     typescript_eslint_no_namespace_allow_declarations: bool = true,
     typescript_eslint_no_namespace_allow_definition_files: bool = true,
     typescript_eslint_no_redeclare: bool = true,
+    typescript_eslint_no_redeclare_ignore_declaration_merge: bool = true,
     typescript_eslint_no_require_imports: bool = true,
     typescript_eslint_no_shadow: bool = true,
     typescript_eslint_no_shadow_allow: NoShadowAllowNames = .{},
@@ -2218,6 +2219,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-namespace")) {
             self.typescript_eslint_no_namespace_allow_declarations = try typescriptEslintNoNamespaceBoolOptionFromConfig(value, "allowDeclarations", true);
             self.typescript_eslint_no_namespace_allow_definition_files = try typescriptEslintNoNamespaceBoolOptionFromConfig(value, "allowDefinitionFiles", true);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-redeclare")) {
+            self.typescript_eslint_no_redeclare_ignore_declaration_merge = try typescriptEslintNoRedeclareIgnoreDeclarationMergeFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-this-alias")) {
             self.typescript_eslint_no_this_alias_allowed_names = try typescriptEslintNoThisAliasAllowedNamesFromConfig(value);
@@ -5532,6 +5536,10 @@ pub const Options = struct {
         };
     }
 
+    fn typescriptEslintNoRedeclareIgnoreDeclarationMergeFromConfig(value: std.json.Value) RuleConfigError!bool {
+        return typescriptEslintNoNamespaceBoolOptionFromConfig(value, "ignoreDeclarationMerge", true);
+    }
+
     fn typescriptEslintNoThisAliasAllowedNamesFromConfig(value: std.json.Value) RuleConfigError!NoThisAliasAllowedNames {
         const items = switch (value) {
             .array => |array| array.items,
@@ -6898,6 +6906,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-redeclare", no_redeclare_config.value);
     try std.testing.expect(options.no_redeclare);
     try std.testing.expectEqual(NoRedeclareBuiltinGlobals.yes, options.no_redeclare_builtin_globals);
+
+    var typescript_no_redeclare_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreDeclarationMerge\":false}]",
+        .{},
+    );
+    defer typescript_no_redeclare_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-redeclare", typescript_no_redeclare_config.value);
+    try std.testing.expect(options.typescript_eslint_no_redeclare);
+    try std.testing.expect(!options.typescript_eslint_no_redeclare_ignore_declaration_merge);
 
     var no_irregular_whitespace_config = try std.json.parseFromSlice(
         std.json.Value,

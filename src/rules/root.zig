@@ -791,7 +791,13 @@ pub fn runSemantic(
     }
 
     if (use_typescript_no_redeclare) {
-        try typescript_eslint_no_redeclare.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try typescript_eslint_no_redeclare.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.typescript_eslint_no_redeclare_ignore_declaration_merge,
+        );
     }
 
     if (options.typescript_eslint_no_unsafe_declaration_merging and tree.isTs()) {

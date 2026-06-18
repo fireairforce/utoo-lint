@@ -71,6 +71,46 @@ test "allows @typescript-eslint/no-redeclare TypeScript declaration merging" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_redeclare.id));
 }
 
+test "supports configured @typescript-eslint/no-redeclare ignoreDeclarationMerge false" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreDeclarationMerge\":false}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-redeclare", config.value);
+    options.no_empty_block_statements = false;
+    options.typescript_eslint_no_empty_function = false;
+    options.typescript_eslint_no_empty_interface = false;
+    options.typescript_eslint_no_namespace = false;
+    options.no_unused_vars = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\interface Box {}
+        \\interface Box {}
+        \\class Model {}
+        \\interface Model {}
+        \\enum Direction {}
+        \\namespace Direction {}
+        \\function overload(value: string): void;
+        \\function overload(value: number): void;
+        \\function overload(value: string | number): void {
+        \\  value;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.typescript_eslint_no_redeclare.id));
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_redeclare.id));
+}
+
 test "can disable @typescript-eslint/no-redeclare and fall back to no-redeclare" {
     const source =
         \\let value = 1;
