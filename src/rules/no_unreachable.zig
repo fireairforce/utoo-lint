@@ -61,7 +61,15 @@ fn rangeAlwaysExits(tree: *const ast.Tree, range: ast.IndexRange) bool {
 fn isHoistedDeclaration(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     return switch (tree.data(index)) {
         .function => |function| function.type == .function_declaration or function.type == .ts_declare_function,
-        .variable_declaration => |declaration| declaration.kind == .@"var",
+        .variable_declaration => |declaration| declaration.kind == .@"var" and !hasInitializedDeclarator(tree, declaration),
         else => false,
     };
+}
+
+fn hasInitializedDeclarator(tree: *const ast.Tree, declaration: ast.VariableDeclaration) bool {
+    for (tree.extra(declaration.declarators)) |declarator_index| {
+        const declarator = tree.data(declarator_index).variable_declarator;
+        if (declarator.init != .null) return true;
+    }
+    return false;
 }

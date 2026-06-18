@@ -96,7 +96,7 @@ test "does not report no-unreachable for reachable statements or hoisted declara
         \\function second() {
         \\  return;
         \\  function later() {}
-        \\  var hoisted = 1;
+        \\  var hoisted;
         \\}
         \\function third() {
         \\  try { call(); } catch (error) { return recover(error); }
@@ -114,6 +114,29 @@ test "does not report no-unreachable for reachable statements or hoisted declara
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unreachable.id));
+}
+
+test "reports no-unreachable for initialized var declarations after exits" {
+    const source =
+        \\function first() {
+        \\  return;
+        \\  var initialized = sideEffect();
+        \\}
+        \\function second() {
+        \\  throw error;
+        \\  var first, second = sideEffect();
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_unreachable.id));
 }
 
 test "reports no-unreachable in switch cases" {
