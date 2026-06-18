@@ -521,7 +521,9 @@ pub fn runBasic(
         });
     }
     if (options.no_inline_comments) {
-        try no_inline_comments.run(allocator, diagnostics, tree);
+        try no_inline_comments.runWithOptions(allocator, diagnostics, tree, .{
+            .ignore_pattern = options.no_inline_comments_ignore_pattern,
+        });
     }
     if (options.no_multi_spaces) {
         try no_multi_spaces.runWithOptions(allocator, diagnostics, tree, .{

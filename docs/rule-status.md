@@ -81,7 +81,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-implicit-coercion`](https://eslint.org/docs/latest/rules/no-implicit-coercion) | Supports `boolean`, `number`, `string`, `allow`, and `disallowTemplateShorthand` configuration |
 | [`no-implied-eval`](https://eslint.org/docs/latest/rules/no-implied-eval) | Implemented for global timer and `execScript` calls with evaluated string arguments |
 | [`no-import-assign`](https://eslint.org/docs/latest/rules/no-import-assign) | Implemented |
-| [`no-inline-comments`](https://eslint.org/docs/latest/rules/no-inline-comments) | Implemented |
+| [`no-inline-comments`](https://eslint.org/docs/latest/rules/no-inline-comments) | Supports `ignorePattern` configuration with common regex-like patterns |
 | [`no-inner-declarations`](https://eslint.org/docs/latest/rules/no-inner-declarations) | Supports default `functions` mode and `both` mode for nested `var` declarations |
 | [`no-invalid-regexp`](https://eslint.org/docs/latest/rules/no-invalid-regexp) | Implemented with optional `allowConstructorFlags` behavior |
 | [`no-irregular-whitespace`](https://eslint.org/docs/latest/rules/no-irregular-whitespace) | Implemented |

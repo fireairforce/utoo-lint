@@ -977,6 +977,30 @@ pub const DotNotationAllowKeywords = enum {
     no,
 };
 
+pub const max_no_inline_comments_ignore_pattern_len = 256;
+
+pub const NoInlineCommentsIgnorePatternError = error{
+    NoInlineCommentsIgnorePatternTooLong,
+};
+
+pub const NoInlineCommentsIgnorePattern = struct {
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_no_inline_comments_ignore_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const NoInlineCommentsIgnorePattern) ?[]const u8 {
+        if (!self.custom) return null;
+        return self.storage[0..self.length];
+    }
+
+    pub fn set(self: *NoInlineCommentsIgnorePattern, pattern_value: []const u8) NoInlineCommentsIgnorePatternError!void {
+        if (pattern_value.len > max_no_inline_comments_ignore_pattern_len) return error.NoInlineCommentsIgnorePatternTooLong;
+        @memcpy(self.storage[0..pattern_value.len], pattern_value);
+        self.custom = true;
+        self.length = pattern_value.len;
+    }
+};
+
 pub const max_dot_notation_allow_pattern_len = 256;
 
 pub const DotNotationAllowPatternError = error{
@@ -1225,6 +1249,7 @@ pub const Options = struct {
     no_irregular_whitespace_skip_templates: bool = false,
     no_irregular_whitespace_skip_jsx_text: bool = false,
     no_inline_comments: bool = true,
+    no_inline_comments_ignore_pattern: NoInlineCommentsIgnorePattern = .{},
     no_inner_declarations: bool = true,
     no_inner_declarations_mode: NoInnerDeclarationsMode = .functions,
     no_iterator: bool = true,
@@ -1812,6 +1837,9 @@ pub const Options = struct {
             self.no_irregular_whitespace_skip_reg_exps = try noIrregularWhitespaceBoolOptionFromConfig(value, "skipRegExps", false);
             self.no_irregular_whitespace_skip_templates = try noIrregularWhitespaceBoolOptionFromConfig(value, "skipTemplates", false);
             self.no_irregular_whitespace_skip_jsx_text = try noIrregularWhitespaceBoolOptionFromConfig(value, "skipJSXText", false);
+        }
+        if (std.mem.eql(u8, cli_name, "no-inline-comments")) {
+            self.no_inline_comments_ignore_pattern = try noInlineCommentsIgnorePatternFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-labels")) {
             self.no_labels_allow_loop = try noLabelsAllowLoopFromConfig(value);
@@ -4282,6 +4310,28 @@ pub const Options = struct {
         };
     }
 
+    fn noInlineCommentsIgnorePatternFromConfig(value: std.json.Value) RuleConfigError!NoInlineCommentsIgnorePattern {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const pattern_value = switch (config.get("ignorePattern") orelse return .{}) {
+            .string => |pattern_value| pattern_value,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (pattern_value.len == 0) return .{};
+
+        var pattern = NoInlineCommentsIgnorePattern{};
+        pattern.set(pattern_value) catch return error.UnsupportedRuleConfigValue;
+        return pattern;
+    }
+
     fn noMultiAssignBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -6521,6 +6571,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_irregular_whitespace_skip_reg_exps);
     try std.testing.expect(options.no_irregular_whitespace_skip_templates);
     try std.testing.expect(options.no_irregular_whitespace_skip_jsx_text);
+
+    var no_inline_comments_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignorePattern\":\"eslint-disable|istanbul ignore\"}]",
+        .{},
+    );
+    defer no_inline_comments_config.deinit();
+    try options.setByRuleConfigValue("no-inline-comments", no_inline_comments_config.value);
+    try std.testing.expect(options.no_inline_comments);
+    try std.testing.expectEqualStrings("eslint-disable|istanbul ignore", options.no_inline_comments_ignore_pattern.pattern().?);
 
     var no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,
