@@ -90,6 +90,40 @@ test "supports configured curly multi-line style" {
     try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.curly.id));
 }
 
+test "supports configured curly multi style" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"multi\"]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("curly", config.value);
+    options.eol_last = false;
+    options.no_for_in = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\if (ready) run();
+        \\if (ready)
+        \\  run();
+        \\if (ready) { run(); }
+        \\while (ready) { run(); }
+        \\while (ready) { run(); step(); }
+        \\for (const item of items) { run(); }
+        \\if (ready) { let scoped = value; }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.curly.id));
+}
+
 test "can disable curly" {
     const source =
         \\if (ready) run();
