@@ -1118,6 +1118,7 @@ pub const Options = struct {
     typescript_eslint_no_dupe_class_members: bool = true,
     no_dupe_keys: bool = true,
     no_duplicate_imports: bool = true,
+    no_duplicate_imports_allow_separate_type_imports: bool = false,
     no_delete_var: bool = true,
     no_div_regex: bool = true,
     no_empty: bool = true,
@@ -1746,6 +1747,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-console")) {
             self.no_console_allow = try noConsoleAllowFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-duplicate-imports")) {
+            self.no_duplicate_imports_allow_separate_type_imports = try noDuplicateImportsBoolOptionFromConfig(value, "allowSeparateTypeImports", false);
         }
         if (std.mem.eql(u8, cli_name, "no-cond-assign")) {
             self.no_cond_assign_style = try noCondAssignStyleFromConfig(value);
@@ -3351,6 +3355,23 @@ pub const Options = struct {
     }
 
     fn noLabelsBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn noDuplicateImportsBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
             else => return default,
@@ -6098,6 +6119,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_console_allow.contains("warn"));
     try std.testing.expect(options.no_console_allow.contains("error"));
     try std.testing.expect(!options.no_console_allow.contains("log"));
+
+    var no_duplicate_imports_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowSeparateTypeImports\":true}]",
+        .{},
+    );
+    defer no_duplicate_imports_config.deinit();
+    try options.setByRuleConfigValue("no-duplicate-imports", no_duplicate_imports_config.value);
+    try std.testing.expect(options.no_duplicate_imports);
+    try std.testing.expect(options.no_duplicate_imports_allow_separate_type_imports);
 
     var no_cond_assign_config = try std.json.parseFromSlice(
         std.json.Value,

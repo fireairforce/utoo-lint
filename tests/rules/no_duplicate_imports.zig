@@ -78,6 +78,55 @@ test "reports no-duplicate-imports for namespace imports that can be merged" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_duplicate_imports.id));
 }
 
+test "reports no-duplicate-imports for separate type imports by default" {
+    const source =
+        \\import type { Foo } from "alpha";
+        \\import { foo } from "alpha";
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .eol_last = false,
+        .import_no_duplicates = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_duplicate_imports.id));
+}
+
+test "supports configured no-duplicate-imports allowSeparateTypeImports" {
+    const source =
+        \\import type { Foo } from "alpha";
+        \\import { foo } from "alpha";
+        \\import type { Bar } from "beta";
+        \\import type { Baz } from "beta";
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowSeparateTypeImports\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .import_no_duplicates = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-duplicate-imports", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_duplicate_imports.id));
+}
+
 test "can disable no-duplicate-imports" {
     const source =
         \\import foo from "alpha";

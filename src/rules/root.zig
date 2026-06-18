@@ -1180,7 +1180,9 @@ const BasicVisitor = struct {
             self.react_style_prop_object_bindings = react_style_prop_object.bindingsFromProgram(ctx.tree, program);
         }
         if (self.options.no_duplicate_imports and !self.options.import_no_duplicates) {
-            try no_duplicate_imports.check(self.allocator, self.diagnostics, ctx.tree, program);
+            try no_duplicate_imports.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, program, .{
+                .allow_separate_type_imports = self.options.no_duplicate_imports_allow_separate_type_imports,
+            });
         }
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
             try typescript_eslint_adjacent_overload_signatures.checkRange(self.allocator, self.diagnostics, ctx.tree, program.body);
