@@ -1223,6 +1223,7 @@ pub const Options = struct {
     no_throw_literal: bool = true,
     no_this_before_super: bool = true,
     no_tabs: bool = true,
+    no_tabs_allow_indentation_tabs: bool = false,
     no_trailing_spaces: bool = true,
     no_unreachable: bool = true,
     no_undef_init: bool = true,
@@ -1968,6 +1969,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-undef")) {
             self.no_undef_typeof = try noUndefTypeofFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-tabs")) {
+            self.no_tabs_allow_indentation_tabs = try noTabsAllowIndentationTabsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-unneeded-ternary")) {
             self.no_unneeded_ternary_default_assignment = try noUnneededTernaryDefaultAssignmentFromConfig(value);
@@ -3937,6 +3941,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("typeof") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn noTabsAllowIndentationTabsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowIndentationTabs") orelse return false) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -6505,6 +6526,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-undef", no_undef_config.value);
     try std.testing.expect(options.no_undef);
     try std.testing.expect(options.no_undef_typeof);
+
+    var no_tabs_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowIndentationTabs\":true}]",
+        .{},
+    );
+    defer no_tabs_config.deinit();
+    try options.setByRuleConfigValue("no-tabs", no_tabs_config.value);
+    try std.testing.expect(options.no_tabs);
+    try std.testing.expect(options.no_tabs_allow_indentation_tabs);
 
     var no_self_assign_config = try std.json.parseFromSlice(
         std.json.Value,

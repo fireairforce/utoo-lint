@@ -131,7 +131,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-shadow`](https://eslint.org/docs/latest/rules/no-shadow) | Supports `allow`, `builtinGlobals`, and `hoist` configuration |
 | [`no-shadow-restricted-names`](https://eslint.org/docs/latest/rules/no-shadow-restricted-names) | Implemented |
 | [`no-sparse-arrays`](https://eslint.org/docs/latest/rules/no-sparse-arrays) | Implemented |
-| [`no-tabs`](https://eslint.org/docs/latest/rules/no-tabs) | Implemented |
+| [`no-tabs`](https://eslint.org/docs/latest/rules/no-tabs) | Supports `allowIndentationTabs` configuration |
 | [`no-template-curly-in-string`](https://eslint.org/docs/latest/rules/no-template-curly-in-string) | Implemented |
 | [`no-ternary`](https://eslint.org/docs/latest/rules/no-ternary) | Implemented |
 | [`no-this-before-super`](https://eslint.org/docs/latest/rules/no-this-before-super) | Implemented |

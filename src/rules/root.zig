@@ -474,7 +474,9 @@ pub fn runBasic(
         });
     }
     if (options.no_tabs) {
-        try no_tabs.run(allocator, diagnostics, tree);
+        try no_tabs.runWithOptions(allocator, diagnostics, tree, .{
+            .allow_indentation_tabs = options.no_tabs_allow_indentation_tabs,
+        });
     }
     if (options.no_mixed_spaces_and_tabs) {
         try no_mixed_spaces_and_tabs.run(allocator, diagnostics, tree);
