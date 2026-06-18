@@ -55,6 +55,47 @@ test "does not report prefer-regex-literals for dynamic patterns or shadowed Reg
     try std.testing.expect(!helpers.hasRule(result, lint.rules.prefer_regex_literals.id));
 }
 
+test "supports configured prefer-regex-literals disallowRedundantWrapping option" {
+    const source =
+        \\new RegExp(/abc/);
+        \\new RegExp(/abc/, "u");
+        \\RegExp(/abc/, `u`);
+        \\RegExp(/abc/, flags);
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_new = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(default_result, lint.rules.prefer_regex_literals.id));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"disallowRedundantWrapping\":true}]",
+        .{},
+    );
+    defer config.deinit();
+    var options = lint.Options{
+        .eol_last = false,
+        .no_new = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("prefer-regex-literals", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_regex_literals.id));
+}
+
 test "can disable prefer-regex-literals" {
     const source =
         \\RegExp("abc");

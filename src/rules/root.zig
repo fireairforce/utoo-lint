@@ -892,7 +892,9 @@ pub fn runSemantic(
     }
 
     if (options.prefer_regex_literals) {
-        try prefer_regex_literals.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try prefer_regex_literals.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .disallow_redundant_wrapping = options.prefer_regex_literals_disallow_redundant_wrapping,
+        });
     }
 
     if (options.prefer_numeric_literals) {

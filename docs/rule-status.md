@@ -169,7 +169,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`prefer-object-has-own`](https://eslint.org/docs/latest/rules/prefer-object-has-own) | Implemented |
 | [`prefer-object-spread`](https://eslint.org/docs/latest/rules/prefer-object-spread) | Implemented for `Object.assign` calls with a new object literal target |
 | [`prefer-promise-reject-errors`](https://eslint.org/docs/latest/rules/prefer-promise-reject-errors) | Supports `allowEmptyReject` configuration |
-| [`prefer-regex-literals`](https://eslint.org/docs/latest/rules/prefer-regex-literals) | Implemented |
+| [`prefer-regex-literals`](https://eslint.org/docs/latest/rules/prefer-regex-literals) | Supports `disallowRedundantWrapping` configuration |
 | [`prefer-rest-params`](https://eslint.org/docs/latest/rules/prefer-rest-params) | Implemented |
 | [`prefer-spread`](https://eslint.org/docs/latest/rules/prefer-spread) | Implemented |
 | [`prefer-template`](https://eslint.org/docs/latest/rules/prefer-template) | Implemented |
