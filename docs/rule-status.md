@@ -28,7 +28,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for `always`, optional `never`, and optional `enforceForIfStatements: true` behavior |
 | [`new-cap`](https://eslint.org/docs/latest/rules/new-cap) | Implemented |
 | [`new-parens`](https://eslint.org/docs/latest/rules/new-parens) | Implemented |
-| [`no-alert`](https://eslint.org/docs/latest/rules/no-alert) | Implemented |
+| [`no-alert`](https://eslint.org/docs/latest/rules/no-alert) | Implemented with global `this`, `window`, and `globalThis` detection |
 | [`no-array-constructor`](https://eslint.org/docs/latest/rules/no-array-constructor) | Implemented |
 | [`no-async-promise-executor`](https://eslint.org/docs/latest/rules/no-async-promise-executor) | Implemented |
 | [`no-await-in-loop`](https://eslint.org/docs/latest/rules/no-await-in-loop) | Implemented |

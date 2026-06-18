@@ -61,7 +61,7 @@ const Visitor = struct {
         }
 
         if (self.check_no_alert) {
-            if (alertCalleeName(ctx.tree, self.symbol_table, call.callee)) |name| {
+            if (alertCalleeName(ctx.tree, self.symbol_table, call.callee, ctx)) |name| {
                 try core.addDiagnosticFmt(
                     self.allocator,
                     self.diagnostics,
@@ -188,6 +188,7 @@ fn alertCalleeName(
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
     callee: ast.NodeIndex,
+    ctx: *traverser.basic.Ctx,
 ) ?[]const u8 {
     const unwrapped = unwrapTransparent(tree, callee);
 
@@ -204,8 +205,7 @@ fn alertCalleeName(
     };
 
     const object = unwrapTransparent(tree, member.object);
-    const object_name = identifierReferenceName(tree, object) orelse return null;
-    if (!isAlertGlobalObjectName(object_name) or !isUnresolvedReference(symbol_table, object)) {
+    if (!isAlertGlobalObjectReference(tree, symbol_table, object, ctx)) {
         return null;
     }
 
@@ -213,6 +213,37 @@ fn alertCalleeName(
     if (isAlertName(property_name)) return property_name;
 
     return null;
+}
+
+fn isAlertGlobalObjectReference(
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    object: ast.NodeIndex,
+    ctx: *traverser.basic.Ctx,
+) bool {
+    switch (tree.data(object)) {
+        .this_expression => return isTopLevelThis(ctx, tree),
+        else => {},
+    }
+
+    const object_name = identifierReferenceName(tree, object) orelse return false;
+    return isAlertGlobalObjectName(object_name) and isUnresolvedReference(symbol_table, object);
+}
+
+fn isTopLevelThis(ctx: *traverser.basic.Ctx, tree: *const ast.Tree) bool {
+    var depth: usize = 1;
+    while (ctx.path.ancestor(depth)) |ancestor| : (depth += 1) {
+        switch (tree.data(ancestor)) {
+            .program => return true,
+            .function,
+            .arrow_function_expression,
+            .class,
+            .static_block,
+            => return false,
+            else => {},
+        }
+    }
+    return false;
 }
 
 fn hasStringFirstArgument(tree: *const ast.Tree, arguments: ast.IndexRange) bool {
