@@ -184,6 +184,52 @@ test "supports configured no-use-before-define variables false" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_use_before_define.id));
 }
 
+test "supports configured no-use-before-define allowNamedExports" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowNamedExports\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-use-before-define", config.value);
+    options.no_unused_expressions = false;
+    options.typescript_eslint_no_unused_expressions = false;
+    options.no_unused_vars = false;
+    options.typescript_eslint_no_use_before_define = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\export { allowed };
+        \\reported;
+        \\const allowed = 1;
+        \\const reported = 2;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.mjs", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_use_before_define.id));
+}
+
+test "reports no-use-before-define named exports by default" {
+    const source =
+        \\export { reported };
+        \\const reported = 1;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.mjs", .{
+        .no_unused_vars = false,
+        .typescript_eslint_no_use_before_define = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_use_before_define.id));
+}
+
 test "can disable no-use-before-define" {
     const source =
         \\a;
