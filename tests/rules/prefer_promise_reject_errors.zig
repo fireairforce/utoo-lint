@@ -115,6 +115,54 @@ test "does not report prefer-promise-reject-errors for dynamic Promise members o
     try std.testing.expect(!helpers.hasRule(result, lint.rules.prefer_promise_reject_errors.id));
 }
 
+test "reports prefer-promise-reject-errors for empty reject calls by default" {
+    const source =
+        \\Promise.reject();
+        \\new Promise((resolve, reject) => {
+        \\  reject();
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_promise_reject_errors.id));
+}
+
+test "supports configured prefer-promise-reject-errors allowEmptyReject option" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowEmptyReject\":true}]",
+        .{},
+    );
+    defer config.deinit();
+    var options = lint.Options{
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("prefer-promise-reject-errors", config.value);
+
+    const source =
+        \\Promise.reject();
+        \\Promise.reject("failed");
+        \\new Promise((resolve, reject) => {
+        \\  reject();
+        \\  reject("failed");
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_promise_reject_errors.id));
+}
+
 test "can disable prefer-promise-reject-errors" {
     const source =
         \\Promise.reject("failed");

@@ -1196,6 +1196,7 @@ pub const Options = struct {
     prefer_numeric_literals: bool = true,
     prefer_object_has_own: bool = true,
     prefer_promise_reject_errors: bool = true,
+    prefer_promise_reject_errors_allow_empty_reject: bool = false,
     prefer_destructuring: bool = true,
     prefer_destructuring_variable_declarator_array: bool = true,
     prefer_destructuring_variable_declarator_object: bool = true,
@@ -1632,6 +1633,9 @@ pub const Options = struct {
             self.prefer_destructuring_assignment_expression_array = try preferDestructuringOptionFromConfig(value, "AssignmentExpression", "array", true);
             self.prefer_destructuring_assignment_expression_object = try preferDestructuringOptionFromConfig(value, "AssignmentExpression", "object", true);
             self.prefer_destructuring_enforce_for_renamed_properties = try preferDestructuringEnforceForRenamedPropertiesFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "prefer-promise-reject-errors")) {
+            self.prefer_promise_reject_errors_allow_empty_reject = try preferPromiseRejectErrorsAllowEmptyRejectFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "radix")) {
             self.radix_style = try radixStyleFromConfig(value);
@@ -3248,6 +3252,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("enforceForRenamedProperties") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn preferPromiseRejectErrorsAllowEmptyRejectFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowEmptyReject") orelse return false) {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
@@ -5801,6 +5822,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(!options.prefer_destructuring_assignment_expression_array);
     try std.testing.expect(options.prefer_destructuring_assignment_expression_object);
     try std.testing.expect(options.prefer_destructuring_enforce_for_renamed_properties);
+
+    var prefer_promise_reject_errors_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowEmptyReject\":true}]",
+        .{},
+    );
+    defer prefer_promise_reject_errors_config.deinit();
+    try options.setByRuleConfigValue("prefer-promise-reject-errors", prefer_promise_reject_errors_config.value);
+    try std.testing.expect(options.prefer_promise_reject_errors);
+    try std.testing.expect(options.prefer_promise_reject_errors_allow_empty_reject);
 
     var radix_config = try std.json.parseFromSlice(
         std.json.Value,
