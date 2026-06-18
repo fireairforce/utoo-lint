@@ -44,6 +44,11 @@ pub const LinebreakStyle = enum {
     windows,
 };
 
+pub const EolLastStyle = enum {
+    always,
+    never,
+};
+
 pub const NoCondAssignStyle = enum {
     except_parens,
     always,
@@ -993,6 +998,7 @@ pub const Options = struct {
     default_case_last: bool = true,
     default_param_last: bool = true,
     eol_last: bool = true,
+    eol_last_style: EolLastStyle = .always,
     eslint_comments_no_restricted_disable: bool = true,
     eslint_comments_no_restricted_disable_no_nested_ternary: bool = false,
     for_direction: bool = true,
@@ -1617,6 +1623,9 @@ pub const Options = struct {
         if (enabled and (std.mem.eql(u8, cli_name, "dot-notation") or std.mem.eql(u8, cli_name, "@typescript-eslint/dot-notation"))) {
             self.dot_notation_allow_keywords = try dotNotationAllowKeywordsFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "eol-last")) {
+            self.eol_last_style = try eolLastStyleFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "eslint-comments/no-restricted-disable")) {
             self.eslint_comments_no_restricted_disable_no_nested_ternary = noRestrictedDisableRestrictsNoNestedTernary(value);
         }
@@ -2082,6 +2091,22 @@ pub const Options = struct {
         };
         if (std.mem.eql(u8, style, "all")) return .all;
         if (std.mem.eql(u8, style, "multi-line")) return .multi_line;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn eolLastStyleFromConfig(value: std.json.Value) RuleConfigError!EolLastStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "always") or std.mem.eql(u8, style, "unix") or std.mem.eql(u8, style, "windows")) return .always;
+        if (std.mem.eql(u8, style, "never")) return .never;
         return error.UnsupportedRuleConfigValue;
     }
 

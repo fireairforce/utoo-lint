@@ -461,7 +461,12 @@ pub fn runBasic(
         });
     }
     if (options.eol_last) {
-        try eol_last.run(allocator, diagnostics, tree);
+        try eol_last.runWithOptions(allocator, diagnostics, tree, .{
+            .style = switch (options.eol_last_style) {
+                .always => .always,
+                .never => .never,
+            },
+        });
     }
     if (options.eslint_comments_no_restricted_disable) {
         try eslint_comments_no_restricted_disable.run(allocator, diagnostics, tree, options.eslint_comments_no_restricted_disable_no_nested_ternary);

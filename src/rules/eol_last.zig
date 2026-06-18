@@ -7,21 +7,74 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "eol-last";
 
+pub const Style = enum {
+    always,
+    never,
+};
+
+pub const Options = struct {
+    style: Style = .always,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
 ) Allocator.Error!void {
-    const source = tree.source;
-    if (source.len == 0 or source[source.len - 1] == '\n') return;
+    try runWithOptions(allocator, diagnostics, tree, .{});
+}
 
-    const start = source.len - 1;
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
+) Allocator.Error!void {
+    const source = tree.source;
+    if (source.len == 0) return;
+
+    switch (options.style) {
+        .always => {
+            if (source[source.len - 1] == '\n') return;
+            try addDiagnostic(allocator, diagnostics, source.len - 1, source.len, "Newline required at end of file but not found.");
+        },
+        .never => {
+            const span = finalLinebreakSpan(source) orelse return;
+            try addDiagnostic(allocator, diagnostics, span.start, span.end, "Newline not allowed at end of file.");
+        },
+    }
+}
+
+const Span = struct {
+    start: usize,
+    end: usize,
+};
+
+fn finalLinebreakSpan(source: []const u8) ?Span {
+    if (source.len == 0) return null;
+    if (source[source.len - 1] == '\n') {
+        const start = if (source.len >= 2 and source[source.len - 2] == '\r') source.len - 2 else source.len - 1;
+        return .{ .start = start, .end = source.len };
+    }
+    if (source[source.len - 1] == '\r') {
+        return .{ .start = source.len - 1, .end = source.len };
+    }
+    return null;
+}
+
+fn addDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    start: usize,
+    end: usize,
+    message: []const u8,
+) Allocator.Error!void {
     try core.addDiagnostic(
         allocator,
         diagnostics,
         .warning,
         id,
-        "Newline required at end of file but not found.",
-        .{ .start = @intCast(start), .end = @intCast(source.len) },
+        message,
+        .{ .start = @intCast(start), .end = @intCast(end) },
     );
 }
