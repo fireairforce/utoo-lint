@@ -15,6 +15,7 @@ pub fn run(
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
     check_no_eval: bool,
+    no_eval_allow_indirect: bool,
     check_no_alert: bool,
     check_no_implied_eval: bool,
 ) Allocator.Error!void {
@@ -25,6 +26,7 @@ pub fn run(
         .diagnostics = diagnostics,
         .symbol_table = symbol_table,
         .check_no_eval = check_no_eval,
+        .no_eval_allow_indirect = no_eval_allow_indirect,
         .check_no_alert = check_no_alert,
         .check_no_implied_eval = check_no_implied_eval,
     };
@@ -37,6 +39,7 @@ const Visitor = struct {
     diagnostics: *core.DiagnosticList,
     symbol_table: traverser.semantic.SymbolTable,
     check_no_eval: bool,
+    no_eval_allow_indirect: bool,
     check_no_alert: bool,
     check_no_implied_eval: bool,
 
@@ -46,7 +49,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.check_no_eval and isEvalCall(ctx.tree, self.symbol_table, call.callee)) {
+        if (self.check_no_eval and isEvalCall(ctx.tree, self.symbol_table, call.callee, self.no_eval_allow_indirect)) {
             try core.addDiagnostic(
                 self.allocator,
                 self.diagnostics,
@@ -95,6 +98,7 @@ const Visitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (!self.check_no_eval) return .proceed;
+        if (self.no_eval_allow_indirect) return .proceed;
         if (!std.mem.eql(u8, ctx.tree.string(identifier.name), "eval")) return .proceed;
         if (isCallCalleeReference(ctx.tree, index, ctx)) return .proceed;
 
@@ -115,12 +119,15 @@ fn isEvalCall(
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
     callee: ast.NodeIndex,
+    allow_indirect: bool,
 ) bool {
     const unwrapped = unwrapTransparent(tree, callee);
 
     if (identifierReferenceName(tree, unwrapped)) |name| {
         return std.mem.eql(u8, name, "eval");
     }
+
+    if (allow_indirect) return false;
 
     switch (tree.data(unwrapped)) {
         .sequence_expression => |sequence| {

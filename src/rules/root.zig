@@ -742,6 +742,7 @@ pub fn runSemantic(
             tree,
             semantic_result.symbol_table,
             options.no_eval,
+            options.no_eval_allow_indirect,
             options.no_alert,
             options.no_implied_eval,
         );

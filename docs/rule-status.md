@@ -64,7 +64,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-empty-pattern`](https://eslint.org/docs/latest/rules/no-empty-pattern) | Implemented |
 | [`no-empty-static-block`](https://eslint.org/docs/latest/rules/no-empty-static-block) | Implemented |
 | [`no-eq-null`](https://eslint.org/docs/latest/rules/no-eq-null) | Implemented |
-| [`no-eval`](https://eslint.org/docs/latest/rules/no-eval) | Implemented |
+| [`no-eval`](https://eslint.org/docs/latest/rules/no-eval) | Supports `allowIndirect` configuration |
 | [`no-ex-assign`](https://eslint.org/docs/latest/rules/no-ex-assign) | Implemented |
 | [`no-extend-native`](https://eslint.org/docs/latest/rules/no-extend-native) | Implemented |
 | [`no-extra-bind`](https://eslint.org/docs/latest/rules/no-extra-bind) | Implemented |
