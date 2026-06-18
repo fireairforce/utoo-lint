@@ -7,10 +7,27 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-irregular-whitespace";
 
+pub const Options = struct {
+    skip_strings: bool = true,
+    skip_comments: bool = false,
+    skip_reg_exps: bool = false,
+    skip_templates: bool = false,
+    skip_jsx_text: bool = false,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
 ) Allocator.Error!void {
     const source = tree.source;
     var index: usize = 0;
@@ -18,7 +35,7 @@ pub fn run(
     while (index < source.len) {
         if (irregularWhitespaceLen(source[index..])) |len| {
             const end = index + len;
-            if (!isInsideStringLiteral(tree, @intCast(index))) {
+            if (!isInsideIgnoredSpan(tree, @intCast(index), options)) {
                 try core.addDiagnostic(
                     allocator,
                     diagnostics,
@@ -73,18 +90,37 @@ fn startsWith(source: []const u8, bytes: []const u8) bool {
     return std.mem.startsWith(u8, source, bytes);
 }
 
-fn isInsideStringLiteral(tree: *const ast.Tree, offset: u32) bool {
+fn isInsideIgnoredSpan(tree: *const ast.Tree, offset: u32, options: Options) bool {
+    if (options.skip_comments) {
+        for (tree.comments) |comment| {
+            if (comment.start <= offset and offset < comment.end) return true;
+        }
+    }
+
     const data = tree.nodes.items(.data);
     const spans = tree.nodes.items(.span);
 
     for (data, spans) |node, span| {
         switch (node) {
             .string_literal => {
-                if (span.start <= offset and offset < span.end) return true;
+                if (options.skip_strings and containsOffset(span, offset)) return true;
+            },
+            .regexp_literal => {
+                if (options.skip_reg_exps and containsOffset(span, offset)) return true;
+            },
+            .template_element => {
+                if (options.skip_templates and containsOffset(span, offset)) return true;
+            },
+            .jsx_text => {
+                if (options.skip_jsx_text and containsOffset(span, offset)) return true;
             },
             else => {},
         }
     }
 
     return false;
+}
+
+fn containsOffset(span: ast.Span, offset: u32) bool {
+    return span.start <= offset and offset < span.end;
 }

@@ -1167,6 +1167,11 @@ pub const Options = struct {
     no_invalid_regexp: bool = true,
     no_invalid_regexp_allow_constructor_flags: NoInvalidRegexpAllowConstructorFlags = .{},
     no_irregular_whitespace: bool = true,
+    no_irregular_whitespace_skip_strings: bool = true,
+    no_irregular_whitespace_skip_comments: bool = false,
+    no_irregular_whitespace_skip_reg_exps: bool = false,
+    no_irregular_whitespace_skip_templates: bool = false,
+    no_irregular_whitespace_skip_jsx_text: bool = false,
     no_inline_comments: bool = true,
     no_inner_declarations: bool = true,
     no_inner_declarations_mode: NoInnerDeclarationsMode = .functions,
@@ -1736,6 +1741,13 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-invalid-regexp")) {
             self.no_invalid_regexp_allow_constructor_flags = try noInvalidRegexpAllowConstructorFlagsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-irregular-whitespace")) {
+            self.no_irregular_whitespace_skip_strings = try noIrregularWhitespaceBoolOptionFromConfig(value, "skipStrings", true);
+            self.no_irregular_whitespace_skip_comments = try noIrregularWhitespaceBoolOptionFromConfig(value, "skipComments", false);
+            self.no_irregular_whitespace_skip_reg_exps = try noIrregularWhitespaceBoolOptionFromConfig(value, "skipRegExps", false);
+            self.no_irregular_whitespace_skip_templates = try noIrregularWhitespaceBoolOptionFromConfig(value, "skipTemplates", false);
+            self.no_irregular_whitespace_skip_jsx_text = try noIrregularWhitespaceBoolOptionFromConfig(value, "skipJSXText", false);
         }
         if (std.mem.eql(u8, cli_name, "no-labels")) {
             self.no_labels_allow_loop = try noLabelsAllowLoopFromConfig(value);
@@ -4089,6 +4101,23 @@ pub const Options = struct {
         };
     }
 
+    fn noIrregularWhitespaceBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn noEvalAllowIndirectFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -6263,6 +6292,21 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-redeclare", no_redeclare_config.value);
     try std.testing.expect(options.no_redeclare);
     try std.testing.expectEqual(NoRedeclareBuiltinGlobals.yes, options.no_redeclare_builtin_globals);
+
+    var no_irregular_whitespace_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"skipStrings\":false,\"skipComments\":true,\"skipRegExps\":true,\"skipTemplates\":true,\"skipJSXText\":true}]",
+        .{},
+    );
+    defer no_irregular_whitespace_config.deinit();
+    try options.setByRuleConfigValue("no-irregular-whitespace", no_irregular_whitespace_config.value);
+    try std.testing.expect(options.no_irregular_whitespace);
+    try std.testing.expect(!options.no_irregular_whitespace_skip_strings);
+    try std.testing.expect(options.no_irregular_whitespace_skip_comments);
+    try std.testing.expect(options.no_irregular_whitespace_skip_reg_exps);
+    try std.testing.expect(options.no_irregular_whitespace_skip_templates);
+    try std.testing.expect(options.no_irregular_whitespace_skip_jsx_text);
 
     var no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,
