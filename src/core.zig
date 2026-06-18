@@ -1284,6 +1284,7 @@ pub const Options = struct {
     spaced_comment: bool = true,
     spaced_comment_style: SpacedCommentStyle = .always,
     spaced_comment_markers: SpacedCommentMarkers = .{},
+    spaced_comment_exceptions: SpacedCommentMarkers = .{},
     symbol_description: bool = true,
     typescript_eslint_adjacent_overload_signatures: bool = true,
     typescript_eslint_array_type: bool = true,
@@ -1828,6 +1829,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "spaced-comment")) {
             self.spaced_comment_style = try spacedCommentStyleFromConfig(value);
             self.spaced_comment_markers = try spacedCommentMarkersFromConfig(value);
+            self.spaced_comment_exceptions = try spacedCommentExceptionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "wrap-iife")) {
             self.wrap_iife_style = try wrapIifeStyleFromConfig(value);
@@ -3700,6 +3702,14 @@ pub const Options = struct {
     }
 
     fn spacedCommentMarkersFromConfig(value: std.json.Value) RuleConfigError!SpacedCommentMarkers {
+        return spacedCommentPatternsFromConfig(value, "markers");
+    }
+
+    fn spacedCommentExceptionsFromConfig(value: std.json.Value) RuleConfigError!SpacedCommentMarkers {
+        return spacedCommentPatternsFromConfig(value, "exceptions");
+    }
+
+    fn spacedCommentPatternsFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!SpacedCommentMarkers {
         const items = switch (value) {
             .array => |array| array.items,
             else => return .{},
@@ -3710,21 +3720,21 @@ pub const Options = struct {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        const markers_value = config.get("markers") orelse return .{};
-        const marker_items = switch (markers_value) {
+        const patterns_value = config.get(key) orelse return .{};
+        const pattern_items = switch (patterns_value) {
             .array => |array| array.items,
             else => return error.UnsupportedRuleConfigValue,
         };
 
-        var markers = SpacedCommentMarkers{};
-        for (marker_items) |item| {
-            const marker = switch (item) {
-                .string => |marker| marker,
+        var patterns = SpacedCommentMarkers{};
+        for (pattern_items) |item| {
+            const pattern = switch (item) {
+                .string => |pattern| pattern,
                 else => return error.UnsupportedRuleConfigValue,
             };
-            markers.append(marker) catch return error.UnsupportedRuleConfigValue;
+            patterns.append(pattern) catch return error.UnsupportedRuleConfigValue;
         }
-        return markers;
+        return patterns;
     }
 
     fn reactButtonHasTypeBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
@@ -5955,7 +5965,7 @@ test "Options can apply ESLint-style rule config values" {
     var spaced_comment_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",\"never\",{\"markers\":[\"/\",\"!\"]}]",
+        "[\"error\",\"never\",{\"markers\":[\"/\",\"!\"],\"exceptions\":[\"-\",\"+\"]}]",
         .{},
     );
     defer spaced_comment_config.deinit();
@@ -5965,6 +5975,9 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.spaced_comment_markers.matches("/ reference"));
     try std.testing.expect(options.spaced_comment_markers.matches("! license"));
     try std.testing.expect(!options.spaced_comment_markers.matches("# plain"));
+    try std.testing.expect(options.spaced_comment_exceptions.matches("- separator"));
+    try std.testing.expect(options.spaced_comment_exceptions.matches("+ separator"));
+    try std.testing.expect(!options.spaced_comment_exceptions.matches("# plain"));
 
     var wrap_iife_config = try std.json.parseFromSlice(
         std.json.Value,

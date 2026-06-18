@@ -98,6 +98,35 @@ test "supports configured spaced-comment markers" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.spaced_comment.id));
 }
 
+test "supports configured spaced-comment exceptions" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"always\",{\"exceptions\":[\"-\",\"+\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("spaced-comment", config.value);
+    options.no_inline_comments = false;
+    options.no_tabs = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\//----------------
+        \\//++++
+        \\//+ heading
+        \\//missing space
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.spaced_comment.id));
+}
+
 test "can disable spaced-comment" {
     const source =
         \\//missing space
