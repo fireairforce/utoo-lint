@@ -189,3 +189,31 @@ test "supports configured no-unused-vars varsIgnorePattern" {
 
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_unused_vars.id));
 }
+
+test "supports configured no-unused-vars argsIgnorePattern" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"args\":\"all\",\"argsIgnorePattern\":\"^ignored\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-unused-vars", config.value);
+    options.no_undef = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\function demo(ignoredParam, unusedParam, usedParam) {
+        \\  console.log(usedParam);
+        \\}
+        \\demo(1, 2, 3);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_unused_vars.id));
+}

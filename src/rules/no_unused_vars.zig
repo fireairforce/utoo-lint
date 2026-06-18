@@ -22,6 +22,7 @@ pub const Options = struct {
     check_type_parameters: bool = false,
     react_jsx_uses_react: bool = false,
     react_jsx_uses_vars: bool = true,
+    args_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
     vars_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
 };
 
@@ -142,7 +143,8 @@ pub fn runWithOptions(
 }
 
 fn isIgnoredVariableName(name: []const u8, flags: traverser.semantic.Symbol.Flags, options: Options) bool {
-    if (flags.parameter or flags.catch_var) return false;
+    if (flags.parameter) return matchesPatternOption(name, options.args_ignore_pattern);
+    if (flags.catch_var) return false;
     return matchesPatternOption(name, options.vars_ignore_pattern);
 }
 
