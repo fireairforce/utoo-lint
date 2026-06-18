@@ -75,45 +75,34 @@ pub const NoConfusingArrowAllowParens = enum {
     no,
 };
 
+pub const max_no_console_allow_methods = 32;
+pub const max_no_console_allow_method_len = 128;
+
 pub const NoConsoleAllow = struct {
-    assert: bool = false,
-    clear: bool = false,
-    count: bool = false,
-    countReset: bool = false,
-    debug: bool = false,
-    dir: bool = false,
-    dirxml: bool = false,
-    @"error": bool = false,
-    group: bool = false,
-    groupCollapsed: bool = false,
-    groupEnd: bool = false,
-    info: bool = false,
-    log: bool = false,
-    profile: bool = false,
-    profileEnd: bool = false,
-    table: bool = false,
-    time: bool = false,
-    timeEnd: bool = false,
-    timeLog: bool = false,
-    timeStamp: bool = false,
-    trace: bool = false,
-    warn: bool = false,
+    count: usize = 0,
+    lengths: [max_no_console_allow_methods]usize = undefined,
+    storage: [max_no_console_allow_methods][max_no_console_allow_method_len]u8 = undefined,
 
     pub fn contains(self: NoConsoleAllow, name: []const u8) bool {
-        inline for (@typeInfo(NoConsoleAllow).@"struct".fields) |field| {
-            if (std.mem.eql(u8, field.name, name)) return @field(self, field.name);
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
         }
         return false;
     }
 
+    pub fn at(self: *const NoConsoleAllow, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
     pub fn enable(self: *NoConsoleAllow, name: []const u8) bool {
-        inline for (@typeInfo(NoConsoleAllow).@"struct".fields) |field| {
-            if (std.mem.eql(u8, field.name, name)) {
-                @field(self, field.name) = true;
-                return true;
-            }
-        }
-        return false;
+        if (name.len == 0 or name.len > max_no_console_allow_method_len) return false;
+        if (self.contains(name)) return true;
+        if (self.count >= max_no_console_allow_methods) return false;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
     }
 };
 
@@ -6434,7 +6423,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_console_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"warn\",\"error\"]}]",
+        "[\"error\",{\"allow\":[\"warn\",\"error\",\"todo\"]}]",
         .{},
     );
     defer no_console_config.deinit();
@@ -6442,6 +6431,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_console);
     try std.testing.expect(options.no_console_allow.contains("warn"));
     try std.testing.expect(options.no_console_allow.contains("error"));
+    try std.testing.expect(options.no_console_allow.contains("todo"));
     try std.testing.expect(!options.no_console_allow.contains("log"));
 
     var no_duplicate_imports_config = try std.json.parseFromSlice(

@@ -56,6 +56,33 @@ test "allows configured no-console methods" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_console.id));
 }
 
+test "supports configured no-console custom method names" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"todo\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-console", config.value);
+    options.no_unused_vars = false;
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\console.todo(value);
+        \\console["todo"](value);
+        \\console.log(value);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_console.id));
+}
+
 test "does not report no-console for shadowed console" {
     const source =
         \\function local(console) {
