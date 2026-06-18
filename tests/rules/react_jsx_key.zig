@@ -64,6 +64,47 @@ test "supports configured react jsx key must appear before spread" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_jsx_key.id));
 }
 
+test "supports configured react jsx key fragment shorthand" {
+    const source =
+        \\const nodes = [
+        \\  <></>,
+        \\  <Item key="stable" />,
+        \\];
+        \\items.map((item) => <>{item.name}</>);
+        \\items.map((item) => <Item key={item.id} />);
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"checkFragmentShorthand\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = test_options;
+    try options.setByRuleConfigValue("react/jsx-key", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_jsx_key.id));
+}
+
+test "allows react jsx key fragment shorthand by default" {
+    const source =
+        \\const nodes = [
+        \\  <></>,
+        \\];
+        \\items.map((item) => <>{item.name}</>);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", test_options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.react_jsx_key.id));
+}
+
 test "reports JSX elements without keys in block callback returns" {
     const source =
         \\items.map(function (item) {
