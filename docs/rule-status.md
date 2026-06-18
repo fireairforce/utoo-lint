@@ -177,7 +177,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`require-await`](https://eslint.org/docs/latest/rules/require-await) | Implemented |
 | [`require-atomic-updates`](https://eslint.org/docs/latest/rules/require-atomic-updates) | Implemented |
 | [`require-yield`](https://eslint.org/docs/latest/rules/require-yield) | Implemented |
-| [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, and `markers` configuration |
+| [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, `markers`, and `exceptions` configuration |
 | [`symbol-description`](https://eslint.org/docs/latest/rules/symbol-description) | Implemented |
 | [`unicode-bom`](https://eslint.org/docs/latest/rules/unicode-bom) | Implemented |
 | [`use-isnan`](https://eslint.org/docs/latest/rules/use-isnan) | Implemented |

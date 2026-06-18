@@ -15,6 +15,7 @@ pub const Style = enum {
 pub const Options = struct {
     style: Style = .always,
     markers: core.SpacedCommentMarkers = .{},
+    exceptions: core.SpacedCommentMarkers = .{},
 };
 
 pub fn run(
@@ -52,6 +53,7 @@ fn hasExpectedSpacing(tree: *const ast.Tree, comment: ast.Comment, options: Opti
     const index = spacingIndex(value, comment.type);
     if (index >= value.len) return true;
     if (options.markers.matches(value[index..])) return true;
+    if (options.style == .always and matchesException(options.exceptions, value[index..])) return true;
 
     return switch (options.style) {
         .always => isWhitespace(value[index]),
@@ -69,6 +71,24 @@ fn message(style: Style) []const u8 {
         .always => "Expected space or tab after comment marker.",
         .never => "Expected no space or tab after comment marker.",
     };
+}
+
+fn matchesException(exceptions: core.SpacedCommentMarkers, value: []const u8) bool {
+    for (0..exceptions.count) |index| {
+        if (matchesRepeatedException(value, exceptions.at(index))) return true;
+    }
+    return false;
+}
+
+fn matchesRepeatedException(value: []const u8, exception: []const u8) bool {
+    if (exception.len == 0) return false;
+
+    var index: usize = 0;
+    while (index + exception.len <= value.len and std.mem.eql(u8, value[index .. index + exception.len], exception)) {
+        index += exception.len;
+    }
+
+    return index > 0 and index == value.len;
 }
 
 fn isWhitespace(char: u8) bool {
