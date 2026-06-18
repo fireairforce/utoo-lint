@@ -265,6 +265,41 @@ test "supports configured accessor-pairs getWithoutSet and setWithoutGet" {
     try std.testing.expectEqualStrings("Getter must be accompanied by a setter.", result.diagnostics[0].message);
 }
 
+test "supports configured accessor-pairs enforceForClassMembers option" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"enforceForClassMembers\":false}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("accessor-pairs", config.value);
+    options.eol_last = false;
+    options.no_empty_function = false;
+    options.no_unused_vars = false;
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const object = {
+        \\  set value(next) {},
+        \\};
+        \\class Example {
+        \\  set value(next) {}
+        \\}
+        \\Object.defineProperty(target, "value", {
+        \\  set(next) {}
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.accessor_pairs.id));
+}
+
 test "does not treat ordinary descriptor-looking objects as property descriptors" {
     const source =
         \\const object = {

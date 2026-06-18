@@ -10,6 +10,7 @@ pub const id = "accessor-pairs";
 pub const Options = struct {
     get_without_set: bool = false,
     set_without_get: bool = true,
+    enforce_for_class_members: bool = true,
 };
 
 const Accessor = struct {
@@ -70,6 +71,8 @@ pub fn checkClassBodyWithOptions(
     body: ast.ClassBody,
     options: Options,
 ) Allocator.Error!void {
+    if (!options.enforce_for_class_members) return;
+
     var accessors: std.ArrayList(Accessor) = .empty;
     defer accessors.deinit(allocator);
 
