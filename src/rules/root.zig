@@ -485,7 +485,12 @@ pub fn runBasic(
         try no_mixed_spaces_and_tabs.run(allocator, diagnostics, tree);
     }
     if (options.linebreak_style) {
-        try linebreak_style.run(allocator, diagnostics, tree);
+        try linebreak_style.runWithOptions(allocator, diagnostics, tree, .{
+            .style = switch (options.linebreak_style_style) {
+                .unix => .unix,
+                .windows => .windows,
+            },
+        });
     }
     if (options.no_irregular_whitespace) {
         try no_irregular_whitespace.run(allocator, diagnostics, tree);
