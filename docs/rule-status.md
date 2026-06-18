@@ -117,7 +117,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-plusplus`](https://eslint.org/docs/latest/rules/no-plusplus) | Implemented with optional `allowForLoopAfterthoughts` behavior |
 | [`no-process-env`](https://eslint.org/docs/latest/rules/no-process-env) | Implemented |
 | [`no-process-exit`](https://eslint.org/docs/latest/rules/no-process-exit) | Implemented |
-| [`no-promise-executor-return`](https://eslint.org/docs/latest/rules/no-promise-executor-return) | Implemented |
+| [`no-promise-executor-return`](https://eslint.org/docs/latest/rules/no-promise-executor-return) | Supports `allowVoid` configuration |
 | [`no-proto`](https://eslint.org/docs/latest/rules/no-proto) | Implemented |
 | [`no-prototype-builtins`](https://eslint.org/docs/latest/rules/no-prototype-builtins) | Implemented |
 | [`no-regex-spaces`](https://eslint.org/docs/latest/rules/no-regex-spaces) | Implemented |

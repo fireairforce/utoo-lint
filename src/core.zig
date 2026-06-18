@@ -1323,6 +1323,7 @@ pub const Options = struct {
     no_plusplus: bool = true,
     no_plusplus_allow_for_loop_afterthoughts: NoPlusplusAllowForLoopAfterthoughts = .no,
     no_promise_executor_return: bool = true,
+    no_promise_executor_return_allow_void: bool = false,
     no_proto: bool = true,
     no_process_env: bool = true,
     no_process_exit: bool = true,
@@ -1939,6 +1940,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-plusplus")) {
             self.no_plusplus_allow_for_loop_afterthoughts = try noPlusplusAllowForLoopAfterthoughtsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-promise-executor-return")) {
+            self.no_promise_executor_return_allow_void = try noPromiseExecutorReturnAllowVoidFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "prefer-const")) {
             self.prefer_const_destructuring = try preferConstDestructuringFromConfig(value);
@@ -3874,6 +3878,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("allowEmptyReject") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn noPromiseExecutorReturnAllowVoidFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowVoid") orelse return false) {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
@@ -6836,6 +6857,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("prefer-promise-reject-errors", prefer_promise_reject_errors_config.value);
     try std.testing.expect(options.prefer_promise_reject_errors);
     try std.testing.expect(options.prefer_promise_reject_errors_allow_empty_reject);
+
+    var no_promise_executor_return_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowVoid\":true}]",
+        .{},
+    );
+    defer no_promise_executor_return_config.deinit();
+    try options.setByRuleConfigValue("no-promise-executor-return", no_promise_executor_return_config.value);
+    try std.testing.expect(options.no_promise_executor_return);
+    try std.testing.expect(options.no_promise_executor_return_allow_void);
 
     var prefer_regex_literals_config = try std.json.parseFromSlice(
         std.json.Value,

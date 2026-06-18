@@ -920,6 +920,7 @@ pub fn runSemantic(
             semantic_result.symbol_table,
             options.no_async_promise_executor,
             options.no_promise_executor_return,
+            options.no_promise_executor_return_allow_void,
             options.prefer_promise_reject_errors,
             options.prefer_promise_reject_errors_allow_empty_reject,
         );
