@@ -52,9 +52,42 @@ pub fn checkBodyWithOptions(
     options: Options,
 ) Allocator.Error!void {
     if (body == .null) return;
-    if (tree.data(body) == .block_statement) return;
-    if (options.style == .multi_line and !isMultiLineBody(tree, body)) return;
+    switch (tree.data(body)) {
+        .block_statement => |block| {
+            if (options.style != .multi) return;
+            if (!isUnnecessaryMultiBlock(tree, block)) return;
 
+            try core.addDiagnostic(
+                allocator,
+                diagnostics,
+                .warning,
+                id,
+                "Unnecessary block statement.",
+                tree.span(body),
+            );
+            return;
+        },
+        else => {},
+    }
+
+    if (options.style == .multi_line or options.style == .multi) {
+        if (!isMultiLineBody(tree, body)) return;
+    }
+
+    try addExpectedBlockDiagnostic(
+        allocator,
+        diagnostics,
+        tree,
+        body,
+    );
+}
+
+fn addExpectedBlockDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    body: ast.NodeIndex,
+) Allocator.Error!void {
     try core.addDiagnostic(
         allocator,
         diagnostics,
@@ -63,6 +96,24 @@ pub fn checkBodyWithOptions(
         "Expected a block statement.",
         tree.span(body),
     );
+}
+
+fn isUnnecessaryMultiBlock(tree: *const ast.Tree, block: ast.BlockStatement) bool {
+    if (block.body.len != 1) return false;
+    const statements = tree.extra(block.body);
+    return !hasBlockScopedDeclaration(tree, statements[0]);
+}
+
+fn hasBlockScopedDeclaration(tree: *const ast.Tree, statement: ast.NodeIndex) bool {
+    return switch (tree.data(statement)) {
+        .variable_declaration => |declaration| switch (declaration.kind) {
+            .@"var" => false,
+            .let, .@"const", .using, .await_using => true,
+        },
+        .class => |class| class.type == .class_declaration,
+        .function => |function| function.type == .function_declaration,
+        else => false,
+    };
 }
 
 fn isMultiLineBody(tree: *const ast.Tree, body: ast.NodeIndex) bool {
