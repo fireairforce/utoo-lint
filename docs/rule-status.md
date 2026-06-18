@@ -88,7 +88,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-iterator`](https://eslint.org/docs/latest/rules/no-iterator) | Implemented |
 | [`no-label-var`](https://eslint.org/docs/latest/rules/no-label-var) | Implemented |
 | [`no-labels`](https://eslint.org/docs/latest/rules/no-labels) | Implemented |
-| [`no-lone-blocks`](https://eslint.org/docs/latest/rules/no-lone-blocks) | Implemented |
+| [`no-lone-blocks`](https://eslint.org/docs/latest/rules/no-lone-blocks) | Implemented with block-scoped binding exceptions |
 | [`no-lonely-if`](https://eslint.org/docs/latest/rules/no-lonely-if) | Implemented |
 | [`no-loop-func`](https://eslint.org/docs/latest/rules/no-loop-func) | Implemented |
 | [`no-loss-of-precision`](https://eslint.org/docs/latest/rules/no-loss-of-precision) | Implemented |

@@ -12,6 +12,13 @@ test "reports no-lone-blocks for unnecessary block statements" {
         \\    run();
         \\  }
         \\}
+        \\class Example {
+        \\  static {
+        \\    {
+        \\      run();
+        \\    }
+        \\  }
+        \\}
         \\function scoped() {
         \\  { let value = getValue(); }
         \\  { const value = getValue(); }
@@ -28,7 +35,7 @@ test "reports no-lone-blocks for unnecessary block statements" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_lone_blocks.id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_lone_blocks.id));
 }
 
 test "does not report no-lone-blocks for scoped declarations" {
@@ -48,6 +55,17 @@ test "does not report no-lone-blocks for scoped declarations" {
         \\{
         \\  function scoped() {}
         \\  use(scoped);
+        \\}
+        \\function nestedBlocks() {
+        \\  { let value = getValue(); }
+        \\  { const value = getValue(); }
+        \\  { class Scoped {} }
+        \\  { function scoped() {} }
+        \\}
+        \\class Holder {
+        \\  static {
+        \\    { let value = getValue(); }
+        \\  }
         \\}
     ;
 
