@@ -974,6 +974,7 @@ pub fn runSemantic(
             .args_ignore_pattern = options.no_unused_vars_args_ignore_pattern,
             .caught_errors_ignore_pattern = options.no_unused_vars_caught_errors_ignore_pattern,
             .destructured_array_ignore_pattern = options.no_unused_vars_destructured_array_ignore_pattern,
+            .report_used_ignore_pattern = options.no_unused_vars_report_used_ignore_pattern,
             .vars_ignore_pattern = options.no_unused_vars_vars_ignore_pattern,
         });
     }
@@ -994,6 +995,7 @@ pub fn runSemantic(
             options.typescript_eslint_no_unused_vars_args_ignore_pattern,
             options.typescript_eslint_no_unused_vars_caught_errors_ignore_pattern,
             options.typescript_eslint_no_unused_vars_destructured_array_ignore_pattern,
+            options.typescript_eslint_no_unused_vars_report_used_ignore_pattern,
             options.typescript_eslint_no_unused_vars_vars_ignore_pattern,
         );
     }

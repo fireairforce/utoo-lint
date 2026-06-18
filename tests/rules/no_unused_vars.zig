@@ -275,3 +275,39 @@ test "supports configured no-unused-vars destructuredArrayIgnorePattern" {
 
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_unused_vars.id));
 }
+
+test "supports configured no-unused-vars reportUsedIgnorePattern" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"args\":\"all\",\"argsIgnorePattern\":\"^ignored\",\"caughtErrors\":\"all\",\"caughtErrorsIgnorePattern\":\"^ignored\",\"destructuredArrayIgnorePattern\":\"^ignored\",\"reportUsedIgnorePattern\":true,\"varsIgnorePattern\":\"^ignored\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-unused-vars", config.value);
+    options.no_undef = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const ignoredValue = 1;
+        \\function demo(ignoredParam) {
+        \\  console.log(ignoredValue, ignoredParam);
+        \\  try {
+        \\    run();
+        \\  } catch (ignoredError) {
+        \\    console.log(ignoredError);
+        \\  }
+        \\  const [ignoredItem] = items;
+        \\  console.log(ignoredItem);
+        \\}
+        \\demo(1);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_unused_vars.id));
+}

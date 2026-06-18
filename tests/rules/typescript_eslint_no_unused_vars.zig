@@ -245,6 +245,41 @@ test "supports configured @typescript-eslint/no-unused-vars destructuredArrayIgn
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
 }
 
+test "supports configured @typescript-eslint/no-unused-vars reportUsedIgnorePattern" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"args\":\"all\",\"argsIgnorePattern\":\"^ignored\",\"caughtErrors\":\"all\",\"caughtErrorsIgnorePattern\":\"^ignored\",\"destructuredArrayIgnorePattern\":\"^ignored\",\"reportUsedIgnorePattern\":true,\"varsIgnorePattern\":\"^ignored\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-unused-vars", config.value);
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const ignoredValue = 1;
+        \\function demo(ignoredParam: string) {
+        \\  console.log(ignoredValue, ignoredParam);
+        \\  try {
+        \\    run();
+        \\  } catch (ignoredError) {
+        \\    console.log(ignoredError);
+        \\  }
+        \\  const [ignoredItem]: string[] = items;
+        \\  console.log(ignoredItem);
+        \\}
+        \\demo("ignored");
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
+}
+
 test "can disable @typescript-eslint/no-unused-vars and fall back to core rule" {
     const source =
         \\const unused = 1;
