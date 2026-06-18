@@ -43,6 +43,35 @@ test "reports no-useless-escape for unnecessary regular expression escapes" {
     try std.testing.expectEqual(@as(usize, 10), helpers.countRule(result, lint.rules.no_useless_escape.id));
 }
 
+test "supports configured no-useless-escape allowRegexCharacters" {
+    const source =
+        \\const a = /\#/;
+        \\const b = /[\#]/;
+        \\const c = /\-/;
+        \\const d = /[\-]/;
+        \\const e = /\@/;
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowRegexCharacters\":[\"#\",\"-\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-useless-escape", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_useless_escape.id));
+}
+
 test "does not report no-useless-escape for necessary escapes" {
     const source =
         \\const a = "\"";

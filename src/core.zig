@@ -485,6 +485,35 @@ pub const NoShadowAllowNames = struct {
     }
 };
 
+pub const max_no_useless_escape_allow_regex_characters = 32;
+
+pub const NoUselessEscapeAllowRegexCharactersError = error{
+    EmptyNoUselessEscapeAllowRegexCharacter,
+    TooManyNoUselessEscapeAllowRegexCharacters,
+    NoUselessEscapeAllowRegexCharacterTooLong,
+};
+
+pub const NoUselessEscapeAllowRegexCharacters = struct {
+    count: usize = 0,
+    characters: [max_no_useless_escape_allow_regex_characters]u8 = undefined,
+
+    pub fn contains(self: *const NoUselessEscapeAllowRegexCharacters, character: u8) bool {
+        for (0..self.count) |index| {
+            if (self.characters[index] == character) return true;
+        }
+        return false;
+    }
+
+    pub fn append(self: *NoUselessEscapeAllowRegexCharacters, character: []const u8) NoUselessEscapeAllowRegexCharactersError!void {
+        if (character.len == 0) return error.EmptyNoUselessEscapeAllowRegexCharacter;
+        if (character.len > 1) return error.NoUselessEscapeAllowRegexCharacterTooLong;
+        if (self.count >= max_no_useless_escape_allow_regex_characters) return error.TooManyNoUselessEscapeAllowRegexCharacters;
+
+        self.characters[self.count] = character[0];
+        self.count += 1;
+    }
+};
+
 pub const max_no_this_alias_allowed_names = 32;
 pub const max_no_this_alias_allowed_name_len = 128;
 
@@ -1220,6 +1249,7 @@ pub const Options = struct {
     no_useless_constructor: bool = true,
     no_useless_catch: bool = true,
     no_useless_escape: bool = true,
+    no_useless_escape_allow_regex_characters: NoUselessEscapeAllowRegexCharacters = .{},
     no_useless_rename: bool = true,
     no_useless_rename_ignore_destructuring: bool = false,
     no_useless_rename_ignore_import: bool = false,
@@ -1695,6 +1725,9 @@ pub const Options = struct {
             self.no_useless_rename_ignore_destructuring = try noUselessRenameBoolOptionFromConfig(value, "ignoreDestructuring");
             self.no_useless_rename_ignore_import = try noUselessRenameBoolOptionFromConfig(value, "ignoreImport");
             self.no_useless_rename_ignore_export = try noUselessRenameBoolOptionFromConfig(value, "ignoreExport");
+        }
+        if (std.mem.eql(u8, cli_name, "no-useless-escape")) {
+            self.no_useless_escape_allow_regex_characters = try noUselessEscapeAllowRegexCharactersFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-shadow")) {
             self.no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -2699,6 +2732,34 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn noUselessEscapeAllowRegexCharactersFromConfig(value: std.json.Value) RuleConfigError!NoUselessEscapeAllowRegexCharacters {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow_value = config.get("allowRegexCharacters") orelse return .{};
+        const allow_items = switch (allow_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var allow = NoUselessEscapeAllowRegexCharacters{};
+        for (allow_items) |item| {
+            const character = switch (item) {
+                .string => |character| character,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            allow.append(character) catch return error.UnsupportedRuleConfigValue;
+        }
+        return allow;
     }
 
     fn noInvalidRegexpAllowConstructorFlagsFromConfig(value: std.json.Value) RuleConfigError!NoInvalidRegexpAllowConstructorFlags {
@@ -6181,6 +6242,19 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_useless_rename_ignore_destructuring);
     try std.testing.expect(options.no_useless_rename_ignore_import);
     try std.testing.expect(options.no_useless_rename_ignore_export);
+
+    var no_useless_escape_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowRegexCharacters\":[\"#\",\"-\"]}]",
+        .{},
+    );
+    defer no_useless_escape_config.deinit();
+    try options.setByRuleConfigValue("no-useless-escape", no_useless_escape_config.value);
+    try std.testing.expect(options.no_useless_escape);
+    try std.testing.expect(options.no_useless_escape_allow_regex_characters.contains('#'));
+    try std.testing.expect(options.no_useless_escape_allow_regex_characters.contains('-'));
+    try std.testing.expect(!options.no_useless_escape_allow_regex_characters.contains('^'));
 
     var no_return_assign_config = try std.json.parseFromSlice(
         std.json.Value,
