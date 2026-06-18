@@ -249,6 +249,42 @@ pub const SpacedCommentStyle = enum {
     never,
 };
 
+pub const max_spaced_comment_markers = 32;
+pub const max_spaced_comment_marker_len = 32;
+
+pub const SpacedCommentMarkersError = error{
+    EmptySpacedCommentMarker,
+    TooManySpacedCommentMarkers,
+    SpacedCommentMarkerTooLong,
+};
+
+pub const SpacedCommentMarkers = struct {
+    count: usize = 0,
+    lengths: [max_spaced_comment_markers]usize = undefined,
+    storage: [max_spaced_comment_markers][max_spaced_comment_marker_len]u8 = undefined,
+
+    pub fn matches(self: *const SpacedCommentMarkers, value: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.startsWith(u8, value, self.at(index))) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const SpacedCommentMarkers, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *SpacedCommentMarkers, marker: []const u8) SpacedCommentMarkersError!void {
+        if (marker.len == 0) return error.EmptySpacedCommentMarker;
+        if (self.count >= max_spaced_comment_markers) return error.TooManySpacedCommentMarkers;
+        if (marker.len > max_spaced_comment_marker_len) return error.SpacedCommentMarkerTooLong;
+
+        @memcpy(self.storage[self.count][0..marker.len], marker);
+        self.lengths[self.count] = marker.len;
+        self.count += 1;
+    }
+};
+
 pub const NoVoidAllowAsStatement = enum {
     yes,
     no,
@@ -1247,6 +1283,7 @@ pub const Options = struct {
     require_yield: bool = true,
     spaced_comment: bool = true,
     spaced_comment_style: SpacedCommentStyle = .always,
+    spaced_comment_markers: SpacedCommentMarkers = .{},
     symbol_description: bool = true,
     typescript_eslint_adjacent_overload_signatures: bool = true,
     typescript_eslint_array_type: bool = true,
@@ -1790,6 +1827,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "spaced-comment")) {
             self.spaced_comment_style = try spacedCommentStyleFromConfig(value);
+            self.spaced_comment_markers = try spacedCommentMarkersFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "wrap-iife")) {
             self.wrap_iife_style = try wrapIifeStyleFromConfig(value);
@@ -3659,6 +3697,34 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "always")) return .always;
         if (std.mem.eql(u8, style, "never")) return .never;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn spacedCommentMarkersFromConfig(value: std.json.Value) RuleConfigError!SpacedCommentMarkers {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 3) return .{};
+
+        const config = switch (items[2]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const markers_value = config.get("markers") orelse return .{};
+        const marker_items = switch (markers_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var markers = SpacedCommentMarkers{};
+        for (marker_items) |item| {
+            const marker = switch (item) {
+                .string => |marker| marker,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            markers.append(marker) catch return error.UnsupportedRuleConfigValue;
+        }
+        return markers;
     }
 
     fn reactButtonHasTypeBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
@@ -5889,13 +5955,16 @@ test "Options can apply ESLint-style rule config values" {
     var spaced_comment_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",\"never\"]",
+        "[\"error\",\"never\",{\"markers\":[\"/\",\"!\"]}]",
         .{},
     );
     defer spaced_comment_config.deinit();
     try options.setByRuleConfigValue("spaced-comment", spaced_comment_config.value);
     try std.testing.expect(options.spaced_comment);
     try std.testing.expectEqual(SpacedCommentStyle.never, options.spaced_comment_style);
+    try std.testing.expect(options.spaced_comment_markers.matches("/ reference"));
+    try std.testing.expect(options.spaced_comment_markers.matches("! license"));
+    try std.testing.expect(!options.spaced_comment_markers.matches("# plain"));
 
     var wrap_iife_config = try std.json.parseFromSlice(
         std.json.Value,

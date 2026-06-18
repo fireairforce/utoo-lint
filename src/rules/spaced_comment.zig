@@ -14,6 +14,7 @@ pub const Style = enum {
 
 pub const Options = struct {
     style: Style = .always,
+    markers: core.SpacedCommentMarkers = .{},
 };
 
 pub fn run(
@@ -31,7 +32,7 @@ pub fn runWithOptions(
     options: Options,
 ) Allocator.Error!void {
     for (tree.comments) |comment| {
-        if (hasExpectedSpacing(tree, comment, options.style)) continue;
+        if (hasExpectedSpacing(tree, comment, options)) continue;
 
         try core.addDiagnostic(
             allocator,
@@ -44,14 +45,15 @@ pub fn runWithOptions(
     }
 }
 
-fn hasExpectedSpacing(tree: *const ast.Tree, comment: ast.Comment, style: Style) bool {
+fn hasExpectedSpacing(tree: *const ast.Tree, comment: ast.Comment, options: Options) bool {
     const value = tree.string(comment.value);
     if (value.len == 0) return true;
 
     const index = spacingIndex(value, comment.type);
     if (index >= value.len) return true;
+    if (options.markers.matches(value[index..])) return true;
 
-    return switch (style) {
+    return switch (options.style) {
         .always => isWhitespace(value[index]),
         .never => !isWhitespace(value[index]),
     };
