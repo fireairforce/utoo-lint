@@ -28,5 +28,6 @@ pub fn checkWithOptions(
         .rule_id = id,
         .severity = .@"error",
         .allow_keywords = options.allow_keywords,
+        .allow_pattern = options.allow_pattern,
     });
 }
