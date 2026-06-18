@@ -143,7 +143,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-undefined`](https://eslint.org/docs/latest/rules/no-undefined) | Implemented for identifier references and binding names |
 | [`no-unneeded-ternary`](https://eslint.org/docs/latest/rules/no-unneeded-ternary) | Implemented |
 | [`no-unreachable`](https://eslint.org/docs/latest/rules/no-unreachable) | Implemented with hoisted declaration handling |
-| [`no-unsafe-finally`](https://eslint.org/docs/latest/rules/no-unsafe-finally) | Implemented |
+| [`no-unsafe-finally`](https://eslint.org/docs/latest/rules/no-unsafe-finally) | Implemented with local loop, switch, and label exit handling |
 | [`no-unsafe-negation`](https://eslint.org/docs/latest/rules/no-unsafe-negation) | Implemented |
 | [`no-use-before-define`](https://eslint.org/docs/latest/rules/no-use-before-define) | Supports `functions`, `classes`, `variables`, and `allowNamedExports` configuration |
 | [`no-unused-expressions`](https://eslint.org/docs/latest/rules/no-unused-expressions) | Implemented with optional `allowShortCircuit`, `allowTernary`, and `allowTaggedTemplates` behavior |
