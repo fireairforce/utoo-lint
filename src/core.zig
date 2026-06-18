@@ -1126,6 +1126,9 @@ pub const Options = struct {
     object_shorthand_style: ObjectShorthandStyle = .always,
     object_shorthand_avoid_quotes: bool = false,
     one_var: bool = true,
+    one_var_check_var: bool = true,
+    one_var_check_let: bool = true,
+    one_var_check_const: bool = true,
     operator_assignment: bool = true,
     operator_assignment_style: OperatorAssignmentStyle = .always,
     eqeqeq: bool = true,
@@ -1600,6 +1603,12 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "object-shorthand")) {
             self.object_shorthand_style = try objectShorthandStyleFromConfig(value);
             self.object_shorthand_avoid_quotes = try objectShorthandAvoidQuotesFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "one-var")) {
+            const config = try oneVarNeverConfigFromConfig(value);
+            self.one_var_check_var = config.@"var";
+            self.one_var_check_let = config.let;
+            self.one_var_check_const = config.@"const";
         }
         if (std.mem.eql(u8, cli_name, "operator-assignment")) {
             self.operator_assignment_style = try operatorAssignmentStyleFromConfig(value);
@@ -3363,6 +3372,63 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    const OneVarNeverConfig = struct {
+        @"var": bool = true,
+        let: bool = true,
+        @"const": bool = true,
+    };
+
+    fn oneVarNeverConfigFromConfig(value: std.json.Value) RuleConfigError!OneVarNeverConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        return switch (items[1]) {
+            .string => |style| {
+                if (!std.mem.eql(u8, style, "never")) return error.UnsupportedRuleConfigValue;
+                return .{};
+            },
+            .object => |object| oneVarNeverObjectConfig(object),
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn oneVarNeverObjectConfig(object: std.json.ObjectMap) RuleConfigError!OneVarNeverConfig {
+        var config = OneVarNeverConfig{
+            .@"var" = false,
+            .let = false,
+            .@"const" = false,
+        };
+        var matched = false;
+
+        if (object.get("var")) |value| {
+            config.@"var" = try oneVarNeverOption(value);
+            matched = true;
+        }
+        if (object.get("let")) |value| {
+            config.let = try oneVarNeverOption(value);
+            matched = true;
+        }
+        if (object.get("const")) |value| {
+            config.@"const" = try oneVarNeverOption(value);
+            matched = true;
+        }
+
+        if (!matched) return error.UnsupportedRuleConfigValue;
+        return config;
+    }
+
+    fn oneVarNeverOption(value: std.json.Value) RuleConfigError!bool {
+        const style = switch (value) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (!std.mem.eql(u8, style, "never")) return error.UnsupportedRuleConfigValue;
+        return true;
     }
 
     fn operatorAssignmentStyleFromConfig(value: std.json.Value) RuleConfigError!OperatorAssignmentStyle {
