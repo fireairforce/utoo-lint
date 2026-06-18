@@ -22,6 +22,7 @@ pub fn run(
     args_ignore_pattern: core.NoUnusedVarsIgnorePattern,
     caught_errors_ignore_pattern: core.NoUnusedVarsIgnorePattern,
     destructured_array_ignore_pattern: core.NoUnusedVarsIgnorePattern,
+    report_used_ignore_pattern: bool,
     vars_ignore_pattern: core.NoUnusedVarsIgnorePattern,
 ) Allocator.Error!void {
     try no_unused_vars.runWithOptions(allocator, diagnostics, tree, scope_tree, symbol_table, .{
@@ -38,6 +39,7 @@ pub fn run(
         .args_ignore_pattern = args_ignore_pattern,
         .caught_errors_ignore_pattern = caught_errors_ignore_pattern,
         .destructured_array_ignore_pattern = destructured_array_ignore_pattern,
+        .report_used_ignore_pattern = report_used_ignore_pattern,
         .vars_ignore_pattern = vars_ignore_pattern,
     });
 }

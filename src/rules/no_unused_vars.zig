@@ -25,6 +25,7 @@ pub const Options = struct {
     args_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
     caught_errors_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
     destructured_array_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
+    report_used_ignore_pattern: bool = false,
     vars_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
 };
 
@@ -100,6 +101,9 @@ pub fn runWithOptions(
     var ignored_decls = IgnoredDecls.init(allocator);
     defer ignored_decls.deinit();
 
+    var destructured_array_ignored_decls = IgnoredDecls.init(allocator);
+    defer destructured_array_ignored_decls.deinit();
+
     if (options.ignore_rest_siblings) {
         var visitor = RestSiblingVisitor{ .ignored_decls = &ignored_decls };
         try traverser.basic.traverse(RestSiblingVisitor, tree, &visitor);
@@ -108,6 +112,7 @@ pub fn runWithOptions(
     if (options.destructured_array_ignore_pattern.pattern() != null) {
         var visitor = DestructuredArrayVisitor{
             .ignored_decls = &ignored_decls,
+            .destructured_array_ignored_decls = &destructured_array_ignored_decls,
             .pattern = options.destructured_array_ignore_pattern,
         };
         try traverser.basic.traverse(DestructuredArrayVisitor, tree, &visitor);
@@ -129,15 +134,29 @@ pub fn runWithOptions(
             if (!options.check_parameters) continue;
             if (options.args_after_used and !shouldCheckParameter(entry.id, symbol.scope, parameters.items)) continue;
         }
-        if (isReferenced(tree, symbol_table, entry.id, options)) continue;
 
         const name = tree.string(symbol.name);
+        const decls = symbol_table.symbolDecls(entry.id);
+        if (decls.len == 0) continue;
+
+        if (isReferenced(tree, symbol_table, entry.id, options)) {
+            if (options.report_used_ignore_pattern and isReportedUsedIgnoredName(name, flags, decls, &destructured_array_ignored_decls, options)) {
+                try core.addDiagnosticFmt(
+                    allocator,
+                    diagnostics,
+                    options.severity,
+                    options.rule_id,
+                    tree.span(decls[0]),
+                    "'{s}' is marked as ignored but is used.",
+                    .{name},
+                );
+            }
+            continue;
+        }
+
         if (std.mem.startsWith(u8, name, "_")) continue;
         if (isIgnoredVariableName(name, flags, options)) continue;
         if (isUsedByReactJSX(name, jsx_react_usage)) continue;
-
-        const decls = symbol_table.symbolDecls(entry.id);
-        if (decls.len == 0) continue;
         if (ignored_decls.contains(decls[0])) continue;
 
         try core.addDiagnosticFmt(
@@ -150,6 +169,19 @@ pub fn runWithOptions(
             .{name},
         );
     }
+}
+
+fn isReportedUsedIgnoredName(
+    name: []const u8,
+    flags: traverser.semantic.Symbol.Flags,
+    decls: []const ast.NodeIndex,
+    destructured_array_ignored_decls: *IgnoredDecls,
+    options: Options,
+) bool {
+    if (flags.parameter) return matchesPatternOption(name, options.args_ignore_pattern);
+    if (flags.catch_var) return matchesPatternOption(name, options.caught_errors_ignore_pattern);
+    if (decls.len > 0 and destructured_array_ignored_decls.contains(decls[0])) return true;
+    return matchesPatternOption(name, options.vars_ignore_pattern);
 }
 
 fn isIgnoredVariableName(name: []const u8, flags: traverser.semantic.Symbol.Flags, options: Options) bool {
@@ -372,6 +404,7 @@ const RestSiblingVisitor = struct {
 
 const DestructuredArrayVisitor = struct {
     ignored_decls: *IgnoredDecls,
+    destructured_array_ignored_decls: *IgnoredDecls,
     pattern: core.NoUnusedVarsIgnorePattern,
 
     pub fn enter_array_pattern(
@@ -398,7 +431,10 @@ const DestructuredArrayVisitor = struct {
         switch (ctx.tree.data(index)) {
             .binding_identifier => |identifier| {
                 const name = ctx.tree.string(identifier.name);
-                if (matchesPatternOption(name, self.pattern)) try self.ignored_decls.put(index, {});
+                if (matchesPatternOption(name, self.pattern)) {
+                    try self.ignored_decls.put(index, {});
+                    try self.destructured_array_ignored_decls.put(index, {});
+                }
             },
             .assignment_pattern => |assignment| try self.collectBinding(assignment.left, ctx),
             .binding_rest_element => |rest| try self.collectBinding(rest.argument, ctx),

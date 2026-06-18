@@ -148,7 +148,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-use-before-define`](https://eslint.org/docs/latest/rules/no-use-before-define) | Supports `functions`, `classes`, `variables`, and `allowNamedExports` configuration |
 | [`no-unused-expressions`](https://eslint.org/docs/latest/rules/no-unused-expressions) | Implemented with optional `allowShortCircuit`, `allowTernary`, and `allowTaggedTemplates` behavior |
 | [`no-unused-labels`](https://eslint.org/docs/latest/rules/no-unused-labels) | Implemented with nested label shadowing |
-| [`no-unused-vars`](https://eslint.org/docs/latest/rules/no-unused-vars) | Supports `vars`, `args`, `caughtErrors`, `ignoreRestSiblings`, and common `argsIgnorePattern`/`caughtErrorsIgnorePattern`/`destructuredArrayIgnorePattern`/`varsIgnorePattern` configuration |
+| [`no-unused-vars`](https://eslint.org/docs/latest/rules/no-unused-vars) | Supports `vars`, `args`, `caughtErrors`, `ignoreRestSiblings`, `reportUsedIgnorePattern`, and common `argsIgnorePattern`/`caughtErrorsIgnorePattern`/`destructuredArrayIgnorePattern`/`varsIgnorePattern` configuration |
 | [`no-useless-call`](https://eslint.org/docs/latest/rules/no-useless-call) | Implemented |
 | [`no-useless-catch`](https://eslint.org/docs/latest/rules/no-useless-catch) | Implemented |
 | [`no-useless-computed-key`](https://eslint.org/docs/latest/rules/no-useless-computed-key) | Implemented with optional `enforceForClassMembers` behavior |
@@ -297,7 +297,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-useless-constructor`](https://typescript-eslint.io/rules/no-useless-constructor/) | Implemented |
 | [`@typescript-eslint/no-useless-empty-export`](https://typescript-eslint.io/rules/no-useless-empty-export/) | Implemented |
 | [`@typescript-eslint/no-unused-expressions`](https://typescript-eslint.io/rules/no-unused-expressions/) | Supports `allowShortCircuit`, `allowTernary`, and `allowTaggedTemplates` configuration |
-| [`@typescript-eslint/no-unused-vars`](https://typescript-eslint.io/rules/no-unused-vars/) | Supports `vars`, `args`, `caughtErrors`, `ignoreRestSiblings`, and common `argsIgnorePattern`/`caughtErrorsIgnorePattern`/`destructuredArrayIgnorePattern`/`varsIgnorePattern` configuration |
+| [`@typescript-eslint/no-unused-vars`](https://typescript-eslint.io/rules/no-unused-vars/) | Supports `vars`, `args`, `caughtErrors`, `ignoreRestSiblings`, `reportUsedIgnorePattern`, and common `argsIgnorePattern`/`caughtErrorsIgnorePattern`/`destructuredArrayIgnorePattern`/`varsIgnorePattern` configuration |
 | [`@typescript-eslint/no-use-before-define`](https://typescript-eslint.io/rules/no-use-before-define/) | Supports `functions`, `classes`, `variables`, and `allowNamedExports` configuration |
 | [`@typescript-eslint/no-var-requires`](https://typescript-eslint.io/rules/no-var-requires/) | Implemented |
 | [`@typescript-eslint/no-wrapper-object-types`](https://typescript-eslint.io/rules/no-wrapper-object-types/) | Implemented |
