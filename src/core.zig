@@ -155,6 +155,11 @@ pub const NoInvalidRegexpAllowConstructorFlags = struct {
     }
 };
 
+pub const NoInnerDeclarationsMode = enum {
+    functions,
+    both,
+};
+
 pub const NoMultiSpacesIgnoreEOLComments = enum {
     yes,
     no,
@@ -1118,6 +1123,7 @@ pub const Options = struct {
     no_irregular_whitespace: bool = true,
     no_inline_comments: bool = true,
     no_inner_declarations: bool = true,
+    no_inner_declarations_mode: NoInnerDeclarationsMode = .functions,
     no_iterator: bool = true,
     no_label_var: bool = true,
     no_labels: bool = true,
@@ -1657,6 +1663,9 @@ pub const Options = struct {
             self.no_implicit_coercion_allow_subtract = try noImplicitCoercionAllowFromConfig(value, "-");
             self.no_implicit_coercion_allow_double_negative = try noImplicitCoercionAllowFromConfig(value, "- -");
             self.no_implicit_coercion_disallow_template_shorthand = try noImplicitCoercionDisallowTemplateShorthandFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-inner-declarations")) {
+            self.no_inner_declarations_mode = try noInnerDeclarationsModeFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-invalid-regexp")) {
             self.no_invalid_regexp_allow_constructor_flags = try noInvalidRegexpAllowConstructorFlagsFromConfig(value);
@@ -3031,6 +3040,22 @@ pub const Options = struct {
             std.mem.eql(u8, value, "*") or
             std.mem.eql(u8, value, "-") or
             std.mem.eql(u8, value, "- -");
+    }
+
+    fn noInnerDeclarationsModeFromConfig(value: std.json.Value) RuleConfigError!NoInnerDeclarationsMode {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .functions,
+        };
+        if (items.len < 2) return .functions;
+
+        const mode = switch (items[1]) {
+            .string => |mode| mode,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, mode, "functions")) return .functions;
+        if (std.mem.eql(u8, mode, "both")) return .both;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn noLabelsAllowLoopFromConfig(value: std.json.Value) RuleConfigError!NoLabelsAllowLoop {
@@ -5851,6 +5876,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_implicit_coercion_allow_subtract);
     try std.testing.expect(options.no_implicit_coercion_allow_double_negative);
     try std.testing.expect(options.no_implicit_coercion_disallow_template_shorthand);
+
+    var no_inner_declarations_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"both\"]",
+        .{},
+    );
+    defer no_inner_declarations_config.deinit();
+    try options.setByRuleConfigValue("no-inner-declarations", no_inner_declarations_config.value);
+    try std.testing.expect(options.no_inner_declarations);
+    try std.testing.expectEqual(NoInnerDeclarationsMode.both, options.no_inner_declarations_mode);
 
     var no_labels_config = try std.json.parseFromSlice(
         std.json.Value,

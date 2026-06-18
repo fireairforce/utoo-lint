@@ -2232,6 +2232,20 @@ const BasicVisitor = struct {
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkVariableDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration);
         }
+        if (self.options.no_inner_declarations) {
+            try no_inner_declarations.checkVariableDeclaration(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                declaration,
+                index,
+                ctx,
+                switch (self.options.no_inner_declarations_mode) {
+                    .functions => .functions,
+                    .both => .both,
+                },
+            );
+        }
         if (self.options.one_var) {
             try one_var.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, declaration, index, ctx, .{
                 .check_var = self.options.one_var_check_var,
