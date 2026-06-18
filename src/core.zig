@@ -898,6 +898,8 @@ pub const Options = struct {
     func_name_matching_style: FuncNameMatchingStyle = .always,
     func_names: bool = true,
     func_names_style: FuncNamesStyle = .always,
+    func_names_has_generator_style: bool = false,
+    func_names_generator_style: FuncNamesStyle = .always,
     getter_return: bool = true,
     grouped_accessor_pairs: bool = true,
     grouped_accessor_pairs_style: GroupedAccessorPairsStyle = .any_order,
@@ -1498,6 +1500,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "func-names")) {
             self.func_names_style = try funcNamesStyleFromConfig(value);
+            const generator_style = try funcNamesGeneratorStyleFromConfig(value);
+            self.func_names_has_generator_style = generator_style != null;
+            self.func_names_generator_style = generator_style orelse self.func_names_style;
         }
         if (std.mem.eql(u8, cli_name, "grouped-accessor-pairs")) {
             self.grouped_accessor_pairs_style = try groupedAccessorPairsStyleFromConfig(value);
@@ -2133,6 +2138,27 @@ pub const Options = struct {
         if (items.len < 2) return .always;
 
         const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "always")) return .always;
+        if (std.mem.eql(u8, style, "as-needed")) return .as_needed;
+        if (std.mem.eql(u8, style, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn funcNamesGeneratorStyleFromConfig(value: std.json.Value) RuleConfigError!?FuncNamesStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return null,
+        };
+        if (items.len < 3) return null;
+
+        const config = switch (items[2]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const style = switch (config.get("generators") orelse return null) {
             .string => |style| style,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -5263,13 +5289,15 @@ test "Options can apply ESLint-style rule config values" {
     var func_names_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",\"never\"]",
+        "[\"error\",\"never\",{\"generators\":\"as-needed\"}]",
         .{},
     );
     defer func_names_config.deinit();
     try options.setByRuleConfigValue("func-names", func_names_config.value);
     try std.testing.expect(options.func_names);
     try std.testing.expectEqual(FuncNamesStyle.never, options.func_names_style);
+    try std.testing.expect(options.func_names_has_generator_style);
+    try std.testing.expectEqual(FuncNamesStyle.as_needed, options.func_names_generator_style);
 
     var grouped_accessor_pairs_get_config = try std.json.parseFromSlice(
         std.json.Value,

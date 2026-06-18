@@ -168,6 +168,73 @@ test "reports func-names never for named function expressions" {
     try std.testing.expectEqualStrings("Unexpected named function.", result.diagnostics[0].message);
 }
 
+test "supports configured func-names generators option" {
+    const source =
+        \\const regular = function () {
+        \\  return value;
+        \\};
+        \\const inferredGenerator = function* () {
+        \\  yield value;
+        \\};
+        \\(function* () {
+        \\  yield value;
+        \\})();
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"always\",{\"generators\":\"as-needed\"}]",
+        .{},
+    );
+    defer config.deinit();
+    var options = lint.Options{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+    };
+    try options.setByRuleConfigValue("func-names", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.func_names.id));
+}
+
+test "supports configured func-names generators never option" {
+    const source =
+        \\const regular = function () {
+        \\  return value;
+        \\};
+        \\const generator = function* namedGenerator() {
+        \\  yield value;
+        \\};
+        \\const anonymousGenerator = function* () {
+        \\  yield value;
+        \\};
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"always\",{\"generators\":\"never\"}]",
+        .{},
+    );
+    defer config.deinit();
+    var options = lint.Options{
+        .func_name_matching = false,
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+    };
+    try options.setByRuleConfigValue("func-names", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.func_names.id));
+}
+
 test "allows func-names never for anonymous expressions and declarations" {
     const source =
         \\function declaration() {

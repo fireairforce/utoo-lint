@@ -1040,6 +1040,19 @@ const BasicVisitor = struct {
         };
     }
 
+    fn funcNamesStyle(self: *const BasicVisitor, function: ast.Function) func_names.Style {
+        const style = if (function.generator and self.options.func_names_has_generator_style)
+            self.options.func_names_generator_style
+        else
+            self.options.func_names_style;
+
+        return switch (style) {
+            .always => .always,
+            .as_needed => .as_needed,
+            .never => .never,
+        };
+    }
+
     pub fn enter_node(
         self: *BasicVisitor,
         data: ast.NodeData,
@@ -1172,11 +1185,7 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.func_names) {
-            try func_names.checkWithStyle(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, switch (self.options.func_names_style) {
-                .always => .always,
-                .as_needed => .as_needed,
-                .never => .never,
-            });
+            try func_names.checkWithStyle(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, self.funcNamesStyle(function));
         }
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, function.params);
