@@ -772,6 +772,7 @@ pub fn runSemantic(
         try no_shadow.runWithOptions(allocator, diagnostics, tree, semantic_result.scope_tree, semantic_result.symbol_table, .{
             .allow = options.no_shadow_allow,
             .builtin_globals = options.no_shadow_builtin_globals,
+            .hoist = options.no_shadow_hoist,
         });
     }
 
@@ -779,6 +780,7 @@ pub fn runSemantic(
         try typescript_eslint_no_shadow.runWithOptions(allocator, diagnostics, tree, semantic_result.scope_tree, semantic_result.symbol_table, .{
             .allow = options.typescript_eslint_no_shadow_allow,
             .builtin_globals = options.typescript_eslint_no_shadow_builtin_globals,
+            .hoist = options.typescript_eslint_no_shadow_hoist,
         });
     }
 

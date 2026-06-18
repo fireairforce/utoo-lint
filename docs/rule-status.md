@@ -128,6 +128,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-self-compare`](https://eslint.org/docs/latest/rules/no-self-compare) | Implemented |
 | [`no-sequences`](https://eslint.org/docs/latest/rules/no-sequences) | Implemented with optional `allowInParentheses` behavior |
 | [`no-setter-return`](https://eslint.org/docs/latest/rules/no-setter-return) | Implemented |
+| [`no-shadow`](https://eslint.org/docs/latest/rules/no-shadow) | Supports `allow`, `builtinGlobals`, and `hoist` configuration |
 | [`no-shadow-restricted-names`](https://eslint.org/docs/latest/rules/no-shadow-restricted-names) | Implemented |
 | [`no-sparse-arrays`](https://eslint.org/docs/latest/rules/no-sparse-arrays) | Implemented |
 | [`no-tabs`](https://eslint.org/docs/latest/rules/no-tabs) | Implemented |
@@ -285,7 +286,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-non-null-asserted-optional-chain`](https://typescript-eslint.io/rules/no-non-null-asserted-optional-chain/) | Implemented |
 | [`@typescript-eslint/no-redeclare`](https://typescript-eslint.io/rules/no-redeclare/) | Implemented |
 | [`@typescript-eslint/no-require-imports`](https://typescript-eslint.io/rules/no-require-imports/) | Implemented |
-| [`@typescript-eslint/no-shadow`](https://typescript-eslint.io/rules/no-shadow/) | Implemented |
+| [`@typescript-eslint/no-shadow`](https://typescript-eslint.io/rules/no-shadow/) | Supports `allow`, `builtinGlobals`, and `hoist` configuration |
 | [`@typescript-eslint/no-this-alias`](https://typescript-eslint.io/rules/no-this-alias/) | Implemented for `allowedNames` configuration |
 | [`@typescript-eslint/no-unsafe-declaration-merging`](https://typescript-eslint.io/rules/no-unsafe-declaration-merging/) | Implemented |
 | [`@typescript-eslint/triple-slash-reference`](https://typescript-eslint.io/rules/triple-slash-reference/) | Implemented for `path`, `types`, and `lib` `always`/`never` configurations |
