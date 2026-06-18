@@ -5,7 +5,7 @@ Each rule links to the corresponding ESLint rule reference.
 
 | Rule | Status |
 | --- | --- |
-| [`accessor-pairs`](https://eslint.org/docs/latest/rules/accessor-pairs) | Implemented for optional `setWithoutGet` and `getWithoutSet` behavior |
+| [`accessor-pairs`](https://eslint.org/docs/latest/rules/accessor-pairs) | Supports `setWithoutGet`, `getWithoutSet`, and `enforceForClassMembers` configuration |
 | [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for optional `allowImplicit`, `checkForEach`, and `allowVoid` behavior |
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
 | [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Implemented for `always`, optional `never`, and optional `ignoreInlineComments` behavior |

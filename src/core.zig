@@ -785,6 +785,11 @@ pub const AccessorPairsSetWithoutGet = enum {
     no,
 };
 
+pub const AccessorPairsEnforceForClassMembers = enum {
+    yes,
+    no,
+};
+
 pub const GroupedAccessorPairsStyle = enum {
     any_order,
     get_before_set,
@@ -922,6 +927,7 @@ pub const Options = struct {
     accessor_pairs: bool = true,
     accessor_pairs_get_without_set: AccessorPairsGetWithoutSet = .no,
     accessor_pairs_set_without_get: AccessorPairsSetWithoutGet = .yes,
+    accessor_pairs_enforce_for_class_members: AccessorPairsEnforceForClassMembers = .yes,
     array_callback_return: bool = true,
     array_callback_return_allow_implicit: ArrayCallbackReturnAllowImplicit = .no,
     array_callback_return_check_for_each: ArrayCallbackReturnCheckForEach = .no,
@@ -1534,6 +1540,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "accessor-pairs")) {
             self.accessor_pairs_get_without_set = try accessorPairsGetWithoutSetFromConfig(value);
             self.accessor_pairs_set_without_get = try accessorPairsSetWithoutGetFromConfig(value);
+            self.accessor_pairs_enforce_for_class_members = try accessorPairsEnforceForClassMembersFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "array-callback-return")) {
             self.array_callback_return_allow_implicit = try arrayCallbackReturnAllowImplicitFromConfig(value);
@@ -2035,6 +2042,11 @@ pub const Options = struct {
 
     fn accessorPairsSetWithoutGetFromConfig(value: std.json.Value) RuleConfigError!AccessorPairsSetWithoutGet {
         const enabled = try accessorPairsOptionFromConfig(value, "setWithoutGet", true);
+        return if (enabled) .yes else .no;
+    }
+
+    fn accessorPairsEnforceForClassMembersFromConfig(value: std.json.Value) RuleConfigError!AccessorPairsEnforceForClassMembers {
+        const enabled = try accessorPairsOptionFromConfig(value, "enforceForClassMembers", true);
         return if (enabled) .yes else .no;
     }
 
@@ -5465,7 +5477,7 @@ test "Options can apply ESLint-style rule config values" {
     var accessor_pairs_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"getWithoutSet\":true,\"setWithoutGet\":false}]",
+        "[\"error\",{\"getWithoutSet\":true,\"setWithoutGet\":false,\"enforceForClassMembers\":false}]",
         .{},
     );
     defer accessor_pairs_config.deinit();
@@ -5473,6 +5485,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.accessor_pairs);
     try std.testing.expectEqual(AccessorPairsGetWithoutSet.yes, options.accessor_pairs_get_without_set);
     try std.testing.expectEqual(AccessorPairsSetWithoutGet.no, options.accessor_pairs_set_without_get);
+    try std.testing.expectEqual(AccessorPairsEnforceForClassMembers.no, options.accessor_pairs_enforce_for_class_members);
 
     var profile_a_config = try std.json.parseFromSlice(
         std.json.Value,
