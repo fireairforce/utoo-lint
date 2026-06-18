@@ -26,7 +26,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`guard-for-in`](https://eslint.org/docs/latest/rules/guard-for-in) | Implemented |
 | [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Supports `unix` and `windows` configuration |
 | [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for `always`, optional `never`, and optional `enforceForIfStatements: true` behavior |
-| [`new-cap`](https://eslint.org/docs/latest/rules/new-cap) | Implemented |
+| [`new-cap`](https://eslint.org/docs/latest/rules/new-cap) | Supports `newIsCap`, `capIsNew`, `properties`, exception names, and exception patterns |
 | [`new-parens`](https://eslint.org/docs/latest/rules/new-parens) | Implemented |
 | [`no-alert`](https://eslint.org/docs/latest/rules/no-alert) | Implemented with global `this`, `window`, and `globalThis` detection |
 | [`no-array-constructor`](https://eslint.org/docs/latest/rules/no-array-constructor) | Implemented |

@@ -13,6 +13,8 @@ pub const Options = struct {
     properties: bool = true,
     new_is_cap_exceptions: core.NewCapExceptionNames = .{},
     cap_is_new_exceptions: core.NewCapExceptionNames = .{},
+    new_is_cap_exception_pattern: core.NewCapExceptionPattern = .{},
+    cap_is_new_exception_pattern: core.NewCapExceptionPattern = .{},
 };
 
 pub fn checkNewExpression(
@@ -36,7 +38,7 @@ pub fn checkNewExpressionWithOptions(
     if (!options.new_is_cap) return;
 
     const name = constructorName(tree, expression.callee, options) orelse return;
-    if (options.new_is_cap_exceptions.contains(name)) return;
+    if (isNewIsCapException(name, options)) return;
     if (nameCase(name) != .lower) return;
 
     try core.addDiagnostic(
@@ -71,7 +73,7 @@ pub fn checkCallExpressionWithOptions(
 
     const callee = unwrapTransparent(tree, expression.callee);
     const name = constructorName(tree, callee, options) orelse return;
-    if (options.cap_is_new_exceptions.contains(name)) return;
+    if (isCapIsNewException(name, options)) return;
     if (nameCase(name) != .upper) return;
     if (isAllowedCallableBuiltin(tree, callee, name)) return;
 
@@ -143,6 +145,93 @@ fn isAllowedCallableBuiltin(tree: *const ast.Tree, callee: ast.NodeIndex, name: 
     }
 
     return false;
+}
+
+fn isNewIsCapException(name: []const u8, options: Options) bool {
+    if (options.new_is_cap_exceptions.contains(name)) return true;
+    return matchesPatternOption(name, options.new_is_cap_exception_pattern);
+}
+
+fn isCapIsNewException(name: []const u8, options: Options) bool {
+    if (options.cap_is_new_exceptions.contains(name)) return true;
+    return matchesPatternOption(name, options.cap_is_new_exception_pattern);
+}
+
+fn matchesPatternOption(name: []const u8, pattern: core.NewCapExceptionPattern) bool {
+    const custom_pattern = pattern.pattern() orelse return false;
+    return matchesPattern(name, custom_pattern);
+}
+
+fn matchesPattern(value: []const u8, pattern: []const u8) bool {
+    var start: usize = 0;
+    while (start <= pattern.len) {
+        const remainder = pattern[start..];
+        const separator = std.mem.indexOfScalar(u8, remainder, '|');
+        const end = if (separator) |offset| start + offset else pattern.len;
+        if (matchesAlternative(value, pattern[start..end])) return true;
+        if (separator == null) break;
+        start = end + 1;
+    }
+    return false;
+}
+
+fn matchesAlternative(value: []const u8, pattern: []const u8) bool {
+    if (pattern.len == 0) return false;
+
+    const anchored_start = std.mem.startsWith(u8, pattern, "^");
+    const anchored_end = std.mem.endsWith(u8, pattern, "$");
+    const body_start: usize = if (anchored_start) 1 else 0;
+    const body_end = if (anchored_end and pattern.len > body_start) pattern.len - 1 else pattern.len;
+    const body = pattern[body_start..body_end];
+
+    if (std.mem.indexOf(u8, body, ".*") != null) {
+        return matchesWildcardSequence(value, body, anchored_start, anchored_end);
+    }
+    if (anchored_start and anchored_end) return std.mem.eql(u8, value, body);
+    if (anchored_start) return std.mem.startsWith(u8, value, body);
+    if (anchored_end) return std.mem.endsWith(u8, value, body);
+    return std.mem.indexOf(u8, value, body) != null;
+}
+
+fn matchesWildcardSequence(value: []const u8, pattern: []const u8, anchored_start: bool, anchored_end: bool) bool {
+    var value_offset: usize = 0;
+    var pattern_offset: usize = 0;
+    var part_index: usize = 0;
+
+    while (pattern_offset <= pattern.len) : (part_index += 1) {
+        const remainder = pattern[pattern_offset..];
+        const wildcard = std.mem.indexOf(u8, remainder, ".*");
+        const part_end = if (wildcard) |offset| pattern_offset + offset else pattern.len;
+        const part = pattern[pattern_offset..part_end];
+
+        if (part.len > 0) {
+            if (part_index == 0 and anchored_start) {
+                if (!std.mem.startsWith(u8, value[value_offset..], part)) return false;
+                value_offset += part.len;
+            } else {
+                const found = std.mem.indexOf(u8, value[value_offset..], part) orelse return false;
+                value_offset += found + part.len;
+            }
+        }
+
+        if (wildcard == null) break;
+        pattern_offset = part_end + 2;
+    }
+
+    if (!anchored_end) return true;
+    const suffix_start = lastWildcardPartStart(pattern);
+    return std.mem.endsWith(u8, value, pattern[suffix_start..]);
+}
+
+fn lastWildcardPartStart(pattern: []const u8) usize {
+    var offset: usize = 0;
+    var start: usize = 0;
+    while (offset < pattern.len) {
+        const wildcard = std.mem.indexOf(u8, pattern[offset..], ".*") orelse break;
+        start = offset + wildcard + 2;
+        offset = start;
+    }
+    return start;
 }
 
 const NameCase = enum {

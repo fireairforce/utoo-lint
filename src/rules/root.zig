@@ -2795,6 +2795,8 @@ const BasicVisitor = struct {
                 .properties = self.options.new_cap_properties,
                 .new_is_cap_exceptions = self.options.new_cap_new_is_cap_exceptions,
                 .cap_is_new_exceptions = self.options.new_cap_cap_is_new_exceptions,
+                .new_is_cap_exception_pattern = self.options.new_cap_new_is_cap_exception_pattern,
+                .cap_is_new_exception_pattern = self.options.new_cap_cap_is_new_exception_pattern,
             });
         }
         if (self.options.no_extra_bind) {
@@ -2845,6 +2847,8 @@ const BasicVisitor = struct {
                 .properties = self.options.new_cap_properties,
                 .new_is_cap_exceptions = self.options.new_cap_new_is_cap_exceptions,
                 .cap_is_new_exceptions = self.options.new_cap_cap_is_new_exceptions,
+                .new_is_cap_exception_pattern = self.options.new_cap_new_is_cap_exception_pattern,
+                .cap_is_new_exception_pattern = self.options.new_cap_cap_is_new_exception_pattern,
             });
         }
         if (self.options.new_parens) {
