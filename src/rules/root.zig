@@ -971,6 +971,7 @@ pub fn runSemantic(
             .react_jsx_uses_react = options.react_jsx_uses_react,
             .react_jsx_uses_vars = options.react_jsx_uses_vars,
             .args_ignore_pattern = options.no_unused_vars_args_ignore_pattern,
+            .caught_errors_ignore_pattern = options.no_unused_vars_caught_errors_ignore_pattern,
             .vars_ignore_pattern = options.no_unused_vars_vars_ignore_pattern,
         });
     }
@@ -989,6 +990,7 @@ pub fn runSemantic(
             options.typescript_eslint_no_unused_vars_caught_errors,
             options.typescript_eslint_no_unused_vars_ignore_rest_siblings,
             options.typescript_eslint_no_unused_vars_args_ignore_pattern,
+            options.typescript_eslint_no_unused_vars_caught_errors_ignore_pattern,
             options.typescript_eslint_no_unused_vars_vars_ignore_pattern,
         );
     }
