@@ -393,6 +393,42 @@ pub const NoParamReassignIgnoredNames = struct {
     }
 };
 
+pub const max_no_extend_native_exceptions = 32;
+pub const max_no_extend_native_exception_len = 128;
+
+pub const NoExtendNativeExceptionsError = error{
+    EmptyNoExtendNativeException,
+    TooManyNoExtendNativeExceptions,
+    NoExtendNativeExceptionTooLong,
+};
+
+pub const NoExtendNativeExceptions = struct {
+    count: usize = 0,
+    lengths: [max_no_extend_native_exceptions]usize = undefined,
+    storage: [max_no_extend_native_exceptions][max_no_extend_native_exception_len]u8 = undefined,
+
+    pub fn contains(self: *const NoExtendNativeExceptions, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const NoExtendNativeExceptions, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *NoExtendNativeExceptions, name: []const u8) NoExtendNativeExceptionsError!void {
+        if (name.len == 0) return error.EmptyNoExtendNativeException;
+        if (self.count >= max_no_extend_native_exceptions) return error.TooManyNoExtendNativeExceptions;
+        if (name.len > max_no_extend_native_exception_len) return error.NoExtendNativeExceptionTooLong;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const max_no_shadow_allow_names = 32;
 pub const max_no_shadow_allow_name_len = 128;
 
@@ -971,6 +1007,7 @@ pub const Options = struct {
     no_eval_allow_indirect: bool = false,
     no_ex_assign: bool = true,
     no_extend_native: bool = true,
+    no_extend_native_exceptions: NoExtendNativeExceptions = .{},
     no_extra_bind: bool = true,
     no_extra_label: bool = true,
     no_extra_semi: bool = true,
@@ -1559,6 +1596,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-eval")) {
             self.no_eval_allow_indirect = try noEvalAllowIndirectFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-extend-native")) {
+            self.no_extend_native_exceptions = try noExtendNativeExceptionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-empty-function")) {
             self.typescript_eslint_no_empty_function_allow = try noEmptyFunctionAllowFromConfig(value);
@@ -3697,6 +3737,34 @@ pub const Options = struct {
         };
     }
 
+    fn noExtendNativeExceptionsFromConfig(value: std.json.Value) RuleConfigError!NoExtendNativeExceptions {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const exceptions_value = config.get("exceptions") orelse return .{};
+        const exceptions_items = switch (exceptions_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var exceptions = NoExtendNativeExceptions{};
+        for (exceptions_items) |item| {
+            const name = switch (item) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            exceptions.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return exceptions;
+    }
+
     fn noUselessRenameBoolOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -5506,6 +5574,19 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-eval", no_eval_config.value);
     try std.testing.expect(options.no_eval);
     try std.testing.expect(options.no_eval_allow_indirect);
+
+    var no_extend_native_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"exceptions\":[\"Array\",\"Object\"]}]",
+        .{},
+    );
+    defer no_extend_native_config.deinit();
+    try options.setByRuleConfigValue("no-extend-native", no_extend_native_config.value);
+    try std.testing.expect(options.no_extend_native);
+    try std.testing.expect(options.no_extend_native_exceptions.contains("Array"));
+    try std.testing.expect(options.no_extend_native_exceptions.contains("Object"));
+    try std.testing.expect(!options.no_extend_native_exceptions.contains("String"));
 
     var no_empty_function_config = try std.json.parseFromSlice(
         std.json.Value,

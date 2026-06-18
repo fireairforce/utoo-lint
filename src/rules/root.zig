@@ -732,7 +732,9 @@ pub fn runSemantic(
     }
 
     if (options.no_extend_native) {
-        try no_extend_native.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try no_extend_native.runWithOptions(allocator, diagnostics, tree, .{
+            .exceptions = options.no_extend_native_exceptions,
+        });
     }
 
     if (options.no_eval or options.no_alert or options.no_implied_eval) {
