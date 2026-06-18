@@ -86,7 +86,7 @@ test "supports configured @typescript-eslint/typedef declaration options" {
     var config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        \\["error", {"propertyDeclaration": false, "memberVariableDeclaration": true}]
+        \\["error", {"propertyDeclaration": false, "memberVariableDeclaration": true, "parameter": true, "arrowParameter": true}]
     ,
         .{},
     );
@@ -98,6 +98,53 @@ test "supports configured @typescript-eslint/typedef declaration options" {
     try std.testing.expect(options.typescript_eslint_typedef);
     try std.testing.expect(!options.typescript_eslint_typedef_property_declaration);
     try std.testing.expect(options.typescript_eslint_typedef_member_variable_declaration);
+    try std.testing.expect(options.typescript_eslint_typedef_parameter);
+    try std.testing.expect(options.typescript_eslint_typedef_arrow_parameter);
+}
+
+test "supports configured @typescript-eslint/typedef parameter options" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        \\["error", {"propertyDeclaration": false, "parameter": true, "arrowParameter": true}]
+    ,
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/typedef", config.value);
+    options.no_unused_vars = false;
+    options.typescript_eslint_no_inferrable_types = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\function named(untyped, typed: string, fallback = 1, rest: string[]) {}
+        \\const arrow = (first, second: number) => first + second;
+        \\const destructured = ({ value }, [item]) => value + item;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.typescript_eslint_typedef.id));
+}
+
+test "allows @typescript-eslint/typedef parameters by default" {
+    const source =
+        \\function named(untyped) {}
+        \\const arrow = (first) => first;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_unused_vars = false,
+        .typescript_eslint_no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_typedef.id));
 }
 
 test "can disable @typescript-eslint/typedef" {
