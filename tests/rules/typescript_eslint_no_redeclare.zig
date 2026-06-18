@@ -111,6 +111,35 @@ test "supports configured @typescript-eslint/no-redeclare ignoreDeclarationMerge
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_redeclare.id));
 }
 
+test "supports configured @typescript-eslint/no-redeclare builtinGlobals" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"builtinGlobals\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-redeclare", config.value);
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\var Object = 1;
+        \\let undefinedValue = undefined;
+        \\let undefined = 1;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.cts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.typescript_eslint_no_redeclare.id));
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_redeclare.id));
+}
+
 test "can disable @typescript-eslint/no-redeclare and fall back to no-redeclare" {
     const source =
         \\let value = 1;

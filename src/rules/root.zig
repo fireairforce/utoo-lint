@@ -796,6 +796,7 @@ pub fn runSemantic(
             diagnostics,
             tree,
             semantic_result.symbol_table,
+            options.typescript_eslint_no_redeclare_builtin_globals,
             options.typescript_eslint_no_redeclare_ignore_declaration_merge,
         );
     }
