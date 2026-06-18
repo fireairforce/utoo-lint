@@ -918,6 +918,11 @@ pub const CapitalizedCommentsIgnoreInlineComments = enum {
     no,
 };
 
+pub const CapitalizedCommentsIgnoreConsecutiveComments = enum {
+    yes,
+    no,
+};
+
 pub const DotNotationAllowKeywords = enum {
     yes,
     no,
@@ -936,6 +941,7 @@ pub const Options = struct {
     capitalized_comments: bool = true,
     capitalized_comments_mode: CapitalizedCommentsMode = .always,
     capitalized_comments_ignore_inline_comments: CapitalizedCommentsIgnoreInlineComments = .no,
+    capitalized_comments_ignore_consecutive_comments: CapitalizedCommentsIgnoreConsecutiveComments = .no,
     consistent_return: bool = true,
     consistent_return_treat_undefined_as_unspecified: bool = false,
     constructor_super: bool = true,
@@ -1550,6 +1556,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "capitalized-comments")) {
             self.capitalized_comments_mode = try capitalizedCommentsModeFromConfig(value);
             self.capitalized_comments_ignore_inline_comments = try capitalizedCommentsIgnoreInlineCommentsFromConfig(value);
+            self.capitalized_comments_ignore_consecutive_comments = try capitalizedCommentsIgnoreConsecutiveCommentsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "consistent-return")) {
             self.consistent_return_treat_undefined_as_unspecified = try consistentReturnTreatUndefinedAsUnspecifiedFromConfig(value);
@@ -2117,26 +2124,35 @@ pub const Options = struct {
     }
 
     fn capitalizedCommentsIgnoreInlineCommentsFromConfig(value: std.json.Value) RuleConfigError!CapitalizedCommentsIgnoreInlineComments {
+        const ignore = try capitalizedCommentsBoolOptionFromConfig(value, "ignoreInlineComments", false);
+        return if (ignore) .yes else .no;
+    }
+
+    fn capitalizedCommentsIgnoreConsecutiveCommentsFromConfig(value: std.json.Value) RuleConfigError!CapitalizedCommentsIgnoreConsecutiveComments {
+        const ignore = try capitalizedCommentsBoolOptionFromConfig(value, "ignoreConsecutiveComments", false);
+        return if (ignore) .yes else .no;
+    }
+
+    fn capitalizedCommentsBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
-            else => return .no,
+            else => return default,
         };
-        if (items.len < 2) return .no;
+        if (items.len < 2) return default;
 
         const config_value = switch (items[1]) {
             .object => items[1],
-            .string => if (items.len >= 3) items[2] else return .no,
+            .string => if (items.len >= 3) items[2] else return default,
             else => return error.UnsupportedRuleConfigValue,
         };
         const config = switch (config_value) {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        const ignore = switch (config.get("ignoreInlineComments") orelse return .no) {
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
-        return if (ignore) .yes else .no;
     }
 
     fn deprecatedDependenceProfileFromConfig(value: std.json.Value) DeprecatedDependenceProfile {
@@ -5396,7 +5412,7 @@ test "Options can apply ESLint-style rule config values" {
     var capitalized_comments_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",\"never\",{\"ignoreInlineComments\":true}]",
+        "[\"error\",\"never\",{\"ignoreInlineComments\":true,\"ignoreConsecutiveComments\":true}]",
         .{},
     );
     defer capitalized_comments_config.deinit();
@@ -5404,6 +5420,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.capitalized_comments);
     try std.testing.expectEqual(CapitalizedCommentsMode.never, options.capitalized_comments_mode);
     try std.testing.expectEqual(CapitalizedCommentsIgnoreInlineComments.yes, options.capitalized_comments_ignore_inline_comments);
+    try std.testing.expectEqual(CapitalizedCommentsIgnoreConsecutiveComments.yes, options.capitalized_comments_ignore_consecutive_comments);
 
     var consistent_return_config = try std.json.parseFromSlice(
         std.json.Value,

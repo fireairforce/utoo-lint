@@ -436,6 +436,7 @@ pub fn runBasic(
                 .never => .never,
             },
             .ignore_inline_comments = options.capitalized_comments_ignore_inline_comments == .yes,
+            .ignore_consecutive_comments = options.capitalized_comments_ignore_consecutive_comments == .yes,
         });
     }
     if (options.no_warning_comments) {

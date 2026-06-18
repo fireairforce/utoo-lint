@@ -15,6 +15,7 @@ pub const Mode = enum {
 pub const Options = struct {
     mode: Mode = .always,
     ignore_inline_comments: bool = false,
+    ignore_consecutive_comments: bool = false,
 };
 
 pub fn run(
@@ -31,8 +32,17 @@ pub fn runWithOptions(
     tree: *const ast.Tree,
     options: Options,
 ) Allocator.Error!void {
+    var previous_comment: ?ast.Comment = null;
+
     for (tree.comments) |comment| {
+        const consecutive = if (previous_comment) |previous|
+            isConsecutiveComment(tree, previous, comment)
+        else
+            false;
+        previous_comment = comment;
+
         if (options.ignore_inline_comments and isInlineComment(tree, comment)) continue;
+        if (options.ignore_consecutive_comments and consecutive) continue;
 
         const value = trimLeftDecorations(tree.string(comment.value));
         if (isIgnoredComment(value)) continue;
@@ -56,6 +66,15 @@ fn diagnosticMessage(mode: Mode) []const u8 {
         .always => "Comments should start with an uppercase character.",
         .never => "Comments should not start with an uppercase character.",
     };
+}
+
+fn isConsecutiveComment(tree: *const ast.Tree, previous: ast.Comment, current: ast.Comment) bool {
+    if (previous.end > current.start) return false;
+
+    for (tree.source[previous.end..current.start]) |char| {
+        if (!isWhitespace(char)) return false;
+    }
+    return true;
 }
 
 fn violatesMode(first: u8, mode: Mode) bool {
