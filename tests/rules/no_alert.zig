@@ -9,6 +9,9 @@ test "reports no-alert for global alert APIs" {
         \\prompt("name");
         \\window.alert("hello");
         \\globalThis.prompt("name");
+        \\this.alert("hello");
+        \\this.confirm("continue?");
+        \\this.prompt("name");
         \\window["confirm"]("continue?");
         \\window[`alert`]("hello");
         \\globalThis[`prompt`]("name");
@@ -23,7 +26,7 @@ test "reports no-alert for global alert APIs" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 9), helpers.countRule(result, lint.rules.no_alert.id));
+    try std.testing.expectEqual(@as(usize, 12), helpers.countRule(result, lint.rules.no_alert.id));
 }
 
 test "does not report no-alert for shadowed alert" {
@@ -51,6 +54,36 @@ test "does not report no-alert for dynamic global member names" {
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
         .no_console = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_alert.id));
+}
+
+test "does not report no-alert for non-global this members" {
+    const source =
+        \\function insideFunction() {
+        \\  this.alert("hello");
+        \\}
+        \\const insideArrow = () => {
+        \\  this.confirm("continue?");
+        \\};
+        \\class Example {
+        \\  method() {
+        \\    this.prompt("name");
+        \\  }
+        \\  static {
+        \\    this.alert("hello");
+        \\  }
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_console = false,
+        .no_empty_function = false,
         .no_unused_vars = false,
         .no_undef = false,
         .parser_semantic_errors = false,
