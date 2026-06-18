@@ -160,7 +160,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-warning-comments`](https://eslint.org/docs/latest/rules/no-warning-comments) | Implemented with configurable `terms`, `location`, and common `decoration` behavior |
 | [`no-with`](https://eslint.org/docs/latest/rules/no-with) | Implemented |
 | [`object-shorthand`](https://eslint.org/docs/latest/rules/object-shorthand) | Implemented |
-| [`one-var`](https://eslint.org/docs/latest/rules/one-var) | Implemented for fishlint's `never` configuration |
+| [`one-var`](https://eslint.org/docs/latest/rules/one-var) | Supports string `never` and per-kind `var`/`let`/`const` `never` configuration |
 | [`operator-assignment`](https://eslint.org/docs/latest/rules/operator-assignment) | Implemented |
 | [`prefer-const`](https://eslint.org/docs/latest/rules/prefer-const) | Implemented for optional `destructuring: any` and `destructuring: all` behavior; `ignoreReadBeforeAssign: true` |
 | [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Implemented for object and array variable declarators and assignment expressions |

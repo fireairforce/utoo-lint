@@ -36,6 +36,58 @@ test "does not report one-var for separate declarations or for loop init" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.one_var.id));
 }
 
+test "supports configured one-var never style" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\"]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("one-var", config.value);
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\var first = 1, second = 2;
+        \\let third = 3, fourth = 4;
+        \\const fifth = 5, sixth = 6;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.one_var.id));
+}
+
+test "supports configured one-var per-kind never style" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"let\":\"never\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("one-var", config.value);
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\var first = 1, second = 2;
+        \\let third = 3, fourth = 4;
+        \\const fifth = 5, sixth = 6;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.one_var.id));
+}
+
 test "can disable one-var" {
     const source =
         \\let first = 1, second = 2;

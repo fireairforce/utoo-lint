@@ -2198,7 +2198,11 @@ const BasicVisitor = struct {
             try no_shadow_restricted_names.checkVariableDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration);
         }
         if (self.options.one_var) {
-            try one_var.check(self.allocator, self.diagnostics, ctx.tree, declaration, index, ctx);
+            try one_var.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, declaration, index, ctx, .{
+                .check_var = self.options.one_var_check_var,
+                .check_let = self.options.one_var_check_let,
+                .check_const = self.options.one_var_check_const,
+            });
         }
         if (self.options.prefer_destructuring) {
             try prefer_destructuring.checkVariableDeclarationWithOptions(self.allocator, self.diagnostics, ctx.tree, declaration, .{
