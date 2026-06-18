@@ -2359,7 +2359,7 @@ const BasicVisitor = struct {
             try no_script_url.checkTemplateLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         if (self.options.no_useless_escape) {
-            try no_useless_escape.checkTemplateLiteral(self.allocator, self.diagnostics, ctx.tree, literal);
+            try no_useless_escape.checkTemplateLiteral(self.allocator, self.diagnostics, ctx.tree, literal, ctx.path.parent() orelse .null);
         }
         if (self.options.alipay_ant_disallow_typos) {
             try alipay_ant_disallow_typos.checkTemplateLiteral(self.allocator, self.diagnostics, ctx.tree, literal);

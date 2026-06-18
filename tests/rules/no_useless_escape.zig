@@ -8,6 +8,7 @@ test "reports no-useless-escape for unnecessary string and template escapes" {
         \\const b = '\"';
         \\const c = `\#`;
         \\const d = `\a ${value}`;
+        \\const e = `\{literal}`;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -17,7 +18,7 @@ test "reports no-useless-escape for unnecessary string and template escapes" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_useless_escape.id));
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_useless_escape.id));
 }
 
 test "reports no-useless-escape for unnecessary regular expression escapes" {
@@ -83,6 +84,8 @@ test "does not report no-useless-escape for necessary escapes" {
         \\const h = /[a\-z]/;
         \\const i = /[\^]/;
         \\const j = /[\^a]/;
+        \\const k = `$\{literal}`;
+        \\const l = tag`\# ${value}`;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{

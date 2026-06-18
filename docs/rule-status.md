@@ -154,7 +154,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-useless-computed-key`](https://eslint.org/docs/latest/rules/no-useless-computed-key) | Implemented with optional `enforceForClassMembers` behavior |
 | [`no-useless-concat`](https://eslint.org/docs/latest/rules/no-useless-concat) | Implemented for adjacent static string and template literals in concatenation chains |
 | [`no-useless-constructor`](https://eslint.org/docs/latest/rules/no-useless-constructor) | Implemented |
-| [`no-useless-escape`](https://eslint.org/docs/latest/rules/no-useless-escape) | Supports `allowRegexCharacters` configuration |
+| [`no-useless-escape`](https://eslint.org/docs/latest/rules/no-useless-escape) | Supports `allowRegexCharacters` configuration and ESLint template escape handling |
 | [`no-useless-rename`](https://eslint.org/docs/latest/rules/no-useless-rename) | Supports `ignoreDestructuring`, `ignoreImport`, and `ignoreExport` configuration |
 | [`no-useless-return`](https://eslint.org/docs/latest/rules/no-useless-return) | Implemented |
 | [`no-var`](https://eslint.org/docs/latest/rules/no-var) | Implemented |
