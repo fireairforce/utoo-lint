@@ -8,6 +8,7 @@ const Allocator = std.mem.Allocator;
 pub const id = "no-underscore-dangle";
 
 pub const Options = struct {
+    allow: core.NoShadowAllowNames = .{},
     allow_after_this: bool = false,
     allow_after_super: bool = false,
     allow_after_this_constructor: bool = false,
@@ -35,15 +36,15 @@ pub fn checkVariableDeclaratorWithOptions(
     options: Options,
 ) Allocator.Error!void {
     switch (tree.data(declarator.id)) {
-        .binding_identifier => |identifier| try checkName(allocator, diagnostics, tree, declarator.id, tree.string(identifier.name), false),
+        .binding_identifier => |identifier| try checkName(allocator, diagnostics, tree, declarator.id, tree.string(identifier.name), false, options),
         .array_pattern => {
             if (!options.allow_in_array_destructuring) {
-                try checkBinding(allocator, diagnostics, tree, declarator.id);
+                try checkBinding(allocator, diagnostics, tree, declarator.id, options);
             }
         },
         .object_pattern => {
             if (!options.allow_in_object_destructuring) {
-                try checkBinding(allocator, diagnostics, tree, declarator.id);
+                try checkBinding(allocator, diagnostics, tree, declarator.id, options);
             }
         },
         else => {},
@@ -68,7 +69,7 @@ pub fn checkFunctionWithOptions(
 ) Allocator.Error!void {
     if (function.id != .null) {
         if (bindingName(tree, function.id)) |name| {
-            try checkName(allocator, diagnostics, tree, function.id, name, false);
+            try checkName(allocator, diagnostics, tree, function.id, name, false, options);
         }
     }
     try checkFormalParametersWithOptions(allocator, diagnostics, tree, function.params, options);
@@ -86,13 +87,13 @@ pub fn checkFormalParametersWithOptions(
     const params = formalParameters(tree, params_index) orelse return;
     for (tree.extra(params.items)) |item_index| {
         switch (tree.data(item_index)) {
-            .formal_parameter => |parameter| try checkBinding(allocator, diagnostics, tree, parameter.pattern),
-            .ts_parameter_property => |property| try checkBinding(allocator, diagnostics, tree, property.parameter),
+            .formal_parameter => |parameter| try checkBinding(allocator, diagnostics, tree, parameter.pattern, options),
+            .ts_parameter_property => |property| try checkBinding(allocator, diagnostics, tree, property.parameter, options),
             else => {},
         }
     }
 
-    try checkBinding(allocator, diagnostics, tree, params.rest);
+    try checkBinding(allocator, diagnostics, tree, params.rest, options);
 }
 
 pub fn checkClass(
@@ -101,10 +102,20 @@ pub fn checkClass(
     tree: *const ast.Tree,
     class: ast.Class,
 ) Allocator.Error!void {
+    return checkClassWithOptions(allocator, diagnostics, tree, class, .{});
+}
+
+pub fn checkClassWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    class: ast.Class,
+    options: Options,
+) Allocator.Error!void {
     if (class.id == .null) return;
 
     const name = bindingName(tree, class.id) orelse return;
-    try checkName(allocator, diagnostics, tree, class.id, name, false);
+    try checkName(allocator, diagnostics, tree, class.id, name, false, options);
 }
 
 pub fn checkMemberExpression(
@@ -127,7 +138,7 @@ pub fn checkMemberExpressionWithOptions(
 
     const name = propertyName(tree, member) orelse return;
     if (isAllowedMemberAccess(tree, member, options)) return;
-    try checkName(allocator, diagnostics, tree, member.property, name, true);
+    try checkName(allocator, diagnostics, tree, member.property, name, true, options);
 }
 
 pub fn checkMethodDefinitionWithOptions(
@@ -140,7 +151,7 @@ pub fn checkMethodDefinitionWithOptions(
     if (!options.enforce_in_method_names) return;
 
     const name = staticName(tree, method.key, method.computed) orelse return;
-    try checkName(allocator, diagnostics, tree, method.key, name, false);
+    try checkName(allocator, diagnostics, tree, method.key, name, false, options);
 }
 
 pub fn checkObjectPropertyWithOptions(
@@ -154,7 +165,7 @@ pub fn checkObjectPropertyWithOptions(
     if (!property.method and property.kind == .init) return;
 
     const name = staticName(tree, property.key, property.computed) orelse return;
-    try checkName(allocator, diagnostics, tree, property.key, name, false);
+    try checkName(allocator, diagnostics, tree, property.key, name, false, options);
 }
 
 pub fn checkPropertyDefinitionWithOptions(
@@ -167,7 +178,7 @@ pub fn checkPropertyDefinitionWithOptions(
     if (!options.enforce_in_class_fields) return;
 
     const name = staticName(tree, property.key, property.computed) orelse return;
-    try checkName(allocator, diagnostics, tree, property.key, name, false);
+    try checkName(allocator, diagnostics, tree, property.key, name, false, options);
 }
 
 fn isAllowedMemberAccess(tree: *const ast.Tree, member: ast.MemberExpression, options: Options) bool {
@@ -182,18 +193,19 @@ fn checkBinding(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     if (index == .null) return;
 
     switch (tree.data(index)) {
-        .binding_identifier => |identifier| try checkName(allocator, diagnostics, tree, index, tree.string(identifier.name), false),
-        .assignment_pattern => |pattern| try checkBinding(allocator, diagnostics, tree, pattern.left),
-        .binding_rest_element => |element| try checkBinding(allocator, diagnostics, tree, element.argument),
+        .binding_identifier => |identifier| try checkName(allocator, diagnostics, tree, index, tree.string(identifier.name), false, options),
+        .assignment_pattern => |pattern| try checkBinding(allocator, diagnostics, tree, pattern.left, options),
+        .binding_rest_element => |element| try checkBinding(allocator, diagnostics, tree, element.argument, options),
         .array_pattern => |pattern| {
             for (tree.extra(pattern.elements)) |element| {
-                try checkBinding(allocator, diagnostics, tree, element);
+                try checkBinding(allocator, diagnostics, tree, element, options);
             }
-            try checkBinding(allocator, diagnostics, tree, pattern.rest);
+            try checkBinding(allocator, diagnostics, tree, pattern.rest, options);
         },
         .object_pattern => |pattern| {
             for (tree.extra(pattern.properties)) |property_index| {
@@ -201,9 +213,9 @@ fn checkBinding(
                     .binding_property => |property| property,
                     else => continue,
                 };
-                try checkBinding(allocator, diagnostics, tree, property.value);
+                try checkBinding(allocator, diagnostics, tree, property.value, options);
             }
-            try checkBinding(allocator, diagnostics, tree, pattern.rest);
+            try checkBinding(allocator, diagnostics, tree, pattern.rest, options);
         },
         else => {},
     }
@@ -216,9 +228,10 @@ fn checkName(
     node: ast.NodeIndex,
     name: []const u8,
     allow_proto: bool,
+    options: Options,
 ) Allocator.Error!void {
     if (!hasDanglingUnderscore(name)) return;
-    if (isAllowedName(name, allow_proto)) return;
+    if (isAllowedName(name, allow_proto, options)) return;
 
     try core.addDiagnosticFmt(
         allocator,
@@ -236,7 +249,8 @@ fn hasDanglingUnderscore(name: []const u8) bool {
     return name[0] == '_' or name[name.len - 1] == '_';
 }
 
-fn isAllowedName(name: []const u8, allow_proto: bool) bool {
+fn isAllowedName(name: []const u8, allow_proto: bool, options: Options) bool {
+    if (options.allow.contains(name)) return true;
     if (std.mem.eql(u8, name, "_")) return true;
     if (std.mem.eql(u8, name, "__dirname")) return true;
     if (std.mem.eql(u8, name, "__filename")) return true;

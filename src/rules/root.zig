@@ -1151,6 +1151,7 @@ const BasicVisitor = struct {
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkFunctionWithOptions(self.allocator, self.diagnostics, ctx.tree, function, .{
+                .allow = self.options.no_underscore_dangle_allow,
                 .allow_function_params = self.options.no_underscore_dangle_allow_function_params == .yes,
             });
         }
@@ -1214,7 +1215,9 @@ const BasicVisitor = struct {
             try constructor_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
         if (self.options.no_underscore_dangle) {
-            try no_underscore_dangle.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
+            try no_underscore_dangle.checkClassWithOptions(self.allocator, self.diagnostics, ctx.tree, class, .{
+                .allow = self.options.no_underscore_dangle_allow,
+            });
         }
         if (self.options.react_require_render_return) {
             try react_require_render_return.checkClass(self.allocator, self.diagnostics, ctx.tree, class, self.react_require_render_return_state);
@@ -1556,6 +1559,7 @@ const BasicVisitor = struct {
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkVariableDeclaratorWithOptions(self.allocator, self.diagnostics, ctx.tree, declarator, .{
+                .allow = self.options.no_underscore_dangle_allow,
                 .allow_in_array_destructuring = self.options.no_underscore_dangle_allow_in_array_destructuring == .yes,
                 .allow_in_object_destructuring = self.options.no_underscore_dangle_allow_in_object_destructuring == .yes,
             });
@@ -2323,6 +2327,7 @@ const BasicVisitor = struct {
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkFormalParametersWithOptions(self.allocator, self.diagnostics, ctx.tree, expression.params, .{
+                .allow = self.options.no_underscore_dangle_allow,
                 .allow_function_params = self.options.no_underscore_dangle_allow_function_params == .yes,
             });
         }
@@ -2778,6 +2783,7 @@ const BasicVisitor = struct {
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkMemberExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, member, .{
+                .allow = self.options.no_underscore_dangle_allow,
                 .allow_after_this = self.options.no_underscore_dangle_allow_after_this,
                 .allow_after_super = self.options.no_underscore_dangle_allow_after_super,
                 .allow_after_this_constructor = self.options.no_underscore_dangle_allow_after_this_constructor,
@@ -3106,6 +3112,7 @@ const BasicVisitor = struct {
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkObjectPropertyWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
+                .allow = self.options.no_underscore_dangle_allow,
                 .enforce_in_method_names = self.options.no_underscore_dangle_enforce_in_method_names,
             });
         }
@@ -3188,6 +3195,7 @@ const BasicVisitor = struct {
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkMethodDefinitionWithOptions(self.allocator, self.diagnostics, ctx.tree, method, .{
+                .allow = self.options.no_underscore_dangle_allow,
                 .enforce_in_method_names = self.options.no_underscore_dangle_enforce_in_method_names,
             });
         }
@@ -3249,6 +3257,7 @@ const BasicVisitor = struct {
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkPropertyDefinitionWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
+                .allow = self.options.no_underscore_dangle_allow,
                 .enforce_in_class_fields = self.options.no_underscore_dangle_enforce_in_class_fields,
             });
         }

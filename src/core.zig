@@ -1091,6 +1091,7 @@ pub const Options = struct {
     no_underscore_dangle_allow_in_object_destructuring: NoUnderscoreDangleAllowDestructuring = .yes,
     no_underscore_dangle_enforce_in_method_names: bool = false,
     no_underscore_dangle_enforce_in_class_fields: bool = false,
+    no_underscore_dangle_allow: NoShadowAllowNames = .{},
     no_undefined: bool = true,
     unicode_bom: bool = true,
     no_unneeded_ternary: bool = true,
@@ -1559,6 +1560,7 @@ pub const Options = struct {
             self.no_underscore_dangle_allow_in_object_destructuring = if (try noUnderscoreDangleBoolOptionFromConfig(value, "allowInObjectDestructuring", true)) .yes else .no;
             self.no_underscore_dangle_enforce_in_method_names = try noUnderscoreDangleBoolOptionFromConfig(value, "enforceInMethodNames", false);
             self.no_underscore_dangle_enforce_in_class_fields = try noUnderscoreDangleBoolOptionFromConfig(value, "enforceInClassFields", false);
+            self.no_underscore_dangle_allow = try noUnderscoreDangleAllowFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-plusplus")) {
             self.no_plusplus_allow_for_loop_afterthoughts = try noPlusplusAllowForLoopAfterthoughtsFromConfig(value);
@@ -3030,6 +3032,34 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn noUnderscoreDangleAllowFromConfig(value: std.json.Value) RuleConfigError!NoShadowAllowNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow_value = config.get("allow") orelse return .{};
+        const allow_items = switch (allow_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var allow = NoShadowAllowNames{};
+        for (allow_items) |item| {
+            const name = switch (item) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            allow.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return allow;
     }
 
     fn noPlusplusAllowForLoopAfterthoughtsFromConfig(value: std.json.Value) RuleConfigError!NoPlusplusAllowForLoopAfterthoughts {
@@ -5463,7 +5493,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_underscore_dangle_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowAfterThis\":true,\"allowAfterSuper\":true,\"allowAfterThisConstructor\":true,\"allowFunctionParams\":false,\"allowInArrayDestructuring\":false,\"allowInObjectDestructuring\":false,\"enforceInMethodNames\":true,\"enforceInClassFields\":true}]",
+        "[\"error\",{\"allow\":[\"_allowed\"],\"allowAfterThis\":true,\"allowAfterSuper\":true,\"allowAfterThisConstructor\":true,\"allowFunctionParams\":false,\"allowInArrayDestructuring\":false,\"allowInObjectDestructuring\":false,\"enforceInMethodNames\":true,\"enforceInClassFields\":true}]",
         .{},
     );
     defer no_underscore_dangle_config.deinit();
@@ -5477,6 +5507,8 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUnderscoreDangleAllowDestructuring.no, options.no_underscore_dangle_allow_in_object_destructuring);
     try std.testing.expect(options.no_underscore_dangle_enforce_in_method_names);
     try std.testing.expect(options.no_underscore_dangle_enforce_in_class_fields);
+    try std.testing.expect(options.no_underscore_dangle_allow.contains("_allowed"));
+    try std.testing.expect(!options.no_underscore_dangle_allow.contains("_other"));
 
     var typescript_no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,

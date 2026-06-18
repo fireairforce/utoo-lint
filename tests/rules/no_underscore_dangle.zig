@@ -126,6 +126,40 @@ test "supports configured no-underscore-dangle options" {
     try std.testing.expectEqual(@as(usize, 6), helpers.countRule(result, lint.rules.no_underscore_dangle.id));
 }
 
+test "allows configured no-underscore-dangle allow names" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"Allowed_\",\"_method\",\"_field\",\"_member\",\"_param\",\"_local\",\"_array\",\"_object\"],\"allowFunctionParams\":false,\"allowInArrayDestructuring\":false,\"allowInObjectDestructuring\":false,\"enforceInMethodNames\":true,\"enforceInClassFields\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-underscore-dangle", config.value);
+    options.no_empty_function = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\class Allowed_ {
+        \\  _method(_param) {
+        \\    const _local = _param;
+        \\    const [_array] = values;
+        \\    const { _object } = record;
+        \\    const _blocked = object._blocked;
+        \\  }
+        \\  _field = this._member;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_underscore_dangle.id));
+}
+
 test "allows default names and skipped forms" {
     const source =
         \\const _ = 1;
