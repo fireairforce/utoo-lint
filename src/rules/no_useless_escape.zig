@@ -7,6 +7,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-useless-escape";
 
+pub const Options = struct {
+    allow_regex_characters: core.NoUselessEscapeAllowRegexCharacters = .{},
+};
+
 pub fn checkStringLiteral(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -41,11 +45,23 @@ pub fn checkRegExpLiteral(
     literal: ast.RegExpLiteral,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkRegExpLiteralWithOptions(allocator, diagnostics, tree, literal, index, .{});
+}
+
+pub fn checkRegExpLiteralWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    literal: ast.RegExpLiteral,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
     try checkRegExpPattern(
         allocator,
         diagnostics,
         tree.string(literal.pattern),
         tree.span(index),
+        options,
     );
 }
 
@@ -109,6 +125,7 @@ fn checkRegExpPattern(
     diagnostics: *core.DiagnosticList,
     pattern: []const u8,
     span: ast.Span,
+    options: Options,
 ) Allocator.Error!void {
     var offset: usize = 0;
     var in_class = false;
@@ -131,6 +148,10 @@ fn checkRegExpPattern(
         }
 
         const escaped = pattern[offset + 1];
+        if (options.allow_regex_characters.contains(escaped)) {
+            offset += 2;
+            continue;
+        }
         if (!isNecessaryRegExpEscape(pattern, offset, escaped, in_class, class_start)) {
             try addDiagnostic(allocator, diagnostics, span, escaped);
         }

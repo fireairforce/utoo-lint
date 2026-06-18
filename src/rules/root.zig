@@ -3490,7 +3490,9 @@ const BasicVisitor = struct {
             try no_regex_spaces.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         if (self.options.no_useless_escape) {
-            try no_useless_escape.checkRegExpLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
+            try no_useless_escape.checkRegExpLiteralWithOptions(self.allocator, self.diagnostics, ctx.tree, literal, index, .{
+                .allow_regex_characters = self.options.no_useless_escape_allow_regex_characters,
+            });
         }
         return .proceed;
     }
