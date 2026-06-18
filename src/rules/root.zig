@@ -1053,6 +1053,13 @@ const BasicVisitor = struct {
         };
     }
 
+    fn useIsnanOptions(self: *const BasicVisitor) use_isnan.Options {
+        return .{
+            .enforce_for_index_of = self.options.use_isnan_enforce_for_index_of,
+            .enforce_for_switch_case = self.options.use_isnan_enforce_for_switch_case,
+        };
+    }
+
     fn funcNamesStyle(self: *const BasicVisitor, function: ast.Function) func_names.Style {
         const style = if (function.generator and self.options.func_names_has_generator_style)
             self.options.func_names_generator_style
@@ -1954,6 +1961,9 @@ const BasicVisitor = struct {
                 .allow_empty_case = self.options.no_fallthrough_allow_empty_case == .yes,
             });
         }
+        if (self.options.use_isnan) {
+            try use_isnan.checkSwitchStatementWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, index, self.useIsnanOptions());
+        }
         return .proceed;
     }
 
@@ -1968,6 +1978,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_unreachable) {
             try no_unreachable.checkRange(self.allocator, self.diagnostics, ctx.tree, switch_case.consequent);
+        }
+        if (self.options.use_isnan) {
+            try use_isnan.checkSwitchCaseWithOptions(self.allocator, self.diagnostics, ctx.tree, switch_case, self.useIsnanOptions());
         }
         return .proceed;
     }
@@ -2523,7 +2536,7 @@ const BasicVisitor = struct {
             try no_unsafe_negation.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.use_isnan) {
-            try use_isnan.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try use_isnan.checkBinaryExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.useIsnanOptions());
         }
         if (self.options.valid_typeof) {
             try valid_typeof.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
@@ -2656,6 +2669,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_process_exit) {
             try no_process_exit.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        if (self.options.use_isnan) {
+            try use_isnan.checkCallExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, call, self.useIsnanOptions());
         }
         if (self.options.alipay_spmlint_use_labeled_spm) {
             try alipay_spmlint_use_labeled_spm.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
