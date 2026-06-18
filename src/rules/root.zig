@@ -3157,6 +3157,7 @@ const BasicVisitor = struct {
                 .style = self.options.object_shorthand_style,
                 .avoid_quotes = self.options.object_shorthand_avoid_quotes,
                 .ignore_constructors = self.options.object_shorthand_ignore_constructors,
+                .avoid_explicit_return_arrows = self.options.object_shorthand_avoid_explicit_return_arrows,
             });
         }
         if (self.options.func_name_matching) {

@@ -232,6 +232,58 @@ test "supports configured object-shorthand ignoreConstructors option" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.object_shorthand.id));
 }
 
+test "supports configured object-shorthand avoidExplicitReturnArrows option" {
+    const source =
+        \\const obj = {
+        \\  foo: () => {
+        \\    return 1;
+        \\  },
+        \\  asyncFoo: async () => {
+        \\    return foo;
+        \\  },
+        \\  value: value,
+        \\  lexicalThis: () => {
+        \\    return this.value;
+        \\  },
+        \\  lexicalArguments: () => {
+        \\    return arguments[0];
+        \\  },
+        \\  expressionBody: () => value,
+        \\  bareReturn: () => {
+        \\    return;
+        \\  },
+        \\};
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(default_result, lint.rules.object_shorthand.id));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"always\",{\"avoidExplicitReturnArrows\":true}]",
+        .{},
+    );
+    defer config.deinit();
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("object-shorthand", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.object_shorthand.id));
+}
+
 test "can disable object-shorthand" {
     const source =
         \\const obj = {

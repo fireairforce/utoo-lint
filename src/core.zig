@@ -1244,6 +1244,7 @@ pub const Options = struct {
     object_shorthand_style: ObjectShorthandStyle = .always,
     object_shorthand_avoid_quotes: bool = false,
     object_shorthand_ignore_constructors: bool = false,
+    object_shorthand_avoid_explicit_return_arrows: bool = false,
     one_var: bool = true,
     one_var_check_var: bool = true,
     one_var_check_let: bool = true,
@@ -1768,6 +1769,7 @@ pub const Options = struct {
             self.object_shorthand_style = try objectShorthandStyleFromConfig(value);
             self.object_shorthand_avoid_quotes = try objectShorthandAvoidQuotesFromConfig(value);
             self.object_shorthand_ignore_constructors = try objectShorthandIgnoreConstructorsFromConfig(value);
+            self.object_shorthand_avoid_explicit_return_arrows = try objectShorthandAvoidExplicitReturnArrowsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "one-var")) {
             const config = try oneVarNeverConfigFromConfig(value);
@@ -3757,6 +3759,10 @@ pub const Options = struct {
 
     fn objectShorthandIgnoreConstructorsFromConfig(value: std.json.Value) RuleConfigError!bool {
         return objectShorthandBoolOptionFromConfig(value, "ignoreConstructors");
+    }
+
+    fn objectShorthandAvoidExplicitReturnArrowsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        return objectShorthandBoolOptionFromConfig(value, "avoidExplicitReturnArrows");
     }
 
     fn objectShorthandBoolOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
@@ -6067,6 +6073,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(ObjectShorthandStyle.methods, options.object_shorthand_style);
     try std.testing.expect(options.object_shorthand_avoid_quotes);
     try std.testing.expect(options.object_shorthand_ignore_constructors);
+
+    var object_shorthand_arrows_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"always\",{\"avoidExplicitReturnArrows\":true}]",
+        .{},
+    );
+    defer object_shorthand_arrows_config.deinit();
+    try options.setByRuleConfigValue("object-shorthand", object_shorthand_arrows_config.value);
+    try std.testing.expect(options.object_shorthand);
+    try std.testing.expect(options.object_shorthand_avoid_explicit_return_arrows);
 
     var operator_assignment_config = try std.json.parseFromSlice(
         std.json.Value,
