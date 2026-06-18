@@ -814,6 +814,30 @@ pub const NewCapExceptionNames = struct {
     }
 };
 
+pub const max_new_cap_exception_pattern_len = 256;
+
+pub const NewCapExceptionPatternError = error{
+    NewCapExceptionPatternTooLong,
+};
+
+pub const NewCapExceptionPattern = struct {
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_new_cap_exception_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const NewCapExceptionPattern) ?[]const u8 {
+        if (!self.custom) return null;
+        return self.storage[0..self.length];
+    }
+
+    pub fn set(self: *NewCapExceptionPattern, pattern_value: []const u8) NewCapExceptionPatternError!void {
+        if (pattern_value.len > max_new_cap_exception_pattern_len) return error.NewCapExceptionPatternTooLong;
+        @memcpy(self.storage[0..pattern_value.len], pattern_value);
+        self.custom = true;
+        self.length = pattern_value.len;
+    }
+};
+
 pub const NoUselessComputedKeyEnforceForClassMembers = enum {
     yes,
     no,
@@ -1103,6 +1127,8 @@ pub const Options = struct {
     new_cap_properties: bool = true,
     new_cap_new_is_cap_exceptions: NewCapExceptionNames = .{},
     new_cap_cap_is_new_exceptions: NewCapExceptionNames = .{},
+    new_cap_new_is_cap_exception_pattern: NewCapExceptionPattern = .{},
+    new_cap_cap_is_new_exception_pattern: NewCapExceptionPattern = .{},
     new_parens: bool = true,
     no_async_promise_executor: bool = true,
     no_array_constructor: bool = true,
@@ -1762,6 +1788,8 @@ pub const Options = struct {
             self.new_cap_properties = try newCapBoolOptionFromConfig(value, "properties", true);
             self.new_cap_new_is_cap_exceptions = try newCapExceptionNamesFromConfig(value, "newIsCapExceptions");
             self.new_cap_cap_is_new_exceptions = try newCapExceptionNamesFromConfig(value, "capIsNewExceptions");
+            self.new_cap_new_is_cap_exception_pattern = try newCapExceptionPatternFromConfig(value, "newIsCapExceptionPattern");
+            self.new_cap_cap_is_new_exception_pattern = try newCapExceptionPatternFromConfig(value, "capIsNewExceptionPattern");
         }
         if (std.mem.eql(u8, cli_name, "no-bitwise")) {
             self.no_bitwise_allow_bitwise_and = try noBitwiseAllowFromConfig(value, "&");
@@ -2909,6 +2937,28 @@ pub const Options = struct {
             exceptions.append(name) catch return error.UnsupportedRuleConfigValue;
         }
         return exceptions;
+    }
+
+    fn newCapExceptionPatternFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!NewCapExceptionPattern {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const pattern_value = switch (config.get(key) orelse return .{}) {
+            .string => |pattern_value| pattern_value,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (pattern_value.len == 0) return .{};
+
+        var pattern = NewCapExceptionPattern{};
+        pattern.set(pattern_value) catch return error.UnsupportedRuleConfigValue;
+        return pattern;
     }
 
     fn defaultCaseCommentPatternFromConfig(value: std.json.Value) RuleConfigError!DefaultCaseCommentPattern {
@@ -6521,7 +6571,7 @@ test "Options can apply ESLint-style rule config values" {
     var new_cap_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"newIsCap\":false,\"capIsNew\":false,\"properties\":false,\"newIsCapExceptions\":[\"lowerFactory\"],\"capIsNewExceptions\":[\"UpperFactory\"]}]",
+        "[\"error\",{\"newIsCap\":false,\"capIsNew\":false,\"properties\":false,\"newIsCapExceptions\":[\"lowerFactory\"],\"capIsNewExceptions\":[\"UpperFactory\"],\"newIsCapExceptionPattern\":\"^lower.*Factory$\",\"capIsNewExceptionPattern\":\"^Upper.*Factory$\"}]",
         .{},
     );
     defer new_cap_config.deinit();
@@ -6534,6 +6584,8 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(!options.new_cap_new_is_cap_exceptions.contains("otherFactory"));
     try std.testing.expect(options.new_cap_cap_is_new_exceptions.contains("UpperFactory"));
     try std.testing.expect(!options.new_cap_cap_is_new_exceptions.contains("OtherFactory"));
+    try std.testing.expectEqualStrings("^lower.*Factory$", options.new_cap_new_is_cap_exception_pattern.pattern().?);
+    try std.testing.expectEqualStrings("^Upper.*Factory$", options.new_cap_cap_is_new_exception_pattern.pattern().?);
 
     var no_multi_spaces_config = try std.json.parseFromSlice(
         std.json.Value,
