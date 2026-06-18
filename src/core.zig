@@ -1042,9 +1042,11 @@ pub const Options = struct {
     no_implicit_coercion_string: NoImplicitCoercionString = .yes,
     no_implicit_coercion_allow_double_negation: bool = false,
     no_implicit_coercion_allow_bitwise_not: bool = false,
-    no_implicit_coercion_allow_unary_plus: bool = false,
+    no_implicit_coercion_allow_plus: bool = false,
     no_implicit_coercion_allow_multiply: bool = false,
     no_implicit_coercion_allow_subtract: bool = false,
+    no_implicit_coercion_allow_double_negative: bool = false,
+    no_implicit_coercion_disallow_template_shorthand: bool = false,
     no_implied_eval: bool = true,
     no_import_assign: bool = true,
     alipay_ant_disallow_typos: bool = true,
@@ -1636,9 +1638,11 @@ pub const Options = struct {
             self.no_implicit_coercion_string = try noImplicitCoercionStringFromConfig(value);
             self.no_implicit_coercion_allow_double_negation = try noImplicitCoercionAllowFromConfig(value, "!!");
             self.no_implicit_coercion_allow_bitwise_not = try noImplicitCoercionAllowFromConfig(value, "~");
-            self.no_implicit_coercion_allow_unary_plus = try noImplicitCoercionAllowFromConfig(value, "+");
+            self.no_implicit_coercion_allow_plus = try noImplicitCoercionAllowFromConfig(value, "+");
             self.no_implicit_coercion_allow_multiply = try noImplicitCoercionAllowFromConfig(value, "*");
             self.no_implicit_coercion_allow_subtract = try noImplicitCoercionAllowFromConfig(value, "-");
+            self.no_implicit_coercion_allow_double_negative = try noImplicitCoercionAllowFromConfig(value, "- -");
+            self.no_implicit_coercion_disallow_template_shorthand = try noImplicitCoercionDisallowTemplateShorthandFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-invalid-regexp")) {
             self.no_invalid_regexp_allow_constructor_flags = try noInvalidRegexpAllowConstructorFlagsFromConfig(value);
@@ -2929,6 +2933,23 @@ pub const Options = struct {
         return if (enabled) .yes else .no;
     }
 
+    fn noImplicitCoercionDisallowTemplateShorthandFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("disallowTemplateShorthand") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn noImplicitCoercionOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -2980,7 +3001,8 @@ pub const Options = struct {
             std.mem.eql(u8, value, "~") or
             std.mem.eql(u8, value, "+") or
             std.mem.eql(u8, value, "*") or
-            std.mem.eql(u8, value, "-");
+            std.mem.eql(u8, value, "-") or
+            std.mem.eql(u8, value, "- -");
     }
 
     fn noLabelsAllowLoopFromConfig(value: std.json.Value) RuleConfigError!NoLabelsAllowLoop {
@@ -5787,16 +5809,18 @@ test "Options can apply ESLint-style rule config values" {
     var no_implicit_coercion_allow_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"!!\",\"~\",\"+\",\"*\",\"-\"]}]",
+        "[\"error\",{\"allow\":[\"!!\",\"~\",\"+\",\"*\",\"-\",\"- -\"],\"disallowTemplateShorthand\":true}]",
         .{},
     );
     defer no_implicit_coercion_allow_config.deinit();
     try options.setByRuleConfigValue("no-implicit-coercion", no_implicit_coercion_allow_config.value);
     try std.testing.expect(options.no_implicit_coercion_allow_double_negation);
     try std.testing.expect(options.no_implicit_coercion_allow_bitwise_not);
-    try std.testing.expect(options.no_implicit_coercion_allow_unary_plus);
+    try std.testing.expect(options.no_implicit_coercion_allow_plus);
     try std.testing.expect(options.no_implicit_coercion_allow_multiply);
     try std.testing.expect(options.no_implicit_coercion_allow_subtract);
+    try std.testing.expect(options.no_implicit_coercion_allow_double_negative);
+    try std.testing.expect(options.no_implicit_coercion_disallow_template_shorthand);
 
     var no_labels_config = try std.json.parseFromSlice(
         std.json.Value,
