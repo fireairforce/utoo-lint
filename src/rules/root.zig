@@ -2558,7 +2558,9 @@ const BasicVisitor = struct {
             try no_self_compare.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.no_unsafe_negation) {
-            try no_unsafe_negation.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try no_unsafe_negation.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .enforce_for_ordering_relations = self.options.no_unsafe_negation_enforce_for_ordering_relations,
+            });
         }
         if (self.options.use_isnan) {
             try use_isnan.checkBinaryExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.useIsnanOptions());

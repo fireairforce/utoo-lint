@@ -1320,6 +1320,7 @@ pub const Options = struct {
     no_unused_labels: bool = true,
     no_unsafe_finally: bool = true,
     no_unsafe_negation: bool = true,
+    no_unsafe_negation_enforce_for_ordering_relations: bool = false,
     no_useless_computed_key: bool = true,
     no_useless_computed_key_enforce_for_class_members: NoUselessComputedKeyEnforceForClassMembers = .yes,
     no_useless_call: bool = true,
@@ -1836,6 +1837,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-trailing-spaces")) {
             self.no_trailing_spaces_skip_blank_lines = try noTrailingSpacesBoolOptionFromConfig(value, "skipBlankLines");
             self.no_trailing_spaces_ignore_comments = try noTrailingSpacesBoolOptionFromConfig(value, "ignoreComments");
+        }
+        if (std.mem.eql(u8, cli_name, "no-unsafe-negation")) {
+            self.no_unsafe_negation_enforce_for_ordering_relations = try noUnsafeNegationBoolOptionFromConfig(value, "enforceForOrderingRelations", false);
         }
         if (std.mem.eql(u8, cli_name, "no-useless-rename")) {
             self.no_useless_rename_ignore_destructuring = try noUselessRenameBoolOptionFromConfig(value, "ignoreDestructuring");
@@ -4214,6 +4218,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get(key) orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn noUnsafeNegationBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -6629,6 +6650,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_useless_escape_allow_regex_characters.contains('#'));
     try std.testing.expect(options.no_useless_escape_allow_regex_characters.contains('-'));
     try std.testing.expect(!options.no_useless_escape_allow_regex_characters.contains('^'));
+
+    var no_unsafe_negation_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"enforceForOrderingRelations\":true}]",
+        .{},
+    );
+    defer no_unsafe_negation_config.deinit();
+    try options.setByRuleConfigValue("no-unsafe-negation", no_unsafe_negation_config.value);
+    try std.testing.expect(options.no_unsafe_negation);
+    try std.testing.expect(options.no_unsafe_negation_enforce_for_ordering_relations);
 
     var no_return_assign_config = try std.json.parseFromSlice(
         std.json.Value,

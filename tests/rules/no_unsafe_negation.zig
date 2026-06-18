@@ -38,6 +38,36 @@ test "does not report no-unsafe-negation for other unary expressions" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unsafe_negation.id));
 }
 
+test "supports configured no-unsafe-negation ordering relations" {
+    const source =
+        \\!value < limit;
+        \\!value <= limit;
+        \\!value > limit;
+        \\!value >= limit;
+        \\(!value) < limit;
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"enforceForOrderingRelations\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-unsafe-negation", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_unsafe_negation.id));
+}
+
 test "can disable no-unsafe-negation" {
     const source =
         \\!value in object;
