@@ -15,7 +15,7 @@ pub fn check(
     parent: ast.NodeIndex,
 ) Allocator.Error!void {
     if (!isStatementListParent(tree.data(parent))) return;
-    if (tree.data(parent) == .program and hasBlockScopedBinding(tree, block)) return;
+    if (hasBlockScopedBinding(tree, block)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -32,6 +32,7 @@ fn isStatementListParent(data: ast.NodeData) bool {
         .program,
         .block_statement,
         .function_body,
+        .static_block,
         => true,
         else => false,
     };
