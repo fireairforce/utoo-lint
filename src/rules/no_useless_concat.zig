@@ -14,9 +14,12 @@ pub fn check(
     index: ast.NodeIndex,
 ) Allocator.Error!void {
     if (expression.operator != .add) return;
-    if (!isStringLikeLiteral(tree, expression.left)) return;
-    if (!isStringLikeLiteral(tree, expression.right)) return;
-    if (!sameLine(tree, expression.left, expression.right)) return;
+
+    const left = rightMostConcatOperand(tree, expression.left);
+    const right = leftMostConcatOperand(tree, expression.right);
+    if (!isStringLikeLiteral(tree, left)) return;
+    if (!isStringLikeLiteral(tree, right)) return;
+    if (!sameLine(tree, left, right)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -28,12 +31,38 @@ pub fn check(
     );
 }
 
+fn rightMostConcatOperand(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = unwrapTransparent(tree, index);
+    while (true) {
+        switch (tree.data(current)) {
+            .binary_expression => |expression| {
+                if (expression.operator != .add) return current;
+                current = unwrapTransparent(tree, expression.right);
+            },
+            else => return current,
+        }
+    }
+}
+
+fn leftMostConcatOperand(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = unwrapTransparent(tree, index);
+    while (true) {
+        switch (tree.data(current)) {
+            .binary_expression => |expression| {
+                if (expression.operator != .add) return current;
+                current = unwrapTransparent(tree, expression.left);
+            },
+            else => return current,
+        }
+    }
+}
+
 fn isStringLikeLiteral(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     if (index == .null) return false;
 
     return switch (tree.data(unwrapTransparent(tree, index))) {
         .string_literal => true,
-        .template_literal => true,
+        .template_literal => |literal| literal.expressions.len == 0,
         else => false,
     };
 }
