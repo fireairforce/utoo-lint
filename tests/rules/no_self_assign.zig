@@ -50,6 +50,34 @@ test "does not report no-self-assign for different references or effectful objec
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_self_assign.id));
 }
 
+test "supports configured no-self-assign props false" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"props\":false}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-self-assign", config.value);
+
+    const source =
+        \\foo = foo;
+        \\object.value = object.value;
+        \\this.value = this["value"];
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_self_assign.id));
+}
+
 test "can disable no-self-assign" {
     const source =
         \\foo = foo;

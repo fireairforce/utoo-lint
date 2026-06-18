@@ -1207,6 +1207,7 @@ pub const Options = struct {
     no_useless_return: bool = true,
     no_script_url: bool = true,
     no_self_assign: bool = true,
+    no_self_assign_props: bool = true,
     no_self_compare: bool = true,
     no_setter_return: bool = true,
     no_shadow: bool = true,
@@ -1720,6 +1721,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-redeclare")) {
             self.no_redeclare_builtin_globals = try noRedeclareBuiltinGlobalsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-self-assign")) {
+            self.no_self_assign_props = try noSelfAssignPropsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-useless-rename")) {
             self.no_useless_rename_ignore_destructuring = try noUselessRenameBoolOptionFromConfig(value, "ignoreDestructuring");
@@ -3995,6 +3999,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get(key) orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn noSelfAssignPropsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return true,
+        };
+        if (items.len < 2) return true;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("props") orelse return true) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -6484,6 +6505,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-undef", no_undef_config.value);
     try std.testing.expect(options.no_undef);
     try std.testing.expect(options.no_undef_typeof);
+
+    var no_self_assign_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"props\":false}]",
+        .{},
+    );
+    defer no_self_assign_config.deinit();
+    try options.setByRuleConfigValue("no-self-assign", no_self_assign_config.value);
+    try std.testing.expect(options.no_self_assign);
+    try std.testing.expect(!options.no_self_assign_props);
 
     var no_unneeded_ternary_config = try std.json.parseFromSlice(
         std.json.Value,
