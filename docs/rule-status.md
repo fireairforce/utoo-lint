@@ -20,7 +20,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Supports `always`, `allow-null`, and `smart` configuration |
 | [`for-direction`](https://eslint.org/docs/latest/rules/for-direction) | Implemented |
 | [`func-name-matching`](https://eslint.org/docs/latest/rules/func-name-matching) | Implemented for `always` and optional `never` behavior |
-| [`func-names`](https://eslint.org/docs/latest/rules/func-names) | Implemented for `always`, `as-needed`, and `never` options |
+| [`func-names`](https://eslint.org/docs/latest/rules/func-names) | Supports `always`, `as-needed`, `never`, and `generators` configuration |
 | [`getter-return`](https://eslint.org/docs/latest/rules/getter-return) | Implemented |
 | [`grouped-accessor-pairs`](https://eslint.org/docs/latest/rules/grouped-accessor-pairs) | Implemented for `anyOrder`, `getBeforeSet`, and `setBeforeGet` options |
 | [`guard-for-in`](https://eslint.org/docs/latest/rules/guard-for-in) | Implemented |
