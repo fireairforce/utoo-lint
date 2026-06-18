@@ -1174,6 +1174,7 @@ pub const Options = struct {
     no_for_in: bool = true,
     no_func_assign: bool = true,
     no_global_assign: bool = true,
+    no_global_assign_exceptions: NoShadowAllowNames = .{},
     no_global_is_finite: bool = true,
     no_global_is_nan: bool = true,
     no_implicit_coercion: bool = true,
@@ -1798,6 +1799,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-extend-native")) {
             self.no_extend_native_exceptions = try noExtendNativeExceptionsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-global-assign")) {
+            self.no_global_assign_exceptions = try noGlobalAssignExceptionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-empty-function")) {
             self.typescript_eslint_no_empty_function_allow = try noEmptyFunctionAllowFromConfig(value);
@@ -4396,6 +4400,34 @@ pub const Options = struct {
         return exceptions;
     }
 
+    fn noGlobalAssignExceptionsFromConfig(value: std.json.Value) RuleConfigError!NoShadowAllowNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const exceptions_value = config.get("exceptions") orelse return .{};
+        const exception_items = switch (exceptions_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var exceptions = NoShadowAllowNames{};
+        for (exception_items) |item| {
+            const name = switch (item) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            exceptions.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return exceptions;
+    }
+
     fn noUselessRenameBoolOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -6302,6 +6334,19 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_extend_native_exceptions.contains("Array"));
     try std.testing.expect(options.no_extend_native_exceptions.contains("Object"));
     try std.testing.expect(!options.no_extend_native_exceptions.contains("String"));
+
+    var no_global_assign_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"exceptions\":[\"Object\",\"NaN\"]}]",
+        .{},
+    );
+    defer no_global_assign_config.deinit();
+    try options.setByRuleConfigValue("no-global-assign", no_global_assign_config.value);
+    try std.testing.expect(options.no_global_assign);
+    try std.testing.expect(options.no_global_assign_exceptions.contains("Object"));
+    try std.testing.expect(options.no_global_assign_exceptions.contains("NaN"));
+    try std.testing.expect(!options.no_global_assign_exceptions.contains("undefined"));
 
     var no_empty_function_config = try std.json.parseFromSlice(
         std.json.Value,

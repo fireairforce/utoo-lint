@@ -75,7 +75,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-floating-decimal`](https://eslint.org/docs/latest/rules/no-floating-decimal) | Implemented |
 | [`no-for-in`](https://eslint.org/docs/latest/rules/no-for-in) | Implemented |
 | [`no-func-assign`](https://eslint.org/docs/latest/rules/no-func-assign) | Implemented |
-| [`no-global-assign`](https://eslint.org/docs/latest/rules/no-global-assign) | Implemented |
+| [`no-global-assign`](https://eslint.org/docs/latest/rules/no-global-assign) | Supports `exceptions` configuration |
 | [`no-global-is-finite`](https://eslint.org/docs/latest/rules/no-global-is-finite) | Implemented |
 | [`no-global-is-nan`](https://eslint.org/docs/latest/rules/no-global-is-nan) | Implemented |
 | [`no-implicit-coercion`](https://eslint.org/docs/latest/rules/no-implicit-coercion) | Supports `boolean`, `number`, `string`, `allow`, and `disallowTemplateShorthand` configuration |

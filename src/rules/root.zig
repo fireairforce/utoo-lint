@@ -821,7 +821,9 @@ pub fn runSemantic(
     }
 
     if (options.no_global_assign) {
-        try no_global_assign.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try no_global_assign.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .exceptions = options.no_global_assign_exceptions,
+        });
     }
 
     if (options.no_global_is_finite or options.no_global_is_nan) {
