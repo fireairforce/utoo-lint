@@ -15,7 +15,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`default-case`](https://eslint.org/docs/latest/rules/default-case) | Implemented with common `commentPattern` behavior |
 | [`default-case-last`](https://eslint.org/docs/latest/rules/default-case-last) | Implemented |
 | [`default-param-last`](https://eslint.org/docs/latest/rules/default-param-last) | Implemented |
-| [`dot-notation`](https://eslint.org/docs/latest/rules/dot-notation) | Implemented |
+| [`dot-notation`](https://eslint.org/docs/latest/rules/dot-notation) | Supports `allowKeywords` and common `allowPattern` configuration |
 | [`eol-last`](https://eslint.org/docs/latest/rules/eol-last) | Supports `always`, `never`, `unix`, and `windows` configuration |
 | [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Supports `always`, `allow-null`, and `smart` configuration |
 | [`for-direction`](https://eslint.org/docs/latest/rules/for-direction) | Implemented |

@@ -977,6 +977,30 @@ pub const DotNotationAllowKeywords = enum {
     no,
 };
 
+pub const max_dot_notation_allow_pattern_len = 256;
+
+pub const DotNotationAllowPatternError = error{
+    DotNotationAllowPatternTooLong,
+};
+
+pub const DotNotationAllowPattern = struct {
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_dot_notation_allow_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const DotNotationAllowPattern) ?[]const u8 {
+        if (!self.custom) return null;
+        return self.storage[0..self.length];
+    }
+
+    pub fn set(self: *DotNotationAllowPattern, pattern_value: []const u8) DotNotationAllowPatternError!void {
+        if (pattern_value.len > max_dot_notation_allow_pattern_len) return error.DotNotationAllowPatternTooLong;
+        @memcpy(self.storage[0..pattern_value.len], pattern_value);
+        self.custom = true;
+        self.length = pattern_value.len;
+    }
+};
+
 pub const max_default_case_comment_pattern_len = 256;
 
 pub const DefaultCaseCommentPatternError = error{
@@ -1022,6 +1046,7 @@ pub const Options = struct {
     curly_style: CurlyStyle = .all,
     dot_notation: bool = true,
     dot_notation_allow_keywords: DotNotationAllowKeywords = .yes,
+    dot_notation_allow_pattern: DotNotationAllowPattern = .{},
     typescript_eslint_dot_notation: bool = true,
     default_case: bool = true,
     default_case_comment_pattern: DefaultCaseCommentPattern = .{},
@@ -1663,6 +1688,7 @@ pub const Options = struct {
         }
         if (enabled and (std.mem.eql(u8, cli_name, "dot-notation") or std.mem.eql(u8, cli_name, "@typescript-eslint/dot-notation"))) {
             self.dot_notation_allow_keywords = try dotNotationAllowKeywordsFromConfig(value);
+            self.dot_notation_allow_pattern = try dotNotationAllowPatternFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "eol-last")) {
             self.eol_last_style = try eolLastStyleFromConfig(value);
@@ -2374,6 +2400,28 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (allow) .yes else .no;
+    }
+
+    fn dotNotationAllowPatternFromConfig(value: std.json.Value) RuleConfigError!DotNotationAllowPattern {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const pattern_value = switch (config.get("allowPattern") orelse return .{}) {
+            .string => |pattern_value| pattern_value,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (pattern_value.len == 0) return .{};
+
+        var pattern = DotNotationAllowPattern{};
+        pattern.set(pattern_value) catch return error.UnsupportedRuleConfigValue;
+        return pattern;
     }
 
     fn noRestrictedDisableRestrictsNoNestedTernary(value: std.json.Value) bool {

@@ -2870,11 +2870,13 @@ const BasicVisitor = struct {
         if (self.options.dot_notation and !self.options.typescript_eslint_dot_notation) {
             try dot_notation.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, member, index, .{
                 .allow_keywords = self.options.dot_notation_allow_keywords == .yes,
+                .allow_pattern = self.options.dot_notation_allow_pattern,
             });
         }
         if (self.options.typescript_eslint_dot_notation) {
             try typescript_eslint_dot_notation.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, member, index, .{
                 .allow_keywords = self.options.dot_notation_allow_keywords == .yes,
+                .allow_pattern = self.options.dot_notation_allow_pattern,
             });
         }
         if (self.options.no_caller) {
