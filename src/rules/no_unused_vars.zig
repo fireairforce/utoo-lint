@@ -24,6 +24,7 @@ pub const Options = struct {
     react_jsx_uses_vars: bool = true,
     args_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
     caught_errors_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
+    destructured_array_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
     vars_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
 };
 
@@ -102,6 +103,14 @@ pub fn runWithOptions(
     if (options.ignore_rest_siblings) {
         var visitor = RestSiblingVisitor{ .ignored_decls = &ignored_decls };
         try traverser.basic.traverse(RestSiblingVisitor, tree, &visitor);
+    }
+
+    if (options.destructured_array_ignore_pattern.pattern() != null) {
+        var visitor = DestructuredArrayVisitor{
+            .ignored_decls = &ignored_decls,
+            .pattern = options.destructured_array_ignore_pattern,
+        };
+        try traverser.basic.traverse(DestructuredArrayVisitor, tree, &visitor);
     }
 
     const jsx_react_usage = if (options.react_jsx_uses_react) collectJSXReactUsage(tree) else JSXReactUsage{};
@@ -341,6 +350,56 @@ const RestSiblingVisitor = struct {
 
         switch (ctx.tree.data(index)) {
             .binding_identifier => try self.ignored_decls.put(index, {}),
+            .assignment_pattern => |assignment| try self.collectBinding(assignment.left, ctx),
+            .binding_rest_element => |rest| try self.collectBinding(rest.argument, ctx),
+            .array_pattern => |array| {
+                for (ctx.tree.extra(array.elements)) |element| {
+                    try self.collectBinding(element, ctx);
+                }
+                try self.collectBinding(array.rest, ctx);
+            },
+            .object_pattern => |object| {
+                for (ctx.tree.extra(object.properties)) |property_index| {
+                    const property = ctx.tree.data(property_index).binding_property;
+                    try self.collectBinding(property.value, ctx);
+                }
+                try self.collectBinding(object.rest, ctx);
+            },
+            else => {},
+        }
+    }
+};
+
+const DestructuredArrayVisitor = struct {
+    ignored_decls: *IgnoredDecls,
+    pattern: core.NoUnusedVarsIgnorePattern,
+
+    pub fn enter_array_pattern(
+        self: *DestructuredArrayVisitor,
+        pattern: ast.ArrayPattern,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        for (ctx.tree.extra(pattern.elements)) |element| {
+            try self.collectBinding(element, ctx);
+        }
+        try self.collectBinding(pattern.rest, ctx);
+
+        return .proceed;
+    }
+
+    fn collectBinding(
+        self: *DestructuredArrayVisitor,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!void {
+        if (index == .null) return;
+
+        switch (ctx.tree.data(index)) {
+            .binding_identifier => |identifier| {
+                const name = ctx.tree.string(identifier.name);
+                if (matchesPatternOption(name, self.pattern)) try self.ignored_decls.put(index, {});
+            },
             .assignment_pattern => |assignment| try self.collectBinding(assignment.left, ctx),
             .binding_rest_element => |rest| try self.collectBinding(rest.argument, ctx),
             .array_pattern => |array| {
