@@ -1079,7 +1079,7 @@ fn parseNoConsoleAllow(value: []const u8, options: *lint.Options) void {
             std.process.exit(2);
         }
         if (!allow.enable(method)) {
-            std.debug.print("utoo-lint: unsupported --no-console-allow method: {s}\n", .{method});
+            std.debug.print("utoo-lint: --no-console-allow method is too long or too many methods were provided: {s}\n", .{method});
             std.process.exit(2);
         }
     }
