@@ -7,6 +7,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-self-assign";
 
+pub const Options = struct {
+    props: bool = true,
+};
+
 const Reference = union(enum) {
     this,
     identifier: []const u8,
@@ -23,6 +27,17 @@ pub fn check(
     expression: ast.AssignmentExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkWithOptions(allocator, diagnostics, tree, expression, index, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
     if (!isSelfAssignOperator(expression.operator)) return;
 
     var arena = std.heap.ArenaAllocator.init(allocator);
@@ -31,6 +46,7 @@ pub fn check(
 
     if (try referenceFromExpression(arena_allocator, tree, expression.left)) |left| {
         if (try referenceFromExpression(arena_allocator, tree, expression.right)) |right| {
+            if (!options.props and (isMemberReference(left) or isMemberReference(right))) return;
             if (referencesEqual(left, right)) {
                 try addDiagnostic(allocator, diagnostics, tree, index);
                 return;
@@ -41,6 +57,13 @@ pub fn check(
     if (expression.operator == .assign) {
         try checkPatternSelfAssign(allocator, diagnostics, tree, arena_allocator, expression.left, expression.right);
     }
+}
+
+fn isMemberReference(reference: *const Reference) bool {
+    return switch (reference.*) {
+        .member => true,
+        else => false,
+    };
 }
 
 fn addDiagnostic(

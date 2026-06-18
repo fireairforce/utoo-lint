@@ -124,7 +124,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-return-assign`](https://eslint.org/docs/latest/rules/no-return-assign) | Implemented for `except-parens` and optional `always` behavior |
 | [`no-return-await`](https://eslint.org/docs/latest/rules/no-return-await) | Implemented |
 | [`no-script-url`](https://eslint.org/docs/latest/rules/no-script-url) | Implemented |
-| [`no-self-assign`](https://eslint.org/docs/latest/rules/no-self-assign) | Implemented |
+| [`no-self-assign`](https://eslint.org/docs/latest/rules/no-self-assign) | Supports `props` configuration |
 | [`no-self-compare`](https://eslint.org/docs/latest/rules/no-self-compare) | Implemented |
 | [`no-sequences`](https://eslint.org/docs/latest/rules/no-sequences) | Implemented with optional `allowInParentheses` behavior |
 | [`no-setter-return`](https://eslint.org/docs/latest/rules/no-setter-return) | Implemented |

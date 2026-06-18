@@ -2442,7 +2442,9 @@ const BasicVisitor = struct {
             try no_useless_rename.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, self.noUselessRenameOptions());
         }
         if (self.options.no_self_assign) {
-            try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try no_self_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .props = self.options.no_self_assign_props,
+            });
         }
         if (self.options.no_implicit_coercion) {
             try no_implicit_coercion.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noImplicitCoercionOptions());
