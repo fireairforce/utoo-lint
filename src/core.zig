@@ -1376,6 +1376,7 @@ pub const Options = struct {
     typescript_eslint_restrict_plus_operands_allow_number_and_string: bool = false,
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
+    valid_typeof_require_string_literals: bool = false,
     vars_on_top: bool = true,
     wrap_iife: bool = true,
     wrap_iife_style: WrapIifeStyle = .outside,
@@ -1830,6 +1831,9 @@ pub const Options = struct {
             self.no_warning_comments_location = try noWarningCommentsLocationFromConfig(value);
             self.no_warning_comments_decoration = try noWarningCommentsDecorationFromConfig(value);
             self.no_warning_comments_terms = try noWarningCommentsTermsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "valid-typeof")) {
+            self.valid_typeof_require_string_literals = try validTypeofRequireStringLiteralsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "spaced-comment")) {
             self.spaced_comment_style = try spacedCommentStyleFromConfig(value);
@@ -3722,6 +3726,23 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "always")) return .always;
         if (std.mem.eql(u8, style, "never")) return .never;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn validTypeofRequireStringLiteralsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("requireStringLiterals") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn spacedCommentMarkersFromConfig(value: std.json.Value) RuleConfigError!SpacedCommentMarkers {
@@ -6005,6 +6026,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(@as(usize, 2), options.no_warning_comments_terms.len());
     try std.testing.expectEqualStrings("review", options.no_warning_comments_terms.at(0));
     try std.testing.expectEqualStrings("blocked by upstream", options.no_warning_comments_terms.at(1));
+
+    var valid_typeof_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"requireStringLiterals\":true}]",
+        .{},
+    );
+    defer valid_typeof_config.deinit();
+    try options.setByRuleConfigValue("valid-typeof", valid_typeof_config.value);
+    try std.testing.expect(options.valid_typeof);
+    try std.testing.expect(options.valid_typeof_require_string_literals);
 
     var spaced_comment_config = try std.json.parseFromSlice(
         std.json.Value,

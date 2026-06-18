@@ -53,6 +53,38 @@ test "does not report valid-typeof for valid values or unrelated comparisons" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.valid_typeof.id));
 }
 
+test "supports configured valid-typeof requireStringLiterals option" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"requireStringLiterals\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("valid-typeof", config.value);
+    options.no_unused_vars = false;
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const suffix = "ing";
+        \\if (typeof value === "string") { use(value); }
+        \\if (typeof value === `number`) { use(value); }
+        \\if (typeof value === typeof other) { use(value); }
+        \\if (typeof value === expectedType) { use(value); }
+        \\if (typeof value === `str${suffix}`) { use(value); }
+        \\if (typeof value === undefined) { use(value); }
+        \\if (typeof value === 1) { use(value); }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.valid_typeof.id));
+}
+
 test "can disable valid-typeof" {
     const source =
         \\if (typeof value === "strnig") { use(value); }
