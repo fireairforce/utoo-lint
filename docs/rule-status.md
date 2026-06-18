@@ -147,7 +147,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-unsafe-negation`](https://eslint.org/docs/latest/rules/no-unsafe-negation) | Supports `enforceForOrderingRelations` configuration |
 | [`no-use-before-define`](https://eslint.org/docs/latest/rules/no-use-before-define) | Supports `functions`, `classes`, `variables`, and `allowNamedExports` configuration |
 | [`no-unused-expressions`](https://eslint.org/docs/latest/rules/no-unused-expressions) | Implemented with optional `allowShortCircuit`, `allowTernary`, and `allowTaggedTemplates` behavior |
-| [`no-unused-labels`](https://eslint.org/docs/latest/rules/no-unused-labels) | Implemented |
+| [`no-unused-labels`](https://eslint.org/docs/latest/rules/no-unused-labels) | Implemented with nested label shadowing |
 | [`no-unused-vars`](https://eslint.org/docs/latest/rules/no-unused-vars) | Supports `vars`, `args`, `caughtErrors`, and `ignoreRestSiblings` configuration |
 | [`no-useless-call`](https://eslint.org/docs/latest/rules/no-useless-call) | Implemented |
 | [`no-useless-catch`](https://eslint.org/docs/latest/rules/no-useless-catch) | Implemented |

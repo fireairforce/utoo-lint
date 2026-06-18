@@ -70,6 +70,27 @@ test "does not count label references inside nested functions" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_unused_labels.id));
 }
 
+test "does not count references to shadowed nested labels" {
+    const source =
+        \\outer: while (ready) {
+        \\  outer: {
+        \\    break outer;
+        \\  }
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_extra_label = false,
+        .no_labels = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_unused_labels.id));
+}
+
 test "can disable no-unused-labels" {
     const source =
         \\outer: while (ready) {

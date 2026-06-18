@@ -62,7 +62,10 @@ fn containsLabelReference(tree: *const ast.Tree, index: ast.NodeIndex, label_nam
         .while_statement => |statement| containsLabelReference(tree, statement.body, label_name),
         .do_while_statement => |statement| containsLabelReference(tree, statement.body, label_name),
         .with_statement => |statement| containsLabelReference(tree, statement.body, label_name),
-        .labeled_statement => |statement| containsLabelReference(tree, statement.body, label_name),
+        .labeled_statement => |statement| {
+            if (sameLabel(tree, statement.label, label_name)) return false;
+            return containsLabelReference(tree, statement.body, label_name);
+        },
         .try_statement => |statement| {
             if (containsLabelReference(tree, statement.block, label_name)) return true;
             if (statement.handler != .null) {
