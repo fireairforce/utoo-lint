@@ -71,7 +71,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-extra-boolean-cast`](https://eslint.org/docs/latest/rules/no-extra-boolean-cast) | Supports `enforceForInnerExpressions` and legacy `enforceForLogicalOperands` configuration |
 | [`no-extra-label`](https://eslint.org/docs/latest/rules/no-extra-label) | Implemented |
 | [`no-extra-semi`](https://eslint.org/docs/latest/rules/no-extra-semi) | Implemented |
-| [`no-fallthrough`](https://eslint.org/docs/latest/rules/no-fallthrough) | Implemented with optional `allowEmptyCase` behavior |
+| [`no-fallthrough`](https://eslint.org/docs/latest/rules/no-fallthrough) | Supports `allowEmptyCase` and `reportUnusedFallthroughComment` configuration |
 | [`no-floating-decimal`](https://eslint.org/docs/latest/rules/no-floating-decimal) | Implemented |
 | [`no-for-in`](https://eslint.org/docs/latest/rules/no-for-in) | Implemented |
 | [`no-func-assign`](https://eslint.org/docs/latest/rules/no-func-assign) | Implemented |
