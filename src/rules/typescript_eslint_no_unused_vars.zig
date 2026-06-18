@@ -20,6 +20,7 @@ pub fn run(
     caught_errors: core.NoUnusedVarsCaughtErrors,
     ignore_rest_siblings: bool,
     args_ignore_pattern: core.NoUnusedVarsIgnorePattern,
+    caught_errors_ignore_pattern: core.NoUnusedVarsIgnorePattern,
     vars_ignore_pattern: core.NoUnusedVarsIgnorePattern,
 ) Allocator.Error!void {
     try no_unused_vars.runWithOptions(allocator, diagnostics, tree, scope_tree, symbol_table, .{
@@ -34,6 +35,7 @@ pub fn run(
         .react_jsx_uses_react = react_jsx_uses_react,
         .react_jsx_uses_vars = react_jsx_uses_vars,
         .args_ignore_pattern = args_ignore_pattern,
+        .caught_errors_ignore_pattern = caught_errors_ignore_pattern,
         .vars_ignore_pattern = vars_ignore_pattern,
     });
 }
