@@ -966,6 +966,7 @@ pub const Options = struct {
     no_else_return_allow_else_if: bool = true,
     no_eq_null: bool = true,
     no_eval: bool = true,
+    no_eval_allow_indirect: bool = false,
     no_ex_assign: bool = true,
     no_extend_native: bool = true,
     no_extra_bind: bool = true,
@@ -1541,6 +1542,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-empty-function")) {
             self.no_empty_function_allow = try noEmptyFunctionAllowFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-eval")) {
+            self.no_eval_allow_indirect = try noEvalAllowIndirectFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-empty-function")) {
             self.typescript_eslint_no_empty_function_allow = try noEmptyFunctionAllowFromConfig(value);
@@ -3564,6 +3568,23 @@ pub const Options = struct {
         };
     }
 
+    fn noEvalAllowIndirectFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowIndirect") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn noUnneededTernaryDefaultAssignmentFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -5326,6 +5347,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-empty", no_empty_config.value);
     try std.testing.expect(options.no_empty);
     try std.testing.expectEqual(NoEmptyAllowEmptyCatch.yes, options.no_empty_allow_empty_catch);
+
+    var no_eval_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowIndirect\":true}]",
+        .{},
+    );
+    defer no_eval_config.deinit();
+    try options.setByRuleConfigValue("no-eval", no_eval_config.value);
+    try std.testing.expect(options.no_eval);
+    try std.testing.expect(options.no_eval_allow_indirect);
 
     var no_empty_function_config = try std.json.parseFromSlice(
         std.json.Value,

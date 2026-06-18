@@ -73,6 +73,40 @@ test "does not report no-eval for non-global eval members" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_eval.id));
 }
 
+test "supports configured no-eval allowIndirect option" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowIndirect\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-eval", config.value);
+    options.no_comma_operator = false;
+    options.no_sequences = false;
+    options.no_var = false;
+    options.no_unused_vars = false;
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\eval("code");
+        \\(eval)("code");
+        \\(0, eval)("code");
+        \\globalThis["eval"]("code");
+        \\globalThis[`eval`]("code");
+        \\var evalAlias = eval;
+        \\foo(eval);
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_eval.id));
+}
+
 test "can disable no-eval" {
     const source =
         \\eval("code");
