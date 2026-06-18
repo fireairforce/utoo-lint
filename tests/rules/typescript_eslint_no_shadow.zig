@@ -192,6 +192,44 @@ test "supports configured @typescript-eslint/no-shadow ignoreTypeValueShadow" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_shadow.id));
 }
 
+test "supports configured @typescript-eslint/no-shadow ignoreFunctionTypeParameterNameValueShadow" {
+    const source =
+        \\const value = 1;
+        \\type Fn = (value: string) => typeof value;
+    ;
+
+    var default_options = lint.Options{};
+    default_options.no_unused_vars = false;
+    default_options.typescript_eslint_no_unused_vars = false;
+    default_options.parser_semantic_errors = false;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", default_options);
+    defer default_result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(default_result, lint.rules.typescript_eslint_no_shadow.id));
+    try std.testing.expect(!helpers.hasRule(default_result, lint.rules.no_shadow.id));
+
+    var report_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreFunctionTypeParameterNameValueShadow\":false}]",
+        .{},
+    );
+    defer report_config.deinit();
+
+    var report_options = lint.Options{};
+    try report_options.setByRuleConfigValue("@typescript-eslint/no-shadow", report_config.value);
+    report_options.no_unused_vars = false;
+    report_options.typescript_eslint_no_unused_vars = false;
+    report_options.parser_semantic_errors = false;
+
+    var report_result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", report_options);
+    defer report_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(report_result, lint.rules.typescript_eslint_no_shadow.id));
+    try std.testing.expect(!helpers.hasRule(report_result, lint.rules.no_shadow.id));
+}
+
 test "can disable @typescript-eslint/no-shadow and fall back to no-shadow" {
     const source =
         \\const value = 1;
