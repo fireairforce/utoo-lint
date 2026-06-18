@@ -1524,6 +1524,7 @@ pub const Options = struct {
     yoda: bool = true,
     yoda_style: YodaStyle = .never,
     yoda_only_equality: bool = false,
+    yoda_except_range: bool = false,
 
     pub fn allDisabled() Options {
         var options = Options{};
@@ -2047,6 +2048,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "yoda")) {
             self.yoda_style = try yodaStyleFromConfig(value);
             self.yoda_only_equality = try yodaOnlyEqualityFromConfig(value);
+            self.yoda_except_range = try yodaExceptRangeFromConfig(value);
         }
     }
 
@@ -4789,6 +4791,23 @@ pub const Options = struct {
         return switch (config.get("onlyEquality") orelse return false) {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn yodaExceptRangeFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 3) return false;
+
+        const config = switch (items[2]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("exceptRange") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
         };
     }
 
