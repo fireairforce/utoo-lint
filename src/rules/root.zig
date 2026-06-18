@@ -505,6 +505,7 @@ pub fn runBasic(
                 .always => .always,
                 .never => .never,
             },
+            .markers = options.spaced_comment_markers,
         });
     }
     if (options.typescript_eslint_ban_ts_comment) {
