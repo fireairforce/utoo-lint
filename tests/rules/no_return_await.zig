@@ -10,6 +10,16 @@ test "reports no-return-await for async return await outside try blocks" {
         \\const second = async () => {
         \\  return await value;
         \\};
+        \\const third = async () => await value;
+        \\async function fourth() {
+        \\  return ready ? await first : await second;
+        \\}
+        \\async function fifth() {
+        \\  return ready && await value;
+        \\}
+        \\async function sixth() {
+        \\  return (prepare(), await value);
+        \\}
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
@@ -19,7 +29,7 @@ test "reports no-return-await for async return await outside try blocks" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_return_await.id));
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result, lint.rules.no_return_await.id));
 }
 
 test "does not report no-return-await outside async functions or inside try blocks" {
@@ -38,6 +48,18 @@ test "does not report no-return-await outside async functions or inside try bloc
         \\  function inner() {
         \\    return value;
         \\  }
+        \\}
+        \\async function catchWithFinally() {
+        \\  try {
+        \\    risky();
+        \\  } catch (error) {
+        \\    return await recover();
+        \\  } finally {
+        \\    cleanup();
+        \\  }
+        \\}
+        \\async function nonTailPositions() {
+        \\  return (await first) + second;
         \\}
     ;
 
