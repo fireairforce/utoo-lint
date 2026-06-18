@@ -2204,8 +2204,14 @@ const BasicVisitor = struct {
                 .check_const = self.options.one_var_check_const,
             });
         }
-        if (self.options.typescript_eslint_typedef and self.options.typescript_eslint_typedef_variable_declaration) {
+        if (self.options.typescript_eslint_typedef and (self.options.typescript_eslint_typedef_variable_declaration or
+            self.options.typescript_eslint_typedef_array_destructuring or
+            self.options.typescript_eslint_typedef_object_destructuring))
+        {
             try typescript_eslint_typedef.checkVariableDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, .{
+                .variable_declaration = self.options.typescript_eslint_typedef_variable_declaration,
+                .array_destructuring = self.options.typescript_eslint_typedef_array_destructuring,
+                .object_destructuring = self.options.typescript_eslint_typedef_object_destructuring,
                 .ignore_function = self.options.typescript_eslint_typedef_variable_declaration_ignore_function,
             });
         }
