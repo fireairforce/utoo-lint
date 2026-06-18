@@ -8,15 +8,29 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-extend-native";
 
+pub const Options = struct {
+    exceptions: core.NoExtendNativeExceptions = .{},
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     _: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
+) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
+        .options = options,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -25,6 +39,7 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    options: Options,
 
     pub fn enter_assignment_expression(
         self: *Visitor,
@@ -39,6 +54,7 @@ const Visitor = struct {
         if (left_member.optional) return .proceed;
 
         if (nativePrototypeName(ctx.tree, left_member.object, false)) |name| {
+            if (self.options.exceptions.contains(name)) return .proceed;
             try report(self.allocator, self.diagnostics, ctx.tree, index, name);
         }
 
@@ -57,6 +73,7 @@ const Visitor = struct {
         if (arguments.len == 0) return .proceed;
 
         if (nativePrototypeName(ctx.tree, arguments[0], true)) |name| {
+            if (self.options.exceptions.contains(name)) return .proceed;
             try report(self.allocator, self.diagnostics, ctx.tree, index, name);
         }
 

@@ -99,6 +99,42 @@ test "does not report no-extend-native for ordinary objects or dynamic members" 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_extend_native.id));
 }
 
+test "supports configured no-extend-native exceptions" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"exceptions\":[\"Array\",\"Object\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .dot_notation = false,
+        .eol_last = false,
+        .func_names = false,
+        .no_empty_block_statements = false,
+        .no_empty_function = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .typescript_eslint_dot_notation = false,
+        .typescript_eslint_no_empty_function = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-extend-native", config.value);
+
+    const source =
+        \\Array.prototype.first = function () {};
+        \\Object.defineProperty(Object.prototype, "toJSON", {});
+        \\String.prototype.trimLeft = function () {};
+        \\Object.defineProperty(Date.prototype, "week", {});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_extend_native.id));
+}
+
 test "can disable no-extend-native" {
     const source =
         \\String.prototype.trimLeft = function () {};
