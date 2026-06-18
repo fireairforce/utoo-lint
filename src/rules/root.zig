@@ -1974,7 +1974,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.default_case) {
-            try default_case.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+            try default_case.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, index, .{
+                .comment_pattern = self.options.default_case_comment_pattern,
+            });
         }
         if (self.options.default_case_last) {
             try default_case_last.check(self.allocator, self.diagnostics, ctx.tree, statement);
