@@ -472,7 +472,12 @@ pub fn runBasic(
         try eslint_comments_no_restricted_disable.run(allocator, diagnostics, tree, options.eslint_comments_no_restricted_disable_no_nested_ternary);
     }
     if (options.unicode_bom) {
-        try unicode_bom.run(allocator, diagnostics, tree);
+        try unicode_bom.runWithOptions(allocator, diagnostics, tree, .{
+            .style = switch (options.unicode_bom_style) {
+                .never => .never,
+                .always => .always,
+            },
+        });
     }
     if (options.wrap_iife) {
         try wrap_iife.runWithStyle(allocator, diagnostics, tree, switch (options.wrap_iife_style) {

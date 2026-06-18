@@ -49,6 +49,11 @@ pub const EolLastStyle = enum {
     never,
 };
 
+pub const UnicodeBomStyle = enum {
+    never,
+    always,
+};
+
 pub const NoCondAssignStyle = enum {
     except_parens,
     always,
@@ -1287,6 +1292,7 @@ pub const Options = struct {
     no_void_allow_as_statement: NoVoidAllowAsStatement = .no,
     no_with: bool = true,
     no_var: bool = true,
+    unicode_bom_style: UnicodeBomStyle = .never,
     object_shorthand: bool = true,
     object_shorthand_style: ObjectShorthandStyle = .always,
     object_shorthand_avoid_quotes: bool = false,
@@ -1767,6 +1773,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-useless-escape")) {
             self.no_useless_escape_allow_regex_characters = try noUselessEscapeAllowRegexCharactersFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "unicode-bom")) {
+            self.unicode_bom_style = try unicodeBomStyleFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-shadow")) {
             self.no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -4155,6 +4164,22 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn unicodeBomStyleFromConfig(value: std.json.Value) RuleConfigError!UnicodeBomStyle {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .never,
+        };
+        if (items.len < 2) return .never;
+
+        const style = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, style, "never")) return .never;
+        if (std.mem.eql(u8, style, "always")) return .always;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn noUnneededTernaryDefaultAssignmentFromConfig(value: std.json.Value) RuleConfigError!bool {
