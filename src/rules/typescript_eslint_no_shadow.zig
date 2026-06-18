@@ -32,5 +32,6 @@ pub fn runWithOptions(
         .allow = options.allow,
         .builtin_globals = options.builtin_globals,
         .hoist = options.hoist,
+        .ignore_type_value_shadow = options.ignore_type_value_shadow,
     });
 }
