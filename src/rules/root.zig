@@ -2062,9 +2062,6 @@ const BasicVisitor = struct {
         if (self.options.no_setter_return) {
             try no_setter_return.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }
-        if (self.options.no_return_await) {
-            try no_return_await.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
-        }
         if (self.options.no_useless_return) {
             try no_useless_return.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }
@@ -2849,10 +2846,13 @@ const BasicVisitor = struct {
 
     pub fn enter_await_expression(
         self: *BasicVisitor,
-        _: ast.AwaitExpression,
+        expression: ast.AwaitExpression,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_return_await) {
+            try no_return_await.check(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx);
+        }
         if (self.options.no_await_in_loop) {
             try no_await_in_loop.check(self.allocator, self.diagnostics, ctx.tree, index, ctx);
         }
