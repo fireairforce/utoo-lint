@@ -17,6 +17,7 @@ pub const State = struct {
 
 pub const Options = struct {
     check_key_must_before_spread: bool = false,
+    check_fragment_shorthand: bool = false,
 };
 
 pub fn collectProgram(tree: *const ast.Tree, state: *State) void {
@@ -59,6 +60,12 @@ pub fn checkArrayExpression(
         if (element_index == .null) continue;
         const element = switch (tree.data(unwrapTransparent(tree, element_index))) {
             .jsx_element => |element| element,
+            .jsx_fragment => {
+                if (options.check_fragment_shorthand) {
+                    try report(allocator, diagnostics, tree, element_index, missing_array_key_message);
+                }
+                continue;
+            },
             else => continue,
         };
         if (hasKeyProp(tree, element, options)) continue;
@@ -100,6 +107,9 @@ fn checkIteratorExpression(
     const current = unwrapTransparent(tree, index);
     switch (tree.data(current)) {
         .jsx_element => |element| try checkIteratorElement(allocator, diagnostics, tree, element, current, options),
+        .jsx_fragment => if (options.check_fragment_shorthand) {
+            try report(allocator, diagnostics, tree, current, missing_iter_key_message);
+        },
         .conditional_expression => |conditional| {
             try checkIteratorExpression(allocator, diagnostics, tree, conditional.consequent, options);
             try checkIteratorExpression(allocator, diagnostics, tree, conditional.alternate, options);
