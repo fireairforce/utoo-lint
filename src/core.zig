@@ -1286,6 +1286,8 @@ pub const Options = struct {
     eqeqeq: bool = true,
     eqeqeq_style: EqeqeqStyle = .strict,
     use_isnan: bool = true,
+    use_isnan_enforce_for_index_of: bool = false,
+    use_isnan_enforce_for_switch_case: bool = true,
     no_unused_vars: bool = true,
     no_unused_vars_vars: NoUnusedVarsVars = .all,
     no_unused_vars_args: NoUnusedVarsArgs = .none,
@@ -1623,6 +1625,10 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "eqeqeq")) {
             self.eqeqeq_style = try eqeqeqStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "use-isnan")) {
+            self.use_isnan_enforce_for_index_of = try useIsnanBoolOptionFromConfig(value, "enforceForIndexOf", false);
+            self.use_isnan_enforce_for_switch_case = try useIsnanBoolOptionFromConfig(value, "enforceForSwitchCase", true);
         }
         if (std.mem.eql(u8, cli_name, "logical-assignment-operators")) {
             self.logical_assignment_operators_style = try logicalAssignmentOperatorsStyleFromConfig(value);
@@ -3958,6 +3964,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("allowIndentationTabs") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn useIsnanBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
