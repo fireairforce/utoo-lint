@@ -1308,6 +1308,8 @@ pub const Options = struct {
     typescript_eslint_typedef_member_variable_declaration: bool = false,
     typescript_eslint_typedef_parameter: bool = false,
     typescript_eslint_typedef_arrow_parameter: bool = false,
+    typescript_eslint_typedef_variable_declaration: bool = false,
+    typescript_eslint_typedef_variable_declaration_ignore_function: bool = false,
     typescript_eslint_unified_signatures: bool = true,
     typescript_eslint_no_unnecessary_parameter_property_assignment: bool = true,
     typescript_eslint_no_unnecessary_type_constraint: bool = true,
@@ -1753,6 +1755,8 @@ pub const Options = struct {
             self.typescript_eslint_typedef_member_variable_declaration = try typescriptEslintTypedefBoolOptionFromConfig(value, "memberVariableDeclaration", false);
             self.typescript_eslint_typedef_parameter = try typescriptEslintTypedefBoolOptionFromConfig(value, "parameter", false);
             self.typescript_eslint_typedef_arrow_parameter = try typescriptEslintTypedefBoolOptionFromConfig(value, "arrowParameter", false);
+            self.typescript_eslint_typedef_variable_declaration = try typescriptEslintTypedefBoolOptionFromConfig(value, "variableDeclaration", false);
+            self.typescript_eslint_typedef_variable_declaration_ignore_function = try typescriptEslintTypedefBoolOptionFromConfig(value, "variableDeclarationIgnoreFunction", false);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/restrict-plus-operands")) {
             self.typescript_eslint_restrict_plus_operands_allow_number_and_string = try typescriptEslintRestrictPlusOperandsBoolOptionFromConfig(value, "allowNumberAndString", false);
