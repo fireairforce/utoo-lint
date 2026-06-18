@@ -109,8 +109,7 @@ fn isBuiltinGlobalRedeclaration(
     name: []const u8,
     options: Options,
 ) bool {
-    return options.mode == .javascript and
-        options.builtin_globals and
+    return options.builtin_globals and
         tree.source_type == .script and
         symbol.scope == .root and
         core.isKnownGlobal(name);
