@@ -7,6 +7,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "@typescript-eslint/typedef";
 
+pub const VariableDeclarationOptions = struct {
+    ignore_function: bool = false,
+};
+
 pub fn checkFunctionParameters(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -23,6 +27,23 @@ pub fn checkArrowFunctionParameters(
     expression: ast.ArrowFunctionExpression,
 ) Allocator.Error!void {
     try checkParameters(allocator, diagnostics, tree, expression.params);
+}
+
+pub fn checkVariableDeclaration(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    declaration: ast.VariableDeclaration,
+    options: VariableDeclarationOptions,
+) Allocator.Error!void {
+    for (tree.extra(declaration.declarators)) |declarator_index| {
+        const declarator = switch (tree.data(declarator_index)) {
+            .variable_declarator => |declarator| declarator,
+            else => continue,
+        };
+        if (options.ignore_function and isFunctionInitializer(tree, declarator.init)) continue;
+        try checkDeclarationPattern(allocator, diagnostics, tree, declarator.id);
+    }
 }
 
 pub fn checkPropertySignature(
@@ -89,6 +110,37 @@ pub fn checkPropertyDefinition(
     );
 }
 
+fn checkDeclarationPattern(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    pattern: ast.NodeIndex,
+) Allocator.Error!void {
+    if (hasTypeAnnotation(tree, pattern)) return;
+
+    if (bindingName(tree, pattern)) |name| {
+        try core.addDiagnosticFmt(
+            allocator,
+            diagnostics,
+            .@"error",
+            id,
+            tree.span(pattern),
+            "Expected {s} to have a type annotation.",
+            .{name},
+        );
+        return;
+    }
+
+    try core.addDiagnostic(
+        allocator,
+        diagnostics,
+        .@"error",
+        id,
+        "Expected a type annotation.",
+        tree.span(pattern),
+    );
+}
+
 fn checkParameters(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -102,30 +154,16 @@ fn checkParameters(
 
     for (tree.extra(parameters.items)) |parameter_index| {
         const pattern = parameterPattern(tree, parameter_index) orelse continue;
-        if (hasTypeAnnotation(tree, pattern)) continue;
-
-        if (bindingName(tree, pattern)) |name| {
-            try core.addDiagnosticFmt(
-                allocator,
-                diagnostics,
-                .@"error",
-                id,
-                tree.span(pattern),
-                "Expected {s} to have a type annotation.",
-                .{name},
-            );
-            continue;
-        }
-
-        try core.addDiagnostic(
-            allocator,
-            diagnostics,
-            .@"error",
-            id,
-            "Expected a type annotation.",
-            tree.span(pattern),
-        );
+        try checkDeclarationPattern(allocator, diagnostics, tree, pattern);
     }
+}
+
+fn isFunctionInitializer(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    if (index == .null) return false;
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .function, .arrow_function_expression => true,
+        else => false,
+    };
 }
 
 fn parameterPattern(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.NodeIndex {
@@ -158,6 +196,18 @@ fn bindingName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
         .binding_rest_element => |element| bindingName(tree, element.argument),
         else => null,
     };
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+    return current;
 }
 
 fn propertyName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {

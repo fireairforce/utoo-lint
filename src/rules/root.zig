@@ -2204,6 +2204,11 @@ const BasicVisitor = struct {
                 .check_const = self.options.one_var_check_const,
             });
         }
+        if (self.options.typescript_eslint_typedef and self.options.typescript_eslint_typedef_variable_declaration) {
+            try typescript_eslint_typedef.checkVariableDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, .{
+                .ignore_function = self.options.typescript_eslint_typedef_variable_declaration_ignore_function,
+            });
+        }
         if (self.options.prefer_destructuring) {
             try prefer_destructuring.checkVariableDeclarationWithOptions(self.allocator, self.diagnostics, ctx.tree, declaration, .{
                 .variable_declarator_array = self.options.prefer_destructuring_variable_declarator_array,
