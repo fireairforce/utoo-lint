@@ -7,12 +7,27 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "valid-typeof";
 
+pub const Options = struct {
+    require_string_literals: bool = false,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     expression: ast.BinaryExpression,
     index: ast.NodeIndex,
+) Allocator.Error!void {
+    try checkWithOptions(allocator, diagnostics, tree, expression, index, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.BinaryExpression,
+    index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     if (!isTypeofComparisonOperator(expression.operator)) return;
 
@@ -21,17 +36,18 @@ pub fn check(
     if (left_typeof == right_typeof) return;
 
     const value_index = if (left_typeof) expression.right else expression.left;
-    switch (comparisonValueState(tree, value_index)) {
+    const message = switch (comparisonValueState(tree, value_index, options.require_string_literals)) {
         .valid, .unknown => return,
-        .invalid => {},
-    }
+        .invalid => "Invalid typeof comparison value.",
+        .not_string => "Typeof comparisons should be to string literals.",
+    };
 
     try core.addDiagnostic(
         allocator,
         diagnostics,
         .@"error",
         id,
-        "Invalid typeof comparison value.",
+        message,
         tree.span(index),
     );
 }
@@ -39,6 +55,7 @@ pub fn check(
 const ComparisonValueState = enum {
     valid,
     invalid,
+    not_string,
     unknown,
 };
 
@@ -72,7 +89,7 @@ fn stringLiteralValue(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
     };
 }
 
-fn comparisonValueState(tree: *const ast.Tree, index: ast.NodeIndex) ComparisonValueState {
+fn comparisonValueState(tree: *const ast.Tree, index: ast.NodeIndex, require_string_literals: bool) ComparisonValueState {
     if (index == .null) return .unknown;
 
     const unwrapped = unwrapTransparent(tree, index);
@@ -81,14 +98,16 @@ fn comparisonValueState(tree: *const ast.Tree, index: ast.NodeIndex) ComparisonV
     }
 
     return switch (tree.data(unwrapped)) {
-        .identifier_reference => |identifier| if (std.mem.eql(u8, tree.string(identifier.name), "undefined")) .invalid else .unknown,
+        .identifier_reference => |identifier| if (std.mem.eql(u8, tree.string(identifier.name), "undefined"))
+            if (require_string_literals) .not_string else .invalid
+        else if (require_string_literals) .not_string else .unknown,
         .null_literal,
         .boolean_literal,
         .numeric_literal,
         .bigint_literal,
         .regexp_literal,
         => .invalid,
-        else => .unknown,
+        else => if (require_string_literals) .not_string else .unknown,
     };
 }
 

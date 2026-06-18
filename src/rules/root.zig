@@ -2477,7 +2477,9 @@ const BasicVisitor = struct {
             try use_isnan.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.valid_typeof) {
-            try valid_typeof.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try valid_typeof.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .require_string_literals = self.options.valid_typeof_require_string_literals,
+            });
         }
         if (self.options.no_useless_concat) {
             try no_useless_concat.check(self.allocator, self.diagnostics, ctx.tree, expression, index);

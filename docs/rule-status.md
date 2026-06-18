@@ -181,7 +181,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`symbol-description`](https://eslint.org/docs/latest/rules/symbol-description) | Implemented |
 | [`unicode-bom`](https://eslint.org/docs/latest/rules/unicode-bom) | Implemented |
 | [`use-isnan`](https://eslint.org/docs/latest/rules/use-isnan) | Implemented |
-| [`valid-typeof`](https://eslint.org/docs/latest/rules/valid-typeof) | Implemented |
+| [`valid-typeof`](https://eslint.org/docs/latest/rules/valid-typeof) | Supports `requireStringLiterals` configuration |
 | [`vars-on-top`](https://eslint.org/docs/latest/rules/vars-on-top) | Implemented |
 | [`wrap-iife`](https://eslint.org/docs/latest/rules/wrap-iife) | Implemented for `outside`, `inside`, and `any` options |
 | [`yoda`](https://eslint.org/docs/latest/rules/yoda) | Implemented for `never` and optional `always` behavior |
