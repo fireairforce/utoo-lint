@@ -1019,6 +1019,14 @@ const BasicVisitor = struct {
         };
     }
 
+    fn noUselessRenameOptions(self: *const BasicVisitor) no_useless_rename.Options {
+        return .{
+            .ignore_destructuring = self.options.no_useless_rename_ignore_destructuring,
+            .ignore_import = self.options.no_useless_rename_ignore_import,
+            .ignore_export = self.options.no_useless_rename_ignore_export,
+        };
+    }
+
     fn noBitwiseOptions(self: *const BasicVisitor) no_bitwise.Options {
         return .{
             .allow_bitwise_and = self.options.no_bitwise_allow_bitwise_and,
@@ -2394,7 +2402,7 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.no_useless_rename) {
-            try no_useless_rename.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+            try no_useless_rename.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, self.noUselessRenameOptions());
         }
         if (self.options.no_self_assign) {
             try no_self_assign.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
@@ -3148,7 +3156,7 @@ const BasicVisitor = struct {
             try no_empty_pattern.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern, index);
         }
         if (self.options.no_useless_rename) {
-            try no_useless_rename.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern);
+            try no_useless_rename.checkObjectPatternWithOptions(self.allocator, self.diagnostics, ctx.tree, pattern, self.noUselessRenameOptions());
         }
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern);
@@ -3361,7 +3369,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_useless_rename) {
-            try no_useless_rename.checkImportSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, index);
+            try no_useless_rename.checkImportSpecifierWithOptions(self.allocator, self.diagnostics, ctx.tree, specifier, index, self.noUselessRenameOptions());
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, specifier.local, false);
@@ -3400,7 +3408,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_useless_rename) {
-            try no_useless_rename.checkExportSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, index);
+            try no_useless_rename.checkExportSpecifierWithOptions(self.allocator, self.diagnostics, ctx.tree, specifier, index, self.noUselessRenameOptions());
         }
         return .proceed;
     }

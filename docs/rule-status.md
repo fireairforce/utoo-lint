@@ -153,7 +153,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-useless-concat`](https://eslint.org/docs/latest/rules/no-useless-concat) | Implemented |
 | [`no-useless-constructor`](https://eslint.org/docs/latest/rules/no-useless-constructor) | Implemented |
 | [`no-useless-escape`](https://eslint.org/docs/latest/rules/no-useless-escape) | Implemented |
-| [`no-useless-rename`](https://eslint.org/docs/latest/rules/no-useless-rename) | Implemented |
+| [`no-useless-rename`](https://eslint.org/docs/latest/rules/no-useless-rename) | Supports `ignoreDestructuring`, `ignoreImport`, and `ignoreExport` configuration |
 | [`no-useless-return`](https://eslint.org/docs/latest/rules/no-useless-return) | Implemented |
 | [`no-var`](https://eslint.org/docs/latest/rules/no-var) | Implemented |
 | [`no-void`](https://eslint.org/docs/latest/rules/no-void) | Implemented with optional `allowAsStatement` behavior |

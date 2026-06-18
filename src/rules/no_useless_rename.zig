@@ -7,6 +7,12 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-useless-rename";
 
+pub const Options = struct {
+    ignore_destructuring: bool = false,
+    ignore_import: bool = false,
+    ignore_export: bool = false,
+};
+
 pub fn checkImportSpecifier(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
@@ -14,6 +20,18 @@ pub fn checkImportSpecifier(
     specifier: ast.ImportSpecifier,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkImportSpecifierWithOptions(allocator, diagnostics, tree, specifier, index, .{});
+}
+
+pub fn checkImportSpecifierWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    specifier: ast.ImportSpecifier,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (options.ignore_import) return;
     if (!hasAsBetween(tree, specifier.imported, specifier.local)) return;
 
     const imported = propertyName(tree, specifier.imported) orelse return;
@@ -30,6 +48,18 @@ pub fn checkExportSpecifier(
     specifier: ast.ExportSpecifier,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkExportSpecifierWithOptions(allocator, diagnostics, tree, specifier, index, .{});
+}
+
+pub fn checkExportSpecifierWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    specifier: ast.ExportSpecifier,
+    index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!void {
+    if (options.ignore_export) return;
     if (!hasAsBetween(tree, specifier.local, specifier.exported)) return;
 
     const local = referenceOrPropertyName(tree, specifier.local) orelse return;
@@ -45,6 +75,17 @@ pub fn checkObjectPattern(
     tree: *const ast.Tree,
     pattern: ast.ObjectPattern,
 ) Allocator.Error!void {
+    try checkObjectPatternWithOptions(allocator, diagnostics, tree, pattern, .{});
+}
+
+pub fn checkObjectPatternWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    pattern: ast.ObjectPattern,
+    options: Options,
+) Allocator.Error!void {
+    if (options.ignore_destructuring) return;
     for (tree.extra(pattern.properties)) |property_index| {
         const property = switch (tree.data(property_index)) {
             .binding_property => |property| property,
@@ -66,6 +107,17 @@ pub fn checkAssignmentExpression(
     tree: *const ast.Tree,
     expression: ast.AssignmentExpression,
 ) Allocator.Error!void {
+    try checkAssignmentExpressionWithOptions(allocator, diagnostics, tree, expression, .{});
+}
+
+pub fn checkAssignmentExpressionWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+    options: Options,
+) Allocator.Error!void {
+    if (options.ignore_destructuring) return;
     if (expression.operator != .assign) return;
 
     switch (tree.data(unwrapTransparent(tree, expression.left))) {
