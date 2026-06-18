@@ -1,8 +1,9 @@
+const std = @import("std");
 const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
-const Allocator = @import("std").mem.Allocator;
+const Allocator = std.mem.Allocator;
 
 pub const id = "yoda";
 
@@ -14,6 +15,8 @@ pub const Style = enum {
 pub const Options = struct {
     style: Style = .never,
     only_equality: bool = false,
+    except_range: bool = false,
+    parent: ast.NodeIndex = .null,
 };
 
 pub fn check(
@@ -47,6 +50,7 @@ pub fn checkWithOptions(
 ) Allocator.Error!void {
     if (!isComparisonOperator(expression.operator)) return;
     if (options.only_equality and !isEqualityOperator(expression.operator)) return;
+    if (options.except_range and isRangeComparison(tree, expression, index, options.parent)) return;
 
     const left_literal = isLiteralLike(tree, expression.left);
     const right_literal = isLiteralLike(tree, expression.right);
@@ -102,6 +106,55 @@ fn isEqualityOperator(operator: ast.BinaryOperator) bool {
         => true,
         else => false,
     };
+}
+
+fn isRelationalOperator(operator: ast.BinaryOperator) bool {
+    return switch (operator) {
+        .less_than,
+        .less_than_or_equal,
+        .greater_than,
+        .greater_than_or_equal,
+        => true,
+        else => false,
+    };
+}
+
+fn isRangeComparison(tree: *const ast.Tree, expression: ast.BinaryExpression, index: ast.NodeIndex, parent_index: ast.NodeIndex) bool {
+    if (!isRelationalOperator(expression.operator)) return false;
+
+    const logical = switch (tree.data(parent_index)) {
+        .logical_expression => |logical| logical,
+        else => return false,
+    };
+    if (logical.operator != .@"and" and logical.operator != .@"or") return false;
+
+    const sibling_index = if (logical.left == index) logical.right else if (logical.right == index) logical.left else return false;
+    const sibling = switch (tree.data(unwrapTransparent(tree, sibling_index))) {
+        .binary_expression => |binary| binary,
+        else => return false,
+    };
+    if (!isRelationalOperator(sibling.operator)) return false;
+
+    const current_subject = comparisonSubject(tree, expression) orelse return false;
+    const sibling_subject = comparisonSubject(tree, sibling) orelse return false;
+    return sameNodeSource(tree, current_subject, sibling_subject);
+}
+
+fn comparisonSubject(tree: *const ast.Tree, expression: ast.BinaryExpression) ?ast.NodeIndex {
+    const left_literal = isLiteralLike(tree, expression.left);
+    const right_literal = isLiteralLike(tree, expression.right);
+    if (left_literal == right_literal) return null;
+    return if (left_literal) unwrapTransparent(tree, expression.right) else unwrapTransparent(tree, expression.left);
+}
+
+fn sameNodeSource(tree: *const ast.Tree, left: ast.NodeIndex, right: ast.NodeIndex) bool {
+    const left_span = tree.span(left);
+    const right_span = tree.span(right);
+    return std.mem.eql(
+        u8,
+        tree.source[left_span.start..left_span.end],
+        tree.source[right_span.start..right_span.end],
+    );
 }
 
 fn isLiteralLike(tree: *const ast.Tree, index: ast.NodeIndex) bool {

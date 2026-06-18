@@ -126,6 +126,37 @@ test "supports configured yoda onlyEquality option" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.yoda.id));
 }
 
+test "supports configured yoda exceptRange option" {
+    const source =
+        \\if (0 <= age && age < 18) {}
+        \\if (age >= 65 || 12 > age) {}
+        \\if (0 < count) {}
+    ;
+
+    var options = lint.Options{
+        .eqeqeq = false,
+        .eol_last = false,
+        .no_empty_block_statements = false,
+        .no_constant_condition = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\",{\"exceptRange\":true}]",
+        .{},
+    );
+    defer config.deinit();
+    try options.setByRuleConfigValue("yoda", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.yoda.id));
+}
+
 test "can disable yoda" {
     const source =
         \\if ("red" === color) {}

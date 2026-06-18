@@ -2582,6 +2582,8 @@ const BasicVisitor = struct {
                     .always => .always,
                 },
                 .only_equality = self.options.yoda_only_equality,
+                .except_range = self.options.yoda_except_range,
+                .parent = ctx.path.parent() orelse .null,
             });
         }
         if (self.options.typescript_eslint_no_confusing_non_null_assertion) {
