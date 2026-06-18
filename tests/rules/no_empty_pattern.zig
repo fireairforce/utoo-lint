@@ -39,6 +39,28 @@ test "does not report no-empty-pattern for non-empty destructuring patterns" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_empty_pattern.id));
 }
 
+test "supports no-empty-pattern allowObjectPatternsAsParameters option" {
+    const source =
+        \\function direct({}) {}
+        \\const arrow = ({}) => {};
+        \\function withDefault({} = {}) {}
+        \\function withNonEmptyDefault({} = fallback) {}
+        \\function nested({ value: {} }) {}
+        \\function array([]) {}
+        \\const {} = object;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_empty_pattern_allow_object_patterns_as_parameters = true,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_empty_pattern.id));
+}
+
 test "can disable no-empty-pattern" {
     const source =
         \\const {} = object;
