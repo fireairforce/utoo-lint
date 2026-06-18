@@ -1169,6 +1169,9 @@ const BasicVisitor = struct {
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, function.params);
         }
+        if (self.options.typescript_eslint_typedef and self.options.typescript_eslint_typedef_parameter) {
+            try typescript_eslint_typedef.checkFunctionParameters(self.allocator, self.diagnostics, ctx.tree, function);
+        }
         if (self.options.no_param_reassign) {
             try no_param_reassign.checkFunctionWithOptions(self.allocator, self.diagnostics, ctx.tree, function, .{
                 .props = self.options.no_param_reassign_props == .yes,
@@ -2298,6 +2301,9 @@ const BasicVisitor = struct {
         }
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, expression.params);
+        }
+        if (self.options.typescript_eslint_typedef and self.options.typescript_eslint_typedef_arrow_parameter) {
+            try typescript_eslint_typedef.checkArrowFunctionParameters(self.allocator, self.diagnostics, ctx.tree, expression);
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkFormalParametersWithOptions(self.allocator, self.diagnostics, ctx.tree, expression.params, .{
