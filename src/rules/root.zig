@@ -505,7 +505,13 @@ pub fn runBasic(
         });
     }
     if (options.no_irregular_whitespace) {
-        try no_irregular_whitespace.run(allocator, diagnostics, tree);
+        try no_irregular_whitespace.runWithOptions(allocator, diagnostics, tree, .{
+            .skip_strings = options.no_irregular_whitespace_skip_strings,
+            .skip_comments = options.no_irregular_whitespace_skip_comments,
+            .skip_reg_exps = options.no_irregular_whitespace_skip_reg_exps,
+            .skip_templates = options.no_irregular_whitespace_skip_templates,
+            .skip_jsx_text = options.no_irregular_whitespace_skip_jsx_text,
+        });
     }
     if (options.no_multiple_empty_lines) {
         try no_multiple_empty_lines.runWithOptions(allocator, diagnostics, tree, .{
