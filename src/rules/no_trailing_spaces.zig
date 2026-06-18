@@ -7,10 +7,24 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-trailing-spaces";
 
+pub const Options = struct {
+    skip_blank_lines: bool = false,
+    ignore_comments: bool = false,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
 ) Allocator.Error!void {
     const source = tree.source;
     var line_start: usize = 0;
@@ -25,7 +39,11 @@ pub fn run(
         }
 
         if (trailing_start < line_end) {
-            try addDiagnostic(allocator, diagnostics, trailing_start, line_end);
+            const skip_blank_line = options.skip_blank_lines and isOnlyTrailingWhitespace(source[line_start..line_end]);
+            const skip_comment = options.ignore_comments and hasIgnoredCommentOnLine(tree.comments, line_start, line_end);
+            if (!skip_blank_line and !skip_comment) {
+                try addDiagnostic(allocator, diagnostics, trailing_start, line_end);
+            }
         }
 
         if (line_end >= source.len) break;
@@ -62,4 +80,28 @@ fn addDiagnostic(
 
 fn isTrailingWhitespace(char: u8) bool {
     return char == ' ' or char == '\t' or char == 0x0B or char == 0x0C;
+}
+
+fn isOnlyTrailingWhitespace(source: []const u8) bool {
+    for (source) |char| {
+        if (!isTrailingWhitespace(char)) return false;
+    }
+    return true;
+}
+
+fn hasIgnoredCommentOnLine(comments: []const ast.Comment, line_start: usize, line_end: usize) bool {
+    for (comments) |comment| {
+        const start: usize = comment.start;
+        const end: usize = comment.end;
+
+        switch (comment.type) {
+            .line => {
+                if (line_start <= start and start <= line_end) return true;
+            },
+            .block => {
+                if (start < line_end and end > line_end) return true;
+            },
+        }
+    }
+    return false;
 }
