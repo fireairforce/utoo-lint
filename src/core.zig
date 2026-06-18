@@ -336,6 +336,14 @@ pub const NoUseBeforeDefineCheck = enum {
     no,
 };
 
+pub const NoShadowHoist = enum {
+    all,
+    functions,
+    functions_and_types,
+    never,
+    types,
+};
+
 pub const NoUnusedVarsVars = enum {
     all,
     local,
@@ -1147,6 +1155,7 @@ pub const Options = struct {
     no_shadow: bool = true,
     no_shadow_allow: NoShadowAllowNames = .{},
     no_shadow_builtin_globals: bool = false,
+    no_shadow_hoist: NoShadowHoist = .functions,
     no_shadow_restricted_names: bool = true,
     no_sequences: bool = true,
     no_sequences_allow_in_parentheses: NoSequencesAllowInParentheses = .yes,
@@ -1384,6 +1393,7 @@ pub const Options = struct {
     typescript_eslint_no_shadow: bool = true,
     typescript_eslint_no_shadow_allow: NoShadowAllowNames = .{},
     typescript_eslint_no_shadow_builtin_globals: bool = false,
+    typescript_eslint_no_shadow_hoist: NoShadowHoist = .functions_and_types,
     typescript_eslint_no_this_alias: bool = true,
     typescript_eslint_no_this_alias_allowed_names: NoThisAliasAllowedNames = .{},
     typescript_eslint_no_unsafe_declaration_merging: bool = true,
@@ -1652,6 +1662,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-shadow")) {
             self.no_shadow_allow = try noShadowAllowFromConfig(value);
             self.no_shadow_builtin_globals = try noShadowBuiltinGlobalsFromConfig(value);
+            self.no_shadow_hoist = try noShadowHoistFromConfig(value, .functions);
         }
         if (std.mem.eql(u8, cli_name, "no-underscore-dangle")) {
             self.no_underscore_dangle_allow_after_this = try noUnderscoreDangleBoolOptionFromConfig(value, "allowAfterThis", false);
@@ -1844,6 +1855,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
             self.typescript_eslint_no_shadow_builtin_globals = try noShadowBuiltinGlobalsFromConfig(value);
+            self.typescript_eslint_no_shadow_hoist = try noShadowHoistFromConfig(value, .functions_and_types);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/method-signature-style")) {
             self.typescript_eslint_method_signature_style_style = try typescriptEslintMethodSignatureStyleFromConfig(value);
@@ -3153,6 +3165,30 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn noShadowHoistFromConfig(value: std.json.Value, default: NoShadowHoist) RuleConfigError!NoShadowHoist {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const hoist = switch (config.get("hoist") orelse return default) {
+            .string => |hoist| hoist,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        if (std.mem.eql(u8, hoist, "all")) return .all;
+        if (std.mem.eql(u8, hoist, "functions")) return .functions;
+        if (std.mem.eql(u8, hoist, "functions-and-types")) return .functions_and_types;
+        if (std.mem.eql(u8, hoist, "never")) return .never;
+        if (std.mem.eql(u8, hoist, "types")) return .types;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn noUnderscoreDangleBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
@@ -5829,7 +5865,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"done\"],\"builtinGlobals\":true}]",
+        "[\"error\",{\"allow\":[\"done\"],\"builtinGlobals\":true,\"hoist\":\"all\"}]",
         .{},
     );
     defer no_shadow_config.deinit();
@@ -5838,6 +5874,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_shadow_allow.contains("done"));
     try std.testing.expect(!options.no_shadow_allow.contains("other"));
     try std.testing.expect(options.no_shadow_builtin_globals);
+    try std.testing.expectEqual(NoShadowHoist.all, options.no_shadow_hoist);
 
     var no_underscore_dangle_config = try std.json.parseFromSlice(
         std.json.Value,
@@ -5862,7 +5899,7 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"value\"],\"builtinGlobals\":true}]",
+        "[\"error\",{\"allow\":[\"value\"],\"builtinGlobals\":true,\"hoist\":\"never\"}]",
         .{},
     );
     defer typescript_no_shadow_config.deinit();
@@ -5871,6 +5908,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_shadow_allow.contains("value"));
     try std.testing.expect(!options.typescript_eslint_no_shadow_allow.contains("other"));
     try std.testing.expect(options.typescript_eslint_no_shadow_builtin_globals);
+    try std.testing.expectEqual(NoShadowHoist.never, options.typescript_eslint_no_shadow_hoist);
 
     var no_plusplus_config = try std.json.parseFromSlice(
         std.json.Value,

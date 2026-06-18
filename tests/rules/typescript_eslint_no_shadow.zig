@@ -123,6 +123,37 @@ test "supports configured @typescript-eslint/no-shadow built-in globals" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_shadow.id));
 }
 
+test "supports configured @typescript-eslint/no-shadow hoist option" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"hoist\":\"never\"}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-shadow", config.value);
+    options.no_unused_vars = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\function f() {
+        \\  {
+        \\    const laterValue = 1;
+        \\  }
+        \\  const laterValue = 2;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_shadow.id));
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_shadow.id));
+}
+
 test "can disable @typescript-eslint/no-shadow and fall back to no-shadow" {
     const source =
         \\const value = 1;

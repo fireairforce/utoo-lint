@@ -14,6 +14,7 @@ pub const Options = struct {
     mode: Mode = .javascript,
     allow: core.NoShadowAllowNames = .{},
     builtin_globals: bool = false,
+    hoist: core.NoShadowHoist = .functions,
 };
 
 pub const Mode = enum {
@@ -68,6 +69,8 @@ pub fn runWithOptions(
         const shadowed_id = findShadowedSymbol(scope_tree, symbol_table, symbol.scope, name, entry.id, symbol.flags, options) orelse continue;
         const shadowed_decls = symbol_table.symbolDecls(shadowed_id);
         if (shadowed_decls.len == 0) continue;
+        const shadowed_flags = symbol_table.getSymbol(shadowed_id).flags;
+        if (isAllowedByHoist(tree, decls[0], shadowed_decls[0], shadowed_flags, options)) continue;
 
         const shadowed_position = offsetToLineColumn(tree.source, tree.span(shadowed_decls[0]).start);
         try core.addDiagnosticFmt(
@@ -128,6 +131,27 @@ fn isAllowedTypescriptShadow(
     if (options.mode != .typescript) return false;
     return (self_flags.interface and candidate_flags.class) or
         (self_flags.class and candidate_flags.interface);
+}
+
+fn isAllowedByHoist(
+    tree: *const ast.Tree,
+    self_decl: ast.NodeIndex,
+    shadowed_decl: ast.NodeIndex,
+    shadowed_flags: traverser.semantic.Symbol.Flags,
+    options: Options,
+) bool {
+    if (tree.span(self_decl).start >= tree.span(shadowed_decl).start) return false;
+    return switch (options.hoist) {
+        .all => false,
+        .functions => !shadowed_flags.function,
+        .functions_and_types => !shadowed_flags.function and !isTypeSymbol(shadowed_flags),
+        .never => true,
+        .types => !isTypeSymbol(shadowed_flags),
+    };
+}
+
+fn isTypeSymbol(flags: traverser.semantic.Symbol.Flags) bool {
+    return flags.inTypeSpace() or flags.type_import;
 }
 
 fn offsetToLineColumn(source: []const u8, offset: u32) core.SourcePosition {
