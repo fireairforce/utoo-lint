@@ -3169,6 +3169,7 @@ const BasicVisitor = struct {
             try react_jsx_pascal_case.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, opening, index, .{
                 .allow_all_caps = self.options.react_jsx_pascal_case_allow_all_caps,
                 .allow_leading_underscore = self.options.react_jsx_pascal_case_allow_leading_underscore,
+                .allow_namespace = self.options.react_jsx_pascal_case_allow_namespace,
                 .ignore = self.options.react_jsx_pascal_case_ignore,
             });
         }
