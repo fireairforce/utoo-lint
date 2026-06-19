@@ -182,6 +182,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`radix`](https://eslint.org/docs/latest/rules/radix) | Implemented |
 | [`require-await`](https://eslint.org/docs/latest/rules/require-await) | Implemented |
 | [`require-atomic-updates`](https://eslint.org/docs/latest/rules/require-atomic-updates) | Supports `allowProperties` configuration |
+| [`require-unicode-regexp`](https://eslint.org/docs/latest/rules/require-unicode-regexp) | Supports regexp literals, static `RegExp` constructors, and `requireFlag` configuration |
 | [`require-yield`](https://eslint.org/docs/latest/rules/require-yield) | Implemented |
 | [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, `markers`, and `exceptions` configuration |
 | [`symbol-description`](https://eslint.org/docs/latest/rules/symbol-description) | Implemented |

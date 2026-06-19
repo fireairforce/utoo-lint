@@ -899,6 +899,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/require_unicode_regexp.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_danger.zig");
 }
 
