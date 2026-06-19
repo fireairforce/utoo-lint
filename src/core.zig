@@ -46,6 +46,11 @@ pub const LinebreakStyle = enum {
     windows,
 };
 
+pub const InitDeclarationsMode = enum {
+    always,
+    never,
+};
+
 pub const EolLastStyle = enum {
     always,
     never,
@@ -1537,6 +1542,9 @@ pub const Options = struct {
     guard_for_in: bool = true,
     id_denylist: bool = true,
     id_denylist_names: IdDenylistNames = .{},
+    init_declarations: bool = false,
+    init_declarations_mode: InitDeclarationsMode = .always,
+    init_declarations_ignore_for_loop_init: bool = false,
     linebreak_style: bool = true,
     linebreak_style_style: LinebreakStyle = .unix,
     logical_assignment_operators: bool = true,
@@ -2297,6 +2305,10 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "id-denylist")) {
             self.id_denylist_names = try idDenylistNamesFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "init-declarations")) {
+            self.init_declarations_mode = try initDeclarationsModeFromConfig(value);
+            self.init_declarations_ignore_for_loop_init = try initDeclarationsIgnoreForLoopInitFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "eqeqeq")) {
             self.eqeqeq_style = try eqeqeqStyleFromConfig(value);
         }
@@ -2964,6 +2976,39 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "unix")) return .unix;
         if (std.mem.eql(u8, style, "windows")) return .windows;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn initDeclarationsModeFromConfig(value: std.json.Value) RuleConfigError!InitDeclarationsMode {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const mode = switch (items[1]) {
+            .string => |mode| mode,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, mode, "always")) return .always;
+        if (std.mem.eql(u8, mode, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn initDeclarationsIgnoreForLoopInitFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 3) return false;
+
+        const config = switch (items[2]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("ignoreForLoopInit") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn consistentReturnTreatUndefinedAsUnspecifiedFromConfig(value: std.json.Value) RuleConfigError!bool {

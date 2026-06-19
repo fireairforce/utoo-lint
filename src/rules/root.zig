@@ -33,6 +33,7 @@ pub const getter_return = @import("getter_return.zig");
 pub const grouped_accessor_pairs = @import("grouped_accessor_pairs.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
 pub const id_denylist = @import("id_denylist.zig");
+pub const init_declarations = @import("init_declarations.zig");
 pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_exhaustive_deps = @import("alipay_ant_exhaustive_deps.zig");
 pub const alipay_ant_jsx_handler_names = @import("alipay_ant_jsx_handler_names.zig");
@@ -1130,6 +1131,7 @@ const BasicVisitor = struct {
     max_statements_state: max_statements.State = .{},
     max_nested_callbacks_state: max_nested_callbacks.State = .{},
     id_denylist_state: id_denylist.State = .{},
+    init_declarations_state: init_declarations.State = .{},
 
     fn curlyOptions(self: *const BasicVisitor) curly.Options {
         return .{
@@ -1177,6 +1179,16 @@ const BasicVisitor = struct {
         return .{
             .max = self.options.max_classes_per_file_max,
             .ignore_expressions = self.options.max_classes_per_file_ignore_expressions,
+        };
+    }
+
+    fn initDeclarationsOptions(self: *const BasicVisitor) init_declarations.Options {
+        return .{
+            .mode = switch (self.options.init_declarations_mode) {
+                .always => .always,
+                .never => .never,
+            },
+            .ignore_for_loop_init = self.options.init_declarations_ignore_for_loop_init,
         };
     }
 
@@ -2159,6 +2171,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.init_declarations) {
+            init_declarations.enterTSModuleDeclaration(&self.init_declarations_state, declaration);
+        }
         if (self.options.typescript_eslint_prefer_namespace_keyword) {
             try typescript_eslint_prefer_namespace_keyword.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
         }
@@ -2173,6 +2188,17 @@ const BasicVisitor = struct {
             );
         }
         return .proceed;
+    }
+
+    pub fn exit_ts_module_declaration(
+        self: *BasicVisitor,
+        declaration: ast.TSModuleDeclaration,
+        _: ast.NodeIndex,
+        _: *traverser.basic.Ctx,
+    ) void {
+        if (self.options.init_declarations) {
+            init_declarations.exitTSModuleDeclaration(&self.init_declarations_state, declaration);
+        }
     }
 
     pub fn enter_switch_statement(
@@ -2508,6 +2534,18 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.init_declarations) {
+            try init_declarations.checkVariableDeclaration(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                declaration,
+                index,
+                ctx,
+                &self.init_declarations_state,
+                self.initDeclarationsOptions(),
+            );
+        }
         if (self.options.no_var) {
             try no_var.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
         }
