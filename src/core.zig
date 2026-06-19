@@ -1667,6 +1667,7 @@ pub const Options = struct {
     typescript_eslint_no_shadow_allow: NoShadowAllowNames = .{},
     typescript_eslint_no_shadow_builtin_globals: bool = false,
     typescript_eslint_no_shadow_hoist: NoShadowHoist = .functions_and_types,
+    typescript_eslint_no_shadow_ignore_on_initialization: bool = false,
     typescript_eslint_no_shadow_ignore_type_value_shadow: bool = false,
     typescript_eslint_no_shadow_ignore_function_type_parameter_name_value_shadow: bool = true,
     typescript_eslint_no_this_alias: bool = true,
@@ -2215,6 +2216,7 @@ pub const Options = struct {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
             self.typescript_eslint_no_shadow_builtin_globals = try noShadowBuiltinGlobalsFromConfig(value);
             self.typescript_eslint_no_shadow_hoist = try noShadowHoistFromConfig(value, .functions_and_types);
+            self.typescript_eslint_no_shadow_ignore_on_initialization = try noShadowBoolOptionFromConfig(value, "ignoreOnInitialization", false);
             self.typescript_eslint_no_shadow_ignore_type_value_shadow = try noShadowBoolOptionFromConfig(value, "ignoreTypeValueShadow", false);
             self.typescript_eslint_no_shadow_ignore_function_type_parameter_name_value_shadow = try noShadowBoolOptionFromConfig(value, "ignoreFunctionTypeParameterNameValueShadow", true);
         }
@@ -6993,7 +6995,7 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"value\"],\"builtinGlobals\":true,\"hoist\":\"never\",\"ignoreTypeValueShadow\":true,\"ignoreFunctionTypeParameterNameValueShadow\":false}]",
+        "[\"error\",{\"allow\":[\"value\"],\"builtinGlobals\":true,\"hoist\":\"never\",\"ignoreOnInitialization\":true,\"ignoreTypeValueShadow\":true,\"ignoreFunctionTypeParameterNameValueShadow\":false}]",
         .{},
     );
     defer typescript_no_shadow_config.deinit();
@@ -7003,6 +7005,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(!options.typescript_eslint_no_shadow_allow.contains("other"));
     try std.testing.expect(options.typescript_eslint_no_shadow_builtin_globals);
     try std.testing.expectEqual(NoShadowHoist.never, options.typescript_eslint_no_shadow_hoist);
+    try std.testing.expect(options.typescript_eslint_no_shadow_ignore_on_initialization);
     try std.testing.expect(options.typescript_eslint_no_shadow_ignore_type_value_shadow);
     try std.testing.expect(!options.typescript_eslint_no_shadow_ignore_function_type_parameter_name_value_shadow);
 

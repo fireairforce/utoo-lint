@@ -32,6 +32,7 @@ pub fn runWithOptions(
         .allow = options.allow,
         .builtin_globals = options.builtin_globals,
         .hoist = options.hoist,
+        .ignore_on_initialization = options.ignore_on_initialization,
         .ignore_type_value_shadow = options.ignore_type_value_shadow,
         .ignore_function_type_parameter_name_value_shadow = options.ignore_function_type_parameter_name_value_shadow,
     });
