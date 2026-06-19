@@ -204,6 +204,7 @@ pub const no_undefined = @import("no_undefined.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
+pub const no_unsafe_optional_chaining = @import("no_unsafe_optional_chaining.zig");
 pub const no_useless_computed_key = @import("no_useless_computed_key.zig");
 pub const no_useless_call = @import("no_useless_call.zig");
 pub const no_useless_concat = @import("no_useless_concat.zig");
@@ -574,6 +575,9 @@ pub fn runBasic(
     }
     if (options.typescript_eslint_no_non_null_asserted_optional_chain) {
         try typescript_eslint_no_non_null_asserted_optional_chain.run(allocator, diagnostics, tree);
+    }
+    if (options.no_unsafe_optional_chaining) {
+        try no_unsafe_optional_chaining.run(allocator, diagnostics, tree);
     }
     if (options.react_hooks_rules_of_hooks) {
         try react_hooks_rules_of_hooks.run(allocator, diagnostics, tree);
