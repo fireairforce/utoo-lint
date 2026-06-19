@@ -1463,6 +1463,8 @@ pub const Options = struct {
     jsx_a11y_aria_props: bool = true,
     jsx_a11y_aria_proptypes: bool = true,
     jsx_a11y_aria_role: bool = true,
+    jsx_a11y_aria_role_allowed_invalid_roles: JsxA11yImgRedundantAltNames = .{},
+    jsx_a11y_aria_role_ignore_non_dom: bool = true,
     jsx_a11y_aria_unsupported_elements: bool = true,
     jsx_a11y_iframe_has_title: bool = true,
     jsx_a11y_img_redundant_alt: bool = true,
@@ -2038,6 +2040,10 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "jsx-a11y/anchor-has-content")) {
             self.jsx_a11y_anchor_has_content_components = try jsxA11yNamesFromConfig(value, "components");
+        }
+        if (std.mem.eql(u8, cli_name, "jsx-a11y/aria-role")) {
+            self.jsx_a11y_aria_role_allowed_invalid_roles = try jsxA11yNamesFromConfig(value, "allowedInvalidRoles");
+            self.jsx_a11y_aria_role_ignore_non_dom = try jsxA11yBoolOptionFromConfig(value, "ignoreNonDOM", true);
         }
         if (std.mem.eql(u8, cli_name, "jsx-a11y/img-redundant-alt")) {
             self.jsx_a11y_img_redundant_alt_components = try jsxA11yNamesFromConfig(value, "components");
@@ -3039,6 +3045,23 @@ pub const Options = struct {
             names.append(name) catch return error.UnsupportedRuleConfigValue;
         }
         return names;
+    }
+
+    fn jsxA11yBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     const JsxA11yNoDistractingElementsConfig = struct {
@@ -6630,6 +6653,19 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.jsx_a11y_anchor_has_content);
     try std.testing.expect(options.jsx_a11y_anchor_has_content_components.contains("Anchor"));
     try std.testing.expect(!options.jsx_a11y_anchor_has_content_components.contains("Link"));
+
+    var jsx_a11y_aria_role_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowedInvalidRoles\":[\"text\"],\"ignoreNonDOM\":false}]",
+        .{},
+    );
+    defer jsx_a11y_aria_role_config.deinit();
+    try options.setByRuleConfigValue("jsx-a11y/aria-role", jsx_a11y_aria_role_config.value);
+    try std.testing.expect(options.jsx_a11y_aria_role);
+    try std.testing.expect(options.jsx_a11y_aria_role_allowed_invalid_roles.contains("text"));
+    try std.testing.expect(!options.jsx_a11y_aria_role_allowed_invalid_roles.contains("datepicker"));
+    try std.testing.expect(!options.jsx_a11y_aria_role_ignore_non_dom);
 
     var jsx_a11y_img_redundant_alt_config = try std.json.parseFromSlice(
         std.json.Value,

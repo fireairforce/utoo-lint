@@ -3180,7 +3180,10 @@ const BasicVisitor = struct {
             try jsx_a11y_aria_unsupported_elements.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
         }
         if (self.options.jsx_a11y_aria_role) {
-            try jsx_a11y_aria_role.check(self.allocator, self.diagnostics, ctx.tree, opening);
+            try jsx_a11y_aria_role.check(self.allocator, self.diagnostics, ctx.tree, opening, .{
+                .allowed_invalid_roles = self.options.jsx_a11y_aria_role_allowed_invalid_roles,
+                .ignore_non_dom = self.options.jsx_a11y_aria_role_ignore_non_dom,
+            });
         }
         if (self.options.jsx_a11y_role_has_required_aria_props) {
             try jsx_a11y_role_has_required_aria_props.check(self.allocator, self.diagnostics, ctx.tree, opening);

@@ -9,6 +9,11 @@ pub const id = "jsx-a11y/aria-role";
 
 const message = "Elements with ARIA roles must use a valid, non-abstract ARIA role.";
 
+pub const Options = struct {
+    allowed_invalid_roles: core.JsxA11yImgRedundantAltNames = .{},
+    ignore_non_dom: bool = true,
+};
+
 const RoleValueStatus = enum {
     valid,
     invalid,
@@ -20,9 +25,10 @@ pub fn check(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     opening: ast.JSXOpeningElement,
+    options: Options,
 ) Allocator.Error!void {
     const tag_name = elementName(tree, opening.name) orelse return;
-    if (!isDomElement(tag_name)) return;
+    if (options.ignore_non_dom and !isDomElement(tag_name)) return;
 
     for (tree.extra(opening.attributes)) |attribute_index| {
         const attribute = switch (tree.data(attribute_index)) {
@@ -32,7 +38,7 @@ pub fn check(
         const name = attributeName(tree, attribute.name) orelse continue;
         if (!std.ascii.eqlIgnoreCase(name, "role")) continue;
 
-        switch (roleValueStatus(tree, attribute.value)) {
+        switch (roleValueStatus(tree, attribute.value, options.allowed_invalid_roles)) {
             .valid, .ignored => {},
             .invalid => try core.addDiagnostic(
                 allocator,
@@ -46,20 +52,20 @@ pub fn check(
     }
 }
 
-fn roleValueStatus(tree: *const ast.Tree, value_index: ast.NodeIndex) RoleValueStatus {
+fn roleValueStatus(tree: *const ast.Tree, value_index: ast.NodeIndex, allowed_invalid_roles: core.JsxA11yImgRedundantAltNames) RoleValueStatus {
     if (value_index == .null) return .invalid;
 
     return switch (tree.data(value_index)) {
-        .string_literal => |literal| validateRoleList(tree.string(literal.value)),
-        .jsx_expression_container => |container| roleExpressionStatus(tree, container.expression),
+        .string_literal => |literal| validateRoleList(tree.string(literal.value), allowed_invalid_roles),
+        .jsx_expression_container => |container| roleExpressionStatus(tree, container.expression, allowed_invalid_roles),
         else => .ignored,
     };
 }
 
-fn roleExpressionStatus(tree: *const ast.Tree, expression_index: ast.NodeIndex) RoleValueStatus {
+fn roleExpressionStatus(tree: *const ast.Tree, expression_index: ast.NodeIndex, allowed_invalid_roles: core.JsxA11yImgRedundantAltNames) RoleValueStatus {
     return switch (tree.data(expression_index)) {
-        .string_literal => |literal| validateRoleList(tree.string(literal.value)),
-        .template_literal => |literal| templateRoleStatus(tree, literal),
+        .string_literal => |literal| validateRoleList(tree.string(literal.value), allowed_invalid_roles),
+        .template_literal => |literal| templateRoleStatus(tree, literal, allowed_invalid_roles),
         .identifier_reference => |identifier| identifierRoleStatus(tree.string(identifier.name)),
         .boolean_literal,
         .null_literal,
@@ -69,14 +75,14 @@ fn roleExpressionStatus(tree: *const ast.Tree, expression_index: ast.NodeIndex) 
     };
 }
 
-fn templateRoleStatus(tree: *const ast.Tree, literal: ast.TemplateLiteral) RoleValueStatus {
+fn templateRoleStatus(tree: *const ast.Tree, literal: ast.TemplateLiteral, allowed_invalid_roles: core.JsxA11yImgRedundantAltNames) RoleValueStatus {
     if (literal.expressions.len != 0) return .invalid;
 
     const quasis = tree.extra(literal.quasis);
-    if (quasis.len == 0) return validateRoleList("");
+    if (quasis.len == 0) return validateRoleList("", allowed_invalid_roles);
 
     return switch (tree.data(quasis[0])) {
-        .template_element => |element| validateRoleList(tree.string(element.cooked)),
+        .template_element => |element| validateRoleList(tree.string(element.cooked), allowed_invalid_roles),
         else => .ignored,
     };
 }
@@ -96,10 +102,10 @@ fn identifierRoleStatus(name: []const u8) RoleValueStatus {
     return .ignored;
 }
 
-fn validateRoleList(value: []const u8) RoleValueStatus {
+fn validateRoleList(value: []const u8, allowed_invalid_roles: core.JsxA11yImgRedundantAltNames) RoleValueStatus {
     var values = std.mem.splitScalar(u8, value, ' ');
     while (values.next()) |role| {
-        if (!isValidRole(role)) return .invalid;
+        if (!isValidRole(role) and !allowed_invalid_roles.contains(role)) return .invalid;
     }
     return .valid;
 }

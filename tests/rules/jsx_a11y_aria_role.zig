@@ -52,6 +52,54 @@ test "allows jsx-a11y/aria-role valid roles and non-dom elements" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.jsx_a11y_aria_role.id));
 }
 
+test "supports configured jsx-a11y/aria-role allowed invalid roles and non-dom checks" {
+    var allowed_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowedInvalidRoles\":[\"text\"]}]",
+        .{},
+    );
+    defer allowed_config.deinit();
+
+    var allowed_options = lint.Options{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try allowed_options.setByRuleConfigValue("jsx-a11y/aria-role", allowed_config.value);
+
+    var allowed_result = try lint.lintSource(std.testing.allocator,
+        \\const one = <div role="text" />;
+        \\const two = <div role="text button" />;
+        \\const three = <div role="datepicker" />;
+    , "fixture.tsx", allowed_options);
+    defer allowed_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(allowed_result, lint.rules.jsx_a11y_aria_role.id));
+
+    var non_dom_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreNonDOM\":false}]",
+        .{},
+    );
+    defer non_dom_config.deinit();
+
+    var non_dom_options = lint.Options{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try non_dom_options.setByRuleConfigValue("jsx-a11y/aria-role", non_dom_config.value);
+
+    var non_dom_result = try lint.lintSource(std.testing.allocator,
+        \\const one = <Foo role="datepicker" />;
+        \\const two = <foo role="datepicker" />;
+        \\const three = <Foo role="button" />;
+    , "fixture.tsx", non_dom_options);
+    defer non_dom_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(non_dom_result, lint.rules.jsx_a11y_aria_role.id));
+}
+
 test "can disable jsx-a11y/aria-role" {
     const source =
         \\const node = <div role="foo" />;
