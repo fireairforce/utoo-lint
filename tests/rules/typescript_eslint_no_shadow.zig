@@ -154,6 +154,51 @@ test "supports configured @typescript-eslint/no-shadow hoist option" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_shadow.id));
 }
 
+test "supports configured @typescript-eslint/no-shadow ignoreOnInitialization" {
+    const source =
+        \\function wrapper(fn) {
+        \\  return fn;
+        \\}
+        \\const callback = wrapper(function(callback) {
+        \\  return callback;
+        \\});
+        \\const immediate = (function(immediate) {
+        \\  return immediate;
+        \\})();
+        \\const direct = direct => direct;
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_unused_vars = false,
+        .typescript_eslint_no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(default_result, lint.rules.typescript_eslint_no_shadow.id));
+    try std.testing.expect(!helpers.hasRule(default_result, lint.rules.no_shadow.id));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreOnInitialization\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-shadow", config.value);
+    options.no_unused_vars = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    var ignored_result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer ignored_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(ignored_result, lint.rules.typescript_eslint_no_shadow.id));
+    try std.testing.expect(!helpers.hasRule(ignored_result, lint.rules.no_shadow.id));
+}
+
 test "supports configured @typescript-eslint/no-shadow ignoreTypeValueShadow" {
     var config = try std.json.parseFromSlice(
         std.json.Value,

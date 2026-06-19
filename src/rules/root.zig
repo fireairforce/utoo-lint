@@ -821,6 +821,7 @@ pub fn runSemantic(
             .allow = options.typescript_eslint_no_shadow_allow,
             .builtin_globals = options.typescript_eslint_no_shadow_builtin_globals,
             .hoist = options.typescript_eslint_no_shadow_hoist,
+            .ignore_on_initialization = options.typescript_eslint_no_shadow_ignore_on_initialization,
             .ignore_type_value_shadow = options.typescript_eslint_no_shadow_ignore_type_value_shadow,
             .ignore_function_type_parameter_name_value_shadow = options.typescript_eslint_no_shadow_ignore_function_type_parameter_name_value_shadow,
         });
