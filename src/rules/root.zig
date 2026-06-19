@@ -351,6 +351,13 @@ fn funcNameMatchingStyle(style: core.FuncNameMatchingStyle) func_name_matching.S
     };
 }
 
+fn funcNameMatchingOptions(options: *const core.Options) func_name_matching.Options {
+    return .{
+        .style = funcNameMatchingStyle(options.func_name_matching_style),
+        .include_commonjs_module_exports = options.func_name_matching_include_commonjs_module_exports,
+    };
+}
+
 fn reactPreferEs6ClassStyle(style: core.ReactPreferEs6ClassStyle) react_prefer_es6_class.Style {
     return switch (style) {
         .always => .always,
@@ -1675,9 +1682,7 @@ const BasicVisitor = struct {
             try no_multi_assign.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
         }
         if (self.options.func_name_matching) {
-            try func_name_matching.checkVariableDeclaratorWithOptions(self.allocator, self.diagnostics, ctx.tree, declarator, .{
-                .style = funcNameMatchingStyle(self.options.func_name_matching_style),
-            });
+            try func_name_matching.checkVariableDeclaratorWithOptions(self.allocator, self.diagnostics, ctx.tree, declarator, funcNameMatchingOptions(&self.options));
         }
         if (self.options.react_no_children_prop) {
             react_no_children_prop.checkVariableDeclarator(ctx.tree, declarator, &self.react_no_children_prop_bindings);
@@ -2515,9 +2520,7 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.func_name_matching) {
-            try func_name_matching.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
-                .style = funcNameMatchingStyle(self.options.func_name_matching_style),
-            });
+            try func_name_matching.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, funcNameMatchingOptions(&self.options));
         }
         if (self.options.prefer_destructuring) {
             try prefer_destructuring.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, .{
@@ -3273,9 +3276,7 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.func_name_matching) {
-            try func_name_matching.checkObjectPropertyWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
-                .style = funcNameMatchingStyle(self.options.func_name_matching_style),
-            });
+            try func_name_matching.checkObjectPropertyWithOptions(self.allocator, self.diagnostics, ctx.tree, property, funcNameMatchingOptions(&self.options));
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkObjectPropertyWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
@@ -3476,9 +3477,7 @@ const BasicVisitor = struct {
             );
         }
         if (self.options.func_name_matching) {
-            try func_name_matching.checkPropertyDefinitionWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
-                .style = funcNameMatchingStyle(self.options.func_name_matching_style),
-            });
+            try func_name_matching.checkPropertyDefinitionWithOptions(self.allocator, self.diagnostics, ctx.tree, property, funcNameMatchingOptions(&self.options));
         }
         if (self.options.react_no_typos) {
             try react_no_typos.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, ctx, self.react_no_typos_state);
