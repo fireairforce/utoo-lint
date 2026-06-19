@@ -577,7 +577,9 @@ pub fn runBasic(
         try typescript_eslint_no_non_null_asserted_optional_chain.run(allocator, diagnostics, tree);
     }
     if (options.no_unsafe_optional_chaining) {
-        try no_unsafe_optional_chaining.run(allocator, diagnostics, tree);
+        try no_unsafe_optional_chaining.runWithOptions(allocator, diagnostics, tree, .{
+            .disallow_arithmetic_operators = options.no_unsafe_optional_chaining_disallow_arithmetic_operators,
+        });
     }
     if (options.react_hooks_rules_of_hooks) {
         try react_hooks_rules_of_hooks.run(allocator, diagnostics, tree);
