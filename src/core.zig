@@ -1706,6 +1706,7 @@ pub const Options = struct {
     typescript_eslint_no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
     typescript_eslint_no_use_before_define_check_variables: NoUseBeforeDefineCheck = .yes,
     typescript_eslint_no_use_before_define_allow_named_exports: bool = false,
+    typescript_eslint_no_use_before_define_ignore_type_references: bool = true,
     typescript_eslint_no_var_requires: bool = true,
     typescript_eslint_no_wrapper_object_types: bool = true,
     typescript_eslint_prefer_as_const: bool = true,
@@ -2277,6 +2278,7 @@ pub const Options = struct {
             self.typescript_eslint_no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
             self.typescript_eslint_no_use_before_define_check_variables = try noUseBeforeDefineCheckFromConfig(value, "variables", true);
             self.typescript_eslint_no_use_before_define_allow_named_exports = try noUseBeforeDefineAllowNamedExportsFromConfig(value);
+            self.typescript_eslint_no_use_before_define_ignore_type_references = try noUseBeforeDefineBoolOptionFromConfig(value, "ignoreTypeReferences", true);
         }
         if (std.mem.eql(u8, cli_name, "no-void")) {
             self.no_void_allow_as_statement = try noVoidAllowAsStatementFromConfig(value);
@@ -4360,18 +4362,22 @@ pub const Options = struct {
     }
 
     fn noUseBeforeDefineAllowNamedExportsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        return noUseBeforeDefineBoolOptionFromConfig(value, "allowNamedExports", false);
+    }
+
+    fn noUseBeforeDefineBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
-            else => return false,
+            else => return default,
         };
-        if (items.len < 2) return false;
+        if (items.len < 2) return default;
 
         const config = switch (items[1]) {
             .object => |object| object,
-            .string => return false,
+            .string => return default,
             else => return error.UnsupportedRuleConfigValue,
         };
-        return switch (config.get("allowNamedExports") orelse return false) {
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -7451,7 +7457,7 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"functions\":true,\"classes\":false,\"variables\":false,\"allowNamedExports\":true}]",
+        "[\"error\",{\"functions\":true,\"classes\":false,\"variables\":false,\"allowNamedExports\":true,\"ignoreTypeReferences\":false}]",
         .{},
     );
     defer typescript_no_use_before_define_config.deinit();
@@ -7461,6 +7467,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_classes);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_variables);
     try std.testing.expect(options.typescript_eslint_no_use_before_define_allow_named_exports);
+    try std.testing.expect(!options.typescript_eslint_no_use_before_define_ignore_type_references);
 
     var no_void_config = try std.json.parseFromSlice(
         std.json.Value,

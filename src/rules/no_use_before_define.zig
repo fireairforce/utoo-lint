@@ -18,6 +18,7 @@ pub const Options = struct {
     check_functions: bool = true,
     check_classes: bool = true,
     check_variables: bool = true,
+    check_type_references: bool = false,
     allow_named_exports: bool = false,
 };
 
@@ -79,15 +80,15 @@ pub fn runWithOptions(
     var reference_iter = symbol_table.iterReferences();
     while (reference_iter.next()) |entry| {
         const reference = entry.reference;
-        if (reference.kind != .value) continue;
+        if (reference.kind == .type and !options.check_type_references) continue;
         if (options.allow_named_exports and named_export_refs.contains(reference.node)) continue;
 
         const symbol_id = symbol_table.referenceSymbol(entry.id);
         if (symbol_id == .none) continue;
 
         const symbol = symbol_table.getSymbol(symbol_id);
-        if (!isLintableSymbol(symbol.flags, options)) continue;
-        if (shouldIgnoreVariableReference(scope_tree, reference.scope, symbol.scope, symbol.flags, options)) continue;
+        if (!isLintableReferenceSymbol(symbol.flags, reference.kind, options)) continue;
+        if (reference.kind == .value and shouldIgnoreVariableReference(scope_tree, reference.scope, symbol.scope, symbol.flags, options)) continue;
 
         const decls = symbol_table.symbolDecls(symbol_id);
         if (decls.len == 0) continue;
@@ -258,9 +259,30 @@ fn crossesFunctionScope(
 }
 
 fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bool {
+    return isLintableValueSymbol(flags, options);
+}
+
+fn isLintableReferenceSymbol(
+    flags: traverser.semantic.Symbol.Flags,
+    kind: traverser.semantic.Reference.Kind,
+    options: Options,
+) bool {
+    return switch (kind) {
+        .value => isLintableValueSymbol(flags, options),
+        .type => isLintableTypeSymbol(flags, options),
+    };
+}
+
+fn isLintableValueSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bool {
     if (flags.ambient) return false;
     if (flags.type_import or flags.interface or flags.type_alias or flags.type_parameter) return false;
     if (!options.check_functions and flags.function) return false;
     if (!options.check_classes and flags.class) return false;
     return flags.inValueSpace() or flags.import;
+}
+
+fn isLintableTypeSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bool {
+    if (flags.ambient) return false;
+    if (!options.check_classes and flags.class) return false;
+    return flags.inTypeSpace() or flags.type_import;
 }
