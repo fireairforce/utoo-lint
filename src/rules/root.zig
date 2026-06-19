@@ -2851,6 +2851,7 @@ const BasicVisitor = struct {
             try react_jsx_key.enterCallExpression(self.allocator, self.diagnostics, ctx.tree, call, &self.react_jsx_key_state, .{
                 .check_key_must_before_spread = self.options.react_jsx_key_check_key_must_before_spread,
                 .check_fragment_shorthand = self.options.react_jsx_key_check_fragment_shorthand,
+                .warn_on_duplicates = self.options.react_jsx_key_warn_on_duplicates,
             });
         }
         if (self.options.new_cap) {
@@ -3022,6 +3023,7 @@ const BasicVisitor = struct {
             try react_jsx_key.checkArrayExpression(self.allocator, self.diagnostics, ctx.tree, expression, .{
                 .check_key_must_before_spread = self.options.react_jsx_key_check_key_must_before_spread,
                 .check_fragment_shorthand = self.options.react_jsx_key_check_fragment_shorthand,
+                .warn_on_duplicates = self.options.react_jsx_key_warn_on_duplicates,
             });
         }
         return .proceed;
@@ -3131,6 +3133,13 @@ const BasicVisitor = struct {
         }
         if (self.options.react_void_dom_elements_no_children) {
             try react_void_dom_elements_no_children.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
+        }
+        if (self.options.react_jsx_key and self.react_jsx_key_state.children_to_array_depth == 0) {
+            try react_jsx_key.checkJSXElementChildren(self.allocator, self.diagnostics, ctx.tree, element, .{
+                .check_key_must_before_spread = self.options.react_jsx_key_check_key_must_before_spread,
+                .check_fragment_shorthand = self.options.react_jsx_key_check_fragment_shorthand,
+                .warn_on_duplicates = self.options.react_jsx_key_warn_on_duplicates,
+            });
         }
         return .proceed;
     }

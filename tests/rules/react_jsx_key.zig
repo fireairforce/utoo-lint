@@ -91,6 +91,74 @@ test "supports configured react jsx key fragment shorthand" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_jsx_key.id));
 }
 
+test "supports configured react jsx key duplicate warnings" {
+    const source =
+        \\const nodes = [
+        \\  <Item key="same" />,
+        \\  <Item key="same" />,
+        \\  <Item key={id} />,
+        \\  <Item key={id} />,
+        \\  <Item key="other" />,
+        \\];
+        \\const unique = [
+        \\  <Item key="first" />,
+        \\  <Item key="second" />,
+        \\];
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"warnOnDuplicates\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = test_options;
+    try options.setByRuleConfigValue("react/jsx-key", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.react_jsx_key.id));
+    try std.testing.expect(hasMessage(result, "`key` prop must be unique"));
+}
+
+test "supports configured react jsx key duplicate warnings for children" {
+    const source =
+        \\const view = (
+        \\  <List>
+        \\    <Item key="same" />
+        \\    <Item key="same" />
+        \\    <Item key="other" />
+        \\  </List>
+        \\);
+        \\const unique = (
+        \\  <List>
+        \\    <Item key="first" />
+        \\    <Item key="second" />
+        \\  </List>
+        \\);
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"warnOnDuplicates\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = test_options;
+    try options.setByRuleConfigValue("react/jsx-key", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_jsx_key.id));
+    try std.testing.expect(hasMessage(result, "`key` prop must be unique"));
+}
+
 test "allows react jsx key fragment shorthand by default" {
     const source =
         \\const nodes = [
@@ -103,6 +171,17 @@ test "allows react jsx key fragment shorthand by default" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_jsx_key.id));
+}
+
+fn hasMessage(result: lint.Result, expected: []const u8) bool {
+    for (result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.react_jsx_key.id) and
+            std.mem.eql(u8, diagnostic.message, expected))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 test "reports JSX elements without keys in block callback returns" {
