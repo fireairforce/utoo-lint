@@ -2266,7 +2266,9 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.getter_return) {
-            try getter_return.check(self.allocator, self.diagnostics, ctx.tree, body, index, ctx);
+            try getter_return.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, body, index, ctx, .{
+                .allow_implicit = self.options.getter_return_allow_implicit,
+            });
         }
         if (self.options.no_unreachable) {
             try no_unreachable.checkRange(self.allocator, self.diagnostics, ctx.tree, body.body);
