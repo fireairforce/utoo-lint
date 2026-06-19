@@ -10,11 +10,16 @@ pub const id = "@typescript-eslint/no-require-imports";
 
 const ReferenceLookup = std.AutoHashMap(ast.NodeIndex, traverser.semantic.SymbolId);
 
+pub const Options = struct {
+    allow_as_import: bool = false,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
 ) Allocator.Error!void {
     if (std.mem.indexOf(u8, tree.source, "require") == null) return;
 
@@ -25,6 +30,7 @@ pub fn run(
         .allocator = allocator,
         .diagnostics = diagnostics,
         .reference_lookup = &reference_lookup,
+        .options = options,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -34,6 +40,7 @@ const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     reference_lookup: *const ReferenceLookup,
+    options: Options,
 
     pub fn enter_call_expression(
         self: *Visitor,
@@ -53,6 +60,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.allow_as_import) return .proceed;
         try self.addDiagnostic(ctx.tree, index);
         return .proceed;
     }

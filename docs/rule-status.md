@@ -289,7 +289,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-namespace`](https://typescript-eslint.io/rules/no-namespace/) | Implemented for `allowDeclarations` and `allowDefinitionFiles` configurations |
 | [`@typescript-eslint/no-non-null-asserted-optional-chain`](https://typescript-eslint.io/rules/no-non-null-asserted-optional-chain/) | Implemented |
 | [`@typescript-eslint/no-redeclare`](https://typescript-eslint.io/rules/no-redeclare/) | Supports `builtinGlobals` and `ignoreDeclarationMerge` configuration |
-| [`@typescript-eslint/no-require-imports`](https://typescript-eslint.io/rules/no-require-imports/) | Implemented |
+| [`@typescript-eslint/no-require-imports`](https://typescript-eslint.io/rules/no-require-imports/) | Supports `allowAsImport` configuration |
 | [`@typescript-eslint/no-shadow`](https://typescript-eslint.io/rules/no-shadow/) | Supports `allow`, `builtinGlobals`, `hoist`, `ignoreOnInitialization`, `ignoreTypeValueShadow`, and `ignoreFunctionTypeParameterNameValueShadow` configuration |
 | [`@typescript-eslint/no-this-alias`](https://typescript-eslint.io/rules/no-this-alias/) | Supports `allowedNames` and `allowDestructuring` configuration |
 | [`@typescript-eslint/no-unsafe-declaration-merging`](https://typescript-eslint.io/rules/no-unsafe-declaration-merging/) | Implemented |
