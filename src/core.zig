@@ -1864,6 +1864,7 @@ pub const Options = struct {
     typescript_eslint_no_redeclare_builtin_globals: bool = false,
     typescript_eslint_no_redeclare_ignore_declaration_merge: bool = true,
     typescript_eslint_no_require_imports: bool = true,
+    typescript_eslint_no_require_imports_allow_as_import: bool = false,
     typescript_eslint_no_shadow: bool = true,
     typescript_eslint_no_shadow_allow: NoShadowAllowNames = .{},
     typescript_eslint_no_shadow_builtin_globals: bool = false,
@@ -2509,6 +2510,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-redeclare")) {
             self.typescript_eslint_no_redeclare_builtin_globals = try typescriptEslintNoRedeclareBuiltinGlobalsFromConfig(value);
             self.typescript_eslint_no_redeclare_ignore_declaration_merge = try typescriptEslintNoRedeclareIgnoreDeclarationMergeFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-require-imports")) {
+            self.typescript_eslint_no_require_imports_allow_as_import = try typescriptEslintNoRequireImportsBoolOptionFromConfig(value, "allowAsImport", false);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-this-alias")) {
             self.typescript_eslint_no_this_alias_allowed_names = try typescriptEslintNoThisAliasAllowedNamesFromConfig(value);
@@ -6266,6 +6270,10 @@ pub const Options = struct {
         return noShadowBuiltinGlobalsFromConfig(value);
     }
 
+    fn typescriptEslintNoRequireImportsBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        return typescriptEslintNoNamespaceBoolOptionFromConfig(value, key, default);
+    }
+
     fn typescriptEslintNoThisAliasAllowedNamesFromConfig(value: std.json.Value) RuleConfigError!NoThisAliasAllowedNames {
         const items = switch (value) {
             .array => |array| array.items,
@@ -6661,6 +6669,11 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unnecessary_parameter_property_assignment);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unnecessary-parameter-property-assignment", true));
     try std.testing.expect(options.typescript_eslint_no_unnecessary_parameter_property_assignment);
+
+    try std.testing.expect(!options.typescript_eslint_no_require_imports);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-require-imports", true));
+    try std.testing.expect(options.typescript_eslint_no_require_imports);
+    try std.testing.expect(!options.typescript_eslint_no_require_imports_allow_as_import);
 
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
@@ -8398,6 +8411,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_invalid_void_type_allowed_generic_type_names.contains("Promise"));
     try std.testing.expect(options.typescript_eslint_no_invalid_void_type_allowed_generic_type_names.contains("React.VoidFunctionComponent"));
     try std.testing.expect(!options.typescript_eslint_no_invalid_void_type_allowed_generic_type_names.contains("Map"));
+
+    var typescript_no_require_imports_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowAsImport\":true}]",
+        .{},
+    );
+    defer typescript_no_require_imports_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-require-imports", typescript_no_require_imports_config.value);
+    try std.testing.expect(options.typescript_eslint_no_require_imports);
+    try std.testing.expect(options.typescript_eslint_no_require_imports_allow_as_import);
 
     var typescript_restrict_plus_operands_config = try std.json.parseFromSlice(
         std.json.Value,
