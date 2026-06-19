@@ -1706,6 +1706,7 @@ pub const Options = struct {
     typescript_eslint_no_use_before_define_check_classes: NoUseBeforeDefineCheck = .yes,
     typescript_eslint_no_use_before_define_check_variables: NoUseBeforeDefineCheck = .yes,
     typescript_eslint_no_use_before_define_check_typedefs: NoUseBeforeDefineCheck = .yes,
+    typescript_eslint_no_use_before_define_check_enums: NoUseBeforeDefineCheck = .yes,
     typescript_eslint_no_use_before_define_allow_named_exports: bool = false,
     typescript_eslint_no_use_before_define_ignore_type_references: bool = true,
     typescript_eslint_no_var_requires: bool = true,
@@ -2279,6 +2280,7 @@ pub const Options = struct {
             self.typescript_eslint_no_use_before_define_check_classes = try noUseBeforeDefineCheckFromConfig(value, "classes", true);
             self.typescript_eslint_no_use_before_define_check_variables = try noUseBeforeDefineCheckFromConfig(value, "variables", true);
             self.typescript_eslint_no_use_before_define_check_typedefs = try noUseBeforeDefineCheckFromConfig(value, "typedefs", true);
+            self.typescript_eslint_no_use_before_define_check_enums = try noUseBeforeDefineCheckFromConfig(value, "enums", true);
             self.typescript_eslint_no_use_before_define_allow_named_exports = try noUseBeforeDefineAllowNamedExportsFromConfig(value);
             self.typescript_eslint_no_use_before_define_ignore_type_references = try noUseBeforeDefineBoolOptionFromConfig(value, "ignoreTypeReferences", true);
         }
@@ -7459,7 +7461,7 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_use_before_define_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"functions\":true,\"classes\":false,\"variables\":false,\"typedefs\":false,\"allowNamedExports\":true,\"ignoreTypeReferences\":false}]",
+        "[\"error\",{\"functions\":true,\"classes\":false,\"variables\":false,\"typedefs\":false,\"enums\":false,\"allowNamedExports\":true,\"ignoreTypeReferences\":false}]",
         .{},
     );
     defer typescript_no_use_before_define_config.deinit();
@@ -7469,6 +7471,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_classes);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_variables);
     try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_typedefs);
+    try std.testing.expectEqual(NoUseBeforeDefineCheck.no, options.typescript_eslint_no_use_before_define_check_enums);
     try std.testing.expect(options.typescript_eslint_no_use_before_define_allow_named_exports);
     try std.testing.expect(!options.typescript_eslint_no_use_before_define_ignore_type_references);
 
