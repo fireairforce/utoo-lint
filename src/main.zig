@@ -633,6 +633,10 @@ pub fn main(init: std.process.Init) !void {
             options.logical_assignment_operators_style = .never;
         } else if (std.mem.eql(u8, arg, "--logical-assignment-operators-enforce-for-if-statements=on")) {
             options.logical_assignment_operators_enforce_for_if_statements = .yes;
+        } else if (std.mem.eql(u8, arg, "--max-params=off")) {
+            options.max_params = false;
+        } else if (std.mem.startsWith(u8, arg, "--max-params-max=")) {
+            parseMaxParamsMax(arg["--max-params-max=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--operator-assignment=off")) {
             options.operator_assignment = false;
         } else if (std.mem.eql(u8, arg, "--eqeqeq=off")) {
@@ -1169,6 +1173,14 @@ fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void 
     options.no_multiple_empty_lines_max = max;
 }
 
+fn parseMaxParamsMax(value: []const u8, options: *lint.Options) void {
+    const max = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --max-params-max value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.max_params_max = max;
+}
+
 fn parseNoMultipleEmptyLinesMaxBof(value: []const u8, options: *lint.Options) void {
     const max_bof = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --no-multiple-empty-lines-max-bof value: {s}\n", .{value});
@@ -1634,6 +1646,8 @@ fn printHelp() void {
         \\  --logical-assignment-operators=off Disable logical-assignment-operators
         \\  --logical-assignment-operators=never Disallow logical assignment operators
         \\  --logical-assignment-operators-enforce-for-if-statements=on Enable logical-assignment-operators if-statement checks
+        \\  --max-params=off          Disable max-params
+        \\  --max-params-max=N        Set max-params maximum
         \\  --no-loop-func=off        Disable no-loop-func
         \\  --no-loss-of-precision=off Disable no-loss-of-precision
         \\  --no-multi-str=off        Disable no-multi-str

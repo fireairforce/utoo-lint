@@ -213,6 +213,12 @@ pub const RadixStyle = enum {
     as_needed,
 };
 
+pub const MaxParamsCountThis = enum {
+    always,
+    never,
+    except_void,
+};
+
 pub const RequireUnicodeRegexpRequireFlag = enum {
     any,
     u,
@@ -1498,6 +1504,9 @@ pub const Options = struct {
     logical_assignment_operators: bool = true,
     logical_assignment_operators_style: LogicalAssignmentOperatorsStyle = .always,
     logical_assignment_operators_enforce_for_if_statements: LogicalAssignmentOperatorsEnforceForIfStatements = .no,
+    max_params: bool = true,
+    max_params_max: usize = 3,
+    max_params_count_this: MaxParamsCountThis = .except_void,
     new_cap: bool = true,
     new_cap_new_is_cap: bool = true,
     new_cap_cap_is_new: bool = true,
@@ -2250,6 +2259,10 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "logical-assignment-operators")) {
             self.logical_assignment_operators_style = try logicalAssignmentOperatorsStyleFromConfig(value);
             self.logical_assignment_operators_enforce_for_if_statements = try logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "max-params")) {
+            self.max_params_max = try maxParamsMaxFromConfig(value);
+            self.max_params_count_this = try maxParamsCountThisFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "import/no-cycle")) {
             self.import_no_cycle_amd = try importNoCycleBoolOptionFromConfig(value, "amd", false);
@@ -3773,6 +3786,72 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (enforce) .yes else .no;
+    }
+
+    fn maxParamsMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return 3,
+        };
+        if (items.len < 2) return 3;
+
+        switch (items[1]) {
+            .integer => |max| return nonNegativeIntegerToUsize(max),
+            .object => |object| {
+                if (object.get("max")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                if (object.get("maximum")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                return 3;
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+    }
+
+    fn nonNegativeIntegerToUsize(value: i64) RuleConfigError!usize {
+        if (value < 0) return error.UnsupportedRuleConfigValue;
+        return @intCast(value);
+    }
+
+    fn maxParamsCountThisFromConfig(value: std.json.Value) RuleConfigError!MaxParamsCountThis {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .except_void,
+        };
+        if (items.len < 2) return .except_void;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return .except_void,
+        };
+        if (config.get("countThis")) |count_this_value| {
+            const count_this = switch (count_this_value) {
+                .string => |count_this| count_this,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, count_this, "always")) return .always;
+            if (std.mem.eql(u8, count_this, "never")) return .never;
+            if (std.mem.eql(u8, count_this, "except-void")) return .except_void;
+            return error.UnsupportedRuleConfigValue;
+        }
+        if (config.get("countVoidThis")) |count_void_this_value| {
+            const count_void_this = switch (count_void_this_value) {
+                .bool => |enabled| enabled,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            return if (count_void_this) .always else .except_void;
+        }
+        return .except_void;
     }
 
     fn newCapBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
@@ -7897,6 +7976,18 @@ test "Options can apply ESLint-style rule config values" {
         LogicalAssignmentOperatorsEnforceForIfStatements.yes,
         options.logical_assignment_operators_enforce_for_if_statements,
     );
+
+    var max_params_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"max\":2,\"countThis\":\"always\"}]",
+        .{},
+    );
+    defer max_params_config.deinit();
+    try options.setByRuleConfigValue("max-params", max_params_config.value);
+    try std.testing.expect(options.max_params);
+    try std.testing.expectEqual(@as(usize, 2), options.max_params_max);
+    try std.testing.expectEqual(MaxParamsCountThis.always, options.max_params_count_this);
 
     var no_bitwise_config = try std.json.parseFromSlice(
         std.json.Value,
