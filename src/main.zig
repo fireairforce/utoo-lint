@@ -633,6 +633,12 @@ pub fn main(init: std.process.Init) !void {
             options.logical_assignment_operators_style = .never;
         } else if (std.mem.eql(u8, arg, "--logical-assignment-operators-enforce-for-if-statements=on")) {
             options.logical_assignment_operators_enforce_for_if_statements = .yes;
+        } else if (std.mem.eql(u8, arg, "--max-classes-per-file=off")) {
+            options.max_classes_per_file = false;
+        } else if (std.mem.startsWith(u8, arg, "--max-classes-per-file-max=")) {
+            parseMaxClassesPerFileMax(arg["--max-classes-per-file-max=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--max-classes-per-file-ignore-expressions=on")) {
+            options.max_classes_per_file_ignore_expressions = true;
         } else if (std.mem.eql(u8, arg, "--max-depth=off")) {
             options.max_depth = false;
         } else if (std.mem.startsWith(u8, arg, "--max-depth-max=")) {
@@ -1187,6 +1193,18 @@ fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void 
     options.no_multiple_empty_lines_max = max;
 }
 
+fn parseMaxClassesPerFileMax(value: []const u8, options: *lint.Options) void {
+    const max = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --max-classes-per-file-max value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    if (max < 1) {
+        std.debug.print("utoo-lint: invalid --max-classes-per-file-max value: {s}\n", .{value});
+        std.process.exit(2);
+    }
+    options.max_classes_per_file_max = max;
+}
+
 fn parseMaxDepthMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --max-depth-max value: {s}\n", .{value});
@@ -1684,6 +1702,9 @@ fn printHelp() void {
         \\  --logical-assignment-operators=off Disable logical-assignment-operators
         \\  --logical-assignment-operators=never Disallow logical assignment operators
         \\  --logical-assignment-operators-enforce-for-if-statements=on Enable logical-assignment-operators if-statement checks
+        \\  --max-classes-per-file=off Disable max-classes-per-file
+        \\  --max-classes-per-file-max=N Set max-classes-per-file maximum
+        \\  --max-classes-per-file-ignore-expressions=on Ignore class expressions
         \\  --max-depth=off           Disable max-depth
         \\  --max-depth-max=N         Set max-depth maximum
         \\  --max-nested-callbacks=off Disable max-nested-callbacks

@@ -83,6 +83,7 @@ pub const jsx_a11y_role_supports_aria_props = @import("jsx_a11y_role_supports_ar
 pub const jsx_a11y_scope = @import("jsx_a11y_scope.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const logical_assignment_operators = @import("logical_assignment_operators.zig");
+pub const max_classes_per_file = @import("max_classes_per_file.zig");
 pub const max_depth = @import("max_depth.zig");
 pub const max_nested_callbacks = @import("max_nested_callbacks.zig");
 pub const max_params = @import("max_params.zig");
@@ -1123,6 +1124,7 @@ const BasicVisitor = struct {
     react_no_unused_state_state: react_no_unused_state.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
+    max_classes_per_file_state: max_classes_per_file.State = .{},
     max_statements_state: max_statements.State = .{},
     max_nested_callbacks_state: max_nested_callbacks.State = .{},
 
@@ -1165,6 +1167,13 @@ const BasicVisitor = struct {
     fn maxNestedCallbacksOptions(self: *const BasicVisitor) max_nested_callbacks.Options {
         return .{
             .max = self.options.max_nested_callbacks_max,
+        };
+    }
+
+    fn maxClassesPerFileOptions(self: *const BasicVisitor) max_classes_per_file.Options {
+        return .{
+            .max = self.options.max_classes_per_file_max,
+            .ignore_expressions = self.options.max_classes_per_file_ignore_expressions,
         };
     }
 
@@ -1244,6 +1253,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.max_classes_per_file) {
+            max_classes_per_file.enterProgram(&self.max_classes_per_file_state);
+        }
         if (self.options.import_first) {
             try import_first.check(self.allocator, self.diagnostics, ctx.tree, program);
         }
@@ -1326,6 +1338,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) void {
+        if (self.options.max_classes_per_file) {
+            max_classes_per_file.exitProgram(self.allocator, self.diagnostics, ctx.tree, index, self.max_classes_per_file_state, self.maxClassesPerFileOptions()) catch {};
+        }
         if (self.options.max_statements) {
             max_statements.finishProgram(self.allocator, self.diagnostics, ctx.tree, &self.max_statements_state, self.maxStatementsOptions()) catch {};
         }
@@ -1434,6 +1449,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.max_classes_per_file) {
+            max_classes_per_file.checkClass(class, &self.max_classes_per_file_state, self.maxClassesPerFileOptions());
+        }
         if (self.options.constructor_super) {
             try constructor_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
