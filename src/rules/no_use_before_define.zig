@@ -20,6 +20,7 @@ pub const Options = struct {
     check_variables: bool = true,
     check_type_references: bool = false,
     check_typedefs: bool = true,
+    check_enums: bool = true,
     allow_named_exports: bool = false,
 };
 
@@ -285,10 +286,15 @@ fn isLintableValueSymbol(flags: traverser.semantic.Symbol.Flags, options: Option
 fn isLintableTypeSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bool {
     if (flags.ambient) return false;
     if (!options.check_typedefs and isTypedefSymbol(flags)) return false;
+    if (!options.check_enums and isEnumSymbol(flags)) return false;
     if (!options.check_classes and flags.class) return false;
     return flags.inTypeSpace() or flags.type_import;
 }
 
 fn isTypedefSymbol(flags: traverser.semantic.Symbol.Flags) bool {
     return flags.interface or flags.type_alias or flags.type_import;
+}
+
+fn isEnumSymbol(flags: traverser.semantic.Symbol.Flags) bool {
+    return flags.regular_enum or flags.const_enum;
 }

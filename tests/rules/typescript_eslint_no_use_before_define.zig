@@ -108,6 +108,55 @@ test "supports configured @typescript-eslint/no-use-before-define typedefs false
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_use_before_define.id));
 }
 
+test "supports configured @typescript-eslint/no-use-before-define enums false" {
+    const source =
+        \\type EnumUser = LaterEnum;
+        \\enum LaterEnum {
+        \\  A,
+        \\}
+    ;
+
+    var report_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreTypeReferences\":false}]",
+        .{},
+    );
+    defer report_config.deinit();
+
+    var report_options = lint.Options{};
+    try report_options.setByRuleConfigValue("@typescript-eslint/no-use-before-define", report_config.value);
+    report_options.no_unused_vars = false;
+    report_options.typescript_eslint_no_unused_vars = false;
+    report_options.parser_semantic_errors = false;
+
+    var report_result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", report_options);
+    defer report_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(report_result, lint.rules.typescript_eslint_no_use_before_define.id));
+    try std.testing.expect(!helpers.hasRule(report_result, lint.rules.no_use_before_define.id));
+
+    var ignore_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreTypeReferences\":false,\"enums\":false}]",
+        .{},
+    );
+    defer ignore_config.deinit();
+
+    var ignore_options = lint.Options{};
+    try ignore_options.setByRuleConfigValue("@typescript-eslint/no-use-before-define", ignore_config.value);
+    ignore_options.no_unused_vars = false;
+    ignore_options.typescript_eslint_no_unused_vars = false;
+    ignore_options.parser_semantic_errors = false;
+
+    var ignore_result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", ignore_options);
+    defer ignore_result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(ignore_result, lint.rules.typescript_eslint_no_use_before_define.id));
+    try std.testing.expect(!helpers.hasRule(ignore_result, lint.rules.no_use_before_define.id));
+}
+
 test "uses configured @typescript-eslint/no-use-before-define function and class checks" {
     var config = try std.json.parseFromSlice(
         std.json.Value,
