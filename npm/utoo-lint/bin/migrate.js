@@ -183,7 +183,6 @@ function migrateEslintConfig(options) {
   const supportedRules = [];
   const unsupportedRules = [];
   const ignoredRules = [];
-  const optionDroppedRules = [];
 
   for (const entry of entries) {
     addPatterns(files, entry.files);
@@ -200,11 +199,8 @@ function migrateEslintConfig(options) {
         unsupportedRules.push(ruleId);
         continue;
       }
-      rules[ruleId] = severityOnly(ruleConfig);
+      rules[ruleId] = migratableRuleConfig(ruleConfig);
       supportedRules.push(ruleId);
-      if (Array.isArray(ruleConfig) && ruleConfig.length > 1) {
-        optionDroppedRules.push(ruleId);
-      }
     }
   }
 
@@ -227,7 +223,7 @@ function migrateEslintConfig(options) {
       supportedRules: uniqueSorted(supportedRules),
       unsupportedRules: uniqueSorted(unsupportedRules),
       ignoredRules: uniqueByRuleId(ignoredRules),
-      optionDroppedRules: uniqueSorted(optionDroppedRules)
+      optionDroppedRules: []
     }
   };
 }
@@ -295,8 +291,8 @@ function addPatterns(target, value) {
   }
 }
 
-function severityOnly(ruleConfig) {
-  return Array.isArray(ruleConfig) ? ruleConfig[0] : ruleConfig;
+function migratableRuleConfig(ruleConfig) {
+  return Array.isArray(ruleConfig) ? [...ruleConfig] : ruleConfig;
 }
 
 function sortObjectByKey(object) {
@@ -326,9 +322,6 @@ function writeReport(report, options, stream) {
     stream.write(`utoo-lint migrate eslint: wrote ${report.output}\n`);
   }
   stream.write(`utoo-lint migrate eslint: migrated ${report.supportedRules.length} supported rule(s)\n`);
-  if (report.optionDroppedRules.length > 0) {
-    stream.write(`utoo-lint migrate eslint: dropped options for ${report.optionDroppedRules.length} rule(s): ${report.optionDroppedRules.join(", ")}\n`);
-  }
   if (report.ignoredRules.length > 0) {
     stream.write(`utoo-lint migrate eslint: ignored ${report.ignoredRules.length} rule(s): ${report.ignoredRules.map((rule) => rule.ruleId).join(", ")}\n`);
   }

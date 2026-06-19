@@ -43,7 +43,7 @@ The template includes a `$schema` entry for editor validation and a focused set 
 }
 ```
 
-`utoo-lint` currently treats config severities as ESLint-compatible rule toggles. `off`, `0`, and `false` disable a rule. `warn`, `error`, `on`, `1`, `2`, and `true` enable a rule. ESLint-style arrays are accepted, but only the first item is interpreted today; rule-specific options are reserved for future support.
+`utoo-lint` treats config severities as ESLint-compatible rule toggles. `off`, `0`, and `false` disable a rule. `warn`, `error`, `on`, `1`, `2`, and `true` enable a rule. ESLint-style arrays are accepted; the first item controls severity, and supported option objects are passed to the native rule implementation.
 
 ## Rule Names
 
