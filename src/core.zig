@@ -1671,6 +1671,7 @@ pub const Options = struct {
     no_unsafe_finally: bool = true,
     no_unsafe_negation: bool = true,
     no_unsafe_negation_enforce_for_ordering_relations: bool = false,
+    no_unsafe_optional_chaining: bool = true,
     no_useless_computed_key: bool = true,
     no_useless_computed_key_enforce_for_class_members: NoUselessComputedKeyEnforceForClassMembers = .yes,
     no_useless_call: bool = true,

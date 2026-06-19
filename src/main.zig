@@ -569,6 +569,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_unsafe_finally = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-negation=off")) {
             options.no_unsafe_negation = false;
+        } else if (std.mem.eql(u8, arg, "--no-unsafe-optional-chaining=off")) {
+            options.no_unsafe_optional_chaining = false;
         } else if (std.mem.eql(u8, arg, "--no-useless-computed-key=off")) {
             options.no_useless_computed_key = false;
         } else if (std.mem.eql(u8, arg, "--no-useless-computed-key-enforce-for-class-members=off")) {
@@ -1696,6 +1698,7 @@ fn printHelp() void {
         \\  --no-unused-labels=off   Disable no-unused-labels
         \\  --no-unsafe-finally=off   Disable no-unsafe-finally
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation
+        \\  --no-unsafe-optional-chaining=off Disable no-unsafe-optional-chaining
         \\  --no-useless-computed-key=off Disable no-useless-computed-key
         \\  --no-useless-computed-key-enforce-for-class-members=off Disable class member checks
         \\  --no-useless-call=off     Disable no-useless-call
