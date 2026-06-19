@@ -10,6 +10,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
 | [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Supports `always`, `never`, `ignoreInlineComments`, and `ignoreConsecutiveComments` configuration |
 | [`consistent-return`](https://eslint.org/docs/latest/rules/consistent-return) | Implemented for mixed explicit value/bare returns and value-returning functions that can fall through |
+| [`consistent-this`](https://eslint.org/docs/latest/rules/consistent-this) | Supports configured aliases for direct `this` captures and same-scope deferred assignment checks |
 | [`constructor-super`](https://eslint.org/docs/latest/rules/constructor-super) | Implemented |
 | [`curly`](https://eslint.org/docs/latest/rules/curly) | Supports `all`, `multi-line`, `multi`, and `multi-or-nest` configuration |
 | [`default-case`](https://eslint.org/docs/latest/rules/default-case) | Implemented with common `commentPattern` behavior |

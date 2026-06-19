@@ -19,6 +19,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/consistent_this.zig");
+}
+
+comptime {
     _ = @import("rules/constructor_super.zig");
 }
 
