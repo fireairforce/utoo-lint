@@ -1653,6 +1653,11 @@ pub const Options = struct {
     max_lines_max: usize = 300,
     max_lines_skip_blank_lines: bool = false,
     max_lines_skip_comments: bool = false,
+    max_lines_per_function: bool = false,
+    max_lines_per_function_max: usize = 50,
+    max_lines_per_function_skip_blank_lines: bool = false,
+    max_lines_per_function_skip_comments: bool = false,
+    max_lines_per_function_iifes: bool = false,
     max_nested_callbacks: bool = true,
     max_nested_callbacks_max: usize = 10,
     max_params: bool = true,
@@ -2443,9 +2448,15 @@ pub const Options = struct {
             self.max_depth_max = try maxDepthMaxFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "max-lines")) {
-            self.max_lines_max = try maxLinesMaxFromConfig(value);
+            self.max_lines_max = try maxLinesMaxFromConfig(value, 300);
             self.max_lines_skip_blank_lines = try maxLinesBoolOptionFromConfig(value, "skipBlankLines");
             self.max_lines_skip_comments = try maxLinesBoolOptionFromConfig(value, "skipComments");
+        }
+        if (std.mem.eql(u8, cli_name, "max-lines-per-function")) {
+            self.max_lines_per_function_max = try maxLinesMaxFromConfig(value, 50);
+            self.max_lines_per_function_skip_blank_lines = try maxLinesBoolOptionFromConfig(value, "skipBlankLines");
+            self.max_lines_per_function_skip_comments = try maxLinesBoolOptionFromConfig(value, "skipComments");
+            self.max_lines_per_function_iifes = try maxLinesBoolOptionFromConfig(value, "IIFEs");
         }
         if (std.mem.eql(u8, cli_name, "max-nested-callbacks")) {
             self.max_nested_callbacks_max = try maxNestedCallbacksMaxFromConfig(value);
@@ -4223,12 +4234,12 @@ pub const Options = struct {
         }
     }
 
-    fn maxLinesMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
+    fn maxLinesMaxFromConfig(value: std.json.Value, default: usize) RuleConfigError!usize {
         const items = switch (value) {
             .array => |array| array.items,
-            else => return 300,
+            else => return default,
         };
-        if (items.len < 2) return 300;
+        if (items.len < 2) return default;
 
         switch (items[1]) {
             .integer => |max| return nonNegativeIntegerToUsize(max),
@@ -4240,7 +4251,7 @@ pub const Options = struct {
                     };
                     return nonNegativeIntegerToUsize(max);
                 }
-                return 300;
+                return default;
             },
             else => return error.UnsupportedRuleConfigValue,
         }
@@ -9259,6 +9270,20 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("require-unicode-regexp", require_unicode_regexp_config.value);
     try std.testing.expect(options.require_unicode_regexp);
     try std.testing.expectEqual(RequireUnicodeRegexpRequireFlag.v, options.require_unicode_regexp_require_flag);
+
+    var max_lines_per_function_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"max\":12,\"skipBlankLines\":true,\"skipComments\":true,\"IIFEs\":true}]",
+        .{},
+    );
+    defer max_lines_per_function_config.deinit();
+    try options.setByRuleConfigValue("max-lines-per-function", max_lines_per_function_config.value);
+    try std.testing.expect(options.max_lines_per_function);
+    try std.testing.expectEqual(@as(usize, 12), options.max_lines_per_function_max);
+    try std.testing.expect(options.max_lines_per_function_skip_blank_lines);
+    try std.testing.expect(options.max_lines_per_function_skip_comments);
+    try std.testing.expect(options.max_lines_per_function_iifes);
 
     var sort_vars_config = try std.json.parseFromSlice(
         std.json.Value,

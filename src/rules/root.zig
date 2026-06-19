@@ -90,6 +90,7 @@ pub const logical_assignment_operators = @import("logical_assignment_operators.z
 pub const max_classes_per_file = @import("max_classes_per_file.zig");
 pub const max_depth = @import("max_depth.zig");
 pub const max_lines = @import("max_lines.zig");
+pub const max_lines_per_function = @import("max_lines_per_function.zig");
 pub const max_nested_callbacks = @import("max_nested_callbacks.zig");
 pub const max_params = @import("max_params.zig");
 pub const max_statements = @import("max_statements.zig");
@@ -1211,6 +1212,15 @@ const BasicVisitor = struct {
         };
     }
 
+    fn maxLinesPerFunctionOptions(self: *const BasicVisitor) max_lines_per_function.Options {
+        return .{
+            .max = self.options.max_lines_per_function_max,
+            .skip_blank_lines = self.options.max_lines_per_function_skip_blank_lines,
+            .skip_comments = self.options.max_lines_per_function_skip_comments,
+            .iifes = self.options.max_lines_per_function_iifes,
+        };
+    }
+
     fn maxNestedCallbacksOptions(self: *const BasicVisitor) max_nested_callbacks.Options {
         return .{
             .max = self.options.max_nested_callbacks_max,
@@ -1437,6 +1447,9 @@ const BasicVisitor = struct {
         }
         if (self.options.max_statements) {
             try max_statements.enterFunction(self.allocator, &self.max_statements_state, index);
+        }
+        if (self.options.max_lines_per_function) {
+            try max_lines_per_function.checkFunction(self.allocator, self.diagnostics, ctx.tree, index, ctx, self.maxLinesPerFunctionOptions());
         }
         if (self.options.complexity) {
             try complexity.enterFunction(self.allocator, &self.complexity_state, index);
@@ -2800,6 +2813,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.max_statements) {
             try max_statements.enterArrowFunction(self.allocator, &self.max_statements_state, index);
+        }
+        if (self.options.max_lines_per_function) {
+            try max_lines_per_function.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, index, ctx, self.maxLinesPerFunctionOptions());
         }
         if (self.options.complexity) {
             try complexity.enterArrowFunction(self.allocator, &self.complexity_state, index);

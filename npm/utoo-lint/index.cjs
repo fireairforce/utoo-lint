@@ -106,6 +106,7 @@ const BUILTIN_RULE_IDS = [
   "linebreak-style",
   "logical-assignment-operators",
   "max-lines",
+  "max-lines-per-function",
   "new-cap",
   "new-parens",
   "no-alert",
