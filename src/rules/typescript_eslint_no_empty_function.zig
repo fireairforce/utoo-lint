@@ -36,6 +36,7 @@ pub fn checkFunctionBodyWithOptions(
 ) Allocator.Error!void {
     if (body.body.len != 0) return;
     if (no_empty_function.allowsKind(options.allow, options.kind)) return;
+    if (allowsTypescriptConstructor(options.allow, tree, ctx)) return;
     if (no_empty_function.hasCommentInsideBraces(tree, index)) return;
     if (hasParameterPropertyConstructor(tree, ctx)) return;
 
@@ -48,6 +49,16 @@ pub fn checkFunctionBodyWithOptions(
         "Unexpected empty {s}.",
         .{functionDescription(tree, ctx)},
     );
+}
+
+fn allowsTypescriptConstructor(allow: core.NoEmptyFunctionAllow, tree: *const ast.Tree, ctx: *traverser.basic.Ctx) bool {
+    const method = parentMethod(tree, ctx) orelse return false;
+    if (method.kind != .constructor) return false;
+    return switch (method.accessibility) {
+        .private => allow.privateConstructors,
+        .protected => allow.protectedConstructors,
+        else => false,
+    };
 }
 
 fn hasParameterPropertyConstructor(tree: *const ast.Tree, ctx: *traverser.basic.Ctx) bool {

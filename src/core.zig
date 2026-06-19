@@ -128,6 +128,8 @@ pub const NoEmptyFunctionAllow = struct {
     getters: bool = false,
     setters: bool = false,
     constructors: bool = false,
+    privateConstructors: bool = false,
+    protectedConstructors: bool = false,
 
     pub fn contains(self: NoEmptyFunctionAllow, name: []const u8) bool {
         inline for (@typeInfo(NoEmptyFunctionAllow).@"struct".fields) |field| {
@@ -137,6 +139,14 @@ pub const NoEmptyFunctionAllow = struct {
     }
 
     pub fn enable(self: *NoEmptyFunctionAllow, name: []const u8) bool {
+        if (std.mem.eql(u8, name, "private-constructors")) {
+            self.privateConstructors = true;
+            return true;
+        }
+        if (std.mem.eql(u8, name, "protected-constructors")) {
+            self.protectedConstructors = true;
+            return true;
+        }
         inline for (@typeInfo(NoEmptyFunctionAllow).@"struct".fields) |field| {
             if (std.mem.eql(u8, field.name, name)) {
                 @field(self, field.name) = true;
@@ -7732,7 +7742,7 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_empty_function_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"arrowFunctions\",\"methods\"]}]",
+        "[\"error\",{\"allow\":[\"arrowFunctions\",\"methods\",\"private-constructors\",\"protected-constructors\"]}]",
         .{},
     );
     defer typescript_no_empty_function_config.deinit();
@@ -7740,6 +7750,8 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_empty_function);
     try std.testing.expect(options.typescript_eslint_no_empty_function_allow.arrowFunctions);
     try std.testing.expect(options.typescript_eslint_no_empty_function_allow.methods);
+    try std.testing.expect(options.typescript_eslint_no_empty_function_allow.privateConstructors);
+    try std.testing.expect(options.typescript_eslint_no_empty_function_allow.protectedConstructors);
     try std.testing.expect(!options.typescript_eslint_no_empty_function_allow.functions);
 
     var typescript_no_empty_interface_config = try std.json.parseFromSlice(
