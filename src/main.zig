@@ -707,6 +707,21 @@ pub fn main(init: std.process.Init) !void {
         } else if (std.mem.eql(u8, arg, "--max-lines-skip-comments=on")) {
             options.max_lines = true;
             options.max_lines_skip_comments = true;
+        } else if (std.mem.eql(u8, arg, "--max-lines-per-function=off")) {
+            options.max_lines_per_function = false;
+        } else if (std.mem.eql(u8, arg, "--max-lines-per-function=on")) {
+            options.max_lines_per_function = true;
+        } else if (std.mem.startsWith(u8, arg, "--max-lines-per-function-max=")) {
+            parseMaxLinesPerFunctionMax(arg["--max-lines-per-function-max=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--max-lines-per-function-skip-blank-lines=on")) {
+            options.max_lines_per_function = true;
+            options.max_lines_per_function_skip_blank_lines = true;
+        } else if (std.mem.eql(u8, arg, "--max-lines-per-function-skip-comments=on")) {
+            options.max_lines_per_function = true;
+            options.max_lines_per_function_skip_comments = true;
+        } else if (std.mem.eql(u8, arg, "--max-lines-per-function-iifes=on")) {
+            options.max_lines_per_function = true;
+            options.max_lines_per_function_iifes = true;
         } else if (std.mem.eql(u8, arg, "--max-nested-callbacks=off")) {
             options.max_nested_callbacks = false;
         } else if (std.mem.startsWith(u8, arg, "--max-nested-callbacks-max=")) {
@@ -1331,6 +1346,15 @@ fn parseMaxLinesMax(value: []const u8, options: *lint.Options) void {
     options.max_lines_max = max;
 }
 
+fn parseMaxLinesPerFunctionMax(value: []const u8, options: *lint.Options) void {
+    const max = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --max-lines-per-function-max value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.max_lines_per_function = true;
+    options.max_lines_per_function_max = max;
+}
+
 fn parseMaxNestedCallbacksMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --max-nested-callbacks-max value: {s}\n", .{value});
@@ -1842,6 +1866,12 @@ fn printHelp() void {
         \\  --max-lines-max=N         Set max-lines maximum
         \\  --max-lines-skip-blank-lines=on Ignore blank lines for max-lines
         \\  --max-lines-skip-comments=on Ignore comment-only lines for max-lines
+        \\  --max-lines-per-function=on Enable max-lines-per-function
+        \\  --max-lines-per-function=off Disable max-lines-per-function
+        \\  --max-lines-per-function-max=N Set max-lines-per-function maximum
+        \\  --max-lines-per-function-skip-blank-lines=on Ignore blank lines in functions
+        \\  --max-lines-per-function-skip-comments=on Ignore comment-only lines in functions
+        \\  --max-lines-per-function-iifes=on Include IIFEs in max-lines-per-function
         \\  --max-nested-callbacks=off Disable max-nested-callbacks
         \\  --max-nested-callbacks-max=N Set max-nested-callbacks maximum
         \\  --max-params=off          Disable max-params

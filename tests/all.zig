@@ -303,6 +303,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/max_lines_per_function.zig");
+}
+
+comptime {
     _ = @import("rules/max_nested_callbacks.zig");
 }
 

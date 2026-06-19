@@ -33,6 +33,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`max-classes-per-file`](https://eslint.org/docs/latest/rules/max-classes-per-file) | Supports `max` and `ignoreExpressions` configuration |
 | [`max-depth`](https://eslint.org/docs/latest/rules/max-depth) | Supports `max`, deprecated `maximum`, function scopes, static blocks, and `else if` chains |
 | [`max-lines`](https://eslint.org/docs/latest/rules/max-lines) | Supports `max`, `skipBlankLines`, and `skipComments` configuration |
+| [`max-lines-per-function`](https://eslint.org/docs/latest/rules/max-lines-per-function) | Supports function and arrow-function line counts plus `max`, `skipBlankLines`, `skipComments`, and `IIFEs` configuration |
 | [`max-nested-callbacks`](https://eslint.org/docs/latest/rules/max-nested-callbacks) | Supports `max`, deprecated `maximum`, and call-argument callback detection |
 | [`max-params`](https://eslint.org/docs/latest/rules/max-params) | Supports `max`, deprecated `maximum`, and `countThis` configuration |
 | [`max-statements`](https://eslint.org/docs/latest/rules/max-statements) | Supports `max`, deprecated `maximum`, `ignoreTopLevelFunctions`, and static block isolation |
