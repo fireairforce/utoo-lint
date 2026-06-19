@@ -227,6 +227,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_cond_assign = false;
         } else if (std.mem.eql(u8, arg, "--no-compare-neg-zero=off")) {
             options.no_compare_neg_zero = false;
+        } else if (std.mem.eql(u8, arg, "--no-constant-binary-expression=off")) {
+            options.no_constant_binary_expression = false;
         } else if (std.mem.eql(u8, arg, "--no-constant-condition=off")) {
             options.no_constant_condition = false;
         } else if (std.mem.eql(u8, arg, "--no-const-assign=off")) {
@@ -1744,6 +1746,7 @@ fn printHelp() void {
         \\  --no-confusing-arrow-allow-parens=off Set no-confusing-arrow allowParens false
         \\  --no-cond-assign=off      Disable no-cond-assign
         \\  --no-compare-neg-zero=off Disable no-compare-neg-zero
+        \\  --no-constant-binary-expression=off Disable no-constant-binary-expression
         \\  --no-constant-condition=off Disable no-constant-condition
         \\  --no-const-assign=off    Disable no-const-assign
         \\  --no-control-regex=off   Disable no-control-regex

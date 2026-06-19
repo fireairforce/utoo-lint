@@ -1697,6 +1697,7 @@ pub const Options = struct {
     no_cond_assign: bool = true,
     no_cond_assign_style: NoCondAssignStyle = .except_parens,
     no_compare_neg_zero: bool = true,
+    no_constant_binary_expression: bool = true,
     no_constant_condition: bool = true,
     no_constant_condition_check_loops: NoConstantConditionCheckLoops = .all_except_while_true,
     no_const_assign: bool = true,

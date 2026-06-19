@@ -54,6 +54,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-cond-assign`](https://eslint.org/docs/latest/rules/no-cond-assign) | Implemented |
 | [`no-console`](https://eslint.org/docs/latest/rules/no-console) | Implemented with `allow` support for configured console methods |
 | [`no-const-assign`](https://eslint.org/docs/latest/rules/no-const-assign) | Implemented |
+| [`no-constant-binary-expression`](https://eslint.org/docs/latest/rules/no-constant-binary-expression) | Detects constant logical/nullish short-circuiting, constant nullish/boolean comparisons, and newly constructed object comparisons |
 | [`no-constant-condition`](https://eslint.org/docs/latest/rules/no-constant-condition) | Implemented |
 | [`no-constructor-return`](https://eslint.org/docs/latest/rules/no-constructor-return) | Implemented |
 | [`no-continue`](https://eslint.org/docs/latest/rules/no-continue) | Implemented |

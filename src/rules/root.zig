@@ -109,6 +109,7 @@ pub const no_class_assign = @import("no_class_assign.zig");
 pub const no_confusing_arrow = @import("no_confusing_arrow.zig");
 pub const no_cond_assign = @import("no_cond_assign.zig");
 pub const no_compare_neg_zero = @import("no_compare_neg_zero.zig");
+pub const no_constant_binary_expression = @import("no_constant_binary_expression.zig");
 pub const no_constant_condition = @import("no_constant_condition.zig");
 pub const no_const_assign = @import("no_const_assign.zig");
 pub const no_control_regex = @import("no_control_regex.zig");
@@ -2982,6 +2983,9 @@ const BasicVisitor = struct {
         if (self.options.logical_assignment_operators and self.options.logical_assignment_operators_style == .always) {
             try logical_assignment_operators.checkLogicalExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
+        if (self.options.no_constant_binary_expression) {
+            try no_constant_binary_expression.checkLogicalExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
         if (self.options.complexity) {
             complexity.increase(&self.complexity_state);
         }
@@ -3004,6 +3008,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_compare_neg_zero) {
             try no_compare_neg_zero.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.no_constant_binary_expression) {
+            try no_constant_binary_expression.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
         if (self.options.eqeqeq) {
             try eqeqeq.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
