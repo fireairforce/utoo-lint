@@ -12,6 +12,7 @@ pub const id = "import/no-cycle";
 const max_source_size = 1024 * 1024;
 
 pub const Options = struct {
+    amd: bool = false,
     commonjs: bool = false,
     max_depth: usize = 1024,
 };
@@ -226,41 +227,68 @@ fn collectDependenciesFromSource(
         }
     }
 
-    if (options.commonjs) {
-        var visitor = CommonJsDependencyVisitor{
+    if (options.commonjs or options.amd) {
+        var visitor = CallDependencyVisitor{
             .allocator = allocator,
             .io = io,
             .dependencies = &dependencies,
             .path = path,
             .source_text = source_text,
+            .options = options,
         };
-        try traverser.basic.traverse(CommonJsDependencyVisitor, tree, &visitor);
+        try traverser.basic.traverse(CallDependencyVisitor, tree, &visitor);
     }
 
     return dependencies;
 }
 
-const CommonJsDependencyVisitor = struct {
+const CallDependencyVisitor = struct {
     allocator: Allocator,
     io: std.Io,
     dependencies: *std.ArrayList(Dependency),
     path: []const u8,
     source_text: []const u8,
+    options: Options,
 
     pub fn enter_call_expression(
-        self: *CommonJsDependencyVisitor,
+        self: *CallDependencyVisitor,
         call: ast.CallExpression,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (!isRequireCall(ctx.tree, call)) return .proceed;
-
         const arguments = ctx.tree.extra(call.arguments);
-        if (arguments.len != 1) return .proceed;
 
-        const source = stringLiteralValue(ctx.tree, arguments[0]) orelse return .proceed;
-        try appendDependency(self.allocator, self.io, self.dependencies, ctx.tree, self.source_text, self.path, source, index);
+        if (self.options.commonjs and isRequireCall(ctx.tree, call) and arguments.len == 1) {
+            if (stringLiteralValue(ctx.tree, arguments[0])) |source| {
+                try appendDependency(self.allocator, self.io, self.dependencies, ctx.tree, self.source_text, self.path, source, index);
+            }
+        }
+
+        if (self.options.amd and isAmdCall(ctx.tree, call)) {
+            try self.appendAmdDependencies(ctx.tree, arguments, index);
+        }
+
         return .proceed;
+    }
+
+    fn appendAmdDependencies(
+        self: *CallDependencyVisitor,
+        tree: *const ast.Tree,
+        arguments: []const ast.NodeIndex,
+        index: ast.NodeIndex,
+    ) Allocator.Error!void {
+        if (arguments.len == 0) return;
+
+        const dependencies = switch (tree.data(unwrapTransparent(tree, arguments[0]))) {
+            .array_expression => |array| array,
+            else => return,
+        };
+
+        for (tree.extra(dependencies.elements)) |element| {
+            if (element == .null) continue;
+            const source = stringLiteralValue(tree, element) orelse continue;
+            try appendDependency(self.allocator, self.io, self.dependencies, tree, self.source_text, self.path, source, index);
+        }
     }
 };
 
@@ -345,6 +373,12 @@ fn exportAllSource(tree: *const ast.Tree, declaration: ast.ExportAllDeclaration)
 
 fn isRequireCall(tree: *const ast.Tree, call: ast.CallExpression) bool {
     return isIdentifierReferenceNamed(tree, unwrapTransparent(tree, call.callee), "require");
+}
+
+fn isAmdCall(tree: *const ast.Tree, call: ast.CallExpression) bool {
+    const callee = unwrapTransparent(tree, call.callee);
+    return isIdentifierReferenceNamed(tree, callee, "define") or
+        isIdentifierReferenceNamed(tree, callee, "require");
 }
 
 fn isIdentifierReferenceNamed(tree: *const ast.Tree, index: ast.NodeIndex, expected: []const u8) bool {

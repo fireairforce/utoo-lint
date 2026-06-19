@@ -172,6 +172,79 @@ test "allows import/no-cycle commonjs dependencies by default" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.import_no_cycle.id));
 }
 
+test "supports configured import/no-cycle amd dependencies" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.createDirPath(std.testing.io, "src");
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/direct.js",
+        .data = "define(['./entry'], function (entry) { return entry; });\n",
+    });
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/middle.js",
+        .data = "require(['./leaf'], function (leaf) { return leaf; });\n",
+    });
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/leaf.js",
+        .data = "define(['./entry'], function (entry) { return entry; });\n",
+    });
+
+    const source =
+        \\define(['./direct', './middle'], function (direct, middle) {
+        \\  return direct + middle;
+        \\});
+    ;
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/entry.js",
+        .data = source,
+    });
+    const file_path = try fixturePath(&tmp, "entry.js");
+    defer std.testing.allocator.free(file_path);
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"amd\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("import/no-cycle", config.value);
+
+    var result = try lint.lintSourceWithIo(std.testing.allocator, std.testing.io, source, file_path, options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.import_no_cycle.id));
+    try std.testing.expectEqualStrings("Dependency cycle detected.", ruleDiagnostic(result, 0).message);
+    try std.testing.expectEqualStrings("Dependency cycle via ./leaf:1", ruleDiagnostic(result, 1).message);
+}
+
+test "allows import/no-cycle amd dependencies by default" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.createDirPath(std.testing.io, "src");
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/direct.js",
+        .data = "define(['./entry'], function (entry) { return entry; });\n",
+    });
+
+    const source = "define(['./direct'], function (direct) { return direct; });\n";
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/entry.js",
+        .data = source,
+    });
+    const file_path = try fixturePath(&tmp, "entry.js");
+    defer std.testing.allocator.free(file_path);
+
+    var result = try lint.lintSourceWithIo(std.testing.allocator, std.testing.io, source, file_path, baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.import_no_cycle.id));
+}
+
 test "ignores import/no-cycle type imports unresolved modules and self imports" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
