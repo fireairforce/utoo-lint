@@ -355,6 +355,7 @@ fn funcNameMatchingOptions(options: *const core.Options) func_name_matching.Opti
     return .{
         .style = funcNameMatchingStyle(options.func_name_matching_style),
         .include_commonjs_module_exports = options.func_name_matching_include_commonjs_module_exports,
+        .consider_property_descriptor = options.func_name_matching_consider_property_descriptor,
     };
 }
 
@@ -2741,6 +2742,9 @@ const BasicVisitor = struct {
                 .set_without_get = self.options.accessor_pairs_set_without_get == .yes,
             });
         }
+        if (self.options.func_name_matching) {
+            try func_name_matching.checkCallExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, call, funcNameMatchingOptions(&self.options));
+        }
         if (self.options.import_no_amd) {
             try import_no_amd.check(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
@@ -3276,7 +3280,7 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.func_name_matching) {
-            try func_name_matching.checkObjectPropertyWithOptions(self.allocator, self.diagnostics, ctx.tree, property, funcNameMatchingOptions(&self.options));
+            try func_name_matching.checkObjectPropertyWithContextOptions(self.allocator, self.diagnostics, ctx.tree, property, index, ctx, funcNameMatchingOptions(&self.options));
         }
         if (self.options.no_underscore_dangle) {
             try no_underscore_dangle.checkObjectPropertyWithOptions(self.allocator, self.diagnostics, ctx.tree, property, .{
