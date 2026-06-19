@@ -1481,6 +1481,7 @@ pub const Options = struct {
     import_no_named_as_default: bool = true,
     import_no_named_as_default_member: bool = true,
     import_no_unresolved: bool = true,
+    import_no_unresolved_amd: bool = false,
     import_no_unresolved_commonjs: bool = false,
     import_no_unresolved_ignore: ImportNoUnresolvedIgnorePatterns = .{},
     import_no_self_import: bool = true,
@@ -2041,6 +2042,7 @@ pub const Options = struct {
             self.eslint_comments_no_restricted_disable_no_nested_ternary = noRestrictedDisableRestrictsNoNestedTernary(value);
         }
         if (std.mem.eql(u8, cli_name, "import/no-unresolved")) {
+            self.import_no_unresolved_amd = try importNoUnresolvedBoolOptionFromConfig(value, "amd", false);
             self.import_no_unresolved_commonjs = try importNoUnresolvedBoolOptionFromConfig(value, "commonjs", false);
             self.import_no_unresolved_ignore = try importNoUnresolvedIgnorePatternsFromConfig(value);
         }
@@ -6702,6 +6704,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.import_no_unresolved);
     try std.testing.expect(options.setByCliName("import/no-unresolved", true));
     try std.testing.expect(options.import_no_unresolved);
+    try std.testing.expect(!options.import_no_unresolved_amd);
     try std.testing.expect(!options.import_no_unresolved_commonjs);
     try std.testing.expectEqual(@as(usize, 0), options.import_no_unresolved_ignore.count);
 
@@ -7208,12 +7211,13 @@ test "Options can apply ESLint-style rule config values" {
     var import_no_unresolved_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"commonjs\":true,\"ignore\":[\"\\\\.img$\",\"^virtual:\"]}]",
+        "[\"error\",{\"amd\":true,\"commonjs\":true,\"ignore\":[\"\\\\.img$\",\"^virtual:\"]}]",
         .{},
     );
     defer import_no_unresolved_config.deinit();
     try options.setByRuleConfigValue("import/no-unresolved", import_no_unresolved_config.value);
     try std.testing.expect(options.import_no_unresolved);
+    try std.testing.expect(options.import_no_unresolved_amd);
     try std.testing.expect(options.import_no_unresolved_commonjs);
     try std.testing.expectEqual(@as(usize, 2), options.import_no_unresolved_ignore.count);
     try std.testing.expectEqualStrings("\\.img$", options.import_no_unresolved_ignore.at(0));

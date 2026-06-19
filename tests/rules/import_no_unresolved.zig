@@ -191,6 +191,58 @@ test "allows import/no-unresolved commonjs requires by default" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.import_no_unresolved.id));
 }
 
+test "supports configured import/no-unresolved amd dependencies" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.createDirPath(std.testing.io, "src");
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "src/resolved.js", .data = "define(function () { return 1; });\n" });
+    const source =
+        \\define(['./resolved', './missing-define'], function () {});
+        \\require(['./missing-require'], function () {});
+        \\require('./commonjs-missing');
+    ;
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "src/entry.js", .data = source });
+
+    const file_path = try entryPath(&tmp);
+    defer std.testing.allocator.free(file_path);
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"amd\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = optionsOnly();
+    try options.setByRuleConfigValue("import/no-unresolved", config.value);
+
+    var result = try lint.lintSourceWithIo(std.testing.allocator, std.testing.io, source, file_path, options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.import_no_unresolved.id));
+    try std.testing.expectEqualStrings("Unable to resolve path to module './missing-define'.", ruleDiagnostic(result, 0).message);
+    try std.testing.expectEqualStrings("Unable to resolve path to module './missing-require'.", ruleDiagnostic(result, 1).message);
+}
+
+test "allows import/no-unresolved amd dependencies by default" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.createDirPath(std.testing.io, "src");
+    const source = "define(['./missing'], function () {});\n";
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "src/entry.js", .data = source });
+
+    const file_path = try entryPath(&tmp);
+    defer std.testing.allocator.free(file_path);
+
+    var result = try lint.lintSourceWithIo(std.testing.allocator, std.testing.io, source, file_path, optionsOnly());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.import_no_unresolved.id));
+}
+
 test "can disable import/no-unresolved" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();

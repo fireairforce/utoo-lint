@@ -26,6 +26,7 @@ const resolve_extensions = [_][]const u8{
 };
 
 pub const Options = struct {
+    amd: bool = false,
     commonjs: bool = false,
     ignore: core.ImportNoUnresolvedIgnorePatterns = .{},
 };
@@ -94,12 +95,30 @@ const DynamicImportVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (!self.options.commonjs) return .proceed;
-        if (!isRequireCall(ctx.tree, call)) return .proceed;
         const arguments = ctx.tree.extra(call.arguments);
-        if (arguments.len != 1) return .proceed;
-        try checkSourceNode(self.allocator, self.io, self.diagnostics, ctx.tree, self.file_path, arguments[0], self.options);
+        if (self.options.commonjs and isRequireCall(ctx.tree, call) and arguments.len == 1) {
+            try checkSourceNode(self.allocator, self.io, self.diagnostics, ctx.tree, self.file_path, arguments[0], self.options);
+        }
+        if (self.options.amd and isAmdCall(ctx.tree, call)) {
+            try self.checkAmdDependencies(ctx.tree, arguments);
+        }
         return .proceed;
+    }
+
+    fn checkAmdDependencies(
+        self: *DynamicImportVisitor,
+        tree: *const ast.Tree,
+        arguments: []const ast.NodeIndex,
+    ) Allocator.Error!void {
+        if (arguments.len == 0) return;
+        const dependencies = switch (tree.data(unwrapTransparent(tree, arguments[0]))) {
+            .array_expression => |array| array,
+            else => return,
+        };
+        for (tree.extra(dependencies.elements)) |element| {
+            if (element == .null) continue;
+            try checkSourceNode(self.allocator, self.io, self.diagnostics, tree, self.file_path, element, self.options);
+        }
     }
 };
 
@@ -415,6 +434,12 @@ fn readPatternToken(pattern: []const u8, index: usize) PatternToken {
 
 fn isRequireCall(tree: *const ast.Tree, call: ast.CallExpression) bool {
     return isIdentifierReferenceNamed(tree, unwrapTransparent(tree, call.callee), "require");
+}
+
+fn isAmdCall(tree: *const ast.Tree, call: ast.CallExpression) bool {
+    const callee = unwrapTransparent(tree, call.callee);
+    return isIdentifierReferenceNamed(tree, callee, "define") or
+        isIdentifierReferenceNamed(tree, callee, "require");
 }
 
 fn isIdentifierReferenceNamed(tree: *const ast.Tree, index: ast.NodeIndex, expected: []const u8) bool {
