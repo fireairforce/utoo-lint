@@ -26,6 +26,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`guard-for-in`](https://eslint.org/docs/latest/rules/guard-for-in) | Implemented |
 | [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Supports `unix` and `windows` configuration |
 | [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for `always`, optional `never`, and optional `enforceForIfStatements: true` behavior |
+| [`max-classes-per-file`](https://eslint.org/docs/latest/rules/max-classes-per-file) | Supports `max` and `ignoreExpressions` configuration |
 | [`max-depth`](https://eslint.org/docs/latest/rules/max-depth) | Supports `max`, deprecated `maximum`, function scopes, static blocks, and `else if` chains |
 | [`max-nested-callbacks`](https://eslint.org/docs/latest/rules/max-nested-callbacks) | Supports `max`, deprecated `maximum`, and call-argument callback detection |
 | [`max-params`](https://eslint.org/docs/latest/rules/max-params) | Supports `max`, deprecated `maximum`, and `countThis` configuration |

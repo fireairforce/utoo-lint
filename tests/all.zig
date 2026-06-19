@@ -275,6 +275,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/max_classes_per_file.zig");
+}
+
+comptime {
     _ = @import("rules/max_depth.zig");
 }
 

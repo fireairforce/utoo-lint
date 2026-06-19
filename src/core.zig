@@ -1504,6 +1504,9 @@ pub const Options = struct {
     logical_assignment_operators: bool = true,
     logical_assignment_operators_style: LogicalAssignmentOperatorsStyle = .always,
     logical_assignment_operators_enforce_for_if_statements: LogicalAssignmentOperatorsEnforceForIfStatements = .no,
+    max_classes_per_file: bool = true,
+    max_classes_per_file_max: usize = 1,
+    max_classes_per_file_ignore_expressions: bool = false,
     max_depth: bool = true,
     max_depth_max: usize = 4,
     max_nested_callbacks: bool = true,
@@ -2266,6 +2269,10 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "logical-assignment-operators")) {
             self.logical_assignment_operators_style = try logicalAssignmentOperatorsStyleFromConfig(value);
             self.logical_assignment_operators_enforce_for_if_statements = try logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "max-classes-per-file")) {
+            self.max_classes_per_file_max = try maxClassesPerFileMaxFromConfig(value);
+            self.max_classes_per_file_ignore_expressions = try maxClassesPerFileIgnoreExpressionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "max-depth")) {
             self.max_depth_max = try maxDepthMaxFromConfig(value);
@@ -3863,6 +3870,43 @@ pub const Options = struct {
             },
             else => return error.UnsupportedRuleConfigValue,
         }
+    }
+
+    fn maxClassesPerFileMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return 1,
+        };
+        if (items.len < 2) return 1;
+
+        const max = switch (items[1]) {
+            .integer => |max| max,
+            .object => |object| switch (object.get("max") orelse return 1) {
+                .integer => |max| max,
+                else => return error.UnsupportedRuleConfigValue,
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        if (max < 1) return error.UnsupportedRuleConfigValue;
+        return @intCast(max);
+    }
+
+    fn maxClassesPerFileIgnoreExpressionsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        return switch (items[1]) {
+            .object => |object| switch (object.get("ignoreExpressions") orelse return false) {
+                .bool => |enabled| enabled,
+                else => return error.UnsupportedRuleConfigValue,
+            },
+            .integer => false,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn maxNestedCallbacksMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
