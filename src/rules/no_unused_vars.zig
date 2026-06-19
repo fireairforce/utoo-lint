@@ -19,6 +19,7 @@ pub const Options = struct {
     vars: core.NoUnusedVarsVars = .all,
     check_caught_errors: bool = true,
     ignore_rest_siblings: bool = false,
+    ignore_class_with_static_init_block: bool = false,
     ignore_using_declarations: bool = false,
     check_type_parameters: bool = false,
     react_jsx_uses_react: bool = false,
@@ -108,6 +109,11 @@ pub fn runWithOptions(
     if (options.ignore_rest_siblings) {
         var visitor = RestSiblingVisitor{ .ignored_decls = &ignored_decls };
         try traverser.basic.traverse(RestSiblingVisitor, tree, &visitor);
+    }
+
+    if (options.ignore_class_with_static_init_block) {
+        var visitor = ClassWithStaticBlockVisitor{ .ignored_decls = &ignored_decls };
+        try traverser.basic.traverse(ClassWithStaticBlockVisitor, tree, &visitor);
     }
 
     if (options.ignore_using_declarations) {
@@ -458,6 +464,37 @@ const UsingDeclarationVisitor = struct {
         }
     }
 };
+
+const ClassWithStaticBlockVisitor = struct {
+    ignored_decls: *IgnoredDecls,
+
+    pub fn enter_class(
+        self: *ClassWithStaticBlockVisitor,
+        class: ast.Class,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (class.type != .class_declaration or class.id == .null) return .proceed;
+        if (!hasStaticBlock(ctx.tree, class.body)) return .proceed;
+
+        try self.ignored_decls.put(class.id, {});
+        return .proceed;
+    }
+};
+
+fn hasStaticBlock(tree: *const ast.Tree, body_index: ast.NodeIndex) bool {
+    if (body_index == .null) return false;
+
+    const body = switch (tree.data(body_index)) {
+        .class_body => |body| body,
+        else => return false,
+    };
+
+    for (tree.extra(body.body)) |element_index| {
+        if (tree.data(element_index) == .static_block) return true;
+    }
+    return false;
+}
 
 const DestructuredArrayVisitor = struct {
     ignored_decls: *IgnoredDecls,
