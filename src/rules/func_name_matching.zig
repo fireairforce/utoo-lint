@@ -14,6 +14,7 @@ pub const Style = enum {
 
 pub const Options = struct {
     style: Style = .always,
+    include_commonjs_module_exports: bool = false,
 };
 
 pub fn checkVariableDeclarator(
@@ -62,7 +63,7 @@ pub fn checkAssignmentExpressionWithOptions(
 ) Allocator.Error!void {
     if (expression.operator != .assign) return;
 
-    const target = assignmentTargetName(tree, expression.left) orelse return;
+    const target = assignmentTargetName(tree, expression.left, options) orelse return;
     try checkFunctionName(allocator, diagnostics, tree, expression.right, target, options);
 }
 
@@ -156,18 +157,18 @@ fn checkFunctionName(
     }
 }
 
-fn assignmentTargetName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+fn assignmentTargetName(tree: *const ast.Tree, index: ast.NodeIndex, options: Options) ?[]const u8 {
     if (index == .null) return null;
 
     return switch (tree.data(unwrapTransparent(tree, index))) {
         .identifier_reference => |identifier| tree.string(identifier.name),
-        .member_expression => |member| memberTargetName(tree, member),
+        .member_expression => |member| memberTargetName(tree, member, options),
         else => null,
     };
 }
 
-fn memberTargetName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {
-    if (isModuleExportsTarget(tree, member)) return null;
+fn memberTargetName(tree: *const ast.Tree, member: ast.MemberExpression, options: Options) ?[]const u8 {
+    if (isModuleExportsTarget(tree, member) and !options.include_commonjs_module_exports) return null;
     return propertyName(tree, member.property, member.computed);
 }
 

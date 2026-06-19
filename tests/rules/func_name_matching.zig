@@ -118,6 +118,51 @@ test "reports func-name-matching for matching names in never mode" {
     );
 }
 
+test "supports configured func-name-matching includeCommonJSModuleExports" {
+    const source =
+        \\module.exports = function exported() {};
+        \\module["exports"] = function computedExported() {};
+        \\exports.value = function exportedValue() {};
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .func_names = false,
+        .no_empty_function = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(default_result, lint.rules.func_name_matching.id));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"includeCommonJSModuleExports\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .func_names = false,
+        .no_empty_function = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("func-name-matching", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.func_name_matching.id));
+    try std.testing.expectEqualStrings(
+        "Function name `exported` should match target name `exports`.",
+        result.diagnostics[0].message,
+    );
+}
+
 test "can disable func-name-matching" {
     const source =
         \\const first = function second() {};
