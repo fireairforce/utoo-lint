@@ -26,6 +26,7 @@ const resolve_extensions = [_][]const u8{
 };
 
 pub const Options = struct {
+    commonjs: bool = false,
     ignore: core.ImportNoUnresolvedIgnorePatterns = .{},
 };
 
@@ -84,6 +85,20 @@ const DynamicImportVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         try checkSourceNode(self.allocator, self.io, self.diagnostics, ctx.tree, self.file_path, expression.source, self.options);
+        return .proceed;
+    }
+
+    pub fn enter_call_expression(
+        self: *DynamicImportVisitor,
+        call: ast.CallExpression,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (!self.options.commonjs) return .proceed;
+        if (!isRequireCall(ctx.tree, call)) return .proceed;
+        const arguments = ctx.tree.extra(call.arguments);
+        if (arguments.len != 1) return .proceed;
+        try checkSourceNode(self.allocator, self.io, self.diagnostics, ctx.tree, self.file_path, arguments[0], self.options);
         return .proceed;
     }
 };
@@ -396,6 +411,30 @@ fn readPatternToken(pattern: []const u8, index: usize) PatternToken {
         .literal = pattern[index],
         .next_index = index + 1,
     };
+}
+
+fn isRequireCall(tree: *const ast.Tree, call: ast.CallExpression) bool {
+    return isIdentifierReferenceNamed(tree, unwrapTransparent(tree, call.callee), "require");
+}
+
+fn isIdentifierReferenceNamed(tree: *const ast.Tree, index: ast.NodeIndex, expected: []const u8) bool {
+    const name = switch (tree.data(index)) {
+        .identifier_reference => |identifier| tree.string(identifier.name),
+        else => return false,
+    };
+    return std.mem.eql(u8, name, expected);
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+    return current;
 }
 
 fn stringLiteralValue(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {

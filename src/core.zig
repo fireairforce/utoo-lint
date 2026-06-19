@@ -1481,6 +1481,7 @@ pub const Options = struct {
     import_no_named_as_default: bool = true,
     import_no_named_as_default_member: bool = true,
     import_no_unresolved: bool = true,
+    import_no_unresolved_commonjs: bool = false,
     import_no_unresolved_ignore: ImportNoUnresolvedIgnorePatterns = .{},
     import_no_self_import: bool = true,
     jsx_a11y_alt_text: bool = true,
@@ -2040,6 +2041,7 @@ pub const Options = struct {
             self.eslint_comments_no_restricted_disable_no_nested_ternary = noRestrictedDisableRestrictsNoNestedTernary(value);
         }
         if (std.mem.eql(u8, cli_name, "import/no-unresolved")) {
+            self.import_no_unresolved_commonjs = try importNoUnresolvedBoolOptionFromConfig(value, "commonjs", false);
             self.import_no_unresolved_ignore = try importNoUnresolvedIgnorePatternsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "func-name-matching")) {
@@ -2922,6 +2924,23 @@ pub const Options = struct {
             if (!patterns.append(pattern)) return error.UnsupportedRuleConfigValue;
         }
         return patterns;
+    }
+
+    fn importNoUnresolvedBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn funcNameMatchingStyleFromConfig(value: std.json.Value) RuleConfigError!FuncNameMatchingStyle {
@@ -6683,6 +6702,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.import_no_unresolved);
     try std.testing.expect(options.setByCliName("import/no-unresolved", true));
     try std.testing.expect(options.import_no_unresolved);
+    try std.testing.expect(!options.import_no_unresolved_commonjs);
     try std.testing.expectEqual(@as(usize, 0), options.import_no_unresolved_ignore.count);
 
     try std.testing.expect(!options.react_default_props_match_prop_types);
@@ -7188,12 +7208,13 @@ test "Options can apply ESLint-style rule config values" {
     var import_no_unresolved_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"ignore\":[\"\\\\.img$\",\"^virtual:\"]}]",
+        "[\"error\",{\"commonjs\":true,\"ignore\":[\"\\\\.img$\",\"^virtual:\"]}]",
         .{},
     );
     defer import_no_unresolved_config.deinit();
     try options.setByRuleConfigValue("import/no-unresolved", import_no_unresolved_config.value);
     try std.testing.expect(options.import_no_unresolved);
+    try std.testing.expect(options.import_no_unresolved_commonjs);
     try std.testing.expectEqual(@as(usize, 2), options.import_no_unresolved_ignore.count);
     try std.testing.expectEqualStrings("\\.img$", options.import_no_unresolved_ignore.at(0));
     try std.testing.expectEqualStrings("^virtual:", options.import_no_unresolved_ignore.at(1));
