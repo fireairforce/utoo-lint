@@ -11,6 +11,13 @@ pub const Options = struct {
     allow_referrer: bool = false,
     enforce_dynamic_links: bool = true,
     warn_on_spread_attributes: bool = false,
+    links: bool = true,
+    forms: bool = false,
+};
+
+const CheckedElement = enum {
+    link,
+    form,
 };
 
 pub fn check(
@@ -21,16 +28,20 @@ pub fn check(
     index: ast.NodeIndex,
     options: Options,
 ) Allocator.Error!void {
-    if (!isAnchorElement(tree, opening.name)) return;
+    const element = checkedElement(tree, opening.name, options) orelse return;
+    const url_attribute = switch (element) {
+        .link => "href",
+        .form => "action",
+    };
 
-    if (options.warn_on_spread_attributes and hasUnsafeSpreadAttribute(tree, opening, options.allow_referrer)) {
+    if (options.warn_on_spread_attributes and hasUnsafeSpreadAttribute(tree, opening, options.allow_referrer, url_attribute)) {
         try addDiagnostic(allocator, diagnostics, tree, index);
         return;
     }
 
     const target = lastAttributeNamed(tree, opening, "target") orelse return;
     if (!attributeValuePossiblyBlank(tree, target.attribute)) return;
-    if (!hasDangerousHref(tree, opening, options.enforce_dynamic_links)) return;
+    if (!hasDangerousUrl(tree, opening, url_attribute, options.enforce_dynamic_links)) return;
     if (hasSecureRel(tree, opening, target.attribute.value, options.allow_referrer)) return;
 
     try addDiagnostic(allocator, diagnostics, tree, index);
@@ -56,11 +67,14 @@ const AttributeMatch = struct {
     attribute: ast.JSXAttribute,
 };
 
-fn isAnchorElement(tree: *const ast.Tree, name_index: ast.NodeIndex) bool {
-    return switch (tree.data(name_index)) {
-        .jsx_identifier => |identifier| std.mem.eql(u8, tree.string(identifier.name), "a"),
-        else => false,
+fn checkedElement(tree: *const ast.Tree, name_index: ast.NodeIndex, options: Options) ?CheckedElement {
+    const name = switch (tree.data(name_index)) {
+        .jsx_identifier => |identifier| tree.string(identifier.name),
+        else => return null,
     };
+    if (options.links and std.mem.eql(u8, name, "a")) return .link;
+    if (options.forms and std.mem.eql(u8, name, "form")) return .form;
+    return null;
 }
 
 fn lastAttributeNamed(tree: *const ast.Tree, opening: ast.JSXOpeningElement, name: []const u8) ?AttributeMatch {
@@ -79,7 +93,7 @@ fn lastAttributeNamed(tree: *const ast.Tree, opening: ast.JSXOpeningElement, nam
     return null;
 }
 
-fn hasUnsafeSpreadAttribute(tree: *const ast.Tree, opening: ast.JSXOpeningElement, allow_referrer: bool) bool {
+fn hasUnsafeSpreadAttribute(tree: *const ast.Tree, opening: ast.JSXOpeningElement, allow_referrer: bool, url_attribute: []const u8) bool {
     const attributes = tree.extra(opening.attributes);
     var last_spread: ?usize = null;
     for (attributes, 0..) |attribute_index, index| {
@@ -99,7 +113,7 @@ fn hasUnsafeSpreadAttribute(tree: *const ast.Tree, opening: ast.JSXOpeningElemen
 
         if (std.mem.eql(u8, name, "rel") and attributeRelValueIsSecure(tree, attribute, allow_referrer)) return false;
         if (std.mem.eql(u8, name, "target") and !attributeValuePossiblyBlank(tree, attribute)) return false;
-        if (std.mem.eql(u8, name, "href") and attributeValueIsSafeHref(tree, attribute)) return false;
+        if (std.mem.eql(u8, name, url_attribute) and attributeValueIsSafeUrl(tree, attribute)) return false;
     }
     return true;
 }
@@ -127,11 +141,11 @@ fn attributeValuePossiblyBlank(tree: *const ast.Tree, attribute: ast.JSXAttribut
         isStringLiteralIgnoreCase(tree, conditional.alternate, "_blank");
 }
 
-fn hasDangerousHref(tree: *const ast.Tree, opening: ast.JSXOpeningElement, enforce_dynamic_links: bool) bool {
-    const href = lastAttributeNamed(tree, opening, "href") orelse return false;
-    if (href.attribute.value == .null) return false;
-    if (stringValue(tree, href.attribute.value)) |value| return isExternalHref(value);
-    return enforce_dynamic_links and tree.data(href.attribute.value) == .jsx_expression_container;
+fn hasDangerousUrl(tree: *const ast.Tree, opening: ast.JSXOpeningElement, url_attribute: []const u8, enforce_dynamic_links: bool) bool {
+    const url = lastAttributeNamed(tree, opening, url_attribute) orelse return false;
+    if (url.attribute.value == .null) return false;
+    if (stringValue(tree, url.attribute.value)) |value| return isExternalHref(value);
+    return enforce_dynamic_links and tree.data(url.attribute.value) == .jsx_expression_container;
 }
 
 fn hasSecureRel(tree: *const ast.Tree, opening: ast.JSXOpeningElement, target_value: ast.NodeIndex, allow_referrer: bool) bool {
@@ -154,7 +168,7 @@ fn attributeRelValueIsSecure(tree: *const ast.Tree, attribute: ast.JSXAttribute,
     return valueIsSecureRel(value, allow_referrer);
 }
 
-fn attributeValueIsSafeHref(tree: *const ast.Tree, attribute: ast.JSXAttribute) bool {
+fn attributeValueIsSafeUrl(tree: *const ast.Tree, attribute: ast.JSXAttribute) bool {
     if (attribute.value == .null) return false;
     const value = stringValue(tree, attribute.value) orelse return false;
     return !isExternalHref(value);

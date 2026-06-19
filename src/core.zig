@@ -1711,6 +1711,8 @@ pub const Options = struct {
     react_jsx_no_target_blank_allow_referrer: bool = false,
     react_jsx_no_target_blank_enforce_dynamic_links: bool = true,
     react_jsx_no_target_blank_warn_on_spread_attributes: bool = false,
+    react_jsx_no_target_blank_links: bool = true,
+    react_jsx_no_target_blank_forms: bool = false,
     react_jsx_no_undef: bool = true,
     react_jsx_pascal_case: bool = true,
     react_jsx_pascal_case_allow_all_caps: bool = true,
@@ -2360,6 +2362,8 @@ pub const Options = struct {
             self.react_jsx_no_target_blank_allow_referrer = try reactJsxNoTargetBlankAllowReferrerFromConfig(value);
             self.react_jsx_no_target_blank_enforce_dynamic_links = try reactJsxNoTargetBlankEnforceDynamicLinksFromConfig(value);
             self.react_jsx_no_target_blank_warn_on_spread_attributes = try reactJsxNoTargetBlankWarnOnSpreadAttributesFromConfig(value);
+            self.react_jsx_no_target_blank_links = try reactJsxNoTargetBlankBoolOptionFromConfig(value, "links", true);
+            self.react_jsx_no_target_blank_forms = try reactJsxNoTargetBlankBoolOptionFromConfig(value, "forms", false);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-pascal-case")) {
             self.react_jsx_pascal_case_allow_all_caps = try reactJsxPascalCaseAllowAllCapsFromConfig(value);
@@ -3211,17 +3215,21 @@ pub const Options = struct {
     }
 
     fn reactJsxNoTargetBlankWarnOnSpreadAttributesFromConfig(value: std.json.Value) RuleConfigError!bool {
+        return reactJsxNoTargetBlankBoolOptionFromConfig(value, "warnOnSpreadAttributes", false);
+    }
+
+    fn reactJsxNoTargetBlankBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
-            else => return false,
+            else => return default,
         };
-        if (items.len < 2) return false;
+        if (items.len < 2) return default;
 
         const config = switch (items[1]) {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        return switch (config.get("warnOnSpreadAttributes") orelse return false) {
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -6541,6 +6549,8 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.react_jsx_no_target_blank);
     try std.testing.expect(!options.react_jsx_no_target_blank_allow_referrer);
     try std.testing.expect(options.react_jsx_no_target_blank_enforce_dynamic_links);
+    try std.testing.expect(options.react_jsx_no_target_blank_links);
+    try std.testing.expect(!options.react_jsx_no_target_blank_forms);
 
     try std.testing.expect(!options.import_no_duplicates);
     try std.testing.expect(options.setByCliName("import/no-duplicates", true));
@@ -6908,7 +6918,7 @@ test "Options can apply ESLint-style rule config values" {
     var react_jsx_no_target_blank_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowReferrer\":true,\"enforceDynamicLinks\":\"never\",\"warnOnSpreadAttributes\":true}]",
+        "[\"error\",{\"allowReferrer\":true,\"enforceDynamicLinks\":\"never\",\"warnOnSpreadAttributes\":true,\"links\":false,\"forms\":true}]",
         .{},
     );
     defer react_jsx_no_target_blank_config.deinit();
@@ -6917,6 +6927,8 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.react_jsx_no_target_blank_allow_referrer);
     try std.testing.expect(!options.react_jsx_no_target_blank_enforce_dynamic_links);
     try std.testing.expect(options.react_jsx_no_target_blank_warn_on_spread_attributes);
+    try std.testing.expect(!options.react_jsx_no_target_blank_links);
+    try std.testing.expect(options.react_jsx_no_target_blank_forms);
 
     var react_jsx_pascal_case_config = try std.json.parseFromSlice(
         std.json.Value,

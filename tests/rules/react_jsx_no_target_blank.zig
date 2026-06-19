@@ -131,6 +131,39 @@ test "supports configured react/jsx-no-target-blank enforceDynamicLinks never" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_jsx_no_target_blank.id));
 }
 
+test "supports configured react/jsx-no-target-blank links and forms" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"links\":false,\"forms\":true,\"warnOnSpreadAttributes\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("react/jsx-no-target-blank", config.value);
+    options.eol_last = false;
+    options.jsx_a11y_anchor_has_content = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const link = <a href="https://example.com" target="_blank" />;
+        \\const form = <form action="https://example.com" target="_blank" />;
+        \\const dynamicForm = <form action={url} target="_blank" />;
+        \\const relativeForm = <form action="/submit" target="_blank" />;
+        \\const safeForm = <form action="https://example.com" target="_blank" rel="noreferrer" />;
+        \\const spreadForm = <form {...props} />;
+        \\const safeSpreadForm = <form {...props} action="/submit" />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.react_jsx_no_target_blank.id));
+}
+
 test "can disable react/jsx-no-target-blank" {
     const source =
         \\const link = <a href="https://example.com" target="_blank" />;
