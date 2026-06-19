@@ -25,12 +25,17 @@ const resolve_extensions = [_][]const u8{
     ".cts",
 };
 
+pub const Options = struct {
+    ignore: core.ImportNoUnresolvedIgnorePatterns = .{},
+};
+
 pub fn run(
     allocator: Allocator,
     io: std.Io,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     file_path: []const u8,
+    options: Options,
 ) Allocator.Error!void {
     const program = switch (tree.data(tree.root)) {
         .program => |program| program,
@@ -41,15 +46,15 @@ pub fn run(
         switch (tree.data(statement_index)) {
             .import_declaration => |declaration| {
                 if (declaration.import_kind == .type) continue;
-                try checkSourceNode(allocator, io, diagnostics, tree, file_path, declaration.source);
+                try checkSourceNode(allocator, io, diagnostics, tree, file_path, declaration.source, options);
             },
             .export_named_declaration => |declaration| {
                 if (declaration.export_kind == .type or declaration.source == .null) continue;
-                try checkSourceNode(allocator, io, diagnostics, tree, file_path, declaration.source);
+                try checkSourceNode(allocator, io, diagnostics, tree, file_path, declaration.source, options);
             },
             .export_all_declaration => |declaration| {
                 if (declaration.export_kind == .type) continue;
-                try checkSourceNode(allocator, io, diagnostics, tree, file_path, declaration.source);
+                try checkSourceNode(allocator, io, diagnostics, tree, file_path, declaration.source, options);
             },
             else => {},
         }
@@ -60,6 +65,7 @@ pub fn run(
         .io = io,
         .diagnostics = diagnostics,
         .file_path = file_path,
+        .options = options,
     };
     try traverser.basic.traverse(DynamicImportVisitor, tree, &visitor);
 }
@@ -69,6 +75,7 @@ const DynamicImportVisitor = struct {
     io: std.Io,
     diagnostics: *core.DiagnosticList,
     file_path: []const u8,
+    options: Options,
 
     pub fn enter_import_expression(
         self: *DynamicImportVisitor,
@@ -76,7 +83,7 @@ const DynamicImportVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        try checkSourceNode(self.allocator, self.io, self.diagnostics, ctx.tree, self.file_path, expression.source);
+        try checkSourceNode(self.allocator, self.io, self.diagnostics, ctx.tree, self.file_path, expression.source, self.options);
         return .proceed;
     }
 };
@@ -88,9 +95,10 @@ fn checkSourceNode(
     tree: *const ast.Tree,
     file_path: []const u8,
     source_node: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     const source = stringLiteralValue(tree, source_node) orelse return;
-    if (shouldIgnore(source)) return;
+    if (shouldIgnore(source, options.ignore)) return;
     if (try resolves(allocator, io, file_path, source)) return;
 
     try core.addDiagnosticFmt(
@@ -294,9 +302,100 @@ fn packageName(source: []const u8) ?[]const u8 {
     return source[0..second_slash];
 }
 
-fn shouldIgnore(source: []const u8) bool {
-    return std.mem.startsWith(u8, source, "smallfish:") or
-        std.mem.startsWith(u8, source, "minifish:");
+fn shouldIgnore(source: []const u8, ignore: core.ImportNoUnresolvedIgnorePatterns) bool {
+    if (std.mem.startsWith(u8, source, "smallfish:") or
+        std.mem.startsWith(u8, source, "minifish:")) return true;
+
+    for (0..ignore.count) |index| {
+        if (matchesIgnorePattern(ignore.at(index), source)) return true;
+    }
+    return false;
+}
+
+fn matchesIgnorePattern(pattern: []const u8, source: []const u8) bool {
+    if (pattern.len == 0) return false;
+    const anchored_start = pattern[0] == '^';
+    const anchored_end = hasUnescapedTrailingDollar(pattern);
+    const start: usize = if (anchored_start) 1 else 0;
+    const end: usize = if (anchored_end) pattern.len - 1 else pattern.len;
+    const body = pattern[start..end];
+
+    if (anchored_start) {
+        return matchPatternAt(body, 0, source, 0, anchored_end);
+    }
+
+    for (0..source.len + 1) |source_index| {
+        if (matchPatternAt(body, 0, source, source_index, anchored_end)) return true;
+    }
+    return false;
+}
+
+fn hasUnescapedTrailingDollar(pattern: []const u8) bool {
+    if (pattern.len == 0 or pattern[pattern.len - 1] != '$') return false;
+    var slash_count: usize = 0;
+    var index = pattern.len - 1;
+    while (index > 0) {
+        index -= 1;
+        if (pattern[index] != '\\') break;
+        slash_count += 1;
+    }
+    return slash_count % 2 == 0;
+}
+
+fn matchPatternAt(pattern: []const u8, pattern_index: usize, source: []const u8, source_index: usize, anchored_end: bool) bool {
+    if (pattern_index >= pattern.len) return !anchored_end or source_index == source.len;
+
+    const token = readPatternToken(pattern, pattern_index);
+    const next_index = token.next_index;
+    if (next_index < pattern.len and pattern[next_index] == '*') {
+        var end_index = source_index;
+        while (end_index < source.len and token.matches(source[end_index])) {
+            end_index += 1;
+        }
+        while (true) {
+            if (matchPatternAt(pattern, next_index + 1, source, end_index, anchored_end)) return true;
+            if (end_index == source_index) break;
+            end_index -= 1;
+        }
+        return false;
+    }
+
+    if (source_index >= source.len or !token.matches(source[source_index])) return false;
+    return matchPatternAt(pattern, next_index, source, source_index + 1, anchored_end);
+}
+
+const PatternToken = struct {
+    kind: enum { any, literal },
+    literal: u8 = 0,
+    next_index: usize,
+
+    fn matches(self: PatternToken, value: u8) bool {
+        return switch (self.kind) {
+            .any => true,
+            .literal => self.literal == value,
+        };
+    }
+};
+
+fn readPatternToken(pattern: []const u8, index: usize) PatternToken {
+    if (pattern[index] == '\\' and index + 1 < pattern.len) {
+        return .{
+            .kind = .literal,
+            .literal = pattern[index + 1],
+            .next_index = index + 2,
+        };
+    }
+    if (pattern[index] == '.') {
+        return .{
+            .kind = .any,
+            .next_index = index + 1,
+        };
+    }
+    return .{
+        .kind = .literal,
+        .literal = pattern[index],
+        .next_index = index + 1,
+    };
 }
 
 fn stringLiteralValue(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
