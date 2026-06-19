@@ -641,6 +641,12 @@ pub fn main(init: std.process.Init) !void {
             options.max_params = false;
         } else if (std.mem.startsWith(u8, arg, "--max-params-max=")) {
             parseMaxParamsMax(arg["--max-params-max=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--max-statements=off")) {
+            options.max_statements = false;
+        } else if (std.mem.startsWith(u8, arg, "--max-statements-max=")) {
+            parseMaxStatementsMax(arg["--max-statements-max=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--max-statements-ignore-top-level-functions=on")) {
+            options.max_statements_ignore_top_level_functions = true;
         } else if (std.mem.eql(u8, arg, "--operator-assignment=off")) {
             options.operator_assignment = false;
         } else if (std.mem.eql(u8, arg, "--eqeqeq=off")) {
@@ -1193,6 +1199,14 @@ fn parseMaxParamsMax(value: []const u8, options: *lint.Options) void {
     options.max_params_max = max;
 }
 
+fn parseMaxStatementsMax(value: []const u8, options: *lint.Options) void {
+    const max = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --max-statements-max value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.max_statements_max = max;
+}
+
 fn parseNoMultipleEmptyLinesMaxBof(value: []const u8, options: *lint.Options) void {
     const max_bof = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --no-multiple-empty-lines-max-bof value: {s}\n", .{value});
@@ -1662,6 +1676,9 @@ fn printHelp() void {
         \\  --max-depth-max=N         Set max-depth maximum
         \\  --max-params=off          Disable max-params
         \\  --max-params-max=N        Set max-params maximum
+        \\  --max-statements=off      Disable max-statements
+        \\  --max-statements-max=N    Set max-statements maximum
+        \\  --max-statements-ignore-top-level-functions=on Ignore single top-level functions
         \\  --no-loop-func=off        Disable no-loop-func
         \\  --no-loss-of-precision=off Disable no-loss-of-precision
         \\  --no-multi-str=off        Disable no-multi-str

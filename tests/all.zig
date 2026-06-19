@@ -283,6 +283,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/max_statements.zig");
+}
+
+comptime {
     _ = @import("rules/new_cap.zig");
 }
 

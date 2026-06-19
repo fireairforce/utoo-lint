@@ -85,6 +85,7 @@ pub const linebreak_style = @import("linebreak_style.zig");
 pub const logical_assignment_operators = @import("logical_assignment_operators.zig");
 pub const max_depth = @import("max_depth.zig");
 pub const max_params = @import("max_params.zig");
+pub const max_statements = @import("max_statements.zig");
 pub const new_cap = @import("new_cap.zig");
 pub const new_parens = @import("new_parens.zig");
 pub const no_async_promise_executor = @import("no_async_promise_executor.zig");
@@ -614,6 +615,7 @@ pub fn runBasic(
     defer visitor.react_display_name_state.deinit(allocator);
     defer visitor.react_forbid_prop_types_state.deinit(allocator);
     defer visitor.react_default_props_match_prop_types_state.deinit(allocator);
+    defer visitor.max_statements_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -1119,6 +1121,7 @@ const BasicVisitor = struct {
     react_no_unused_state_state: react_no_unused_state.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
+    max_statements_state: max_statements.State = .{},
 
     fn curlyOptions(self: *const BasicVisitor) curly.Options {
         return .{
@@ -1146,6 +1149,13 @@ const BasicVisitor = struct {
     fn maxDepthOptions(self: *const BasicVisitor) max_depth.Options {
         return .{
             .max = self.options.max_depth_max,
+        };
+    }
+
+    fn maxStatementsOptions(self: *const BasicVisitor) max_statements.Options {
+        return .{
+            .max = self.options.max_statements_max,
+            .ignore_top_level_functions = self.options.max_statements_ignore_top_level_functions,
         };
     }
 
@@ -1307,6 +1317,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) void {
+        if (self.options.max_statements) {
+            max_statements.finishProgram(self.allocator, self.diagnostics, ctx.tree, &self.max_statements_state, self.maxStatementsOptions()) catch {};
+        }
         if (self.options.react_display_name) {
             react_display_name.finish(self.allocator, self.diagnostics, ctx.tree, &self.react_display_name_state) catch {};
         }
@@ -1329,6 +1342,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.max_statements) {
+            try max_statements.enterFunction(self.allocator, &self.max_statements_state, index);
+        }
         if (self.options.no_dupe_args) {
             try no_dupe_args.check(self.allocator, self.diagnostics, ctx.tree, function);
         }
@@ -1389,6 +1405,12 @@ const BasicVisitor = struct {
             });
         }
         return .proceed;
+    }
+
+    pub fn exit_function(self: *BasicVisitor, _: ast.Function, _: ast.NodeIndex, ctx: *traverser.basic.Ctx) void {
+        if (self.options.max_statements) {
+            max_statements.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.max_statements_state, self.maxStatementsOptions()) catch {};
+        }
     }
 
     pub fn enter_class(
@@ -2323,6 +2345,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.max_statements) {
+            max_statements.countBlockStatement(ctx.tree, &self.max_statements_state, block);
+        }
         if (self.options.no_lone_blocks) {
             if (ctx.path.parent()) |parent| {
                 try no_lone_blocks.check(self.allocator, self.diagnostics, ctx.tree, block, index, parent);
@@ -2361,6 +2386,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.max_statements) {
+            max_statements.countFunctionBody(ctx.tree, &self.max_statements_state, body);
+        }
         if (self.options.react_jsx_no_bind) {
             try react_jsx_no_bind.enterBlock(self.allocator, &self.react_jsx_no_bind_state);
         }
@@ -2402,6 +2430,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.max_statements) {
+            try max_statements.enterStaticBlock(self.allocator, &self.max_statements_state, index);
+        }
         if (self.options.no_empty_block_statements) {
             try no_empty_block_statements.checkStaticBlock(self.allocator, self.diagnostics, ctx.tree, block, index);
         }
@@ -2409,6 +2440,12 @@ const BasicVisitor = struct {
             try no_empty_static_block.check(self.allocator, self.diagnostics, ctx.tree, block, index);
         }
         return .proceed;
+    }
+
+    pub fn exit_static_block(self: *BasicVisitor, _: ast.StaticBlock, _: ast.NodeIndex, ctx: *traverser.basic.Ctx) void {
+        if (self.options.max_statements) {
+            max_statements.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.max_statements_state, self.maxStatementsOptions()) catch {};
+        }
     }
 
     pub fn enter_with_statement(
@@ -2569,6 +2606,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.max_statements) {
+            try max_statements.enterArrowFunction(self.allocator, &self.max_statements_state, index);
+        }
         if (self.options.no_return_assign and expression.expression) {
             try no_return_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression.body, .{
                 .style = self.options.no_return_assign_style,
@@ -2616,6 +2656,12 @@ const BasicVisitor = struct {
             try react_display_name.checkArrowFunction(self.allocator, ctx.tree, index, ctx.path.parent(), &self.react_display_name_state, reactDisplayNameOptions(self.options));
         }
         return .proceed;
+    }
+
+    pub fn exit_arrow_function_expression(self: *BasicVisitor, _: ast.ArrowFunctionExpression, _: ast.NodeIndex, ctx: *traverser.basic.Ctx) void {
+        if (self.options.max_statements) {
+            max_statements.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.max_statements_state, self.maxStatementsOptions()) catch {};
+        }
     }
 
     pub fn enter_assignment_expression(
