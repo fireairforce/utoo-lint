@@ -7,14 +7,20 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "jsx-a11y/no-distracting-elements";
 
+pub const Options = struct {
+    marquee: bool = true,
+    blink: bool = true,
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     opening: ast.JSXOpeningElement,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
-    const element = distractingElement(tree, opening.name) orelse return;
+    const element = distractingElement(tree, opening.name, options) orelse return;
 
     try core.addDiagnosticFmt(
         allocator,
@@ -27,12 +33,16 @@ pub fn check(
     );
 }
 
-fn distractingElement(tree: *const ast.Tree, name_index: ast.NodeIndex) ?[]const u8 {
+fn distractingElement(tree: *const ast.Tree, name_index: ast.NodeIndex, options: Options) ?[]const u8 {
     const name = switch (tree.data(name_index)) {
         .jsx_identifier => |identifier| tree.string(identifier.name),
         else => return null,
     };
 
-    if (std.mem.eql(u8, name, "marquee") or std.mem.eql(u8, name, "blink")) return name;
+    if ((options.marquee and std.mem.eql(u8, name, "marquee")) or
+        (options.blink and std.mem.eql(u8, name, "blink")))
+    {
+        return name;
+    }
     return null;
 }

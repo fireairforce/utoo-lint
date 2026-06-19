@@ -1469,6 +1469,8 @@ pub const Options = struct {
     jsx_a11y_img_redundant_alt_words: JsxA11yImgRedundantAltNames = .{},
     jsx_a11y_no_access_key: bool = true,
     jsx_a11y_no_distracting_elements: bool = true,
+    jsx_a11y_no_distracting_elements_marquee: bool = true,
+    jsx_a11y_no_distracting_elements_blink: bool = true,
     jsx_a11y_role_has_required_aria_props: bool = true,
     jsx_a11y_role_supports_aria_props: bool = true,
     jsx_a11y_scope: bool = true,
@@ -2036,6 +2038,11 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "jsx-a11y/img-redundant-alt")) {
             self.jsx_a11y_img_redundant_alt_components = try jsxA11yImgRedundantAltNamesFromConfig(value, "components");
             self.jsx_a11y_img_redundant_alt_words = try jsxA11yImgRedundantAltNamesFromConfig(value, "words");
+        }
+        if (std.mem.eql(u8, cli_name, "jsx-a11y/no-distracting-elements")) {
+            const elements = try jsxA11yNoDistractingElementsFromConfig(value);
+            self.jsx_a11y_no_distracting_elements_marquee = elements.marquee;
+            self.jsx_a11y_no_distracting_elements_blink = elements.blink;
         }
         if (std.mem.eql(u8, cli_name, "new-cap")) {
             self.new_cap_new_is_cap = try newCapBoolOptionFromConfig(value, "newIsCap", true);
@@ -3028,6 +3035,47 @@ pub const Options = struct {
             names.append(name) catch return error.UnsupportedRuleConfigValue;
         }
         return names;
+    }
+
+    const JsxA11yNoDistractingElementsConfig = struct {
+        marquee: bool = true,
+        blink: bool = true,
+    };
+
+    fn jsxA11yNoDistractingElementsFromConfig(value: std.json.Value) RuleConfigError!JsxA11yNoDistractingElementsConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const element_items = switch (config.get("elements") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = JsxA11yNoDistractingElementsConfig{
+            .marquee = false,
+            .blink = false,
+        };
+        for (element_items) |item| {
+            const element = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, element, "marquee")) {
+                result.marquee = true;
+            } else if (std.mem.eql(u8, element, "blink")) {
+                result.blink = true;
+            } else {
+                return error.UnsupportedRuleConfigValue;
+            }
+        }
+        return result;
     }
 
     fn reactJsxNoTargetBlankAllowReferrerFromConfig(value: std.json.Value) RuleConfigError!bool {
@@ -6580,6 +6628,18 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(!options.jsx_a11y_img_redundant_alt_components.contains("Picture"));
     try std.testing.expect(options.jsx_a11y_img_redundant_alt_words.containsIgnoreCase("bild"));
     try std.testing.expect(!options.jsx_a11y_img_redundant_alt_words.containsIgnoreCase("foto"));
+
+    var jsx_a11y_no_distracting_elements_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"elements\":[\"blink\"]}]",
+        .{},
+    );
+    defer jsx_a11y_no_distracting_elements_config.deinit();
+    try options.setByRuleConfigValue("jsx-a11y/no-distracting-elements", jsx_a11y_no_distracting_elements_config.value);
+    try std.testing.expect(options.jsx_a11y_no_distracting_elements);
+    try std.testing.expect(!options.jsx_a11y_no_distracting_elements_marquee);
+    try std.testing.expect(options.jsx_a11y_no_distracting_elements_blink);
 
     try options.setByRuleConfigValue("prettier/prettier", .{ .string = "error" });
 
