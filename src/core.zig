@@ -592,6 +592,111 @@ pub const NoShadowAllowNames = struct {
     }
 };
 
+pub const max_no_restricted_properties = 32;
+pub const max_no_restricted_property_name_len = 128;
+pub const max_no_restricted_property_message_len = 256;
+pub const max_no_restricted_property_allow_names = 16;
+
+pub const NoRestrictedPropertyNameList = struct {
+    count: usize = 0,
+    lengths: [max_no_restricted_property_allow_names]usize = undefined,
+    storage: [max_no_restricted_property_allow_names][max_no_restricted_property_name_len]u8 = undefined,
+
+    pub fn contains(self: *const NoRestrictedPropertyNameList, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const NoRestrictedPropertyNameList, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *NoRestrictedPropertyNameList, name: []const u8) bool {
+        if (name.len == 0) return false;
+        if (self.count >= max_no_restricted_property_allow_names) return false;
+        if (name.len > max_no_restricted_property_name_len) return false;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
+    }
+};
+
+pub const NoRestrictedPropertyEntry = struct {
+    has_object: bool = false,
+    object_length: usize = 0,
+    object_storage: [max_no_restricted_property_name_len]u8 = undefined,
+
+    has_property: bool = false,
+    property_length: usize = 0,
+    property_storage: [max_no_restricted_property_name_len]u8 = undefined,
+
+    has_message: bool = false,
+    message_length: usize = 0,
+    message_storage: [max_no_restricted_property_message_len]u8 = undefined,
+
+    allow_objects: NoRestrictedPropertyNameList = .{},
+    allow_properties: NoRestrictedPropertyNameList = .{},
+
+    pub fn object(self: *const NoRestrictedPropertyEntry) ?[]const u8 {
+        if (!self.has_object) return null;
+        return self.object_storage[0..self.object_length];
+    }
+
+    pub fn property(self: *const NoRestrictedPropertyEntry) ?[]const u8 {
+        if (!self.has_property) return null;
+        return self.property_storage[0..self.property_length];
+    }
+
+    pub fn message(self: *const NoRestrictedPropertyEntry) ?[]const u8 {
+        if (!self.has_message) return null;
+        return self.message_storage[0..self.message_length];
+    }
+
+    pub fn setObject(self: *NoRestrictedPropertyEntry, value: []const u8) bool {
+        if (value.len == 0 or value.len > max_no_restricted_property_name_len) return false;
+        @memcpy(self.object_storage[0..value.len], value);
+        self.object_length = value.len;
+        self.has_object = true;
+        return true;
+    }
+
+    pub fn setProperty(self: *NoRestrictedPropertyEntry, value: []const u8) bool {
+        if (value.len == 0 or value.len > max_no_restricted_property_name_len) return false;
+        @memcpy(self.property_storage[0..value.len], value);
+        self.property_length = value.len;
+        self.has_property = true;
+        return true;
+    }
+
+    pub fn setMessage(self: *NoRestrictedPropertyEntry, value: []const u8) bool {
+        if (value.len == 0 or value.len > max_no_restricted_property_message_len) return false;
+        @memcpy(self.message_storage[0..value.len], value);
+        self.message_length = value.len;
+        self.has_message = true;
+        return true;
+    }
+};
+
+pub const NoRestrictedProperties = struct {
+    count: usize = 0,
+    entries: [max_no_restricted_properties]NoRestrictedPropertyEntry = undefined,
+
+    pub fn append(self: *NoRestrictedProperties, entry: NoRestrictedPropertyEntry) bool {
+        if (self.count >= max_no_restricted_properties) return false;
+        self.entries[self.count] = entry;
+        self.count += 1;
+        return true;
+    }
+
+    pub fn at(self: *const NoRestrictedProperties, index: usize) *const NoRestrictedPropertyEntry {
+        return &self.entries[index];
+    }
+};
+
 pub const max_no_unused_vars_ignore_pattern_len = 256;
 
 pub const NoUnusedVarsIgnorePatternError = error{
@@ -1623,6 +1728,8 @@ pub const Options = struct {
     no_prototype_builtins: bool = true,
     no_redeclare: bool = true,
     no_redeclare_builtin_globals: NoRedeclareBuiltinGlobals = .no,
+    no_restricted_properties: bool = true,
+    no_restricted_properties_entries: NoRestrictedProperties = .{},
     no_regex_spaces: bool = true,
     no_return_await: bool = true,
     no_return_assign: bool = true,
@@ -2297,6 +2404,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-redeclare")) {
             self.no_redeclare_builtin_globals = try noRedeclareBuiltinGlobalsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-restricted-properties")) {
+            self.no_restricted_properties_entries = try noRestrictedPropertiesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-self-assign")) {
             self.no_self_assign_props = try noSelfAssignPropsFromConfig(value);
@@ -4695,6 +4805,84 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return if (enabled) .yes else .no;
+    }
+
+    fn noRestrictedPropertiesFromConfig(value: std.json.Value) RuleConfigError!NoRestrictedProperties {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        var restrictions = NoRestrictedProperties{};
+        for (items[1..]) |item| {
+            const config = switch (item) {
+                .object => |object| object,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+
+            var entry = NoRestrictedPropertyEntry{};
+            const has_object = try noRestrictedPropertyOptionalString(config, "object", &entry, .object);
+            const has_property = try noRestrictedPropertyOptionalString(config, "property", &entry, .property);
+            _ = try noRestrictedPropertyOptionalString(config, "message", &entry, .message);
+            const has_allow_objects = try noRestrictedPropertyNameListFromConfig(config, "allowObjects", &entry.allow_objects);
+            const has_allow_properties = try noRestrictedPropertyNameListFromConfig(config, "allowProperties", &entry.allow_properties);
+
+            if (has_object and has_allow_objects) return error.UnsupportedRuleConfigValue;
+            if (has_property and has_allow_properties) return error.UnsupportedRuleConfigValue;
+            if (!has_object and !has_property) return error.UnsupportedRuleConfigValue;
+            if (has_allow_objects and !has_property) return error.UnsupportedRuleConfigValue;
+            if (has_allow_properties and !has_object) return error.UnsupportedRuleConfigValue;
+            if (!restrictions.append(entry)) return error.UnsupportedRuleConfigValue;
+        }
+        return restrictions;
+    }
+
+    const NoRestrictedPropertyStringTarget = enum {
+        object,
+        property,
+        message,
+    };
+
+    fn noRestrictedPropertyOptionalString(
+        config: std.json.ObjectMap,
+        key: []const u8,
+        entry: *NoRestrictedPropertyEntry,
+        target: NoRestrictedPropertyStringTarget,
+    ) RuleConfigError!bool {
+        const value = config.get(key) orelse return false;
+        const string = switch (value) {
+            .string => |string| string,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const ok = switch (target) {
+            .object => entry.setObject(string),
+            .property => entry.setProperty(string),
+            .message => entry.setMessage(string),
+        };
+        if (!ok) return error.UnsupportedRuleConfigValue;
+        return true;
+    }
+
+    fn noRestrictedPropertyNameListFromConfig(
+        config: std.json.ObjectMap,
+        key: []const u8,
+        names: *NoRestrictedPropertyNameList,
+    ) RuleConfigError!bool {
+        const value = config.get(key) orelse return false;
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        for (items) |item| {
+            const name = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!names.append(name)) return error.UnsupportedRuleConfigValue;
+        }
+        return true;
     }
 
     fn preferConstDestructuringFromConfig(value: std.json.Value) RuleConfigError!PreferConstDestructuring {
@@ -8101,6 +8289,23 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-redeclare", no_redeclare_config.value);
     try std.testing.expect(options.no_redeclare);
     try std.testing.expectEqual(NoRedeclareBuiltinGlobals.yes, options.no_redeclare_builtin_globals);
+
+    var no_restricted_properties_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"object\":\"disallowedObject\",\"property\":\"disallowedProperty\",\"message\":\"Use allowedObject.allowedProperty.\"},{\"property\":\"push\",\"allowObjects\":[\"router\"]},{\"object\":\"config\",\"allowProperties\":[\"settings\",\"version\"]}]",
+        .{},
+    );
+    defer no_restricted_properties_config.deinit();
+    try options.setByRuleConfigValue("no-restricted-properties", no_restricted_properties_config.value);
+    try std.testing.expect(options.no_restricted_properties);
+    try std.testing.expectEqual(@as(usize, 3), options.no_restricted_properties_entries.count);
+    try std.testing.expectEqualStrings("disallowedObject", options.no_restricted_properties_entries.at(0).object().?);
+    try std.testing.expectEqualStrings("disallowedProperty", options.no_restricted_properties_entries.at(0).property().?);
+    try std.testing.expectEqualStrings("Use allowedObject.allowedProperty.", options.no_restricted_properties_entries.at(0).message().?);
+    try std.testing.expect(options.no_restricted_properties_entries.at(1).allow_objects.contains("router"));
+    try std.testing.expect(options.no_restricted_properties_entries.at(2).allow_properties.contains("settings"));
+    try std.testing.expect(options.no_restricted_properties_entries.at(2).allow_properties.contains("version"));
 
     var typescript_no_redeclare_config = try std.json.parseFromSlice(
         std.json.Value,

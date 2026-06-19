@@ -120,6 +120,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-promise-executor-return`](https://eslint.org/docs/latest/rules/no-promise-executor-return) | Supports `allowVoid` configuration |
 | [`no-proto`](https://eslint.org/docs/latest/rules/no-proto) | Implemented |
 | [`no-prototype-builtins`](https://eslint.org/docs/latest/rules/no-prototype-builtins) | Implemented |
+| [`no-restricted-properties`](https://eslint.org/docs/latest/rules/no-restricted-properties) | Supports object/property restrictions, destructuring, and `allowObjects`/`allowProperties` configuration |
 | [`no-regex-spaces`](https://eslint.org/docs/latest/rules/no-regex-spaces) | Implemented |
 | [`no-return-assign`](https://eslint.org/docs/latest/rules/no-return-assign) | Implemented for `except-parens` and optional `always` behavior |
 | [`no-return-await`](https://eslint.org/docs/latest/rules/no-return-await) | Implemented for return statements, async arrow expression bodies, and nested tail expressions |
