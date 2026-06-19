@@ -1496,6 +1496,7 @@ pub const Options = struct {
     no_unused_vars_args: NoUnusedVarsArgs = .none,
     no_unused_vars_caught_errors: NoUnusedVarsCaughtErrors = .all,
     no_unused_vars_ignore_rest_siblings: bool = false,
+    no_unused_vars_ignore_class_with_static_init_block: bool = false,
     no_unused_vars_ignore_using_declarations: bool = false,
     no_unused_vars_args_ignore_pattern: NoUnusedVarsIgnorePattern = .{},
     no_unused_vars_caught_errors_ignore_pattern: NoUnusedVarsIgnorePattern = .{},
@@ -2080,6 +2081,7 @@ pub const Options = struct {
             self.no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .none);
             self.no_unused_vars_caught_errors = try noUnusedVarsCaughtErrorsFromConfig(value, .all);
             self.no_unused_vars_ignore_rest_siblings = try noUnusedVarsIgnoreRestSiblingsFromConfig(value, false);
+            self.no_unused_vars_ignore_class_with_static_init_block = try noUnusedVarsBoolOptionFromConfig(value, "ignoreClassWithStaticInitBlock", false);
             self.no_unused_vars_ignore_using_declarations = try noUnusedVarsBoolOptionFromConfig(value, "ignoreUsingDeclarations", false);
             self.no_unused_vars_args_ignore_pattern = try noUnusedVarsIgnorePatternFromConfig(value, "argsIgnorePattern");
             self.no_unused_vars_caught_errors_ignore_pattern = try noUnusedVarsIgnorePatternFromConfig(value, "caughtErrorsIgnorePattern");
@@ -7256,7 +7258,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_unused_vars_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"args\":\"all\",\"argsIgnorePattern\":\"^_\",\"caughtErrors\":\"none\",\"caughtErrorsIgnorePattern\":\"^ignoredError\",\"destructuredArrayIgnorePattern\":\"^ignoredItem\",\"ignoreRestSiblings\":true,\"ignoreUsingDeclarations\":true,\"reportUsedIgnorePattern\":true,\"varsIgnorePattern\":\"^ignored\"}]",
+        "[\"error\",{\"args\":\"all\",\"argsIgnorePattern\":\"^_\",\"caughtErrors\":\"none\",\"caughtErrorsIgnorePattern\":\"^ignoredError\",\"destructuredArrayIgnorePattern\":\"^ignoredItem\",\"ignoreClassWithStaticInitBlock\":true,\"ignoreRestSiblings\":true,\"ignoreUsingDeclarations\":true,\"reportUsedIgnorePattern\":true,\"varsIgnorePattern\":\"^ignored\"}]",
         .{},
     );
     defer no_unused_vars_config.deinit();
@@ -7266,6 +7268,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUnusedVarsArgs.all, options.no_unused_vars_args);
     try std.testing.expectEqual(NoUnusedVarsCaughtErrors.none, options.no_unused_vars_caught_errors);
     try std.testing.expect(options.no_unused_vars_ignore_rest_siblings);
+    try std.testing.expect(options.no_unused_vars_ignore_class_with_static_init_block);
     try std.testing.expect(options.no_unused_vars_ignore_using_declarations);
     try std.testing.expect(options.no_unused_vars_report_used_ignore_pattern);
     try std.testing.expectEqualStrings("^_", options.no_unused_vars_args_ignore_pattern.pattern().?);
