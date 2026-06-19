@@ -633,6 +633,10 @@ pub fn main(init: std.process.Init) !void {
             options.logical_assignment_operators_style = .never;
         } else if (std.mem.eql(u8, arg, "--logical-assignment-operators-enforce-for-if-statements=on")) {
             options.logical_assignment_operators_enforce_for_if_statements = .yes;
+        } else if (std.mem.eql(u8, arg, "--max-depth=off")) {
+            options.max_depth = false;
+        } else if (std.mem.startsWith(u8, arg, "--max-depth-max=")) {
+            parseMaxDepthMax(arg["--max-depth-max=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--max-params=off")) {
             options.max_params = false;
         } else if (std.mem.startsWith(u8, arg, "--max-params-max=")) {
@@ -1173,6 +1177,14 @@ fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void 
     options.no_multiple_empty_lines_max = max;
 }
 
+fn parseMaxDepthMax(value: []const u8, options: *lint.Options) void {
+    const max = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --max-depth-max value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.max_depth_max = max;
+}
+
 fn parseMaxParamsMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --max-params-max value: {s}\n", .{value});
@@ -1646,6 +1658,8 @@ fn printHelp() void {
         \\  --logical-assignment-operators=off Disable logical-assignment-operators
         \\  --logical-assignment-operators=never Disallow logical assignment operators
         \\  --logical-assignment-operators-enforce-for-if-statements=on Enable logical-assignment-operators if-statement checks
+        \\  --max-depth=off           Disable max-depth
+        \\  --max-depth-max=N         Set max-depth maximum
         \\  --max-params=off          Disable max-params
         \\  --max-params-max=N        Set max-params maximum
         \\  --no-loop-func=off        Disable no-loop-func

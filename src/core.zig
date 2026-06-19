@@ -1504,6 +1504,8 @@ pub const Options = struct {
     logical_assignment_operators: bool = true,
     logical_assignment_operators_style: LogicalAssignmentOperatorsStyle = .always,
     logical_assignment_operators_enforce_for_if_statements: LogicalAssignmentOperatorsEnforceForIfStatements = .no,
+    max_depth: bool = true,
+    max_depth_max: usize = 4,
     max_params: bool = true,
     max_params_max: usize = 3,
     max_params_count_this: MaxParamsCountThis = .except_void,
@@ -2259,6 +2261,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "logical-assignment-operators")) {
             self.logical_assignment_operators_style = try logicalAssignmentOperatorsStyleFromConfig(value);
             self.logical_assignment_operators_enforce_for_if_statements = try logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "max-depth")) {
+            self.max_depth_max = try maxDepthMaxFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "max-params")) {
             self.max_params_max = try maxParamsMaxFromConfig(value);
@@ -3813,6 +3818,36 @@ pub const Options = struct {
                     return nonNegativeIntegerToUsize(max);
                 }
                 return 3;
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+    }
+
+    fn maxDepthMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return 4,
+        };
+        if (items.len < 2) return 4;
+
+        switch (items[1]) {
+            .integer => |max| return nonNegativeIntegerToUsize(max),
+            .object => |object| {
+                if (object.get("max")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                if (object.get("maximum")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                return 4;
             },
             else => return error.UnsupportedRuleConfigValue,
         }
