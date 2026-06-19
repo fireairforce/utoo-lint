@@ -1024,6 +1024,7 @@ pub fn runSemantic(
             .check_functions = options.typescript_eslint_no_use_before_define_check_functions == .yes,
             .check_classes = options.typescript_eslint_no_use_before_define_check_classes == .yes,
             .check_variables = options.typescript_eslint_no_use_before_define_check_variables == .yes,
+            .check_type_references = !options.typescript_eslint_no_use_before_define_ignore_type_references,
             .allow_named_exports = options.typescript_eslint_no_use_before_define_allow_named_exports,
         });
     }

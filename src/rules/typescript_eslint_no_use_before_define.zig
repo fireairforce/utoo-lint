@@ -34,6 +34,7 @@ pub fn runWithOptions(
         .check_functions = options.check_functions,
         .check_classes = options.check_classes,
         .check_variables = options.check_variables,
+        .check_type_references = options.check_type_references,
         .allow_named_exports = options.allow_named_exports,
     });
 }
