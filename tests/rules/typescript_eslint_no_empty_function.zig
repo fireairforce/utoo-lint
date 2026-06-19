@@ -80,6 +80,36 @@ test "supports configured @typescript-eslint/no-empty-function allow kinds" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_empty_function.id));
 }
 
+test "supports configured @typescript-eslint/no-empty-function private and protected constructors" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"private-constructors\",\"protected-constructors\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-empty-function", config.value);
+    options.no_empty_block_statements = false;
+    options.no_unused_vars = false;
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\class Example {
+        \\  private constructor() {}
+        \\  protected constructor(value: string) {}
+        \\  public static create() {}
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_empty_function.id));
+}
+
 test "can disable @typescript-eslint/no-empty-function and fall back to core rule" {
     const source =
         \\function empty() {}
