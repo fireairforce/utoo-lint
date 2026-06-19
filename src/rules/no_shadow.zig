@@ -15,6 +15,7 @@ pub const Options = struct {
     allow: core.NoShadowAllowNames = .{},
     builtin_globals: bool = false,
     hoist: core.NoShadowHoist = .functions,
+    ignore_on_initialization: bool = false,
     ignore_type_value_shadow: bool = false,
     ignore_function_type_parameter_name_value_shadow: bool = true,
 };
@@ -73,6 +74,7 @@ pub fn runWithOptions(
         if (shadowed_decls.len == 0) continue;
         const shadowed_flags = symbol_table.getSymbol(shadowed_id).flags;
         if (isAllowedByHoist(tree, decls[0], shadowed_decls[0], shadowed_flags, options)) continue;
+        if (options.ignore_on_initialization and isAllowedOnInitialization(tree, decls[0], shadowed_decls[0])) continue;
 
         const shadowed_position = offsetToLineColumn(tree.source, tree.span(shadowed_decls[0]).start);
         try core.addDiagnosticFmt(
@@ -151,6 +153,82 @@ fn isTypeOnlySymbol(flags: traverser.semantic.Symbol.Flags) bool {
 
 fn isValueOnlySymbol(flags: traverser.semantic.Symbol.Flags) bool {
     return flags.inValueSpace() and !flags.inTypeSpace();
+}
+
+fn isAllowedOnInitialization(tree: *const ast.Tree, self_decl: ast.NodeIndex, shadowed_decl: ast.NodeIndex) bool {
+    const init = initializerForBinding(tree, shadowed_decl) orelse return false;
+    if (!containsNode(tree, init, self_decl)) return false;
+
+    const function_node = initializationFunctionContaining(tree, init, self_decl) orelse return false;
+    return functionIsCalledDuringInitialization(tree, init, function_node);
+}
+
+fn initializerForBinding(tree: *const ast.Tree, binding: ast.NodeIndex) ?ast.NodeIndex {
+    for (tree.nodes.items(.data)) |data| {
+        const declarator = switch (data) {
+            .variable_declarator => |declarator| declarator,
+            else => continue,
+        };
+        if (declarator.init != .null and containsNode(tree, declarator.id, binding)) return declarator.init;
+    }
+    return null;
+}
+
+fn initializationFunctionContaining(tree: *const ast.Tree, init: ast.NodeIndex, target: ast.NodeIndex) ?ast.NodeIndex {
+    var result: ?ast.NodeIndex = null;
+
+    for (tree.nodes.items(.data), 0..) |data, raw_index| {
+        const index: ast.NodeIndex = @enumFromInt(@as(u32, @intCast(raw_index)));
+        if (!containsNode(tree, init, index) or !containsNode(tree, index, target)) continue;
+
+        switch (data) {
+            .function, .arrow_function_expression => result = index,
+            else => {},
+        }
+    }
+
+    return result;
+}
+
+fn functionIsCalledDuringInitialization(tree: *const ast.Tree, init: ast.NodeIndex, function_node: ast.NodeIndex) bool {
+    for (tree.nodes.items(.data), 0..) |data, raw_index| {
+        const call = switch (data) {
+            .call_expression => |call| call,
+            else => continue,
+        };
+        const call_index: ast.NodeIndex = @enumFromInt(@as(u32, @intCast(raw_index)));
+        if (!containsNode(tree, init, call_index)) continue;
+
+        if (unwrapCallTarget(tree, call.callee) == function_node) return true;
+
+        for (tree.extra(call.arguments)) |argument| {
+            if (unwrapCallTarget(tree, argument) == function_node) return true;
+        }
+    }
+
+    return false;
+}
+
+fn unwrapCallTarget(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    if (index == .null) return index;
+
+    var current = index;
+    while (true) {
+        switch (tree.data(current)) {
+            .parenthesized_expression => |expression| current = expression.expression,
+            .chain_expression => |expression| current = expression.expression,
+            else => return current,
+        }
+    }
+}
+
+fn containsNode(tree: *const ast.Tree, container: ast.NodeIndex, node: ast.NodeIndex) bool {
+    if (container == .null or node == .null) return false;
+    if (container == node) return true;
+
+    const container_span = tree.span(container);
+    const node_span = tree.span(node);
+    return container_span.start <= node_span.start and node_span.end <= container_span.end;
 }
 
 fn checkFunctionTypeParameterNameValueShadows(

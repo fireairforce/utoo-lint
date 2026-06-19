@@ -812,6 +812,7 @@ pub fn runSemantic(
             .allow = options.no_shadow_allow,
             .builtin_globals = options.no_shadow_builtin_globals,
             .hoist = options.no_shadow_hoist,
+            .ignore_on_initialization = options.no_shadow_ignore_on_initialization,
         });
     }
 

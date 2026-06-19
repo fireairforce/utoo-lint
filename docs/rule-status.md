@@ -128,7 +128,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-self-compare`](https://eslint.org/docs/latest/rules/no-self-compare) | Implemented |
 | [`no-sequences`](https://eslint.org/docs/latest/rules/no-sequences) | Implemented with optional `allowInParentheses` behavior |
 | [`no-setter-return`](https://eslint.org/docs/latest/rules/no-setter-return) | Implemented |
-| [`no-shadow`](https://eslint.org/docs/latest/rules/no-shadow) | Supports `allow`, `builtinGlobals`, and `hoist` configuration |
+| [`no-shadow`](https://eslint.org/docs/latest/rules/no-shadow) | Supports `allow`, `builtinGlobals`, `hoist`, and `ignoreOnInitialization` configuration |
 | [`no-shadow-restricted-names`](https://eslint.org/docs/latest/rules/no-shadow-restricted-names) | Implemented |
 | [`no-sparse-arrays`](https://eslint.org/docs/latest/rules/no-sparse-arrays) | Implemented |
 | [`no-tabs`](https://eslint.org/docs/latest/rules/no-tabs) | Supports `allowIndentationTabs` configuration |

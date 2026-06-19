@@ -1412,6 +1412,7 @@ pub const Options = struct {
     no_shadow_allow: NoShadowAllowNames = .{},
     no_shadow_builtin_globals: bool = false,
     no_shadow_hoist: NoShadowHoist = .functions,
+    no_shadow_ignore_on_initialization: bool = false,
     no_shadow_restricted_names: bool = true,
     no_sequences: bool = true,
     no_sequences_allow_in_parentheses: NoSequencesAllowInParentheses = .yes,
@@ -2011,6 +2012,7 @@ pub const Options = struct {
             self.no_shadow_allow = try noShadowAllowFromConfig(value);
             self.no_shadow_builtin_globals = try noShadowBuiltinGlobalsFromConfig(value);
             self.no_shadow_hoist = try noShadowHoistFromConfig(value, .functions);
+            self.no_shadow_ignore_on_initialization = try noShadowBoolOptionFromConfig(value, "ignoreOnInitialization", false);
         }
         if (std.mem.eql(u8, cli_name, "no-underscore-dangle")) {
             self.no_underscore_dangle_allow_after_this = try noUnderscoreDangleBoolOptionFromConfig(value, "allowAfterThis", false);
@@ -6956,7 +6958,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_shadow_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allow\":[\"done\"],\"builtinGlobals\":true,\"hoist\":\"all\"}]",
+        "[\"error\",{\"allow\":[\"done\"],\"builtinGlobals\":true,\"hoist\":\"all\",\"ignoreOnInitialization\":true}]",
         .{},
     );
     defer no_shadow_config.deinit();
@@ -6966,6 +6968,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(!options.no_shadow_allow.contains("other"));
     try std.testing.expect(options.no_shadow_builtin_globals);
     try std.testing.expectEqual(NoShadowHoist.all, options.no_shadow_hoist);
+    try std.testing.expect(options.no_shadow_ignore_on_initialization);
 
     var no_underscore_dangle_config = try std.json.parseFromSlice(
         std.json.Value,
