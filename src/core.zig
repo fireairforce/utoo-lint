@@ -2144,6 +2144,8 @@ pub const Options = struct {
     require_unicode_regexp: bool = true,
     require_unicode_regexp_require_flag: RequireUnicodeRegexpRequireFlag = .any,
     require_yield: bool = true,
+    sort_vars: bool = false,
+    sort_vars_ignore_case: bool = false,
     spaced_comment: bool = true,
     spaced_comment_style: SpacedCommentStyle = .always,
     spaced_comment_markers: SpacedCommentMarkers = .{},
@@ -2705,6 +2707,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "require-unicode-regexp")) {
             self.require_unicode_regexp_require_flag = try requireUnicodeRegexpRequireFlagFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "sort-vars")) {
+            self.sort_vars_ignore_case = try sortVarsIgnoreCaseFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
             self.no_return_assign_style = try noReturnAssignStyleFromConfig(value);
@@ -5733,6 +5738,23 @@ pub const Options = struct {
         if (std.mem.eql(u8, require_flag, "u")) return .u;
         if (std.mem.eql(u8, require_flag, "v")) return .v;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn sortVarsIgnoreCaseFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("ignoreCase") orelse return false) {
+            .bool => |ignore_case| ignore_case,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn noSequencesAllowInParenthesesFromConfig(value: std.json.Value) RuleConfigError!NoSequencesAllowInParentheses {
@@ -9237,6 +9259,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("require-unicode-regexp", require_unicode_regexp_config.value);
     try std.testing.expect(options.require_unicode_regexp);
     try std.testing.expectEqual(RequireUnicodeRegexpRequireFlag.v, options.require_unicode_regexp_require_flag);
+
+    var sort_vars_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreCase\":true}]",
+        .{},
+    );
+    defer sort_vars_config.deinit();
+    try options.setByRuleConfigValue("sort-vars", sort_vars_config.value);
+    try std.testing.expect(options.sort_vars);
+    try std.testing.expect(options.sort_vars_ignore_case);
 
     var no_useless_rename_config = try std.json.parseFromSlice(
         std.json.Value,

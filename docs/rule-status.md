@@ -197,6 +197,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`require-atomic-updates`](https://eslint.org/docs/latest/rules/require-atomic-updates) | Supports `allowProperties` configuration |
 | [`require-unicode-regexp`](https://eslint.org/docs/latest/rules/require-unicode-regexp) | Supports regexp literals, static `RegExp` constructors, and `requireFlag` configuration |
 | [`require-yield`](https://eslint.org/docs/latest/rules/require-yield) | Implemented |
+| [`sort-vars`](https://eslint.org/docs/latest/rules/sort-vars) | Supports same-declaration identifier sorting and `ignoreCase` configuration |
 | [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, `markers`, and `exceptions` configuration |
 | [`symbol-description`](https://eslint.org/docs/latest/rules/symbol-description) | Implemented |
 | [`unicode-bom`](https://eslint.org/docs/latest/rules/unicode-bom) | Supports `never` and `always` configuration |
