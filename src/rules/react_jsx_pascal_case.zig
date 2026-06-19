@@ -9,6 +9,7 @@ pub const id = "react/jsx-pascal-case";
 
 pub const Options = struct {
     allow_all_caps: bool = true,
+    allow_leading_underscore: bool = false,
     ignore: core.ReactJsxPascalCaseIgnoreNames = .{},
 };
 
@@ -64,7 +65,8 @@ fn invalidNamePart(tree: *const ast.Tree, name_index: ast.NodeIndex, options: Op
             const name = tree.string(identifier.name);
             if (name.len == 1) return null;
             if (options.ignore.contains(name)) return null;
-            return if (isPascalCase(name) or (options.allow_all_caps and isAllCaps(name))) null else name;
+            const check_name = if (options.allow_leading_underscore and std.mem.startsWith(u8, name, "_")) name[1..] else name;
+            return if (isPascalCase(check_name) or (options.allow_all_caps and isAllCaps(check_name))) null else name;
         },
         .jsx_namespaced_name => |name| {
             if (invalidNamePart(tree, name.namespace, options)) |invalid| return invalid;

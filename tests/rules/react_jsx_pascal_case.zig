@@ -96,6 +96,36 @@ test "supports configured react/jsx-pascal-case ignore list" {
     try std.testing.expectEqualStrings("Imported JSX component baz must be in PascalCase or SCREAMING_SNAKE_CASE", result.diagnostics[0].message);
 }
 
+test "supports configured react/jsx-pascal-case allowLeadingUnderscore" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowLeadingUnderscore\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("react/jsx-pascal-case", config.value);
+
+    const source =
+        \\const allowedRoot = <_AllowedComponent />;
+        \\const allowedMember = <Foo._Bar />;
+        \\const reportedRoot = <_bad />;
+        \\const reportedMember = <Foo._bad />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_jsx_pascal_case.id));
+}
+
 test "can disable react/jsx-pascal-case" {
     const source =
         \\const node = <Foo.bar />;
