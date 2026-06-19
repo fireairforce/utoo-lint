@@ -1458,6 +1458,14 @@ pub const Options = struct {
     import_no_unresolved: bool = true,
     import_no_self_import: bool = true,
     jsx_a11y_alt_text: bool = true,
+    jsx_a11y_alt_text_img: bool = true,
+    jsx_a11y_alt_text_object: bool = true,
+    jsx_a11y_alt_text_area: bool = true,
+    jsx_a11y_alt_text_input_image: bool = true,
+    jsx_a11y_alt_text_img_components: JsxA11yImgRedundantAltNames = .{},
+    jsx_a11y_alt_text_object_components: JsxA11yImgRedundantAltNames = .{},
+    jsx_a11y_alt_text_area_components: JsxA11yImgRedundantAltNames = .{},
+    jsx_a11y_alt_text_input_image_components: JsxA11yImgRedundantAltNames = .{},
     jsx_a11y_anchor_has_content: bool = true,
     jsx_a11y_anchor_has_content_components: JsxA11yImgRedundantAltNames = .{},
     jsx_a11y_aria_props: bool = true,
@@ -2044,6 +2052,17 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "jsx-a11y/aria-role")) {
             self.jsx_a11y_aria_role_allowed_invalid_roles = try jsxA11yNamesFromConfig(value, "allowedInvalidRoles");
             self.jsx_a11y_aria_role_ignore_non_dom = try jsxA11yBoolOptionFromConfig(value, "ignoreNonDOM", true);
+        }
+        if (std.mem.eql(u8, cli_name, "jsx-a11y/alt-text")) {
+            const elements = try jsxA11yAltTextElementsFromConfig(value);
+            self.jsx_a11y_alt_text_img = elements.img;
+            self.jsx_a11y_alt_text_object = elements.object;
+            self.jsx_a11y_alt_text_area = elements.area;
+            self.jsx_a11y_alt_text_input_image = elements.input_image;
+            self.jsx_a11y_alt_text_img_components = try jsxA11yNamesFromConfig(value, "img");
+            self.jsx_a11y_alt_text_object_components = try jsxA11yNamesFromConfig(value, "object");
+            self.jsx_a11y_alt_text_area_components = try jsxA11yNamesFromConfig(value, "area");
+            self.jsx_a11y_alt_text_input_image_components = try jsxA11yNamesFromConfig(value, "input[type=\"image\"]");
         }
         if (std.mem.eql(u8, cli_name, "jsx-a11y/img-redundant-alt")) {
             self.jsx_a11y_img_redundant_alt_components = try jsxA11yNamesFromConfig(value, "components");
@@ -3062,6 +3081,55 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    const JsxA11yAltTextElementsConfig = struct {
+        img: bool = true,
+        object: bool = true,
+        area: bool = true,
+        input_image: bool = true,
+    };
+
+    fn jsxA11yAltTextElementsFromConfig(value: std.json.Value) RuleConfigError!JsxA11yAltTextElementsConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const element_items = switch (config.get("elements") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = JsxA11yAltTextElementsConfig{
+            .img = false,
+            .object = false,
+            .area = false,
+            .input_image = false,
+        };
+        for (element_items) |item| {
+            const element = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, element, "img")) {
+                result.img = true;
+            } else if (std.mem.eql(u8, element, "object")) {
+                result.object = true;
+            } else if (std.mem.eql(u8, element, "area")) {
+                result.area = true;
+            } else if (std.mem.eql(u8, element, "input[type=\"image\"]")) {
+                result.input_image = true;
+            } else {
+                return error.UnsupportedRuleConfigValue;
+            }
+        }
+        return result;
     }
 
     const JsxA11yNoDistractingElementsConfig = struct {
@@ -6641,6 +6709,24 @@ test "Options can apply ESLint-style rule config values" {
     try array.append(.{ .string = "warn" });
     try options.setByRuleConfigValue("jsx-a11y/aria-props", .{ .array = array });
     try std.testing.expect(options.jsx_a11y_aria_props);
+
+    var jsx_a11y_alt_text_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"elements\":[\"img\",\"input[type=\\\"image\\\"]\"],\"img\":[\"Image\"],\"object\":[\"Object\"],\"area\":[\"Area\"],\"input[type=\\\"image\\\"]\":[\"InputImage\"]}]",
+        .{},
+    );
+    defer jsx_a11y_alt_text_config.deinit();
+    try options.setByRuleConfigValue("jsx-a11y/alt-text", jsx_a11y_alt_text_config.value);
+    try std.testing.expect(options.jsx_a11y_alt_text);
+    try std.testing.expect(options.jsx_a11y_alt_text_img);
+    try std.testing.expect(!options.jsx_a11y_alt_text_object);
+    try std.testing.expect(!options.jsx_a11y_alt_text_area);
+    try std.testing.expect(options.jsx_a11y_alt_text_input_image);
+    try std.testing.expect(options.jsx_a11y_alt_text_img_components.contains("Image"));
+    try std.testing.expect(options.jsx_a11y_alt_text_object_components.contains("Object"));
+    try std.testing.expect(options.jsx_a11y_alt_text_area_components.contains("Area"));
+    try std.testing.expect(options.jsx_a11y_alt_text_input_image_components.contains("InputImage"));
 
     var jsx_a11y_anchor_has_content_config = try std.json.parseFromSlice(
         std.json.Value,

@@ -60,6 +60,58 @@ test "allows jsx-a11y/alt-text valid alternatives and non matching elements" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.jsx_a11y_alt_text.id));
 }
 
+test "supports configured jsx-a11y/alt-text elements and components" {
+    var elements_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"elements\":[\"img\"]}]",
+        .{},
+    );
+    defer elements_config.deinit();
+
+    var elements_options = lint.Options{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try elements_options.setByRuleConfigValue("jsx-a11y/alt-text", elements_config.value);
+
+    var elements_result = try lint.lintSource(std.testing.allocator,
+        \\const one = <img />;
+        \\const two = <area />;
+        \\const three = <object />;
+        \\const four = <input type="image" />;
+    , "fixture.tsx", elements_options);
+    defer elements_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(elements_result, lint.rules.jsx_a11y_alt_text.id));
+
+    var components_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"img\":[\"Image\"],\"object\":[\"ObjectEmbed\"],\"area\":[\"MapArea\"],\"input[type=\\\"image\\\"]\":[\"InputImage\"]}]",
+        .{},
+    );
+    defer components_config.deinit();
+
+    var components_options = lint.Options{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try components_options.setByRuleConfigValue("jsx-a11y/alt-text", components_config.value);
+
+    var components_result = try lint.lintSource(std.testing.allocator,
+        \\const one = <Image />;
+        \\const two = <ObjectEmbed />;
+        \\const three = <MapArea />;
+        \\const four = <InputImage />;
+        \\const five = <Avatar />;
+    , "fixture.tsx", components_options);
+    defer components_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(components_result, lint.rules.jsx_a11y_alt_text.id));
+    try std.testing.expect(hasMessage(components_result, "Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images."));
+}
+
 test "can disable jsx-a11y/alt-text" {
     const source =
         \\const node = <img />;
