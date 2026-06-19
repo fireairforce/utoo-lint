@@ -84,6 +84,7 @@ pub const jsx_a11y_scope = @import("jsx_a11y_scope.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const logical_assignment_operators = @import("logical_assignment_operators.zig");
 pub const max_depth = @import("max_depth.zig");
+pub const max_nested_callbacks = @import("max_nested_callbacks.zig");
 pub const max_params = @import("max_params.zig");
 pub const max_statements = @import("max_statements.zig");
 pub const new_cap = @import("new_cap.zig");
@@ -616,6 +617,7 @@ pub fn runBasic(
     defer visitor.react_forbid_prop_types_state.deinit(allocator);
     defer visitor.react_default_props_match_prop_types_state.deinit(allocator);
     defer visitor.max_statements_state.deinit(allocator);
+    defer visitor.max_nested_callbacks_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -1122,6 +1124,7 @@ const BasicVisitor = struct {
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
     max_statements_state: max_statements.State = .{},
+    max_nested_callbacks_state: max_nested_callbacks.State = .{},
 
     fn curlyOptions(self: *const BasicVisitor) curly.Options {
         return .{
@@ -1156,6 +1159,12 @@ const BasicVisitor = struct {
         return .{
             .max = self.options.max_statements_max,
             .ignore_top_level_functions = self.options.max_statements_ignore_top_level_functions,
+        };
+    }
+
+    fn maxNestedCallbacksOptions(self: *const BasicVisitor) max_nested_callbacks.Options {
+        return .{
+            .max = self.options.max_nested_callbacks_max,
         };
     }
 
@@ -1345,6 +1354,9 @@ const BasicVisitor = struct {
         if (self.options.max_statements) {
             try max_statements.enterFunction(self.allocator, &self.max_statements_state, index);
         }
+        if (self.options.max_nested_callbacks) {
+            try max_nested_callbacks.enterFunction(self.allocator, self.diagnostics, ctx.tree, function, index, &ctx.path, &self.max_nested_callbacks_state, self.maxNestedCallbacksOptions());
+        }
         if (self.options.no_dupe_args) {
             try no_dupe_args.check(self.allocator, self.diagnostics, ctx.tree, function);
         }
@@ -1407,9 +1419,12 @@ const BasicVisitor = struct {
         return .proceed;
     }
 
-    pub fn exit_function(self: *BasicVisitor, _: ast.Function, _: ast.NodeIndex, ctx: *traverser.basic.Ctx) void {
+    pub fn exit_function(self: *BasicVisitor, _: ast.Function, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) void {
         if (self.options.max_statements) {
             max_statements.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.max_statements_state, self.maxStatementsOptions()) catch {};
+        }
+        if (self.options.max_nested_callbacks) {
+            max_nested_callbacks.exitFunction(&self.max_nested_callbacks_state, index);
         }
     }
 
@@ -2609,6 +2624,9 @@ const BasicVisitor = struct {
         if (self.options.max_statements) {
             try max_statements.enterArrowFunction(self.allocator, &self.max_statements_state, index);
         }
+        if (self.options.max_nested_callbacks) {
+            try max_nested_callbacks.enterArrowFunction(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, &self.max_nested_callbacks_state, self.maxNestedCallbacksOptions());
+        }
         if (self.options.no_return_assign and expression.expression) {
             try no_return_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression.body, .{
                 .style = self.options.no_return_assign_style,
@@ -2658,9 +2676,12 @@ const BasicVisitor = struct {
         return .proceed;
     }
 
-    pub fn exit_arrow_function_expression(self: *BasicVisitor, _: ast.ArrowFunctionExpression, _: ast.NodeIndex, ctx: *traverser.basic.Ctx) void {
+    pub fn exit_arrow_function_expression(self: *BasicVisitor, _: ast.ArrowFunctionExpression, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) void {
         if (self.options.max_statements) {
             max_statements.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.max_statements_state, self.maxStatementsOptions()) catch {};
+        }
+        if (self.options.max_nested_callbacks) {
+            max_nested_callbacks.exitFunction(&self.max_nested_callbacks_state, index);
         }
     }
 
