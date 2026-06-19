@@ -3169,7 +3169,10 @@ const BasicVisitor = struct {
             try alipay_ant_prefer_safe_image_renderer.check(self.allocator, self.diagnostics, ctx.tree, opening);
         }
         if (self.options.jsx_a11y_no_distracting_elements) {
-            try jsx_a11y_no_distracting_elements.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
+            try jsx_a11y_no_distracting_elements.check(self.allocator, self.diagnostics, ctx.tree, opening, index, .{
+                .marquee = self.options.jsx_a11y_no_distracting_elements_marquee,
+                .blink = self.options.jsx_a11y_no_distracting_elements_blink,
+            });
         }
         if (self.options.jsx_a11y_aria_unsupported_elements) {
             try jsx_a11y_aria_unsupported_elements.check(self.allocator, self.diagnostics, ctx.tree, opening, index);

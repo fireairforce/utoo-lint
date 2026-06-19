@@ -39,6 +39,35 @@ test "allows jsx-a11y/no-distracting-elements non distracting and custom compone
     try std.testing.expect(!helpers.hasRule(result, lint.rules.jsx_a11y_no_distracting_elements.id));
 }
 
+test "supports configured jsx-a11y/no-distracting-elements elements" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"elements\":[\"blink\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("jsx-a11y/no-distracting-elements", config.value);
+
+    const source =
+        \\const one = <marquee />;
+        \\const two = <blink />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.jsx_a11y_no_distracting_elements.id));
+    try std.testing.expect(!hasMessage(result, "Do not use <marquee> elements as they can create visual accessibility issues and are deprecated."));
+    try std.testing.expect(hasMessage(result, "Do not use <blink> elements as they can create visual accessibility issues and are deprecated."));
+}
+
 test "can disable jsx-a11y/no-distracting-elements" {
     const source =
         \\const node = <marquee />;
