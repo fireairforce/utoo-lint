@@ -31,6 +31,7 @@ test "allows secure rel non-external links and non-anchor elements" {
         \\const relative = <a href="/docs" target="_blank" />;
         \\const button = <button href="https://example.com" target="_blank" />;
         \\const conditional = <a href={url} target={open ? "_blank" : "_self"} rel={open ? "noreferrer" : ""} />;
+        \\const spread = <a {...props} />;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", .{
@@ -42,6 +43,36 @@ test "allows secure rel non-external links and non-anchor elements" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_jsx_no_target_blank.id));
+}
+
+test "supports configured react/jsx-no-target-blank warnOnSpreadAttributes" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"warnOnSpreadAttributes\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("react/jsx-no-target-blank", config.value);
+    options.eol_last = false;
+    options.jsx_a11y_anchor_has_content = false;
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    const source =
+        \\const unsafe = <a {...props} />;
+        \\const safeRel = <a {...props} rel="noreferrer" />;
+        \\const safeTarget = <a {...props} target="_self" />;
+        \\const safeHref = <a {...props} href="/docs" />;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_jsx_no_target_blank.id));
 }
 
 test "supports configured react/jsx-no-target-blank allowReferrer" {

@@ -1640,6 +1640,7 @@ pub const Options = struct {
     react_jsx_no_target_blank: bool = true,
     react_jsx_no_target_blank_allow_referrer: bool = false,
     react_jsx_no_target_blank_enforce_dynamic_links: bool = true,
+    react_jsx_no_target_blank_warn_on_spread_attributes: bool = false,
     react_jsx_no_undef: bool = true,
     react_jsx_pascal_case: bool = true,
     react_jsx_pascal_case_allow_all_caps: bool = true,
@@ -2245,6 +2246,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "react/jsx-no-target-blank")) {
             self.react_jsx_no_target_blank_allow_referrer = try reactJsxNoTargetBlankAllowReferrerFromConfig(value);
             self.react_jsx_no_target_blank_enforce_dynamic_links = try reactJsxNoTargetBlankEnforceDynamicLinksFromConfig(value);
+            self.react_jsx_no_target_blank_warn_on_spread_attributes = try reactJsxNoTargetBlankWarnOnSpreadAttributesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-pascal-case")) {
             self.react_jsx_pascal_case_allow_all_caps = try reactJsxPascalCaseAllowAllCapsFromConfig(value);
@@ -2906,6 +2908,23 @@ pub const Options = struct {
         if (std.mem.eql(u8, mode, "always")) return true;
         if (std.mem.eql(u8, mode, "never")) return false;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn reactJsxNoTargetBlankWarnOnSpreadAttributesFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("warnOnSpreadAttributes") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     const ReactNoUnescapedEntitiesForbid = struct {
@@ -6406,7 +6425,7 @@ test "Options can apply ESLint-style rule config values" {
     var react_jsx_no_target_blank_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowReferrer\":true,\"enforceDynamicLinks\":\"never\"}]",
+        "[\"error\",{\"allowReferrer\":true,\"enforceDynamicLinks\":\"never\",\"warnOnSpreadAttributes\":true}]",
         .{},
     );
     defer react_jsx_no_target_blank_config.deinit();
@@ -6414,6 +6433,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.react_jsx_no_target_blank);
     try std.testing.expect(options.react_jsx_no_target_blank_allow_referrer);
     try std.testing.expect(!options.react_jsx_no_target_blank_enforce_dynamic_links);
+    try std.testing.expect(options.react_jsx_no_target_blank_warn_on_spread_attributes);
 
     var react_jsx_pascal_case_config = try std.json.parseFromSlice(
         std.json.Value,
