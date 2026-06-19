@@ -820,6 +820,49 @@ pub const ReactPropTypesIgnoreNames = struct {
     }
 };
 
+pub const max_jsx_a11y_img_redundant_alt_names = 32;
+pub const max_jsx_a11y_img_redundant_alt_name_len = 128;
+
+pub const JsxA11yImgRedundantAltNamesError = error{
+    EmptyJsxA11yImgRedundantAltName,
+    TooManyJsxA11yImgRedundantAltNames,
+    JsxA11yImgRedundantAltNameTooLong,
+};
+
+pub const JsxA11yImgRedundantAltNames = struct {
+    count: usize = 0,
+    lengths: [max_jsx_a11y_img_redundant_alt_names]usize = undefined,
+    storage: [max_jsx_a11y_img_redundant_alt_names][max_jsx_a11y_img_redundant_alt_name_len]u8 = undefined,
+
+    pub fn contains(self: *const JsxA11yImgRedundantAltNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn containsIgnoreCase(self: *const JsxA11yImgRedundantAltNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.ascii.eqlIgnoreCase(self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const JsxA11yImgRedundantAltNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *JsxA11yImgRedundantAltNames, name: []const u8) JsxA11yImgRedundantAltNamesError!void {
+        if (name.len == 0) return error.EmptyJsxA11yImgRedundantAltName;
+        if (self.count >= max_jsx_a11y_img_redundant_alt_names) return error.TooManyJsxA11yImgRedundantAltNames;
+        if (name.len > max_jsx_a11y_img_redundant_alt_name_len) return error.JsxA11yImgRedundantAltNameTooLong;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const max_typescript_eslint_ban_type_entries = 32;
 pub const max_typescript_eslint_ban_type_name_len = 128;
 pub const max_typescript_eslint_ban_type_message_len = 512;
@@ -1422,6 +1465,8 @@ pub const Options = struct {
     jsx_a11y_aria_unsupported_elements: bool = true,
     jsx_a11y_iframe_has_title: bool = true,
     jsx_a11y_img_redundant_alt: bool = true,
+    jsx_a11y_img_redundant_alt_components: JsxA11yImgRedundantAltNames = .{},
+    jsx_a11y_img_redundant_alt_words: JsxA11yImgRedundantAltNames = .{},
     jsx_a11y_no_access_key: bool = true,
     jsx_a11y_no_distracting_elements: bool = true,
     jsx_a11y_role_has_required_aria_props: bool = true,
@@ -1987,6 +2032,10 @@ pub const Options = struct {
             self.import_newline_after_import_count = try importNewlineAfterImportCountFromConfig(value);
             self.import_newline_after_import_exact_count = try importNewlineAfterImportExactCountFromConfig(value);
             self.import_newline_after_import_consider_comments = try importNewlineAfterImportConsiderCommentsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "jsx-a11y/img-redundant-alt")) {
+            self.jsx_a11y_img_redundant_alt_components = try jsxA11yImgRedundantAltNamesFromConfig(value, "components");
+            self.jsx_a11y_img_redundant_alt_words = try jsxA11yImgRedundantAltNamesFromConfig(value, "words");
         }
         if (std.mem.eql(u8, cli_name, "new-cap")) {
             self.new_cap_new_is_cap = try newCapBoolOptionFromConfig(value, "newIsCap", true);
@@ -2944,6 +2993,33 @@ pub const Options = struct {
         };
 
         var names = ReactPropTypesIgnoreNames{};
+        for (name_items) |item| {
+            const name = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            names.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return names;
+    }
+
+    fn jsxA11yImgRedundantAltNamesFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!JsxA11yImgRedundantAltNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const name_items = switch (config.get(key) orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var names = JsxA11yImgRedundantAltNames{};
         for (name_items) |item| {
             const name = switch (item) {
                 .string => |string| string,
@@ -6490,6 +6566,20 @@ test "Options can apply ESLint-style rule config values" {
     try array.append(.{ .string = "warn" });
     try options.setByRuleConfigValue("jsx-a11y/aria-props", .{ .array = array });
     try std.testing.expect(options.jsx_a11y_aria_props);
+
+    var jsx_a11y_img_redundant_alt_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"components\":[\"Image\"],\"words\":[\"Bild\"]}]",
+        .{},
+    );
+    defer jsx_a11y_img_redundant_alt_config.deinit();
+    try options.setByRuleConfigValue("jsx-a11y/img-redundant-alt", jsx_a11y_img_redundant_alt_config.value);
+    try std.testing.expect(options.jsx_a11y_img_redundant_alt);
+    try std.testing.expect(options.jsx_a11y_img_redundant_alt_components.contains("Image"));
+    try std.testing.expect(!options.jsx_a11y_img_redundant_alt_components.contains("Picture"));
+    try std.testing.expect(options.jsx_a11y_img_redundant_alt_words.containsIgnoreCase("bild"));
+    try std.testing.expect(!options.jsx_a11y_img_redundant_alt_words.containsIgnoreCase("foto"));
 
     try options.setByRuleConfigValue("prettier/prettier", .{ .string = "error" });
 

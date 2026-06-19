@@ -9,19 +9,25 @@ pub const id = "jsx-a11y/img-redundant-alt";
 
 const message = "Redundant alt attribute. Screen-readers already announce `img` tags as an image. You don’t need to use the words `image`, `photo,` or `picture` (or any specified custom words) in the alt prop.";
 
+pub const Options = struct {
+    components: core.JsxA11yImgRedundantAltNames = .{},
+    words: core.JsxA11yImgRedundantAltNames = .{},
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     opening: ast.JSXOpeningElement,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
-    if (!isImgElement(tree, opening.name)) return;
+    if (!isCheckedElement(tree, opening.name, options.components)) return;
     if (isAriaHidden(tree, opening)) return;
 
     const alt = attributeNamed(tree, opening, "alt") orelse return;
     const value = stringValue(tree, alt.value) orelse return;
-    if (!containsRedundantWord(value)) return;
+    if (!containsRedundantWord(value, options.words)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -33,11 +39,12 @@ pub fn check(
     );
 }
 
-fn isImgElement(tree: *const ast.Tree, name_index: ast.NodeIndex) bool {
-    return switch (tree.data(name_index)) {
-        .jsx_identifier => |identifier| std.mem.eql(u8, tree.string(identifier.name), "img"),
-        else => false,
+fn isCheckedElement(tree: *const ast.Tree, name_index: ast.NodeIndex, components: core.JsxA11yImgRedundantAltNames) bool {
+    const name = switch (tree.data(name_index)) {
+        .jsx_identifier => |identifier| tree.string(identifier.name),
+        else => return false,
     };
+    return std.mem.eql(u8, name, "img") or components.contains(name);
 }
 
 fn attributeNamed(tree: *const ast.Tree, opening: ast.JSXOpeningElement, name: []const u8) ?ast.JSXAttribute {
@@ -95,10 +102,10 @@ fn firstTemplateQuasi(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]co
     };
 }
 
-fn containsRedundantWord(value: []const u8) bool {
-    var words = std.mem.tokenizeAny(u8, value, " \t\r\n");
-    while (words.next()) |word| {
-        if (equalsRedundantWord(word)) return true;
+fn containsRedundantWord(value: []const u8, words: core.JsxA11yImgRedundantAltNames) bool {
+    var tokens = std.mem.tokenizeAny(u8, value, " \t\r\n");
+    while (tokens.next()) |word| {
+        if (equalsRedundantWord(word) or words.containsIgnoreCase(word)) return true;
     }
     return false;
 }
