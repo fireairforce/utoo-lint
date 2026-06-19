@@ -233,7 +233,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`react/jsx-no-bind`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-bind.md) | Supports `allowArrowFunctions`, `allowFunctions`, `allowBind`, `ignoreRefs`, and `ignoreDOMComponents` configuration |
 | [`react/jsx-no-comment-textnodes`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-comment-textnodes.md) | Implemented |
 | [`react/jsx-no-duplicate-props`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-duplicate-props.md) | Implemented with configurable `ignoreCase` behavior |
-| [`react/jsx-no-target-blank`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-target-blank.md) | Supports `allowReferrer` and `enforceDynamicLinks` configuration |
+| [`react/jsx-no-target-blank`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-target-blank.md) | Supports `allowReferrer`, `enforceDynamicLinks`, and `warnOnSpreadAttributes` configuration |
 | [`react/jsx-pascal-case`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-pascal-case.md) | Supports `allowAllCaps` and `ignore` configuration |
 | [`react/no-danger`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-danger.md) | Implemented |
 | [`react/no-find-dom-node`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-find-dom-node.md) | Implemented |

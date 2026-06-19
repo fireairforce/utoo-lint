@@ -10,6 +10,7 @@ pub const id = "react/jsx-no-target-blank";
 pub const Options = struct {
     allow_referrer: bool = false,
     enforce_dynamic_links: bool = true,
+    warn_on_spread_attributes: bool = false,
 };
 
 pub fn check(
@@ -22,11 +23,25 @@ pub fn check(
 ) Allocator.Error!void {
     if (!isAnchorElement(tree, opening.name)) return;
 
+    if (options.warn_on_spread_attributes and hasUnsafeSpreadAttribute(tree, opening, options.allow_referrer)) {
+        try addDiagnostic(allocator, diagnostics, tree, index);
+        return;
+    }
+
     const target = lastAttributeNamed(tree, opening, "target") orelse return;
     if (!attributeValuePossiblyBlank(tree, target.attribute)) return;
     if (!hasDangerousHref(tree, opening, options.enforce_dynamic_links)) return;
     if (hasSecureRel(tree, opening, target.attribute.value, options.allow_referrer)) return;
 
+    try addDiagnostic(allocator, diagnostics, tree, index);
+}
+
+fn addDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+) Allocator.Error!void {
     try core.addDiagnostic(
         allocator,
         diagnostics,
@@ -62,6 +77,31 @@ fn lastAttributeNamed(tree: *const ast.Tree, opening: ast.JSXOpeningElement, nam
         }
     }
     return null;
+}
+
+fn hasUnsafeSpreadAttribute(tree: *const ast.Tree, opening: ast.JSXOpeningElement, allow_referrer: bool) bool {
+    const attributes = tree.extra(opening.attributes);
+    var last_spread: ?usize = null;
+    for (attributes, 0..) |attribute_index, index| {
+        switch (tree.data(attribute_index)) {
+            .jsx_spread_attribute => last_spread = index,
+            else => {},
+        }
+    }
+
+    const spread_index = last_spread orelse return false;
+    for (attributes[spread_index + 1 ..]) |attribute_index| {
+        const attribute = switch (tree.data(attribute_index)) {
+            .jsx_attribute => |attribute| attribute,
+            else => continue,
+        };
+        const name = attributeName(tree, attribute.name) orelse continue;
+
+        if (std.mem.eql(u8, name, "rel") and attributeRelValueIsSecure(tree, attribute, allow_referrer)) return false;
+        if (std.mem.eql(u8, name, "target") and !attributeValuePossiblyBlank(tree, attribute)) return false;
+        if (std.mem.eql(u8, name, "href") and attributeValueIsSafeHref(tree, attribute)) return false;
+    }
+    return true;
 }
 
 fn attributeName(tree: *const ast.Tree, name_index: ast.NodeIndex) ?[]const u8 {
@@ -106,6 +146,18 @@ fn hasSecureRel(tree: *const ast.Tree, opening: ast.JSXOpeningElement, target_va
         if (!valueIsSecureRel(value orelse return false, allow_referrer)) return false;
     }
     return true;
+}
+
+fn attributeRelValueIsSecure(tree: *const ast.Tree, attribute: ast.JSXAttribute, allow_referrer: bool) bool {
+    if (attribute.value == .null) return false;
+    const value = stringValue(tree, attribute.value) orelse return false;
+    return valueIsSecureRel(value, allow_referrer);
+}
+
+fn attributeValueIsSafeHref(tree: *const ast.Tree, attribute: ast.JSXAttribute) bool {
+    if (attribute.value == .null) return false;
+    const value = stringValue(tree, attribute.value) orelse return false;
+    return !isExternalHref(value);
 }
 
 fn relValues(tree: *const ast.Tree, rel_value: ast.NodeIndex, target_value: ast.NodeIndex, values: *[2]?[]const u8) usize {
