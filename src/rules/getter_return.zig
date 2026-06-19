@@ -8,6 +8,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "getter-return";
 
+pub const Options = struct {
+    allow_implicit: bool = false,
+};
+
 const Completion = enum {
     continues,
     valid_terminal,
@@ -22,8 +26,20 @@ pub fn check(
     index: ast.NodeIndex,
     ctx: *traverser.basic.Ctx,
 ) Allocator.Error!void {
+    try checkWithOptions(allocator, diagnostics, tree, body, index, ctx, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    body: ast.FunctionBody,
+    index: ast.NodeIndex,
+    ctx: *traverser.basic.Ctx,
+    options: Options,
+) Allocator.Error!void {
     if (!isGetterBody(tree, ctx)) return;
-    if (rangeAlwaysReturnsValue(tree, body.body)) return;
+    if (rangeAlwaysReturnsValue(tree, body.body, options)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -112,13 +128,13 @@ fn isNestedDescriptorObject(
         isStaticMemberCall(tree, call.callee, "Object", "defineProperties");
 }
 
-fn rangeAlwaysReturnsValue(tree: *const ast.Tree, range: ast.IndexRange) bool {
-    return rangeCompletion(tree, range) == .valid_terminal;
+fn rangeAlwaysReturnsValue(tree: *const ast.Tree, range: ast.IndexRange, options: Options) bool {
+    return rangeCompletion(tree, range, options) == .valid_terminal;
 }
 
-fn rangeCompletion(tree: *const ast.Tree, range: ast.IndexRange) Completion {
+fn rangeCompletion(tree: *const ast.Tree, range: ast.IndexRange, options: Options) Completion {
     for (tree.extra(range)) |statement| {
-        switch (statementCompletion(tree, statement)) {
+        switch (statementCompletion(tree, statement, options)) {
             .continues => {},
             .valid_terminal => return .valid_terminal,
             .invalid_return => return .invalid_return,
@@ -128,38 +144,38 @@ fn rangeCompletion(tree: *const ast.Tree, range: ast.IndexRange) Completion {
     return .continues;
 }
 
-fn statementCompletion(tree: *const ast.Tree, index: ast.NodeIndex) Completion {
+fn statementCompletion(tree: *const ast.Tree, index: ast.NodeIndex, options: Options) Completion {
     if (index == .null) return .continues;
 
     return switch (tree.data(index)) {
-        .return_statement => |statement| if (statement.argument != .null) .valid_terminal else .invalid_return,
+        .return_statement => |statement| if (statement.argument != .null or options.allow_implicit) .valid_terminal else .invalid_return,
         .throw_statement => .valid_terminal,
-        .block_statement => |block| rangeCompletion(tree, block.body),
-        .if_statement => |statement| ifCompletion(tree, statement),
-        .try_statement => |statement| tryCompletion(tree, statement),
+        .block_statement => |block| rangeCompletion(tree, block.body, options),
+        .if_statement => |statement| ifCompletion(tree, statement, options),
+        .try_statement => |statement| tryCompletion(tree, statement, options),
         else => .continues,
     };
 }
 
-fn ifCompletion(tree: *const ast.Tree, statement: ast.IfStatement) Completion {
-    const consequent = statementCompletion(tree, statement.consequent);
+fn ifCompletion(tree: *const ast.Tree, statement: ast.IfStatement, options: Options) Completion {
+    const consequent = statementCompletion(tree, statement.consequent, options);
     if (consequent == .invalid_return) return .invalid_return;
 
     if (statement.alternate == .null) return .continues;
-    const alternate = statementCompletion(tree, statement.alternate);
+    const alternate = statementCompletion(tree, statement.alternate, options);
     if (alternate == .invalid_return) return .invalid_return;
 
     if (consequent == .valid_terminal and alternate == .valid_terminal) return .valid_terminal;
     return .continues;
 }
 
-fn tryCompletion(tree: *const ast.Tree, statement: ast.TryStatement) Completion {
+fn tryCompletion(tree: *const ast.Tree, statement: ast.TryStatement, options: Options) Completion {
     if (statement.finalizer != .null) {
-        const finalizer = statementCompletion(tree, statement.finalizer);
+        const finalizer = statementCompletion(tree, statement.finalizer, options);
         if (finalizer != .continues) return finalizer;
     }
 
-    const block = statementCompletion(tree, statement.block);
+    const block = statementCompletion(tree, statement.block, options);
     if (block == .invalid_return) return .invalid_return;
     if (statement.handler == .null) return block;
 
@@ -167,7 +183,7 @@ fn tryCompletion(tree: *const ast.Tree, statement: ast.TryStatement) Completion 
         .catch_clause => |handler| handler.body,
         else => return .continues,
     };
-    const handler = statementCompletion(tree, handler_node);
+    const handler = statementCompletion(tree, handler_node, options);
     if (handler == .invalid_return) return .invalid_return;
 
     if (block == .valid_terminal and handler == .valid_terminal) return .valid_terminal;

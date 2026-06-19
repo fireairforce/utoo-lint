@@ -1261,6 +1261,7 @@ pub const Options = struct {
     func_names_has_generator_style: bool = false,
     func_names_generator_style: FuncNamesStyle = .always,
     getter_return: bool = true,
+    getter_return_allow_implicit: bool = false,
     grouped_accessor_pairs: bool = true,
     grouped_accessor_pairs_style: GroupedAccessorPairsStyle = .any_order,
     guard_for_in: bool = true,
@@ -1949,6 +1950,9 @@ pub const Options = struct {
             const generator_style = try funcNamesGeneratorStyleFromConfig(value);
             self.func_names_has_generator_style = generator_style != null;
             self.func_names_generator_style = generator_style orelse self.func_names_style;
+        }
+        if (std.mem.eql(u8, cli_name, "getter-return")) {
+            self.getter_return_allow_implicit = try getterReturnAllowImplicitFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "grouped-accessor-pairs")) {
             self.grouped_accessor_pairs_style = try groupedAccessorPairsStyleFromConfig(value);
@@ -2785,6 +2789,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get(key) orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn getterReturnAllowImplicitFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowImplicit") orelse return false) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -6780,6 +6801,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(FuncNameMatchingStyle.never, options.func_name_matching_style);
     try std.testing.expect(options.func_name_matching_include_commonjs_module_exports);
     try std.testing.expect(options.func_name_matching_consider_property_descriptor);
+
+    var getter_return_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowImplicit\":true}]",
+        .{},
+    );
+    defer getter_return_config.deinit();
+    try options.setByRuleConfigValue("getter-return", getter_return_config.value);
+    try std.testing.expect(options.getter_return);
+    try std.testing.expect(options.getter_return_allow_implicit);
 
     var func_names_config = try std.json.parseFromSlice(
         std.json.Value,

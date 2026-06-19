@@ -154,6 +154,48 @@ test "does not report getter-return when all getter paths return or throw" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.getter_return.id));
 }
 
+test "supports configured getter-return allowImplicit" {
+    const source =
+        \\class Example {
+        \\  get bare() {
+        \\    return;
+        \\  }
+        \\  get partial() {
+        \\    if (ready) {
+        \\      return;
+        \\    }
+        \\  }
+        \\  get missing() {}
+        \\}
+        \\Object.defineProperty(target, "x", {
+        \\  get: function () {
+        \\    return;
+        \\  }
+        \\});
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowImplicit\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_empty_function = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("getter-return", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.getter_return.id));
+}
+
 test "can disable getter-return" {
     const source =
         \\class Example {
