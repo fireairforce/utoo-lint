@@ -99,11 +99,64 @@ test "reports import/newline-after-import when exactCount rejects extra blank li
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.import_newline_after_import.id));
 }
 
+test "supports configured import/newline-after-import considerComments" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        \\["error", {"considerComments": true}]
+    ,
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("import/newline-after-import", config.value);
+
+    const source =
+        \\import first from "./first";
+        \\// comment is considered adjacent to the import
+        \\const firstValue = first;
+        \\
+        \\import second from "./second";
+        \\
+        \\// comment has a blank line after the import
+        \\const secondValue = second;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.import_newline_after_import.id));
+}
+
+test "ignores comments after import by default" {
+    const source =
+        \\import thing from "./thing";
+        \\// comment is ignored by default
+        \\const value = thing;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.import_newline_after_import.id));
+}
+
 test "supports configured import/newline-after-import count options" {
     var config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        \\["error", {"count": 2, "exactCount": true}]
+        \\["error", {"count": 2, "exactCount": true, "considerComments": true}]
     ,
         .{},
     );
@@ -115,6 +168,7 @@ test "supports configured import/newline-after-import count options" {
     try std.testing.expect(options.import_newline_after_import);
     try std.testing.expectEqual(@as(usize, 2), options.import_newline_after_import_count);
     try std.testing.expect(options.import_newline_after_import_exact_count);
+    try std.testing.expect(options.import_newline_after_import_consider_comments);
 }
 
 test "can disable import/newline-after-import" {
