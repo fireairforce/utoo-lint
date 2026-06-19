@@ -83,6 +83,7 @@ pub const jsx_a11y_role_supports_aria_props = @import("jsx_a11y_role_supports_ar
 pub const jsx_a11y_scope = @import("jsx_a11y_scope.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const logical_assignment_operators = @import("logical_assignment_operators.zig");
+pub const max_depth = @import("max_depth.zig");
 pub const max_params = @import("max_params.zig");
 pub const new_cap = @import("new_cap.zig");
 pub const new_parens = @import("new_parens.zig");
@@ -1142,6 +1143,12 @@ const BasicVisitor = struct {
         };
     }
 
+    fn maxDepthOptions(self: *const BasicVisitor) max_depth.Options {
+        return .{
+            .max = self.options.max_depth_max,
+        };
+    }
+
     fn noUselessRenameOptions(self: *const BasicVisitor) no_useless_rename.Options {
         return .{
             .ignore_destructuring = self.options.no_useless_rename_ignore_destructuring,
@@ -1494,6 +1501,9 @@ const BasicVisitor = struct {
         if (self.options.alipay_ant_prefer_elseif_end_with_else) {
             try alipay_ant_prefer_elseif_end_with_else.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }
+        if (self.options.max_depth) {
+            try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
+        }
         return .proceed;
     }
 
@@ -1539,6 +1549,9 @@ const BasicVisitor = struct {
         if (self.options.no_unreachable_loop) {
             try no_unreachable_loop.checkWhileStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
         }
+        if (self.options.max_depth) {
+            try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
+        }
         return .proceed;
     }
 
@@ -1561,6 +1574,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_unreachable_loop) {
             try no_unreachable_loop.checkDoWhileStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
+        }
+        if (self.options.max_depth) {
+            try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
         }
         return .proceed;
     }
@@ -1590,6 +1606,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_unreachable_loop) {
             try no_unreachable_loop.checkForStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
+        }
+        if (self.options.max_depth) {
+            try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
         }
         return .proceed;
     }
@@ -2122,6 +2141,9 @@ const BasicVisitor = struct {
         if (self.options.use_isnan) {
             try use_isnan.checkSwitchStatementWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, index, self.useIsnanOptions());
         }
+        if (self.options.max_depth) {
+            try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
+        }
         return .proceed;
     }
 
@@ -2146,11 +2168,14 @@ const BasicVisitor = struct {
     pub fn enter_try_statement(
         self: *BasicVisitor,
         statement: ast.TryStatement,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.no_unsafe_finally) {
             try no_unsafe_finally.check(self.allocator, self.diagnostics, ctx.tree, statement);
+        }
+        if (self.options.max_depth) {
+            try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
         }
         return .proceed;
     }
@@ -2268,6 +2293,9 @@ const BasicVisitor = struct {
         if (self.options.no_unreachable_loop) {
             try no_unreachable_loop.checkForInStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
         }
+        if (self.options.max_depth) {
+            try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
+        }
         return .proceed;
     }
 
@@ -2282,6 +2310,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_unreachable_loop) {
             try no_unreachable_loop.checkForOfStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
+        }
+        if (self.options.max_depth) {
+            try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
         }
         return .proceed;
     }
@@ -2388,6 +2419,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_with) {
             try no_with.check(self.allocator, self.diagnostics, ctx.tree, index);
+        }
+        if (self.options.max_depth) {
+            try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
         }
         return .proceed;
     }
