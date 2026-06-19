@@ -83,6 +83,7 @@ pub const jsx_a11y_role_supports_aria_props = @import("jsx_a11y_role_supports_ar
 pub const jsx_a11y_scope = @import("jsx_a11y_scope.zig");
 pub const linebreak_style = @import("linebreak_style.zig");
 pub const logical_assignment_operators = @import("logical_assignment_operators.zig");
+pub const max_params = @import("max_params.zig");
 pub const new_cap = @import("new_cap.zig");
 pub const new_parens = @import("new_parens.zig");
 pub const no_async_promise_executor = @import("no_async_promise_executor.zig");
@@ -1341,6 +1342,12 @@ const BasicVisitor = struct {
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, function.params);
         }
+        if (self.options.max_params) {
+            try max_params.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, .{
+                .max = self.options.max_params_max,
+                .count_this = self.options.max_params_count_this,
+            });
+        }
         if (self.options.typescript_eslint_typedef and self.options.typescript_eslint_typedef_parameter) {
             try typescript_eslint_typedef.checkFunctionParameters(self.allocator, self.diagnostics, ctx.tree, function);
         }
@@ -2540,6 +2547,12 @@ const BasicVisitor = struct {
         }
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, expression.params);
+        }
+        if (self.options.max_params) {
+            try max_params.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+                .max = self.options.max_params_max,
+                .count_this = self.options.max_params_count_this,
+            });
         }
         if (self.options.typescript_eslint_typedef and self.options.typescript_eslint_typedef_arrow_parameter) {
             try typescript_eslint_typedef.checkArrowFunctionParameters(self.allocator, self.diagnostics, ctx.tree, expression);
