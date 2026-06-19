@@ -92,6 +92,40 @@ test "reports react/no-unused-prop-types object props" {
     try std.testing.expect(std.mem.eql(u8, result.diagnostics[0].message, "'user' PropType is defined but prop is never used"));
 }
 
+test "supports configured react/no-unused-prop-types ignore" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignore\":[\"age\",\"user\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = noUnusedPropTypesOnly();
+    try options.setByRuleConfigValue("react/no-unused-prop-types", config.value);
+
+    const source =
+        \\import React from 'react';
+        \\function Foo(props) {
+        \\  return <div>{props.name}</div>;
+        \\}
+        \\Foo.propTypes = {
+        \\  name: PropTypes.string,
+        \\  age: PropTypes.number,
+        \\  user: PropTypes.shape({
+        \\    id: PropTypes.number,
+        \\  }),
+        \\  role: PropTypes.string,
+        \\};
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "sample.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_no_unused_prop_types.id));
+    try std.testing.expect(hasMessage(result, "'role' PropType is defined but prop is never used"));
+}
+
 test "reports react/no-unused-prop-types for class components" {
     const source =
         \\import React from 'react';
