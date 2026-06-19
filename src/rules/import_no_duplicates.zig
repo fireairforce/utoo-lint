@@ -7,8 +7,13 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "import/no-duplicates";
 
+pub const Options = struct {
+    consider_query_string: bool = false,
+};
+
 const SeenImport = struct {
     source: []const u8,
+    key: []const u8,
     source_node: ast.NodeIndex,
     reported: bool = false,
 };
@@ -19,6 +24,16 @@ pub fn check(
     tree: *const ast.Tree,
     program: ast.Program,
 ) Allocator.Error!void {
+    try checkWithOptions(allocator, diagnostics, tree, program, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    program: ast.Program,
+    options: Options,
+) Allocator.Error!void {
     var seen: std.ArrayList(SeenImport) = .empty;
     defer seen.deinit(allocator);
 
@@ -28,17 +43,22 @@ pub fn check(
             else => continue,
         };
         const source = importSource(tree, declaration) orelse continue;
+        const key = importKey(source, options);
 
-        if (findSeen(seen.items, source)) |seen_index| {
+        if (findSeen(seen.items, key)) |seen_index| {
             if (!seen.items[seen_index].reported) {
-                try addDiagnostic(allocator, diagnostics, tree, seen.items[seen_index].source_node, source);
+                try addDiagnostic(allocator, diagnostics, tree, seen.items[seen_index].source_node, seen.items[seen_index].source);
                 seen.items[seen_index].reported = true;
             }
             try addDiagnostic(allocator, diagnostics, tree, declaration.source, source);
             continue;
         }
 
-        try seen.append(allocator, .{ .source = source, .source_node = declaration.source });
+        try seen.append(allocator, .{
+            .source = source,
+            .key = key,
+            .source_node = declaration.source,
+        });
     }
 }
 
@@ -67,9 +87,15 @@ fn importSource(tree: *const ast.Tree, declaration: ast.ImportDeclaration) ?[]co
     };
 }
 
-fn findSeen(items: []const SeenImport, source: []const u8) ?usize {
+fn importKey(source: []const u8, options: Options) []const u8 {
+    if (options.consider_query_string) return source;
+    const query_index = std.mem.indexOfScalar(u8, source, '?') orelse return source;
+    return source[0..query_index];
+}
+
+fn findSeen(items: []const SeenImport, key: []const u8) ?usize {
     for (items, 0..) |item, i| {
-        if (std.mem.eql(u8, item.source, source)) return i;
+        if (std.mem.eql(u8, item.key, key)) return i;
     }
     return null;
 }

@@ -1480,6 +1480,7 @@ pub const Options = struct {
     import_no_cycle_commonjs: bool = false,
     import_no_cycle_max_depth: usize = 1024,
     import_no_duplicates: bool = true,
+    import_no_duplicates_consider_query_string: bool = false,
     import_no_named_as_default: bool = true,
     import_no_named_as_default_member: bool = true,
     import_no_unresolved: bool = true,
@@ -2083,6 +2084,9 @@ pub const Options = struct {
             self.import_no_cycle_amd = try importNoCycleBoolOptionFromConfig(value, "amd", false);
             self.import_no_cycle_commonjs = try importNoCycleBoolOptionFromConfig(value, "commonjs", false);
             self.import_no_cycle_max_depth = try importNoCycleMaxDepthFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "import/no-duplicates")) {
+            self.import_no_duplicates_consider_query_string = try importNoDuplicatesBoolOptionFromConfig(value, "considerQueryString", false);
         }
         if (std.mem.eql(u8, cli_name, "import/newline-after-import")) {
             self.import_newline_after_import_count = try importNewlineAfterImportCountFromConfig(value);
@@ -4007,6 +4011,23 @@ pub const Options = struct {
     }
 
     fn importNoCycleBoolOptionFromConfig(value: std.json.Value, name: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(name) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn importNoDuplicatesBoolOptionFromConfig(value: std.json.Value, name: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
             else => return default,
@@ -6660,6 +6681,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.import_no_duplicates);
     try std.testing.expect(options.setByCliName("import/no-duplicates", true));
     try std.testing.expect(options.import_no_duplicates);
+    try std.testing.expect(!options.import_no_duplicates_consider_query_string);
 
     try std.testing.expect(!options.alipay_ant_no_import_src);
     try std.testing.expect(options.setByCliName("@alipay/ant/no-import-src", true));
@@ -7232,6 +7254,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.import_no_cycle_amd);
     try std.testing.expect(options.import_no_cycle_commonjs);
     try std.testing.expectEqual(@as(usize, 1), options.import_no_cycle_max_depth);
+
+    var import_no_duplicates_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"considerQueryString\":true}]",
+        .{},
+    );
+    defer import_no_duplicates_config.deinit();
+    try options.setByRuleConfigValue("import/no-duplicates", import_no_duplicates_config.value);
+    try std.testing.expect(options.import_no_duplicates);
+    try std.testing.expect(options.import_no_duplicates_consider_query_string);
 
     var import_no_unresolved_config = try std.json.parseFromSlice(
         std.json.Value,
