@@ -87,6 +87,38 @@ test "supports configured react/prop-types ignore" {
     try std.testing.expect(saw_age);
 }
 
+test "supports configured react/prop-types customValidators" {
+    const source =
+        \\import React from 'react';
+        \\function Foo(props) {
+        \\  return <div>{props.outer.inner}</div>;
+        \\}
+        \\Foo.propTypes = {
+        \\  outer: CustomValidator.shape({}),
+        \\};
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "sample.jsx", propTypesOnly());
+    defer default_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(default_result, lint.rules.react_prop_types.id));
+    try std.testing.expect(std.mem.eql(u8, default_result.diagnostics[0].message, "'outer.inner' is missing in props validation"));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"customValidators\":[\"CustomValidator\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = propTypesOnly();
+    try options.setByRuleConfigValue("react/prop-types", config.value);
+
+    var configured_result = try lint.lintSource(std.testing.allocator, source, "sample.jsx", options);
+    defer configured_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(configured_result, lint.rules.react_prop_types.id));
+}
+
 test "allows react/prop-types declared object children" {
     const source =
         \\import React from 'react';

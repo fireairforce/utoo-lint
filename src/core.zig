@@ -1688,6 +1688,7 @@ pub const Options = struct {
     react_prop_types: bool = true,
     react_prop_types_skip_undeclared: bool = false,
     react_prop_types_ignore: ReactPropTypesIgnoreNames = .{},
+    react_prop_types_custom_validators: ReactPropTypesIgnoreNames = .{},
     react_no_unused_prop_types: bool = true,
     react_no_unused_prop_types_skip_shape_props: bool = true,
     react_no_unused_prop_types_ignore: ReactPropTypesIgnoreNames = .{},
@@ -2283,6 +2284,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "react/prop-types")) {
             self.react_prop_types_skip_undeclared = try reactPropTypesSkipUndeclaredFromConfig(value);
             self.react_prop_types_ignore = try reactPropTypesIgnoreFromConfig(value);
+            self.react_prop_types_custom_validators = try reactPropTypesCustomValidatorsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/no-unused-prop-types")) {
             self.react_no_unused_prop_types_skip_shape_props = try reactNoUnusedPropTypesSkipShapePropsFromConfig(value);
@@ -2916,6 +2918,14 @@ pub const Options = struct {
     }
 
     fn reactPropTypesIgnoreFromConfig(value: std.json.Value) RuleConfigError!ReactPropTypesIgnoreNames {
+        return reactPropTypesNamesFromConfig(value, "ignore");
+    }
+
+    fn reactPropTypesCustomValidatorsFromConfig(value: std.json.Value) RuleConfigError!ReactPropTypesIgnoreNames {
+        return reactPropTypesNamesFromConfig(value, "customValidators");
+    }
+
+    fn reactPropTypesNamesFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!ReactPropTypesIgnoreNames {
         const items = switch (value) {
             .array => |array| array.items,
             else => return .{},
@@ -2926,20 +2936,20 @@ pub const Options = struct {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        const ignore_items = switch (config.get("ignore") orelse return .{}) {
+        const name_items = switch (config.get(key) orelse return .{}) {
             .array => |array| array.items,
             else => return error.UnsupportedRuleConfigValue,
         };
 
-        var ignore = ReactPropTypesIgnoreNames{};
-        for (ignore_items) |item| {
+        var names = ReactPropTypesIgnoreNames{};
+        for (name_items) |item| {
             const name = switch (item) {
                 .string => |string| string,
                 else => return error.UnsupportedRuleConfigValue,
             };
-            ignore.append(name) catch return error.UnsupportedRuleConfigValue;
+            names.append(name) catch return error.UnsupportedRuleConfigValue;
         }
-        return ignore;
+        return names;
     }
 
     fn reactJsxNoTargetBlankAllowReferrerFromConfig(value: std.json.Value) RuleConfigError!bool {
@@ -6647,6 +6657,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.react_prop_types_ignore.contains("name"));
     try std.testing.expect(options.react_prop_types_ignore.ignoresPath("user.name"));
     try std.testing.expect(!options.react_prop_types_ignore.contains("age"));
+
+    var react_prop_types_custom_validators_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"customValidators\":[\"CustomValidator\"]}]",
+        .{},
+    );
+    defer react_prop_types_custom_validators_config.deinit();
+    try options.setByRuleConfigValue("react/prop-types", react_prop_types_custom_validators_config.value);
+    try std.testing.expect(options.react_prop_types_custom_validators.contains("CustomValidator"));
+    try std.testing.expect(!options.react_prop_types_custom_validators.contains("OtherValidator"));
 
     var react_no_string_refs_config = try std.json.parseFromSlice(
         std.json.Value,
