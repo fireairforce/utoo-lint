@@ -126,6 +126,42 @@ test "supports configured react/no-unused-prop-types ignore" {
     try std.testing.expect(hasMessage(result, "'role' PropType is defined but prop is never used"));
 }
 
+test "supports configured react/no-unused-prop-types customValidators" {
+    const source =
+        \\import React from 'react';
+        \\function Foo(props) {
+        \\  return <div>{props.outer}</div>;
+        \\}
+        \\Foo.propTypes = {
+        \\  outer: CustomValidator.shape({
+        \\    inner: CustomValidator.string,
+        \\  }),
+        \\};
+    ;
+
+    var default_options = noUnusedPropTypesOnly();
+    default_options.react_no_unused_prop_types_skip_shape_props = false;
+    var default_result = try lint.lintSource(std.testing.allocator, source, "sample.jsx", default_options);
+    defer default_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(default_result, lint.rules.react_no_unused_prop_types.id));
+    try std.testing.expect(hasMessage(default_result, "'outer.inner' PropType is defined but prop is never used"));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"skipShapeProps\":false,\"customValidators\":[\"CustomValidator\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = noUnusedPropTypesOnly();
+    try options.setByRuleConfigValue("react/no-unused-prop-types", config.value);
+
+    var configured_result = try lint.lintSource(std.testing.allocator, source, "sample.jsx", options);
+    defer configured_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(configured_result, lint.rules.react_no_unused_prop_types.id));
+}
+
 test "reports react/no-unused-prop-types for class components" {
     const source =
         \\import React from 'react';

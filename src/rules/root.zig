@@ -584,7 +584,7 @@ pub fn runBasic(
         try react_prop_types.run(allocator, diagnostics, tree, options.react_prop_types_skip_undeclared, &options.react_prop_types_ignore, &options.react_prop_types_custom_validators);
     }
     if (options.react_no_unused_prop_types) {
-        try react_no_unused_prop_types.run(allocator, diagnostics, tree, options.react_no_unused_prop_types_skip_shape_props, &options.react_no_unused_prop_types_ignore);
+        try react_no_unused_prop_types.run(allocator, diagnostics, tree, options.react_no_unused_prop_types_skip_shape_props, &options.react_no_unused_prop_types_ignore, &options.react_no_unused_prop_types_custom_validators);
     }
 
     var visitor = BasicVisitor{
