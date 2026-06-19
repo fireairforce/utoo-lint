@@ -9,10 +9,12 @@ pub const id = "react/jsx-filename-extension";
 
 pub const Options = struct {
     extensions: core.ReactJsxFilenameExtensions = .{},
+    allow: core.ReactJsxFilenameExtensionAllow = .always,
 };
 
 pub const State = struct {
     reported: bool = false,
+    has_jsx: bool = false,
 };
 
 pub fn check(
@@ -24,6 +26,7 @@ pub fn check(
     state: *State,
     options: Options,
 ) Allocator.Error!void {
+    state.has_jsx = true;
     if (state.reported or options.extensions.containsFilePath(file_path)) return;
 
     state.reported = true;
@@ -34,6 +37,30 @@ pub fn check(
         id,
         tree.span(index),
         "JSX not allowed in files with extension '{s}'",
+        .{extension(file_path)},
+    );
+}
+
+pub fn finish(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    file_path: []const u8,
+    index: ast.NodeIndex,
+    state: *State,
+    options: Options,
+) Allocator.Error!void {
+    if (options.allow != .as_needed or state.reported or state.has_jsx) return;
+    if (!options.extensions.containsFilePath(file_path)) return;
+
+    state.reported = true;
+    try core.addDiagnosticFmt(
+        allocator,
+        diagnostics,
+        .@"error",
+        id,
+        tree.span(index),
+        "Only files containing JSX may use the extension '{s}'",
         .{extension(file_path)},
     );
 }

@@ -228,7 +228,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`react/display-name`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/display-name.md) | Supports `checkContextObjects` and `ignoreTranspilerName` configuration |
 | [`react/forbid-prop-types`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/forbid-prop-types.md) | Supports `forbid` configuration |
 | [`react/jsx-boolean-value`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md) | Implemented for `never` and `always` configurations |
-| [`react/jsx-filename-extension`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-filename-extension.md) | Supports `extensions` configuration |
+| [`react/jsx-filename-extension`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-filename-extension.md) | Supports `extensions` and `allow` configuration |
 | [`react/jsx-key`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-key.md) | Supports `checkKeyMustBeforeSpread` and `checkFragmentShorthand` configuration |
 | [`react/jsx-no-bind`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-bind.md) | Supports `allowArrowFunctions`, `allowFunctions`, `allowBind`, `ignoreRefs`, and `ignoreDOMComponents` configuration |
 | [`react/jsx-no-comment-textnodes`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-comment-textnodes.md) | Implemented |
