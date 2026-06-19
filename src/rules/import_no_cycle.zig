@@ -4,6 +4,7 @@ const core = @import("../core.zig");
 const export_map = @import("import_export_map.zig");
 
 const ast = parser.ast;
+const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 pub const id = "import/no-cycle";
@@ -11,12 +12,14 @@ pub const id = "import/no-cycle";
 const max_source_size = 1024 * 1024;
 
 pub const Options = struct {
+    commonjs: bool = false,
     max_depth: usize = 1024,
 };
 
 const Dependency = struct {
     source: []const u8,
     resolved: []const u8,
+    node: ast.NodeIndex,
     line: usize,
 
     fn deinit(self: Dependency, allocator: Allocator) void {
@@ -45,7 +48,7 @@ pub fn run(
     const normalized_file_path = try std.fs.path.resolve(allocator, &.{file_path});
     defer allocator.free(normalized_file_path);
 
-    var dependencies = try collectDependencies(allocator, io, tree, normalized_file_path);
+    var dependencies = try collectDependencies(allocator, io, tree, normalized_file_path, options);
     defer deinitDependencies(allocator, &dependencies);
 
     for (dependencies.items) |dependency| {
@@ -57,8 +60,8 @@ pub fn run(
         var route: std.ArrayList(RouteStep) = .empty;
         defer deinitRoute(allocator, &route);
 
-        if (try hasCycle(allocator, io, dependency.resolved, normalized_file_path, &visited, &route, 0, options.max_depth)) {
-            try reportCycle(allocator, diagnostics, tree, dependency.line, dependency.source, &route);
+        if (try hasCycle(allocator, io, dependency.resolved, normalized_file_path, &visited, &route, 0, options)) {
+            try reportCycle(allocator, diagnostics, tree, dependency.node, &route);
         }
     }
 }
@@ -71,16 +74,16 @@ fn hasCycle(
     visited: *std.StringHashMap(void),
     route: *std.ArrayList(RouteStep),
     depth: usize,
-    max_depth: usize,
+    options: Options,
 ) Allocator.Error!bool {
-    if (depth >= max_depth) return false;
+    if (depth >= options.max_depth) return false;
     if (visited.contains(path)) return false;
 
     const owned_path = try allocator.dupe(u8, path);
     errdefer allocator.free(owned_path);
     try visited.put(owned_path, {});
 
-    var dependencies = try collectFileDependencies(allocator, io, path);
+    var dependencies = try collectFileDependencies(allocator, io, path, options);
     defer deinitDependencies(allocator, &dependencies);
 
     for (dependencies.items) |dependency| {
@@ -97,7 +100,7 @@ fn hasCycle(
             .line = dependency.line,
         });
 
-        if (try hasCycle(allocator, io, dependency.resolved, target, visited, route, depth + 1, max_depth)) {
+        if (try hasCycle(allocator, io, dependency.resolved, target, visited, route, depth + 1, options)) {
             return true;
         }
 
@@ -112,12 +115,9 @@ fn reportCycle(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
-    line: usize,
-    source: []const u8,
+    node: ast.NodeIndex,
     route: *const std.ArrayList(RouteStep),
 ) Allocator.Error!void {
-    const node = findDependencyNode(tree, line, source) orelse tree.root;
-
     if (route.items.len == 0) {
         try core.addDiagnostic(
             allocator,
@@ -158,43 +158,11 @@ fn formatRoute(allocator: Allocator, route: *const std.ArrayList(RouteStep)) All
     return out.toOwnedSlice(allocator);
 }
 
-fn findDependencyNode(tree: *const ast.Tree, line: usize, source: []const u8) ?ast.NodeIndex {
-    const program = switch (tree.data(tree.root)) {
-        .program => |program| program,
-        else => return null,
-    };
-
-    for (tree.extra(program.body)) |statement_index| {
-        switch (tree.data(statement_index)) {
-            .import_declaration => |declaration| {
-                if (declaration.import_kind == .type) continue;
-                if (declaration.specifiers.len == 0) continue;
-                if (isOnlyTypeImport(tree, declaration)) continue;
-                const import_source = export_map.importSource(tree, declaration) orelse continue;
-                if (std.mem.eql(u8, import_source, source)) return statement_index;
-            },
-            .export_named_declaration => |declaration| {
-                if (declaration.export_kind == .type) continue;
-                const export_source = exportNamedSource(tree, declaration) orelse continue;
-                if (std.mem.eql(u8, export_source, source)) return statement_index;
-            },
-            .export_all_declaration => |declaration| {
-                if (declaration.export_kind == .type) continue;
-                const export_source = exportAllSource(tree, declaration) orelse continue;
-                if (std.mem.eql(u8, export_source, source)) return statement_index;
-            },
-            else => {},
-        }
-    }
-
-    _ = line;
-    return null;
-}
-
 fn collectFileDependencies(
     allocator: Allocator,
     io: std.Io,
     path: []const u8,
+    options: Options,
 ) Allocator.Error!std.ArrayList(Dependency) {
     const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_source_size)) catch return .empty;
     defer allocator.free(source);
@@ -206,7 +174,7 @@ fn collectFileDependencies(
     defer tree.deinit();
     if (tree.hasErrors()) return .empty;
 
-    return collectDependenciesFromSource(allocator, io, &tree, path, source);
+    return collectDependenciesFromSource(allocator, io, &tree, path, source, options);
 }
 
 fn collectDependencies(
@@ -214,8 +182,9 @@ fn collectDependencies(
     io: std.Io,
     tree: *const ast.Tree,
     path: []const u8,
+    options: Options,
 ) Allocator.Error!std.ArrayList(Dependency) {
-    return collectDependenciesFromSource(allocator, io, tree, path, "");
+    return collectDependenciesFromSource(allocator, io, tree, path, "", options);
 }
 
 fn collectDependenciesFromSource(
@@ -224,6 +193,7 @@ fn collectDependenciesFromSource(
     tree: *const ast.Tree,
     path: []const u8,
     source_text: []const u8,
+    options: Options,
 ) Allocator.Error!std.ArrayList(Dependency) {
     var dependencies: std.ArrayList(Dependency) = .empty;
     errdefer deinitDependencies(allocator, &dependencies);
@@ -256,8 +226,43 @@ fn collectDependenciesFromSource(
         }
     }
 
+    if (options.commonjs) {
+        var visitor = CommonJsDependencyVisitor{
+            .allocator = allocator,
+            .io = io,
+            .dependencies = &dependencies,
+            .path = path,
+            .source_text = source_text,
+        };
+        try traverser.basic.traverse(CommonJsDependencyVisitor, tree, &visitor);
+    }
+
     return dependencies;
 }
+
+const CommonJsDependencyVisitor = struct {
+    allocator: Allocator,
+    io: std.Io,
+    dependencies: *std.ArrayList(Dependency),
+    path: []const u8,
+    source_text: []const u8,
+
+    pub fn enter_call_expression(
+        self: *CommonJsDependencyVisitor,
+        call: ast.CallExpression,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (!isRequireCall(ctx.tree, call)) return .proceed;
+
+        const arguments = ctx.tree.extra(call.arguments);
+        if (arguments.len != 1) return .proceed;
+
+        const source = stringLiteralValue(ctx.tree, arguments[0]) orelse return .proceed;
+        try appendDependency(self.allocator, self.io, self.dependencies, ctx.tree, self.source_text, self.path, source, index);
+        return .proceed;
+    }
+};
 
 fn appendDependency(
     allocator: Allocator,
@@ -277,6 +282,7 @@ fn appendDependency(
     try dependencies.append(allocator, .{
         .source = owned_source,
         .resolved = resolved,
+        .node = statement_index,
         .line = lineForOffset(source_text, tree.span(statement_index).start),
     });
 }
@@ -335,4 +341,36 @@ fn exportAllSource(tree: *const ast.Tree, declaration: ast.ExportAllDeclaration)
         .string_literal => |literal| tree.string(literal.value),
         else => null,
     };
+}
+
+fn isRequireCall(tree: *const ast.Tree, call: ast.CallExpression) bool {
+    return isIdentifierReferenceNamed(tree, unwrapTransparent(tree, call.callee), "require");
+}
+
+fn isIdentifierReferenceNamed(tree: *const ast.Tree, index: ast.NodeIndex, expected: []const u8) bool {
+    return switch (tree.data(index)) {
+        .identifier_reference => |identifier| std.mem.eql(u8, tree.string(identifier.name), expected),
+        else => false,
+    };
+}
+
+fn stringLiteralValue(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    return switch (tree.data(unwrapTransparent(tree, index))) {
+        .string_literal => |literal| tree.string(literal.value),
+        else => null,
+    };
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |chain| current = chain.expression,
+            .parenthesized_expression => |parenthesized| current = parenthesized.expression,
+            else => return current,
+        }
+    }
+
+    return current;
 }
