@@ -17,6 +17,10 @@ pub const ReactBindings = struct {
     has_bare_create_element: bool = false,
 };
 
+pub const Options = struct {
+    allow_functions: bool = false,
+};
+
 pub fn bindingsFromProgram(tree: *const ast.Tree, program: ast.Program) ReactBindings {
     var bindings = ReactBindings{
         .pragma = pragmaFromComments(tree) orelse "React",
@@ -39,9 +43,11 @@ pub fn checkJSXAttribute(
     tree: *const ast.Tree,
     attribute: ast.JSXAttribute,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     const name = jsxAttributeName(tree, attribute.name) orelse return;
     if (!std.mem.eql(u8, name, "children")) return;
+    if (options.allow_functions and jsxAttributeValueIsFunction(tree, attribute.value)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -59,7 +65,10 @@ pub fn checkJSXElement(
     tree: *const ast.Tree,
     element: ast.JSXElement,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
+    if (!options.allow_functions) return;
+
     const children = tree.extra(element.children);
     if (children.len != 1) return;
 
@@ -86,6 +95,7 @@ pub fn checkCallExpression(
     call: ast.CallExpression,
     index: ast.NodeIndex,
     bindings: ReactBindings,
+    options: Options,
 ) Allocator.Error!void {
     if (!isCreateElementCall(tree, call, bindings)) return;
 
@@ -104,6 +114,7 @@ pub fn checkCallExpression(
         };
         const key = objectPropertyKeyName(tree, property) orelse continue;
         if (!std.mem.eql(u8, key, "children")) continue;
+        if (options.allow_functions and isFunctionExpression(tree, property.value)) continue;
 
         try core.addDiagnostic(
             allocator,
@@ -116,7 +127,7 @@ pub fn checkCallExpression(
         return;
     }
 
-    if (arguments.len == 3 and isFunctionExpression(tree, arguments[2])) {
+    if (options.allow_functions and arguments.len == 3 and isFunctionExpression(tree, arguments[2])) {
         try core.addDiagnostic(
             allocator,
             diagnostics,
@@ -297,6 +308,16 @@ fn isFunctionExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .function => |function| function.type == .function_expression or function.type == .ts_empty_body_function_expression,
         else => false,
     };
+}
+
+fn jsxAttributeValueIsFunction(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    if (index == .null) return false;
+
+    const container = switch (tree.data(index)) {
+        .jsx_expression_container => |container| container,
+        else => return false,
+    };
+    return isFunctionExpression(tree, container.expression);
 }
 
 fn objectPropertyKeyName(tree: *const ast.Tree, property: ast.ObjectProperty) ?[]const u8 {

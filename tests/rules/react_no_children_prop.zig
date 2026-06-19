@@ -2,7 +2,7 @@ const std = @import("std");
 const lint = @import("utoo_lint");
 const helpers = @import("../helpers.zig");
 
-test "reports react/no-children-prop for JSX children attributes and nested functions" {
+test "reports react/no-children-prop for JSX children attributes" {
     const source =
         \\const prop = <Box children={<span />} />;
         \\const boolProp = <Box children />;
@@ -18,18 +18,14 @@ test "reports react/no-children-prop for JSX children attributes and nested func
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.react_no_children_prop.id));
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_no_children_prop.id));
     try std.testing.expectEqualStrings(
         "Do not pass children as props. Instead, nest children between the opening and closing tags.",
         result.diagnostics[0].message,
     );
-    try std.testing.expectEqualStrings(
-        "Do not nest a function between the opening and closing tags. Instead, pass it as a prop.",
-        result.diagnostics[2].message,
-    );
 }
 
-test "reports react/no-children-prop for createElement props and function children" {
+test "reports react/no-children-prop for createElement props" {
     const source =
         \\import { createElement } from "react";
         \\const a = React.createElement("div", { children: text });
@@ -48,14 +44,10 @@ test "reports react/no-children-prop for createElement props and function childr
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.react_no_children_prop.id));
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_no_children_prop.id));
     try std.testing.expectEqualStrings(
         "Do not pass children as props. Instead, pass them as additional arguments to React.createElement.",
         result.diagnostics[0].message,
-    );
-    try std.testing.expectEqualStrings(
-        "Do not pass a function as an additional argument to React.createElement. Instead, pass it as a prop.",
-        result.diagnostics[2].message,
     );
 }
 
@@ -90,6 +82,7 @@ test "allows regular children nesting and non-react createElement calls" {
     const source =
         \\const nested = <Box><span /></Box>;
         \\const text = <Box>hello</Box>;
+        \\const render = <Box>{() => <span />}</Box>;
         \\const fnProp = <Box render={() => <span />} />;
         \\const local = createElement("div", { children: text });
         \\const stringKey = React.createElement("div", { "children": text });
@@ -104,6 +97,40 @@ test "allows regular children nesting and non-react createElement calls" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_no_children_prop.id));
+}
+
+test "supports configured react/no-children-prop allowFunctions" {
+    const source =
+        \\import { createElement } from "react";
+        \\const allowedProp = <Box children={() => <span />} />;
+        \\const allowedCreateElementProp = createElement("div", { children: () => null });
+        \\const nestedFunction = <Box>{() => <span />}</Box>;
+        \\const createElementFunction = createElement("div", {}, () => null);
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowFunctions\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("react/no-children-prop", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.react_no_children_prop.id));
+    try std.testing.expectEqualStrings(
+        "Do not nest a function between the opening and closing tags. Instead, pass it as a prop.",
+        result.diagnostics[0].message,
+    );
+    try std.testing.expectEqualStrings(
+        "Do not pass a function as an additional argument to React.createElement. Instead, pass it as a prop.",
+        result.diagnostics[1].message,
+    );
 }
 
 test "ignores type-only createElement imports" {
@@ -122,6 +149,17 @@ test "ignores type-only createElement imports" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_no_children_prop.id));
+}
+
+fn baseOptions() lint.Options {
+    return .{
+        .eol_last = false,
+        .import_newline_after_import = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+        .react_jsx_no_bind = false,
+    };
 }
 
 test "can disable react/no-children-prop" {

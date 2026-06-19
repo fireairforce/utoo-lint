@@ -2848,7 +2848,9 @@ const BasicVisitor = struct {
             try react_require_render_return.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_require_render_return_state);
         }
         if (self.options.react_no_children_prop) {
-            try react_no_children_prop.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_no_children_prop_bindings);
+            try react_no_children_prop.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, self.react_no_children_prop_bindings, .{
+                .allow_functions = self.options.react_no_children_prop_allow_functions,
+            });
         }
         if (self.options.react_no_danger_with_children) {
             try react_no_danger_with_children.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, &self.react_no_danger_with_children_bindings);
@@ -3076,7 +3078,9 @@ const BasicVisitor = struct {
             try react_style_prop_object.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index, ctx.path.ancestor(1), &self.react_style_prop_object_bindings);
         }
         if (self.options.react_no_children_prop) {
-            try react_no_children_prop.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index);
+            try react_no_children_prop.checkJSXAttribute(self.allocator, self.diagnostics, ctx.tree, attribute, index, .{
+                .allow_functions = self.options.react_no_children_prop_allow_functions,
+            });
         }
         if (self.options.react_no_string_refs) {
             try react_no_string_refs.check(self.allocator, self.diagnostics, ctx.tree, attribute, index, .{
@@ -3111,7 +3115,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.react_no_children_prop) {
-            try react_no_children_prop.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);
+            try react_no_children_prop.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index, .{
+                .allow_functions = self.options.react_no_children_prop_allow_functions,
+            });
         }
         if (self.options.react_jsx_filename_extension) {
             try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state, .{
