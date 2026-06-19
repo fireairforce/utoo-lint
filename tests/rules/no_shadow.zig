@@ -159,6 +159,45 @@ test "supports configured no-shadow hoist option" {
     try std.testing.expect(!helpers.hasRule(never_result, lint.rules.no_shadow.id));
 }
 
+test "supports configured no-shadow ignoreOnInitialization" {
+    const source =
+        \\function wrapper(fn) {
+        \\  return fn;
+        \\}
+        \\const callback = wrapper(function(callback) {
+        \\  return callback;
+        \\});
+        \\const immediate = (function(immediate) {
+        \\  return immediate;
+        \\})();
+        \\const direct = direct => direct;
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(default_result, lint.rules.no_shadow.id));
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreOnInitialization\":true}]",
+        .{},
+    );
+    defer config.deinit();
+    try options.setByRuleConfigValue("no-shadow", config.value);
+
+    var ignored_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer ignored_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(ignored_result, lint.rules.no_shadow.id));
+}
+
 test "can disable no-shadow" {
     const source =
         \\let a = 1;
