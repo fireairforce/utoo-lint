@@ -164,7 +164,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`object-shorthand`](https://eslint.org/docs/latest/rules/object-shorthand) | Supports `always`, `methods`, `properties`, `never`, `avoidQuotes`, `ignoreConstructors`, and `avoidExplicitReturnArrows` configuration |
 | [`one-var`](https://eslint.org/docs/latest/rules/one-var) | Supports string `never` and per-kind `var`/`let`/`const` `never` configuration |
 | [`operator-assignment`](https://eslint.org/docs/latest/rules/operator-assignment) | Implemented |
-| [`prefer-const`](https://eslint.org/docs/latest/rules/prefer-const) | Implemented for optional `destructuring: any` and `destructuring: all` behavior; `ignoreReadBeforeAssign: true` |
+| [`prefer-const`](https://eslint.org/docs/latest/rules/prefer-const) | Supports `destructuring` and `ignoreReadBeforeAssign` configuration |
 | [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Supports object/array variable declarator and assignment expression configuration plus `enforceForRenamedProperties` |
 | [`prefer-exponentiation-operator`](https://eslint.org/docs/latest/rules/prefer-exponentiation-operator) | Implemented |
 | [`prefer-numeric-literals`](https://eslint.org/docs/latest/rules/prefer-numeric-literals) | Implemented for static string and template `parseInt` calls with binary, octal, or hexadecimal radix |
