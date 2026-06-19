@@ -18,6 +18,7 @@ pub const accessor_pairs = @import("accessor_pairs.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
 pub const block_scoped_var = @import("block_scoped_var.zig");
 pub const capitalized_comments = @import("capitalized_comments.zig");
+pub const complexity = @import("complexity.zig");
 pub const consistent_this = @import("consistent_this.zig");
 pub const consistent_return = @import("consistent_return.zig");
 pub const constructor_super = @import("constructor_super.zig");
@@ -629,6 +630,7 @@ pub fn runBasic(
     defer visitor.react_display_name_state.deinit(allocator);
     defer visitor.react_forbid_prop_types_state.deinit(allocator);
     defer visitor.react_default_props_match_prop_types_state.deinit(allocator);
+    defer visitor.complexity_state.deinit(allocator);
     defer visitor.max_statements_state.deinit(allocator);
     defer visitor.max_nested_callbacks_state.deinit(allocator);
     defer visitor.id_denylist_state.deinit(allocator);
@@ -1138,6 +1140,7 @@ const BasicVisitor = struct {
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
     consistent_this_state: consistent_this.State = .{},
+    complexity_state: complexity.State = .{},
     max_classes_per_file_state: max_classes_per_file.State = .{},
     max_statements_state: max_statements.State = .{},
     max_nested_callbacks_state: max_nested_callbacks.State = .{},
@@ -1171,6 +1174,16 @@ const BasicVisitor = struct {
         return .{
             .names = &self.options.no_restricted_exports_names,
             .restrict_default = self.options.no_restricted_exports_default,
+        };
+    }
+
+    fn complexityOptions(self: *const BasicVisitor) complexity.Options {
+        return .{
+            .max = self.options.complexity_max,
+            .variant = switch (self.options.complexity_variant) {
+                .classic => .classic,
+                .modified => .modified,
+            },
         };
     }
 
@@ -1414,6 +1427,9 @@ const BasicVisitor = struct {
         if (self.options.max_statements) {
             try max_statements.enterFunction(self.allocator, &self.max_statements_state, index);
         }
+        if (self.options.complexity) {
+            try complexity.enterFunction(self.allocator, &self.complexity_state, index);
+        }
         if (self.options.max_nested_callbacks) {
             try max_nested_callbacks.enterFunction(self.allocator, self.diagnostics, ctx.tree, function, index, &ctx.path, &self.max_nested_callbacks_state, self.maxNestedCallbacksOptions());
         }
@@ -1482,6 +1498,9 @@ const BasicVisitor = struct {
     pub fn exit_function(self: *BasicVisitor, _: ast.Function, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) void {
         if (self.options.max_statements) {
             max_statements.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.max_statements_state, self.maxStatementsOptions()) catch {};
+        }
+        if (self.options.complexity) {
+            complexity.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.complexity_state, self.complexityOptions()) catch {};
         }
         if (self.options.max_nested_callbacks) {
             max_nested_callbacks.exitFunction(&self.max_nested_callbacks_state, index);
@@ -1604,6 +1623,9 @@ const BasicVisitor = struct {
         if (self.options.alipay_ant_prefer_elseif_end_with_else) {
             try alipay_ant_prefer_elseif_end_with_else.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }
+        if (self.options.complexity) {
+            complexity.increase(&self.complexity_state);
+        }
         if (self.options.max_depth) {
             try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
         }
@@ -1652,6 +1674,9 @@ const BasicVisitor = struct {
         if (self.options.no_unreachable_loop) {
             try no_unreachable_loop.checkWhileStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
         }
+        if (self.options.complexity) {
+            complexity.increase(&self.complexity_state);
+        }
         if (self.options.max_depth) {
             try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
         }
@@ -1677,6 +1702,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_unreachable_loop) {
             try no_unreachable_loop.checkDoWhileStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
+        }
+        if (self.options.complexity) {
+            complexity.increase(&self.complexity_state);
         }
         if (self.options.max_depth) {
             try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
@@ -1710,6 +1738,9 @@ const BasicVisitor = struct {
         if (self.options.no_unreachable_loop) {
             try no_unreachable_loop.checkForStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
         }
+        if (self.options.complexity) {
+            complexity.increase(&self.complexity_state);
+        }
         if (self.options.max_depth) {
             try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
         }
@@ -1738,6 +1769,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_negated_condition) {
             try no_negated_condition.checkConditionalExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.complexity) {
+            complexity.increase(&self.complexity_state);
         }
         return .proceed;
     }
@@ -1954,6 +1988,9 @@ const BasicVisitor = struct {
                 .ignore_parameters = self.options.typescript_eslint_no_inferrable_types_ignore_parameters,
                 .ignore_properties = self.options.typescript_eslint_no_inferrable_types_ignore_properties,
             });
+        }
+        if (self.options.complexity) {
+            complexity.increase(&self.complexity_state);
         }
         return .proceed;
     }
@@ -2269,6 +2306,9 @@ const BasicVisitor = struct {
         if (self.options.use_isnan) {
             try use_isnan.checkSwitchStatementWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, index, self.useIsnanOptions());
         }
+        if (self.options.complexity) {
+            complexity.countSwitchStatement(&self.complexity_state, self.complexityOptions());
+        }
         if (self.options.max_depth) {
             try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
         }
@@ -2289,6 +2329,9 @@ const BasicVisitor = struct {
         }
         if (self.options.use_isnan) {
             try use_isnan.checkSwitchCaseWithOptions(self.allocator, self.diagnostics, ctx.tree, switch_case, self.useIsnanOptions());
+        }
+        if (self.options.complexity) {
+            complexity.countSwitchCase(&self.complexity_state, switch_case, self.complexityOptions());
         }
         return .proceed;
     }
@@ -2319,6 +2362,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, clause.param, false);
+        }
+        if (self.options.complexity) {
+            complexity.increase(&self.complexity_state);
         }
         return .proceed;
     }
@@ -2421,6 +2467,9 @@ const BasicVisitor = struct {
         if (self.options.no_unreachable_loop) {
             try no_unreachable_loop.checkForInStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
         }
+        if (self.options.complexity) {
+            complexity.increase(&self.complexity_state);
+        }
         if (self.options.max_depth) {
             try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
         }
@@ -2438,6 +2487,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_unreachable_loop) {
             try no_unreachable_loop.checkForOfStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
+        }
+        if (self.options.complexity) {
+            complexity.increase(&self.complexity_state);
         }
         if (self.options.max_depth) {
             try max_depth.check(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, self.maxDepthOptions());
@@ -2539,6 +2591,9 @@ const BasicVisitor = struct {
         if (self.options.max_statements) {
             try max_statements.enterStaticBlock(self.allocator, &self.max_statements_state, index);
         }
+        if (self.options.complexity) {
+            try complexity.enterStaticBlock(self.allocator, &self.complexity_state, index);
+        }
         if (self.options.no_empty_block_statements) {
             try no_empty_block_statements.checkStaticBlock(self.allocator, self.diagnostics, ctx.tree, block, index);
         }
@@ -2551,6 +2606,9 @@ const BasicVisitor = struct {
     pub fn exit_static_block(self: *BasicVisitor, _: ast.StaticBlock, _: ast.NodeIndex, ctx: *traverser.basic.Ctx) void {
         if (self.options.max_statements) {
             max_statements.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.max_statements_state, self.maxStatementsOptions()) catch {};
+        }
+        if (self.options.complexity) {
+            complexity.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.complexity_state, self.complexityOptions()) catch {};
         }
     }
 
@@ -2727,6 +2785,9 @@ const BasicVisitor = struct {
         if (self.options.max_statements) {
             try max_statements.enterArrowFunction(self.allocator, &self.max_statements_state, index);
         }
+        if (self.options.complexity) {
+            try complexity.enterArrowFunction(self.allocator, &self.complexity_state, index);
+        }
         if (self.options.max_nested_callbacks) {
             try max_nested_callbacks.enterArrowFunction(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, &self.max_nested_callbacks_state, self.maxNestedCallbacksOptions());
         }
@@ -2782,6 +2843,9 @@ const BasicVisitor = struct {
     pub fn exit_arrow_function_expression(self: *BasicVisitor, _: ast.ArrowFunctionExpression, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) void {
         if (self.options.max_statements) {
             max_statements.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.max_statements_state, self.maxStatementsOptions()) catch {};
+        }
+        if (self.options.complexity) {
+            complexity.exitFunction(self.allocator, self.diagnostics, ctx.tree, &self.complexity_state, self.complexityOptions()) catch {};
         }
         if (self.options.max_nested_callbacks) {
             max_nested_callbacks.exitFunction(&self.max_nested_callbacks_state, index);
@@ -2871,6 +2935,9 @@ const BasicVisitor = struct {
         if (self.options.react_forbid_prop_types) {
             try react_forbid_prop_types.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state, self.reactForbidPropTypesOptions());
         }
+        if (self.options.complexity) {
+            complexity.countAssignmentExpression(&self.complexity_state, expression);
+        }
         return .proceed;
     }
 
@@ -2882,6 +2949,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.logical_assignment_operators and self.options.logical_assignment_operators_style == .always) {
             try logical_assignment_operators.checkLogicalExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.complexity) {
+            complexity.increase(&self.complexity_state);
         }
         return .proceed;
     }
@@ -3166,6 +3236,9 @@ const BasicVisitor = struct {
         if (self.options.typescript_eslint_no_array_constructor) {
             try typescript_eslint_no_array_constructor.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
         }
+        if (self.options.complexity) {
+            complexity.countCallExpression(&self.complexity_state, call);
+        }
         return .proceed;
     }
 
@@ -3298,6 +3371,9 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_extra_non_null_assertion) {
             try typescript_eslint_no_extra_non_null_assertion.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member);
+        }
+        if (self.options.complexity) {
+            complexity.countMemberExpression(&self.complexity_state, member);
         }
         return .proceed;
     }

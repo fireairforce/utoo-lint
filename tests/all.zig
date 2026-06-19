@@ -15,6 +15,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/complexity.zig");
+}
+
+comptime {
     _ = @import("rules/consistent_return.zig");
 }
 

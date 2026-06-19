@@ -86,6 +86,11 @@ pub const LinebreakStyle = enum {
     windows,
 };
 
+pub const ComplexityVariant = enum {
+    classic,
+    modified,
+};
+
 pub const InitDeclarationsMode = enum {
     always,
     never,
@@ -1593,6 +1598,9 @@ pub const Options = struct {
     capitalized_comments_mode: CapitalizedCommentsMode = .always,
     capitalized_comments_ignore_inline_comments: CapitalizedCommentsIgnoreInlineComments = .no,
     capitalized_comments_ignore_consecutive_comments: CapitalizedCommentsIgnoreConsecutiveComments = .no,
+    complexity: bool = true,
+    complexity_max: usize = 20,
+    complexity_variant: ComplexityVariant = .classic,
     consistent_this: bool = false,
     consistent_this_aliases: ConsistentThisAliases = .{},
     consistent_return: bool = true,
@@ -2353,6 +2361,10 @@ pub const Options = struct {
             self.capitalized_comments_mode = try capitalizedCommentsModeFromConfig(value);
             self.capitalized_comments_ignore_inline_comments = try capitalizedCommentsIgnoreInlineCommentsFromConfig(value);
             self.capitalized_comments_ignore_consecutive_comments = try capitalizedCommentsIgnoreConsecutiveCommentsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "complexity")) {
+            self.complexity_max = try complexityMaxFromConfig(value);
+            self.complexity_variant = try complexityVariantFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "consistent-return")) {
             self.consistent_return_treat_undefined_as_unspecified = try consistentReturnTreatUndefinedAsUnspecifiedFromConfig(value);
@@ -3262,6 +3274,56 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn complexityMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return 20,
+        };
+        if (items.len < 2) return 20;
+
+        switch (items[1]) {
+            .integer => |max| return nonNegativeIntegerToUsize(max),
+            .object => |object| {
+                if (object.get("maximum")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                if (object.get("max")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                return 20;
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+    }
+
+    fn complexityVariantFromConfig(value: std.json.Value) RuleConfigError!ComplexityVariant {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .classic,
+        };
+        if (items.len < 2) return .classic;
+
+        const object = switch (items[1]) {
+            .object => |object| object,
+            else => return .classic,
+        };
+        const variant = switch (object.get("variant") orelse return .classic) {
+            .string => |variant| variant,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, variant, "classic")) return .classic;
+        if (std.mem.eql(u8, variant, "modified")) return .modified;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn deprecatedDependenceProfileFromConfig(value: std.json.Value) DeprecatedDependenceProfile {
