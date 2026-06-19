@@ -11,7 +11,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Supports `always`, `never`, `ignoreInlineComments`, and `ignoreConsecutiveComments` configuration |
 | [`consistent-return`](https://eslint.org/docs/latest/rules/consistent-return) | Implemented for mixed explicit value/bare returns and value-returning functions that can fall through |
 | [`constructor-super`](https://eslint.org/docs/latest/rules/constructor-super) | Implemented |
-| [`curly`](https://eslint.org/docs/latest/rules/curly) | Supports `all`, `multi-line`, and `multi` configuration |
+| [`curly`](https://eslint.org/docs/latest/rules/curly) | Supports `all`, `multi-line`, `multi`, and `multi-or-nest` configuration |
 | [`default-case`](https://eslint.org/docs/latest/rules/default-case) | Implemented with common `commentPattern` behavior |
 | [`default-case-last`](https://eslint.org/docs/latest/rules/default-case-last) | Implemented |
 | [`default-param-last`](https://eslint.org/docs/latest/rules/default-param-last) | Implemented |

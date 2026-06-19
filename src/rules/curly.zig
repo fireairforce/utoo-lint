@@ -54,8 +54,8 @@ pub fn checkBodyWithOptions(
     if (body == .null) return;
     switch (tree.data(body)) {
         .block_statement => |block| {
-            if (options.style != .multi) return;
-            if (!isUnnecessaryMultiBlock(tree, block)) return;
+            if (options.style != .multi and options.style != .multi_or_nest) return;
+            if (!isUnnecessaryBlock(tree, block, options.style)) return;
 
             try core.addDiagnostic(
                 allocator,
@@ -70,8 +70,14 @@ pub fn checkBodyWithOptions(
         else => {},
     }
 
-    if (options.style == .multi_line or options.style == .multi) {
-        if (!isMultiLineBody(tree, body)) return;
+    switch (options.style) {
+        .all => {},
+        .multi_line, .multi => {
+            if (!isMultiLineBody(tree, body)) return;
+        },
+        .multi_or_nest => {
+            if (!isMultiLineBody(tree, body) and !isControlStatement(tree, body)) return;
+        },
     }
 
     try addExpectedBlockDiagnostic(
@@ -98,10 +104,25 @@ fn addExpectedBlockDiagnostic(
     );
 }
 
-fn isUnnecessaryMultiBlock(tree: *const ast.Tree, block: ast.BlockStatement) bool {
+fn isUnnecessaryBlock(tree: *const ast.Tree, block: ast.BlockStatement, style: core.CurlyStyle) bool {
     if (block.body.len != 1) return false;
     const statements = tree.extra(block.body);
+    if (style == .multi_or_nest and isControlStatement(tree, statements[0])) return false;
     return !hasBlockScopedDeclaration(tree, statements[0]);
+}
+
+fn isControlStatement(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    if (index == .null) return false;
+    return switch (tree.data(index)) {
+        .if_statement,
+        .while_statement,
+        .do_while_statement,
+        .for_statement,
+        .for_in_statement,
+        .for_of_statement,
+        => true,
+        else => false,
+    };
 }
 
 fn hasBlockScopedDeclaration(tree: *const ast.Tree, statement: ast.NodeIndex) bool {
