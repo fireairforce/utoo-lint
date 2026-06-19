@@ -610,6 +610,42 @@ pub const NoThisAliasAllowedNames = struct {
     }
 };
 
+pub const max_typescript_eslint_no_invalid_void_type_allowed_generic_type_names = 32;
+pub const max_typescript_eslint_no_invalid_void_type_allowed_generic_type_name_len = 128;
+
+pub const TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNamesError = error{
+    EmptyAllowedGenericTypeName,
+    TooManyAllowedGenericTypeNames,
+    AllowedGenericTypeNameTooLong,
+};
+
+pub const TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNames = struct {
+    count: usize = 0,
+    lengths: [max_typescript_eslint_no_invalid_void_type_allowed_generic_type_names]usize = undefined,
+    storage: [max_typescript_eslint_no_invalid_void_type_allowed_generic_type_names][max_typescript_eslint_no_invalid_void_type_allowed_generic_type_name_len]u8 = undefined,
+
+    pub fn contains(self: *const TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNames, name: []const u8) TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNamesError!void {
+        if (name.len == 0) return error.EmptyAllowedGenericTypeName;
+        if (self.count >= max_typescript_eslint_no_invalid_void_type_allowed_generic_type_names) return error.TooManyAllowedGenericTypeNames;
+        if (name.len > max_typescript_eslint_no_invalid_void_type_allowed_generic_type_name_len) return error.AllowedGenericTypeNameTooLong;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const max_react_jsx_pascal_case_ignore_names = 32;
 pub const max_react_jsx_pascal_case_ignore_name_len = 128;
 
@@ -1658,6 +1694,7 @@ pub const Options = struct {
     typescript_eslint_no_invalid_void_type: bool = true,
     typescript_eslint_no_invalid_void_type_allow_as_this_parameter: bool = false,
     typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments: bool = true,
+    typescript_eslint_no_invalid_void_type_allowed_generic_type_names: TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNames = .{},
     typescript_eslint_no_loss_of_precision: bool = true,
     typescript_eslint_no_loop_func: bool = true,
     typescript_eslint_no_misused_new: bool = true,
@@ -2231,7 +2268,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-invalid-void-type")) {
             self.typescript_eslint_no_invalid_void_type_allow_as_this_parameter = try typescriptEslintNoInvalidVoidTypeBoolOptionFromConfig(value, "allowAsThisParameter", false);
-            self.typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments = try typescriptEslintNoInvalidVoidTypeBoolOptionFromConfig(value, "allowInGenericTypeArguments", true);
+            const allow_in_generic_type_arguments = try typescriptEslintNoInvalidVoidTypeGenericTypeArgumentsFromConfig(value);
+            self.typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments = allow_in_generic_type_arguments.allow_any;
+            self.typescript_eslint_no_invalid_void_type_allowed_generic_type_names = allow_in_generic_type_arguments.allowed_names;
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -5670,6 +5709,43 @@ pub const Options = struct {
         };
     }
 
+    const TypescriptEslintNoInvalidVoidTypeGenericTypeArguments = struct {
+        allow_any: bool = true,
+        allowed_names: TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNames = .{},
+    };
+
+    fn typescriptEslintNoInvalidVoidTypeGenericTypeArgumentsFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintNoInvalidVoidTypeGenericTypeArguments {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        return switch (config.get("allowInGenericTypeArguments") orelse return .{}) {
+            .bool => |enabled| .{ .allow_any = enabled },
+            .array => |array| blk: {
+                var names = TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNames{};
+                for (array.items) |item| {
+                    const name = switch (item) {
+                        .string => |name| name,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    names.append(name) catch return error.UnsupportedRuleConfigValue;
+                }
+                break :blk .{
+                    .allow_any = false,
+                    .allowed_names = names,
+                };
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn typescriptEslintNoEmptyInterfaceAllowSingleExtendsFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -7459,7 +7535,7 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_invalid_void_type_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowAsThisParameter\":true,\"allowInGenericTypeArguments\":false}]",
+        "[\"error\",{\"allowAsThisParameter\":true,\"allowInGenericTypeArguments\":[\"Promise\",\"React.VoidFunctionComponent\"]}]",
         .{},
     );
     defer typescript_no_invalid_void_type_config.deinit();
@@ -7467,6 +7543,9 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_invalid_void_type);
     try std.testing.expect(options.typescript_eslint_no_invalid_void_type_allow_as_this_parameter);
     try std.testing.expect(!options.typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments);
+    try std.testing.expect(options.typescript_eslint_no_invalid_void_type_allowed_generic_type_names.contains("Promise"));
+    try std.testing.expect(options.typescript_eslint_no_invalid_void_type_allowed_generic_type_names.contains("React.VoidFunctionComponent"));
+    try std.testing.expect(!options.typescript_eslint_no_invalid_void_type_allowed_generic_type_names.contains("Map"));
 
     var typescript_restrict_plus_operands_config = try std.json.parseFromSlice(
         std.json.Value,
