@@ -623,6 +623,10 @@ pub fn main(init: std.process.Init) !void {
             options.no_with = false;
         } else if (std.mem.eql(u8, arg, "--no-var=off")) {
             options.no_var = false;
+        } else if (std.mem.eql(u8, arg, "--id-denylist=off")) {
+            options.id_denylist = false;
+        } else if (std.mem.startsWith(u8, arg, "--id-denylist-name=")) {
+            appendIdDenylistName(arg["--id-denylist-name=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--one-var=off")) {
             options.one_var = false;
         } else if (std.mem.eql(u8, arg, "--object-shorthand=off")) {
@@ -1193,6 +1197,13 @@ fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void 
     options.no_multiple_empty_lines_max = max;
 }
 
+fn appendIdDenylistName(value: []const u8, options: *lint.Options) void {
+    options.id_denylist_names.append(value) catch {
+        std.debug.print("utoo-lint: invalid --id-denylist-name value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+}
+
 fn parseMaxClassesPerFileMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --max-classes-per-file-max value: {s}\n", .{value});
@@ -1699,6 +1710,8 @@ fn printHelp() void {
         \\  --no-labels=off           Disable no-labels
         \\  --no-lone-blocks=off      Disable no-lone-blocks
         \\  --no-lonely-if=off        Disable no-lonely-if
+        \\  --id-denylist=off         Disable id-denylist
+        \\  --id-denylist-name=NAME   Add a restricted identifier name
         \\  --logical-assignment-operators=off Disable logical-assignment-operators
         \\  --logical-assignment-operators=never Disallow logical assignment operators
         \\  --logical-assignment-operators-enforce-for-if-statements=on Enable logical-assignment-operators if-statement checks

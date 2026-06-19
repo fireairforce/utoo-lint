@@ -32,6 +32,7 @@ pub const func_names = @import("func_names.zig");
 pub const getter_return = @import("getter_return.zig");
 pub const grouped_accessor_pairs = @import("grouped_accessor_pairs.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
+pub const id_denylist = @import("id_denylist.zig");
 pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_exhaustive_deps = @import("alipay_ant_exhaustive_deps.zig");
 pub const alipay_ant_jsx_handler_names = @import("alipay_ant_jsx_handler_names.zig");
@@ -619,6 +620,7 @@ pub fn runBasic(
     defer visitor.react_default_props_match_prop_types_state.deinit(allocator);
     defer visitor.max_statements_state.deinit(allocator);
     defer visitor.max_nested_callbacks_state.deinit(allocator);
+    defer visitor.id_denylist_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -1127,6 +1129,7 @@ const BasicVisitor = struct {
     max_classes_per_file_state: max_classes_per_file.State = .{},
     max_statements_state: max_statements.State = .{},
     max_nested_callbacks_state: max_nested_callbacks.State = .{},
+    id_denylist_state: id_denylist.State = .{},
 
     fn curlyOptions(self: *const BasicVisitor) curly.Options {
         return .{
@@ -1236,6 +1239,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.alipay_ant_no_negative_conditionals) {
             try alipay_ant_no_negative_conditionals.checkNode(self.allocator, self.diagnostics, ctx.tree, data, index);
+        }
+        if (self.options.id_denylist) {
+            try id_denylist.checkNode(self.allocator, self.diagnostics, ctx.tree, data, index, &ctx.path, &self.id_denylist_state, &self.options.id_denylist_names);
         }
         if (self.options.no_undefined) {
             switch (data) {

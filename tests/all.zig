@@ -75,6 +75,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/id_denylist.zig");
+}
+
+comptime {
     _ = @import("rules/alipay_ant_disallow_typos.zig");
 }
 
