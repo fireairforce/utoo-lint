@@ -9,6 +9,7 @@ pub const id = "react/jsx-key";
 
 const missing_array_key_message = "Missing \"key\" prop for element in array";
 const missing_iter_key_message = "Missing \"key\" prop for element in iterator";
+const non_unique_key_message = "`key` prop must be unique";
 
 pub const State = struct {
     pragma: []const u8 = "React",
@@ -18,6 +19,12 @@ pub const State = struct {
 pub const Options = struct {
     check_key_must_before_spread: bool = false,
     check_fragment_shorthand: bool = false,
+    warn_on_duplicates: bool = false,
+};
+
+const KeyProp = struct {
+    value: []const u8,
+    node: ast.NodeIndex,
 };
 
 pub fn collectProgram(tree: *const ast.Tree, state: *State) void {
@@ -56,6 +63,9 @@ pub fn checkArrayExpression(
     expression: ast.ArrayExpression,
     options: Options,
 ) Allocator.Error!void {
+    var keys: std.ArrayList(KeyProp) = .empty;
+    defer keys.deinit(allocator);
+
     for (tree.extra(expression.elements)) |element_index| {
         if (element_index == .null) continue;
         const element = switch (tree.data(unwrapTransparent(tree, element_index))) {
@@ -68,9 +78,39 @@ pub fn checkArrayExpression(
             },
             else => continue,
         };
+        if (options.warn_on_duplicates) {
+            try collectKeyProps(allocator, tree, element, &keys);
+        }
         if (hasKeyProp(tree, element, options)) continue;
         try report(allocator, diagnostics, tree, element_index, missing_array_key_message);
     }
+
+    if (options.warn_on_duplicates) {
+        try reportDuplicateKeys(allocator, diagnostics, tree, keys.items);
+    }
+}
+
+pub fn checkJSXElementChildren(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    element: ast.JSXElement,
+    options: Options,
+) Allocator.Error!void {
+    if (!options.warn_on_duplicates) return;
+
+    var keys: std.ArrayList(KeyProp) = .empty;
+    defer keys.deinit(allocator);
+
+    for (tree.extra(element.children)) |child_index| {
+        const child = switch (tree.data(unwrapTransparent(tree, child_index))) {
+            .jsx_element => |child| child,
+            else => continue,
+        };
+        try collectKeyProps(allocator, tree, child, &keys);
+    }
+
+    try reportDuplicateKeys(allocator, diagnostics, tree, keys.items);
 }
 
 fn checkIteratorCallback(
@@ -222,6 +262,60 @@ fn hasKeyProp(tree: *const ast.Tree, element: ast.JSXElement, options: Options) 
         }
     }
     return false;
+}
+
+fn collectKeyProps(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    element: ast.JSXElement,
+    keys: *std.ArrayList(KeyProp),
+) Allocator.Error!void {
+    const opening = switch (tree.data(element.opening_element)) {
+        .jsx_opening_element => |opening| opening,
+        else => return,
+    };
+
+    for (tree.extra(opening.attributes)) |attribute_index| {
+        const attribute = switch (tree.data(attribute_index)) {
+            .jsx_attribute => |attribute| attribute,
+            else => continue,
+        };
+        const name = jsxIdentifierName(tree, attribute.name) orelse continue;
+        if (!std.mem.eql(u8, name, "key")) continue;
+        const value = if (attribute.value == .null) "" else sourceForNode(tree, attribute.value);
+        try keys.append(allocator, .{
+            .value = value,
+            .node = attribute_index,
+        });
+    }
+}
+
+fn reportDuplicateKeys(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    keys: []const KeyProp,
+) Allocator.Error!void {
+    for (keys, 0..) |key, index| {
+        if (!hasDuplicateKeyValue(keys, index, key.value)) continue;
+        try report(allocator, diagnostics, tree, key.node, non_unique_key_message);
+    }
+}
+
+fn hasDuplicateKeyValue(keys: []const KeyProp, current_index: usize, value: []const u8) bool {
+    for (keys, 0..) |key, index| {
+        if (index == current_index) continue;
+        if (std.mem.eql(u8, key.value, value)) return true;
+    }
+    return false;
+}
+
+fn sourceForNode(tree: *const ast.Tree, index: ast.NodeIndex) []const u8 {
+    const span = tree.span(index);
+    const start: usize = @intCast(span.start);
+    const end: usize = @intCast(span.end);
+    if (start >= end or end > tree.source.len) return "";
+    return tree.source[start..end];
 }
 
 fn isChildrenToArrayCall(tree: *const ast.Tree, call: ast.CallExpression, state: State) bool {

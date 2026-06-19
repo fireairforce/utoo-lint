@@ -1702,6 +1702,7 @@ pub const Options = struct {
     react_jsx_key: bool = true,
     react_jsx_key_check_key_must_before_spread: bool = false,
     react_jsx_key_check_fragment_shorthand: bool = false,
+    react_jsx_key_warn_on_duplicates: bool = false,
     react_button_has_type: bool = true,
     react_button_has_type_button: bool = true,
     react_button_has_type_submit: bool = true,
@@ -2355,8 +2356,9 @@ pub const Options = struct {
             self.react_jsx_no_duplicate_props_ignore_case = try reactJsxNoDuplicatePropsIgnoreCaseFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-key")) {
-            self.react_jsx_key_check_key_must_before_spread = try reactJsxKeyCheckKeyMustBeforeSpreadFromConfig(value);
-            self.react_jsx_key_check_fragment_shorthand = try reactJsxKeyCheckFragmentShorthandFromConfig(value);
+            self.react_jsx_key_check_key_must_before_spread = try reactJsxKeyBoolOptionFromConfig(value, "checkKeyMustBeforeSpread", false);
+            self.react_jsx_key_check_fragment_shorthand = try reactJsxKeyBoolOptionFromConfig(value, "checkFragmentShorthand", false);
+            self.react_jsx_key_warn_on_duplicates = try reactJsxKeyBoolOptionFromConfig(value, "warnOnDuplicates", false);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-no-target-blank")) {
             self.react_jsx_no_target_blank_allow_referrer = try reactJsxNoTargetBlankAllowReferrerFromConfig(value);
@@ -5702,35 +5704,18 @@ pub const Options = struct {
         };
     }
 
-    fn reactJsxKeyCheckKeyMustBeforeSpreadFromConfig(value: std.json.Value) RuleConfigError!bool {
+    fn reactJsxKeyBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
-            else => return false,
+            else => return default,
         };
-        if (items.len < 2) return false;
+        if (items.len < 2) return default;
 
         const config = switch (items[1]) {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        return switch (config.get("checkKeyMustBeforeSpread") orelse return false) {
-            .bool => |enabled| enabled,
-            else => error.UnsupportedRuleConfigValue,
-        };
-    }
-
-    fn reactJsxKeyCheckFragmentShorthandFromConfig(value: std.json.Value) RuleConfigError!bool {
-        const items = switch (value) {
-            .array => |array| array.items,
-            else => return false,
-        };
-        if (items.len < 2) return false;
-
-        const config = switch (items[1]) {
-            .object => |object| object,
-            else => return error.UnsupportedRuleConfigValue,
-        };
-        return switch (config.get("checkFragmentShorthand") orelse return false) {
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
@@ -6656,6 +6641,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.setByCliName("react/jsx-key", true));
     try std.testing.expect(options.react_jsx_key);
     try std.testing.expect(!options.react_jsx_key_check_key_must_before_spread);
+    try std.testing.expect(!options.react_jsx_key_warn_on_duplicates);
 
     try std.testing.expect(!options.react_prop_types);
     try std.testing.expect(options.setByCliName("react/prop-types", true));
@@ -6906,7 +6892,7 @@ test "Options can apply ESLint-style rule config values" {
     var react_jsx_key_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"checkKeyMustBeforeSpread\":true,\"checkFragmentShorthand\":true}]",
+        "[\"error\",{\"checkKeyMustBeforeSpread\":true,\"checkFragmentShorthand\":true,\"warnOnDuplicates\":true}]",
         .{},
     );
     defer react_jsx_key_config.deinit();
@@ -6914,6 +6900,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.react_jsx_key);
     try std.testing.expect(options.react_jsx_key_check_key_must_before_spread);
     try std.testing.expect(options.react_jsx_key_check_fragment_shorthand);
+    try std.testing.expect(options.react_jsx_key_warn_on_duplicates);
 
     var react_jsx_no_target_blank_config = try std.json.parseFromSlice(
         std.json.Value,
