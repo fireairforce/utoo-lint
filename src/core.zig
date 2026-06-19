@@ -1496,6 +1496,7 @@ pub const Options = struct {
     no_unused_vars_args: NoUnusedVarsArgs = .none,
     no_unused_vars_caught_errors: NoUnusedVarsCaughtErrors = .all,
     no_unused_vars_ignore_rest_siblings: bool = false,
+    no_unused_vars_ignore_using_declarations: bool = false,
     no_unused_vars_args_ignore_pattern: NoUnusedVarsIgnorePattern = .{},
     no_unused_vars_caught_errors_ignore_pattern: NoUnusedVarsIgnorePattern = .{},
     no_unused_vars_destructured_array_ignore_pattern: NoUnusedVarsIgnorePattern = .{},
@@ -2078,6 +2079,7 @@ pub const Options = struct {
             self.no_unused_vars_args = try noUnusedVarsArgsFromConfig(value, .none);
             self.no_unused_vars_caught_errors = try noUnusedVarsCaughtErrorsFromConfig(value, .all);
             self.no_unused_vars_ignore_rest_siblings = try noUnusedVarsIgnoreRestSiblingsFromConfig(value, false);
+            self.no_unused_vars_ignore_using_declarations = try noUnusedVarsBoolOptionFromConfig(value, "ignoreUsingDeclarations", false);
             self.no_unused_vars_args_ignore_pattern = try noUnusedVarsIgnorePatternFromConfig(value, "argsIgnorePattern");
             self.no_unused_vars_caught_errors_ignore_pattern = try noUnusedVarsIgnorePatternFromConfig(value, "caughtErrorsIgnorePattern");
             self.no_unused_vars_destructured_array_ignore_pattern = try noUnusedVarsIgnorePatternFromConfig(value, "destructuredArrayIgnorePattern");
@@ -4286,23 +4288,14 @@ pub const Options = struct {
     }
 
     fn noUnusedVarsIgnoreRestSiblingsFromConfig(value: std.json.Value, default: bool) RuleConfigError!bool {
-        const items = switch (value) {
-            .array => |array| array.items,
-            else => return default,
-        };
-        if (items.len < 2) return default;
-
-        const config = switch (items[1]) {
-            .object => |object| object,
-            else => return error.UnsupportedRuleConfigValue,
-        };
-        return switch (config.get("ignoreRestSiblings") orelse return default) {
-            .bool => |enabled| enabled,
-            else => return error.UnsupportedRuleConfigValue,
-        };
+        return noUnusedVarsBoolOptionFromConfig(value, "ignoreRestSiblings", default);
     }
 
     fn noUnusedVarsReportUsedIgnorePatternFromConfig(value: std.json.Value, default: bool) RuleConfigError!bool {
+        return noUnusedVarsBoolOptionFromConfig(value, "reportUsedIgnorePattern", default);
+    }
+
+    fn noUnusedVarsBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
             else => return default,
@@ -4313,7 +4306,7 @@ pub const Options = struct {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        return switch (config.get("reportUsedIgnorePattern") orelse return default) {
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -7261,7 +7254,7 @@ test "Options can apply ESLint-style rule config values" {
     var no_unused_vars_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"args\":\"all\",\"argsIgnorePattern\":\"^_\",\"caughtErrors\":\"none\",\"caughtErrorsIgnorePattern\":\"^ignoredError\",\"destructuredArrayIgnorePattern\":\"^ignoredItem\",\"ignoreRestSiblings\":true,\"reportUsedIgnorePattern\":true,\"varsIgnorePattern\":\"^ignored\"}]",
+        "[\"error\",{\"args\":\"all\",\"argsIgnorePattern\":\"^_\",\"caughtErrors\":\"none\",\"caughtErrorsIgnorePattern\":\"^ignoredError\",\"destructuredArrayIgnorePattern\":\"^ignoredItem\",\"ignoreRestSiblings\":true,\"ignoreUsingDeclarations\":true,\"reportUsedIgnorePattern\":true,\"varsIgnorePattern\":\"^ignored\"}]",
         .{},
     );
     defer no_unused_vars_config.deinit();
@@ -7271,6 +7264,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(NoUnusedVarsArgs.all, options.no_unused_vars_args);
     try std.testing.expectEqual(NoUnusedVarsCaughtErrors.none, options.no_unused_vars_caught_errors);
     try std.testing.expect(options.no_unused_vars_ignore_rest_siblings);
+    try std.testing.expect(options.no_unused_vars_ignore_using_declarations);
     try std.testing.expect(options.no_unused_vars_report_used_ignore_pattern);
     try std.testing.expectEqualStrings("^_", options.no_unused_vars_args_ignore_pattern.pattern().?);
     try std.testing.expectEqualStrings("^ignoredError", options.no_unused_vars_caught_errors_ignore_pattern.pattern().?);
