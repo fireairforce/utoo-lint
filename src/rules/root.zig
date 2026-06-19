@@ -3116,7 +3116,9 @@ const BasicVisitor = struct {
             try jsx_a11y_alt_text.checkElement(self.allocator, self.diagnostics, ctx.tree, element, index);
         }
         if (self.options.jsx_a11y_anchor_has_content) {
-            try jsx_a11y_anchor_has_content.check(self.allocator, self.diagnostics, ctx.tree, element, index);
+            try jsx_a11y_anchor_has_content.check(self.allocator, self.diagnostics, ctx.tree, element, index, .{
+                .components = self.options.jsx_a11y_anchor_has_content_components,
+            });
         }
         if (self.options.react_void_dom_elements_no_children) {
             try react_void_dom_elements_no_children.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index);

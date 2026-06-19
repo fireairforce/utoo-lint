@@ -50,6 +50,44 @@ test "allows jsx-a11y/anchor-has-content accessible content and labels" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.jsx_a11y_anchor_has_content.id));
 }
 
+test "supports configured jsx-a11y/anchor-has-content components" {
+    const source =
+        \\const one = <Anchor />;
+        \\const two = <Anchor>text</Anchor>;
+        \\const three = <Link />;
+        \\const four = <a />;
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(default_result, lint.rules.jsx_a11y_anchor_has_content.id));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"components\":[\"Anchor\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("jsx-a11y/anchor-has-content", config.value);
+
+    var configured_result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", options);
+    defer configured_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(configured_result, lint.rules.jsx_a11y_anchor_has_content.id));
+}
+
 test "can disable jsx-a11y/anchor-has-content" {
     const source =
         \\const node = <a />;

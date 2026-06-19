@@ -9,19 +9,24 @@ pub const id = "jsx-a11y/anchor-has-content";
 
 const message = "Anchors must have content and the content must be accessible by a screen reader.";
 
+pub const Options = struct {
+    components: core.JsxA11yImgRedundantAltNames = .{},
+};
+
 pub fn check(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     element: ast.JSXElement,
     index: ast.NodeIndex,
+    options: Options,
 ) Allocator.Error!void {
     const opening = switch (tree.data(element.opening_element)) {
         .jsx_opening_element => |opening| opening,
         else => return,
     };
     const tag_name = elementName(tree, opening.name) orelse return;
-    if (!std.mem.eql(u8, tag_name, "a")) return;
+    if (!isCheckedElement(tag_name, options.components)) return;
 
     if (hasAccessibleChild(tree, element) or hasAnyAttribute(tree, opening, &.{ "title", "aria-label" })) return;
 
@@ -33,6 +38,10 @@ pub fn check(
         message,
         tree.span(index),
     );
+}
+
+fn isCheckedElement(tag_name: []const u8, components: core.JsxA11yImgRedundantAltNames) bool {
+    return std.mem.eql(u8, tag_name, "a") or components.contains(tag_name);
 }
 
 fn hasAccessibleChild(tree: *const ast.Tree, element: ast.JSXElement) bool {

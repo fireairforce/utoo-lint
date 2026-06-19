@@ -1459,6 +1459,7 @@ pub const Options = struct {
     import_no_self_import: bool = true,
     jsx_a11y_alt_text: bool = true,
     jsx_a11y_anchor_has_content: bool = true,
+    jsx_a11y_anchor_has_content_components: JsxA11yImgRedundantAltNames = .{},
     jsx_a11y_aria_props: bool = true,
     jsx_a11y_aria_proptypes: bool = true,
     jsx_a11y_aria_role: bool = true,
@@ -2035,9 +2036,12 @@ pub const Options = struct {
             self.import_newline_after_import_exact_count = try importNewlineAfterImportExactCountFromConfig(value);
             self.import_newline_after_import_consider_comments = try importNewlineAfterImportConsiderCommentsFromConfig(value);
         }
+        if (std.mem.eql(u8, cli_name, "jsx-a11y/anchor-has-content")) {
+            self.jsx_a11y_anchor_has_content_components = try jsxA11yNamesFromConfig(value, "components");
+        }
         if (std.mem.eql(u8, cli_name, "jsx-a11y/img-redundant-alt")) {
-            self.jsx_a11y_img_redundant_alt_components = try jsxA11yImgRedundantAltNamesFromConfig(value, "components");
-            self.jsx_a11y_img_redundant_alt_words = try jsxA11yImgRedundantAltNamesFromConfig(value, "words");
+            self.jsx_a11y_img_redundant_alt_components = try jsxA11yNamesFromConfig(value, "components");
+            self.jsx_a11y_img_redundant_alt_words = try jsxA11yNamesFromConfig(value, "words");
         }
         if (std.mem.eql(u8, cli_name, "jsx-a11y/no-distracting-elements")) {
             const elements = try jsxA11yNoDistractingElementsFromConfig(value);
@@ -3010,7 +3014,7 @@ pub const Options = struct {
         return names;
     }
 
-    fn jsxA11yImgRedundantAltNamesFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!JsxA11yImgRedundantAltNames {
+    fn jsxA11yNamesFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!JsxA11yImgRedundantAltNames {
         const items = switch (value) {
             .array => |array| array.items,
             else => return .{},
@@ -6614,6 +6618,18 @@ test "Options can apply ESLint-style rule config values" {
     try array.append(.{ .string = "warn" });
     try options.setByRuleConfigValue("jsx-a11y/aria-props", .{ .array = array });
     try std.testing.expect(options.jsx_a11y_aria_props);
+
+    var jsx_a11y_anchor_has_content_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"components\":[\"Anchor\"]}]",
+        .{},
+    );
+    defer jsx_a11y_anchor_has_content_config.deinit();
+    try options.setByRuleConfigValue("jsx-a11y/anchor-has-content", jsx_a11y_anchor_has_content_config.value);
+    try std.testing.expect(options.jsx_a11y_anchor_has_content);
+    try std.testing.expect(options.jsx_a11y_anchor_has_content_components.contains("Anchor"));
+    try std.testing.expect(!options.jsx_a11y_anchor_has_content_components.contains("Link"));
 
     var jsx_a11y_img_redundant_alt_config = try std.json.parseFromSlice(
         std.json.Value,
