@@ -8,6 +8,7 @@ const Allocator = @import("std").mem.Allocator;
 pub const id = "@typescript-eslint/no-invalid-void-type";
 
 pub const Options = struct {
+    allow_as_this_parameter: bool = false,
     allow_in_generic_type_arguments: bool = true,
 };
 
@@ -51,6 +52,7 @@ pub fn checkWithOptions(
         .ts_type_parameter_instantiation => if (options.allow_in_generic_type_arguments) return,
         .ts_type_annotation => {
             if (isReturnTypeAnnotation(tree, parent.index, ctx.path.ancestor(parent.depth + 1))) return;
+            if (options.allow_as_this_parameter and isThisParameterAnnotation(tree, parent.index, ctx.path.ancestor(parent.depth + 1))) return;
         },
         else => {},
     }
@@ -87,6 +89,15 @@ fn isReturnTypeAnnotation(tree: *const ast.Tree, annotation_index: ast.NodeIndex
         .ts_method_signature => |signature| signature.return_type == annotation_index,
         .ts_call_signature_declaration => |signature| signature.return_type == annotation_index,
         .ts_construct_signature_declaration => |signature| signature.return_type == annotation_index,
+        else => false,
+    };
+}
+
+fn isThisParameterAnnotation(tree: *const ast.Tree, annotation_index: ast.NodeIndex, owner_index: ?ast.NodeIndex) bool {
+    const owner = owner_index orelse return false;
+
+    return switch (tree.data(owner)) {
+        .ts_this_parameter => |parameter| parameter.type_annotation == annotation_index,
         else => false,
     };
 }
