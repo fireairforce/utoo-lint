@@ -3113,7 +3113,16 @@ const BasicVisitor = struct {
             try react_no_danger_with_children.checkJSXElement(self.allocator, self.diagnostics, ctx.tree, element, index, &self.react_no_danger_with_children_bindings);
         }
         if (self.options.jsx_a11y_alt_text) {
-            try jsx_a11y_alt_text.checkElement(self.allocator, self.diagnostics, ctx.tree, element, index);
+            try jsx_a11y_alt_text.checkElement(self.allocator, self.diagnostics, ctx.tree, element, index, .{
+                .img = self.options.jsx_a11y_alt_text_img,
+                .object = self.options.jsx_a11y_alt_text_object,
+                .area = self.options.jsx_a11y_alt_text_area,
+                .input_image = self.options.jsx_a11y_alt_text_input_image,
+                .img_components = self.options.jsx_a11y_alt_text_img_components,
+                .object_components = self.options.jsx_a11y_alt_text_object_components,
+                .area_components = self.options.jsx_a11y_alt_text_area_components,
+                .input_image_components = self.options.jsx_a11y_alt_text_input_image_components,
+            });
         }
         if (self.options.jsx_a11y_anchor_has_content) {
             try jsx_a11y_anchor_has_content.check(self.allocator, self.diagnostics, ctx.tree, element, index, .{
@@ -3153,7 +3162,16 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.jsx_a11y_alt_text) {
-            try jsx_a11y_alt_text.checkOpeningElement(self.allocator, self.diagnostics, ctx.tree, opening, index);
+            try jsx_a11y_alt_text.checkOpeningElement(self.allocator, self.diagnostics, ctx.tree, opening, index, .{
+                .img = self.options.jsx_a11y_alt_text_img,
+                .object = self.options.jsx_a11y_alt_text_object,
+                .area = self.options.jsx_a11y_alt_text_area,
+                .input_image = self.options.jsx_a11y_alt_text_input_image,
+                .img_components = self.options.jsx_a11y_alt_text_img_components,
+                .object_components = self.options.jsx_a11y_alt_text_object_components,
+                .area_components = self.options.jsx_a11y_alt_text_area_components,
+                .input_image_components = self.options.jsx_a11y_alt_text_input_image_components,
+            });
         }
         if (self.options.jsx_a11y_no_access_key) {
             try jsx_a11y_no_access_key.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
