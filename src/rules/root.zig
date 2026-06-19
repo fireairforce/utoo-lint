@@ -1657,6 +1657,7 @@ const BasicVisitor = struct {
                 ctx.tree,
                 declarator,
                 &self.options.typescript_eslint_no_this_alias_allowed_names,
+                self.options.typescript_eslint_no_this_alias_allow_destructuring,
             );
         }
         if (self.options.typescript_eslint_no_inferrable_types) {
@@ -2547,6 +2548,7 @@ const BasicVisitor = struct {
                 ctx.tree,
                 expression,
                 &self.options.typescript_eslint_no_this_alias_allowed_names,
+                self.options.typescript_eslint_no_this_alias_allow_destructuring,
             );
         }
         if (self.options.react_no_typos) {

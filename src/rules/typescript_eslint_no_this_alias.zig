@@ -13,15 +13,19 @@ pub fn checkVariableDeclarator(
     tree: *const ast.Tree,
     declarator: ast.VariableDeclarator,
     allowed_names: *const core.NoThisAliasAllowedNames,
+    allow_destructuring: bool,
 ) Allocator.Error!void {
     switch (tree.data(declarator.id)) {
-        .binding_identifier => {},
+        .binding_identifier => {
+            if (!isThisExpression(tree, declarator.init)) return;
+            try reportIfDisallowed(allocator, diagnostics, tree, declarator.id, allowed_names);
+        },
+        .array_pattern, .object_pattern => {
+            if (allow_destructuring or !isThisExpression(tree, declarator.init)) return;
+            try report(allocator, diagnostics, tree, declarator.id);
+        },
         else => return,
     }
-
-    if (!isThisExpression(tree, declarator.init)) return;
-
-    try reportIfDisallowed(allocator, diagnostics, tree, declarator.id, allowed_names);
 }
 
 pub fn checkAssignmentExpression(
@@ -30,17 +34,21 @@ pub fn checkAssignmentExpression(
     tree: *const ast.Tree,
     expression: ast.AssignmentExpression,
     allowed_names: *const core.NoThisAliasAllowedNames,
+    allow_destructuring: bool,
 ) Allocator.Error!void {
     if (expression.operator != .assign) return;
 
     switch (tree.data(expression.left)) {
-        .identifier_reference => {},
+        .identifier_reference => {
+            if (!isThisExpression(tree, expression.right)) return;
+            try reportIfDisallowed(allocator, diagnostics, tree, expression.left, allowed_names);
+        },
+        .array_pattern, .object_pattern => {
+            if (allow_destructuring or !isThisExpression(tree, expression.right)) return;
+            try report(allocator, diagnostics, tree, expression.left);
+        },
         else => return,
     }
-
-    if (!isThisExpression(tree, expression.right)) return;
-
-    try reportIfDisallowed(allocator, diagnostics, tree, expression.left, allowed_names);
 }
 
 fn reportIfDisallowed(
@@ -52,6 +60,15 @@ fn reportIfDisallowed(
 ) Allocator.Error!void {
     if (isAllowedAlias(tree, target, allowed_names)) return;
 
+    try report(allocator, diagnostics, tree, target);
+}
+
+fn report(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    target: ast.NodeIndex,
+) Allocator.Error!void {
     try core.addDiagnostic(
         allocator,
         diagnostics,

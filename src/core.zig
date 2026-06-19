@@ -1715,6 +1715,7 @@ pub const Options = struct {
     typescript_eslint_no_shadow_ignore_function_type_parameter_name_value_shadow: bool = true,
     typescript_eslint_no_this_alias: bool = true,
     typescript_eslint_no_this_alias_allowed_names: NoThisAliasAllowedNames = .{},
+    typescript_eslint_no_this_alias_allow_destructuring: bool = true,
     typescript_eslint_no_unsafe_declaration_merging: bool = true,
     typescript_eslint_triple_slash_reference: bool = true,
     typescript_eslint_triple_slash_reference_path: TypescriptEslintTripleSlashReferenceMode = .never,
@@ -2293,6 +2294,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-this-alias")) {
             self.typescript_eslint_no_this_alias_allowed_names = try typescriptEslintNoThisAliasAllowedNamesFromConfig(value);
+            self.typescript_eslint_no_this_alias_allow_destructuring = try typescriptEslintNoThisAliasAllowDestructuringFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-unused-vars")) {
             self.typescript_eslint_no_unused_vars_vars = try noUnusedVarsVarsFromConfig(value, .all);
@@ -5675,6 +5677,23 @@ pub const Options = struct {
         return names;
     }
 
+    fn typescriptEslintNoThisAliasAllowDestructuringFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return true,
+        };
+        if (items.len < 2) return true;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowDestructuring") orelse return true) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn typescriptEslintNoInferrableTypesBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -7157,6 +7176,19 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_shadow_ignore_on_initialization);
     try std.testing.expect(options.typescript_eslint_no_shadow_ignore_type_value_shadow);
     try std.testing.expect(!options.typescript_eslint_no_shadow_ignore_function_type_parameter_name_value_shadow);
+
+    var typescript_no_this_alias_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowedNames\":[\"that\"],\"allowDestructuring\":false}]",
+        .{},
+    );
+    defer typescript_no_this_alias_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-this-alias", typescript_no_this_alias_config.value);
+    try std.testing.expect(options.typescript_eslint_no_this_alias);
+    try std.testing.expect(options.typescript_eslint_no_this_alias_allowed_names.contains("that"));
+    try std.testing.expect(!options.typescript_eslint_no_this_alias_allowed_names.contains("self"));
+    try std.testing.expect(!options.typescript_eslint_no_this_alias_allow_destructuring);
 
     var no_plusplus_config = try std.json.parseFromSlice(
         std.json.Value,
