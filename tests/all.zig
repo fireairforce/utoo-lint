@@ -795,6 +795,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_unused_private_class_members.zig");
+}
+
+comptime {
     _ = @import("rules/no_unused_vars.zig");
 }
 

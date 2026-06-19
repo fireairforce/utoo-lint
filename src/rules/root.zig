@@ -213,6 +213,7 @@ pub const no_useless_catch = @import("no_useless_catch.zig");
 pub const no_useless_escape = @import("no_useless_escape.zig");
 pub const no_useless_rename = @import("no_useless_rename.zig");
 pub const no_unused_expressions = @import("no_unused_expressions.zig");
+pub const no_unused_private_class_members = @import("no_unused_private_class_members.zig");
 pub const no_unused_labels = @import("no_unused_labels.zig");
 pub const no_unused_vars = @import("no_unused_vars.zig");
 pub const no_use_before_define = @import("no_use_before_define.zig");
@@ -1385,6 +1386,9 @@ const BasicVisitor = struct {
         }
         if (self.options.react_no_deprecated) {
             try react_no_deprecated.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
+        }
+        if (self.options.no_unused_private_class_members) {
+            try no_unused_private_class_members.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
         }
         if (self.options.no_this_before_super) {
             try no_this_before_super.checkClass(self.allocator, self.diagnostics, ctx.tree, class);

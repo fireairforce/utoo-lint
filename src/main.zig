@@ -585,6 +585,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_useless_escape = false;
         } else if (std.mem.eql(u8, arg, "--no-useless-rename=off")) {
             options.no_useless_rename = false;
+        } else if (std.mem.eql(u8, arg, "--no-unused-private-class-members=off")) {
+            options.no_unused_private_class_members = false;
         } else if (std.mem.eql(u8, arg, "--no-unused-expressions=off")) {
             options.no_unused_expressions = false;
         } else if (std.mem.eql(u8, arg, "--no-unused-expressions-allow-short-circuit=on")) {
@@ -1702,6 +1704,7 @@ fn printHelp() void {
         \\  --no-useless-catch=off    Disable no-useless-catch
         \\  --no-useless-escape=off   Disable no-useless-escape
         \\  --no-useless-rename=off   Disable no-useless-rename
+        \\  --no-unused-private-class-members=off Disable no-unused-private-class-members
         \\  --no-unused-expressions=off Disable no-unused-expressions
         \\  --no-unused-expressions-allow-short-circuit=on Allow short-circuit expressions
         \\  --no-unused-expressions-allow-ternary=on Allow ternary expressions
