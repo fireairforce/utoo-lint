@@ -1316,6 +1316,7 @@ pub const Options = struct {
     no_dupe_keys: bool = true,
     no_duplicate_imports: bool = true,
     no_duplicate_imports_allow_separate_type_imports: bool = false,
+    no_duplicate_imports_include_exports: bool = false,
     no_delete_var: bool = true,
     no_div_regex: bool = true,
     no_empty: bool = true,
@@ -1990,6 +1991,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-duplicate-imports")) {
             self.no_duplicate_imports_allow_separate_type_imports = try noDuplicateImportsBoolOptionFromConfig(value, "allowSeparateTypeImports", false);
+            self.no_duplicate_imports_include_exports = try noDuplicateImportsBoolOptionFromConfig(value, "includeExports", false);
         }
         if (std.mem.eql(u8, cli_name, "no-cond-assign")) {
             self.no_cond_assign_style = try noCondAssignStyleFromConfig(value);
@@ -6846,13 +6848,14 @@ test "Options can apply ESLint-style rule config values" {
     var no_duplicate_imports_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowSeparateTypeImports\":true}]",
+        "[\"error\",{\"allowSeparateTypeImports\":true,\"includeExports\":true}]",
         .{},
     );
     defer no_duplicate_imports_config.deinit();
     try options.setByRuleConfigValue("no-duplicate-imports", no_duplicate_imports_config.value);
     try std.testing.expect(options.no_duplicate_imports);
     try std.testing.expect(options.no_duplicate_imports_allow_separate_type_imports);
+    try std.testing.expect(options.no_duplicate_imports_include_exports);
 
     var no_multi_assign_config = try std.json.parseFromSlice(
         std.json.Value,

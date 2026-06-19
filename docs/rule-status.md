@@ -55,7 +55,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-dupe-else-if`](https://eslint.org/docs/latest/rules/no-dupe-else-if) | Implemented |
 | [`no-dupe-keys`](https://eslint.org/docs/latest/rules/no-dupe-keys) | Implemented |
 | [`no-duplicate-case`](https://eslint.org/docs/latest/rules/no-duplicate-case) | Implemented |
-| [`no-duplicate-imports`](https://eslint.org/docs/latest/rules/no-duplicate-imports) | Supports `allowSeparateTypeImports` configuration |
+| [`no-duplicate-imports`](https://eslint.org/docs/latest/rules/no-duplicate-imports) | Supports `allowSeparateTypeImports` and `includeExports` configuration |
 | [`no-else-return`](https://eslint.org/docs/latest/rules/no-else-return) | Implemented |
 | [`no-empty`](https://eslint.org/docs/latest/rules/no-empty) | Implemented with optional `allowEmptyCatch` behavior |
 | [`no-empty-block-statements`](https://eslint.org/docs/latest/rules/no-empty-block-statements) | Implemented |

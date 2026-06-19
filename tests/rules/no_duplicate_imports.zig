@@ -127,6 +127,56 @@ test "supports configured no-duplicate-imports allowSeparateTypeImports" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_duplicate_imports.id));
 }
 
+test "ignores re-exports by default" {
+    const source =
+        \\import { foo } from "alpha";
+        \\export { bar } from "alpha";
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .import_no_duplicates = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_duplicate_imports.id));
+}
+
+test "supports configured no-duplicate-imports includeExports" {
+    const source =
+        \\import { foo } from "alpha";
+        \\export { bar } from "alpha";
+        \\export { baz } from "beta";
+        \\export { qux } from "beta";
+        \\export * from "gamma";
+        \\export * as gamma from "gamma";
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"includeExports\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .import_no_duplicates = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("no-duplicate-imports", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_duplicate_imports.id));
+}
+
 test "can disable no-duplicate-imports" {
     const source =
         \\import foo from "alpha";
