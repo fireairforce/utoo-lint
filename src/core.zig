@@ -1255,6 +1255,7 @@ pub const Options = struct {
     func_name_matching: bool = true,
     func_name_matching_style: FuncNameMatchingStyle = .always,
     func_name_matching_include_commonjs_module_exports: bool = false,
+    func_name_matching_consider_property_descriptor: bool = false,
     func_names: bool = true,
     func_names_style: FuncNamesStyle = .always,
     func_names_has_generator_style: bool = false,
@@ -1940,7 +1941,8 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "func-name-matching")) {
             self.func_name_matching_style = try funcNameMatchingStyleFromConfig(value);
-            self.func_name_matching_include_commonjs_module_exports = try funcNameMatchingIncludeCommonJSModuleExportsFromConfig(value);
+            self.func_name_matching_include_commonjs_module_exports = try funcNameMatchingBoolOptionFromConfig(value, "includeCommonJSModuleExports");
+            self.func_name_matching_consider_property_descriptor = try funcNameMatchingBoolOptionFromConfig(value, "considerPropertyDescriptor");
         }
         if (std.mem.eql(u8, cli_name, "func-names")) {
             self.func_names_style = try funcNamesStyleFromConfig(value);
@@ -2766,7 +2768,7 @@ pub const Options = struct {
         return error.UnsupportedRuleConfigValue;
     }
 
-    fn funcNameMatchingIncludeCommonJSModuleExportsFromConfig(value: std.json.Value) RuleConfigError!bool {
+    fn funcNameMatchingBoolOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
             else => return false,
@@ -2782,7 +2784,7 @@ pub const Options = struct {
             .object => |object| object,
             else => return error.UnsupportedRuleConfigValue,
         };
-        return switch (config.get("includeCommonJSModuleExports") orelse return false) {
+        return switch (config.get(key) orelse return false) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
@@ -6769,7 +6771,7 @@ test "Options can apply ESLint-style rule config values" {
     var func_name_matching_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",\"never\",{\"includeCommonJSModuleExports\":true}]",
+        "[\"error\",\"never\",{\"includeCommonJSModuleExports\":true,\"considerPropertyDescriptor\":true}]",
         .{},
     );
     defer func_name_matching_config.deinit();
@@ -6777,6 +6779,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.func_name_matching);
     try std.testing.expectEqual(FuncNameMatchingStyle.never, options.func_name_matching_style);
     try std.testing.expect(options.func_name_matching_include_commonjs_module_exports);
+    try std.testing.expect(options.func_name_matching_consider_property_descriptor);
 
     var func_names_config = try std.json.parseFromSlice(
         std.json.Value,

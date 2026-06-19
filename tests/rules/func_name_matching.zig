@@ -163,6 +163,59 @@ test "supports configured func-name-matching includeCommonJSModuleExports" {
     );
 }
 
+test "supports configured func-name-matching considerPropertyDescriptor" {
+    const source =
+        \\Object.defineProperty(target, "defined", { value: function otherDefined() {} });
+        \\Reflect.defineProperty(target, "reflected", { value: function otherReflected() {} });
+        \\Object.defineProperties(target, {
+        \\  nested: { value: function otherNested() {} },
+        \\});
+        \\Object.create(proto, {
+        \\  created: { value: function otherCreated() {} },
+        \\});
+        \\const ordinary = { value: function otherValue() {} };
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .func_names = false,
+        .no_empty_function = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(default_result, lint.rules.func_name_matching.id));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"considerPropertyDescriptor\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .func_names = false,
+        .no_empty_function = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("func-name-matching", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.func_name_matching.id));
+    try std.testing.expectEqualStrings(
+        "Function name `otherDefined` should match target name `defined`.",
+        result.diagnostics[0].message,
+    );
+}
+
 test "can disable func-name-matching" {
     const source =
         \\const first = function second() {};
