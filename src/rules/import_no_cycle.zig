@@ -9,7 +9,10 @@ const Allocator = std.mem.Allocator;
 pub const id = "import/no-cycle";
 
 const max_source_size = 1024 * 1024;
-const max_depth = 1024;
+
+pub const Options = struct {
+    max_depth: usize = 1024,
+};
 
 const Dependency = struct {
     source: []const u8,
@@ -37,6 +40,7 @@ pub fn run(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     file_path: []const u8,
+    options: Options,
 ) Allocator.Error!void {
     const normalized_file_path = try std.fs.path.resolve(allocator, &.{file_path});
     defer allocator.free(normalized_file_path);
@@ -53,7 +57,7 @@ pub fn run(
         var route: std.ArrayList(RouteStep) = .empty;
         defer deinitRoute(allocator, &route);
 
-        if (try hasCycle(allocator, io, dependency.resolved, normalized_file_path, &visited, &route, 0)) {
+        if (try hasCycle(allocator, io, dependency.resolved, normalized_file_path, &visited, &route, 0, options.max_depth)) {
             try reportCycle(allocator, diagnostics, tree, dependency.line, dependency.source, &route);
         }
     }
@@ -67,6 +71,7 @@ fn hasCycle(
     visited: *std.StringHashMap(void),
     route: *std.ArrayList(RouteStep),
     depth: usize,
+    max_depth: usize,
 ) Allocator.Error!bool {
     if (depth >= max_depth) return false;
     if (visited.contains(path)) return false;
@@ -92,7 +97,7 @@ fn hasCycle(
             .line = dependency.line,
         });
 
-        if (try hasCycle(allocator, io, dependency.resolved, target, visited, route, depth + 1)) {
+        if (try hasCycle(allocator, io, dependency.resolved, target, visited, route, depth + 1, max_depth)) {
             return true;
         }
 

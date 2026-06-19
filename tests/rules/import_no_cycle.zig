@@ -51,6 +51,54 @@ test "reports import/no-cycle for direct and indirect relative import cycles" {
     try std.testing.expectEqual(.@"error", ruleDiagnostic(result, 0).severity);
 }
 
+test "supports configured import/no-cycle maxDepth option" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.createDirPath(std.testing.io, "src");
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/direct.ts",
+        .data = "import { entry } from './entry';\nexport const direct = entry;\n",
+    });
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/middle.ts",
+        .data = "import { leaf } from './leaf';\nexport const middle = leaf;\n",
+    });
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/leaf.ts",
+        .data = "import { entry } from './entry';\nexport const leaf = entry;\n",
+    });
+
+    const source =
+        \\import { direct } from './direct';
+        \\import { middle } from './middle';
+        \\export const entry = direct + middle;
+    ;
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/entry.ts",
+        .data = source,
+    });
+    const file_path = try entryPath(&tmp);
+    defer std.testing.allocator.free(file_path);
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"maxDepth\":1}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("import/no-cycle", config.value);
+
+    var result = try lint.lintSourceWithIo(std.testing.allocator, std.testing.io, source, file_path, options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.import_no_cycle.id));
+    try std.testing.expectEqualStrings("Dependency cycle detected.", ruleDiagnostic(result, 0).message);
+}
+
 test "ignores import/no-cycle type imports unresolved modules and self imports" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -124,6 +172,24 @@ test "can disable import/no-cycle" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.import_no_cycle.id));
+}
+
+fn baseOptions() lint.Options {
+    return .{
+        .eol_last = false,
+        .import_newline_after_import = false,
+        .parser_semantic_errors = false,
+    };
+}
+
+fn entryPath(tmp: *std.testing.TmpDir) ![]u8 {
+    return std.fs.path.resolve(std.testing.allocator, &.{
+        ".zig-cache",
+        "tmp",
+        &tmp.sub_path,
+        "src",
+        "entry.ts",
+    });
 }
 
 fn ruleDiagnostic(result: lint.Result, index: usize) lint.Diagnostic {
