@@ -1668,6 +1668,12 @@ pub const Options = struct {
     no_unneeded_ternary: bool = true,
     no_unneeded_ternary_default_assignment: bool = true,
     no_unused_labels: bool = true,
+    no_unreachable_loop: bool = true,
+    no_unreachable_loop_ignore_while: bool = false,
+    no_unreachable_loop_ignore_do_while: bool = false,
+    no_unreachable_loop_ignore_for: bool = false,
+    no_unreachable_loop_ignore_for_in: bool = false,
+    no_unreachable_loop_ignore_for_of: bool = false,
     no_unsafe_finally: bool = true,
     no_unsafe_negation: bool = true,
     no_unsafe_negation_enforce_for_ordering_relations: bool = false,
@@ -2298,6 +2304,14 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-trailing-spaces")) {
             self.no_trailing_spaces_skip_blank_lines = try noTrailingSpacesBoolOptionFromConfig(value, "skipBlankLines");
             self.no_trailing_spaces_ignore_comments = try noTrailingSpacesBoolOptionFromConfig(value, "ignoreComments");
+        }
+        if (std.mem.eql(u8, cli_name, "no-unreachable-loop")) {
+            const ignore = try noUnreachableLoopIgnoreFromConfig(value);
+            self.no_unreachable_loop_ignore_while = ignore.while_statement;
+            self.no_unreachable_loop_ignore_do_while = ignore.do_while_statement;
+            self.no_unreachable_loop_ignore_for = ignore.for_statement;
+            self.no_unreachable_loop_ignore_for_in = ignore.for_in_statement;
+            self.no_unreachable_loop_ignore_for_of = ignore.for_of_statement;
         }
         if (std.mem.eql(u8, cli_name, "no-unsafe-negation")) {
             self.no_unsafe_negation_enforce_for_ordering_relations = try noUnsafeNegationBoolOptionFromConfig(value, "enforceForOrderingRelations", false);
@@ -5306,6 +5320,54 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    const NoUnreachableLoopIgnore = struct {
+        while_statement: bool = false,
+        do_while_statement: bool = false,
+        for_statement: bool = false,
+        for_in_statement: bool = false,
+        for_of_statement: bool = false,
+    };
+
+    fn noUnreachableLoopIgnoreFromConfig(value: std.json.Value) RuleConfigError!NoUnreachableLoopIgnore {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const ignore_value = config.get("ignore") orelse return .{};
+        const ignore_items = switch (ignore_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var ignore = NoUnreachableLoopIgnore{};
+        for (ignore_items) |item| {
+            const name = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, name, "WhileStatement")) {
+                ignore.while_statement = true;
+            } else if (std.mem.eql(u8, name, "DoWhileStatement")) {
+                ignore.do_while_statement = true;
+            } else if (std.mem.eql(u8, name, "ForStatement")) {
+                ignore.for_statement = true;
+            } else if (std.mem.eql(u8, name, "ForInStatement")) {
+                ignore.for_in_statement = true;
+            } else if (std.mem.eql(u8, name, "ForOfStatement")) {
+                ignore.for_of_statement = true;
+            } else {
+                return error.UnsupportedRuleConfigValue;
+            }
+        }
+        return ignore;
     }
 
     fn noUnsafeNegationBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
@@ -8321,6 +8383,19 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-unsafe-negation", no_unsafe_negation_config.value);
     try std.testing.expect(options.no_unsafe_negation);
     try std.testing.expect(options.no_unsafe_negation_enforce_for_ordering_relations);
+
+    var no_unreachable_loop_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignore\":[\"WhileStatement\",\"ForOfStatement\"]}]",
+        .{},
+    );
+    defer no_unreachable_loop_config.deinit();
+    try options.setByRuleConfigValue("no-unreachable-loop", no_unreachable_loop_config.value);
+    try std.testing.expect(options.no_unreachable_loop);
+    try std.testing.expect(options.no_unreachable_loop_ignore_while);
+    try std.testing.expect(options.no_unreachable_loop_ignore_for_of);
+    try std.testing.expect(!options.no_unreachable_loop_ignore_for);
 
     var no_unsafe_optional_chaining_config = try std.json.parseFromSlice(
         std.json.Value,

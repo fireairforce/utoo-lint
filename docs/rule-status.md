@@ -143,6 +143,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-undefined`](https://eslint.org/docs/latest/rules/no-undefined) | Implemented for identifier references and binding names |
 | [`no-unneeded-ternary`](https://eslint.org/docs/latest/rules/no-unneeded-ternary) | Implemented |
 | [`no-unreachable`](https://eslint.org/docs/latest/rules/no-unreachable) | Implemented with hoisted declaration handling |
+| [`no-unreachable-loop`](https://eslint.org/docs/latest/rules/no-unreachable-loop) | Supports loop body exit detection and `ignore` configuration |
 | [`no-unsafe-finally`](https://eslint.org/docs/latest/rules/no-unsafe-finally) | Implemented with local loop, switch, and label exit handling |
 | [`no-unsafe-negation`](https://eslint.org/docs/latest/rules/no-unsafe-negation) | Supports `enforceForOrderingRelations` configuration |
 | [`no-unsafe-optional-chaining`](https://eslint.org/docs/latest/rules/no-unsafe-optional-chaining) | Implemented for unsafe member, call, constructor, tagged template, spread, iteration, destructuring, binary object, `with`, class `extends`, and optional `disallowArithmeticOperators` behavior |

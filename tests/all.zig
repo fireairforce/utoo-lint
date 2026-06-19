@@ -731,6 +731,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_unreachable_loop.zig");
+}
+
+comptime {
     _ = @import("rules/no_undef_init.zig");
 }
 
