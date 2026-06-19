@@ -1179,6 +1179,7 @@ const BasicVisitor = struct {
                 program,
                 self.options.import_newline_after_import_count,
                 self.options.import_newline_after_import_exact_count,
+                self.options.import_newline_after_import_consider_comments,
             );
         }
         if (self.options.import_no_duplicates) {

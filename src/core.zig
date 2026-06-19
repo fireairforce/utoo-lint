@@ -1401,6 +1401,7 @@ pub const Options = struct {
     import_newline_after_import: bool = true,
     import_newline_after_import_count: usize = 1,
     import_newline_after_import_exact_count: bool = false,
+    import_newline_after_import_consider_comments: bool = false,
     import_no_amd: bool = true,
     import_no_cycle: bool = true,
     import_no_duplicates: bool = true,
@@ -1975,6 +1976,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "import/newline-after-import")) {
             self.import_newline_after_import_count = try importNewlineAfterImportCountFromConfig(value);
             self.import_newline_after_import_exact_count = try importNewlineAfterImportExactCountFromConfig(value);
+            self.import_newline_after_import_consider_comments = try importNewlineAfterImportConsiderCommentsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "new-cap")) {
             self.new_cap_new_is_cap = try newCapBoolOptionFromConfig(value, "newIsCap", true);
@@ -3680,6 +3682,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("exactCount") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn importNewlineAfterImportConsiderCommentsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("considerComments") orelse return false) {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };

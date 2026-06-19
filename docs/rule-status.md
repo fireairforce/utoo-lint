@@ -197,7 +197,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`import/first`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/first.md) | Implemented |
 | [`import/named`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/named.md) | Implemented for relative imports resolved with fishlint's configured extensions |
 | [`import/namespace`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/namespace.md) | Implemented for relative namespace imports resolved with fishlint's configured extensions |
-| [`import/newline-after-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/newline-after-import.md) | Implemented for `count` and `exactCount` configurations |
+| [`import/newline-after-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/newline-after-import.md) | Implemented for `count`, `exactCount`, and `considerComments` configurations |
 | [`import/no-amd`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-amd.md) | Implemented |
 | [`import/no-cycle`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) | Implemented for relative imports and re-exports resolved with fishlint's configured extensions |
 | [`import/no-duplicates`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-duplicates.md) | Implemented |
