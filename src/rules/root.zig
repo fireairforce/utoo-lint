@@ -187,6 +187,7 @@ pub const no_process_env = @import("no_process_env.zig");
 pub const no_process_exit = @import("no_process_exit.zig");
 pub const no_prototype_builtins = @import("no_prototype_builtins.zig");
 pub const no_redeclare = @import("no_redeclare.zig");
+pub const no_restricted_exports = @import("no_restricted_exports.zig");
 pub const no_restricted_properties = @import("no_restricted_properties.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_return_await = @import("no_return_await.zig");
@@ -1155,6 +1156,13 @@ const BasicVisitor = struct {
             .ignore_for = self.options.no_unreachable_loop_ignore_for,
             .ignore_for_in = self.options.no_unreachable_loop_ignore_for_in,
             .ignore_for_of = self.options.no_unreachable_loop_ignore_for_of,
+        };
+    }
+
+    fn noRestrictedExportsOptions(self: *const BasicVisitor) no_restricted_exports.Options {
+        return .{
+            .names = &self.options.no_restricted_exports_names,
+            .restrict_default = self.options.no_restricted_exports_default,
         };
     }
 
@@ -3909,6 +3917,42 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_useless_rename) {
             try no_useless_rename.checkExportSpecifierWithOptions(self.allocator, self.diagnostics, ctx.tree, specifier, index, self.noUselessRenameOptions());
+        }
+        return .proceed;
+    }
+
+    pub fn enter_export_default_declaration(
+        self: *BasicVisitor,
+        _: ast.ExportDefaultDeclaration,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_restricted_exports) {
+            try no_restricted_exports.checkExportDefaultDeclaration(self.allocator, self.diagnostics, ctx.tree, index, self.noRestrictedExportsOptions());
+        }
+        return .proceed;
+    }
+
+    pub fn enter_export_all_declaration(
+        self: *BasicVisitor,
+        declaration: ast.ExportAllDeclaration,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_restricted_exports) {
+            try no_restricted_exports.checkExportAllDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, index, self.noRestrictedExportsOptions());
+        }
+        return .proceed;
+    }
+
+    pub fn enter_export_named_declaration(
+        self: *BasicVisitor,
+        declaration: ast.ExportNamedDeclaration,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_restricted_exports) {
+            try no_restricted_exports.checkExportNamedDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, index, self.noRestrictedExportsOptions());
         }
         return .proceed;
     }

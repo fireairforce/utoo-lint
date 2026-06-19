@@ -653,6 +653,8 @@ pub const max_no_restricted_properties = 32;
 pub const max_no_restricted_property_name_len = 128;
 pub const max_no_restricted_property_message_len = 256;
 pub const max_no_restricted_property_allow_names = 16;
+pub const max_no_restricted_export_names = 64;
+pub const max_no_restricted_export_name_len = 128;
 pub const max_id_denylist_names = 64;
 pub const max_id_denylist_name_len = 128;
 
@@ -788,6 +790,48 @@ pub const IdDenylistNames = struct {
         self.lengths[self.count] = name.len;
         self.count += 1;
     }
+};
+
+pub const NoRestrictedExportNamesError = error{
+    EmptyNoRestrictedExportName,
+    TooManyNoRestrictedExportNames,
+    NoRestrictedExportNameTooLong,
+};
+
+pub const NoRestrictedExportNames = struct {
+    count: usize = 0,
+    lengths: [max_no_restricted_export_names]usize = undefined,
+    storage: [max_no_restricted_export_names][max_no_restricted_export_name_len]u8 = undefined,
+
+    pub fn contains(self: *const NoRestrictedExportNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const NoRestrictedExportNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *NoRestrictedExportNames, name: []const u8) NoRestrictedExportNamesError!void {
+        if (name.len == 0) return error.EmptyNoRestrictedExportName;
+        if (self.count >= max_no_restricted_export_names) return error.TooManyNoRestrictedExportNames;
+        if (name.len > max_no_restricted_export_name_len) return error.NoRestrictedExportNameTooLong;
+        if (self.contains(name)) return;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
+pub const NoRestrictedExportsDefaultOptions = struct {
+    direct: bool = false,
+    named: bool = false,
+    default_from: bool = false,
+    named_from: bool = false,
+    namespace_from: bool = false,
 };
 
 pub const max_no_unused_vars_ignore_pattern_len = 256;
@@ -1841,6 +1885,9 @@ pub const Options = struct {
     no_prototype_builtins: bool = true,
     no_redeclare: bool = true,
     no_redeclare_builtin_globals: NoRedeclareBuiltinGlobals = .no,
+    no_restricted_exports: bool = false,
+    no_restricted_exports_names: NoRestrictedExportNames = .{},
+    no_restricted_exports_default: NoRestrictedExportsDefaultOptions = .{},
     no_restricted_properties: bool = true,
     no_restricted_properties_entries: NoRestrictedProperties = .{},
     no_regex_spaces: bool = true,
@@ -2547,6 +2594,10 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-redeclare")) {
             self.no_redeclare_builtin_globals = try noRedeclareBuiltinGlobalsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-restricted-exports")) {
+            self.no_restricted_exports_names = try noRestrictedExportNamesFromConfig(value);
+            self.no_restricted_exports_default = try noRestrictedExportsDefaultOptionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-restricted-properties")) {
             self.no_restricted_properties_entries = try noRestrictedPropertiesFromConfig(value);
@@ -3462,6 +3513,60 @@ pub const Options = struct {
             names.append(name) catch return error.UnsupportedRuleConfigValue;
         }
         return names;
+    }
+
+    fn noRestrictedExportNamesFromConfig(value: std.json.Value) RuleConfigError!NoRestrictedExportNames {
+        const config = noRestrictedExportsObjectFromConfig(value) orelse return .{};
+        const entries = switch (config.get("restrictedNamedExports") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var names = NoRestrictedExportNames{};
+        for (entries) |entry| {
+            const name = switch (entry) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            names.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return names;
+    }
+
+    fn noRestrictedExportsDefaultOptionsFromConfig(value: std.json.Value) RuleConfigError!NoRestrictedExportsDefaultOptions {
+        const config = noRestrictedExportsObjectFromConfig(value) orelse return .{};
+        const default_config = switch (config.get("restrictDefaultExports") orelse return .{}) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        return .{
+            .direct = try boolObjectOption(default_config, "direct", false),
+            .named = try boolObjectOption(default_config, "named", false),
+            .default_from = try boolObjectOption(default_config, "defaultFrom", false),
+            .named_from = try boolObjectOption(default_config, "namedFrom", false),
+            .namespace_from = try boolObjectOption(default_config, "namespaceFrom", false),
+        };
+    }
+
+    fn noRestrictedExportsObjectFromConfig(value: std.json.Value) ?std.json.ObjectMap {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return null,
+        };
+        if (items.len < 2) return null;
+
+        return switch (items[1]) {
+            .object => |object| object,
+            else => null,
+        };
+    }
+
+    fn boolObjectOption(object: std.json.ObjectMap, key: []const u8, default: bool) RuleConfigError!bool {
+        return switch (object.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn reactNoUnusedPropTypesSkipShapePropsFromConfig(value: std.json.Value) RuleConfigError!bool {
