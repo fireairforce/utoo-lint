@@ -62,6 +62,34 @@ test "supports configured @typescript-eslint/no-require-imports allowAsImport op
     try std.testing.expectEqualStrings("A `require()` style import is forbidden.", result.diagnostics[0].message);
 }
 
+test "supports configured @typescript-eslint/no-require-imports allow option" {
+    const source =
+        \\const fs = require('fs');
+        \\const legacy = require('legacy-runtime');
+        \\import legacyTypes = require('legacy-types');
+        \\import path = require('path');
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":[\"^legacy-\",\"fs$\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options.allDisabled();
+    try options.setByRuleConfigValue("@typescript-eslint/no-require-imports", config.value);
+    options.no_undef = false;
+    options.no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_require_imports.id));
+}
+
 test "can disable @typescript-eslint/no-require-imports" {
     const source =
         \\const fs = require('fs');

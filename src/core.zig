@@ -412,6 +412,30 @@ pub const ImportNoUnresolvedIgnorePatterns = struct {
     }
 };
 
+pub const max_typescript_eslint_no_require_imports_allow_patterns = 32;
+pub const max_typescript_eslint_no_require_imports_allow_pattern_len = 256;
+
+pub const TypescriptEslintNoRequireImportsAllowPatterns = struct {
+    count: usize = 0,
+    lengths: [max_typescript_eslint_no_require_imports_allow_patterns]usize = undefined,
+    storage: [max_typescript_eslint_no_require_imports_allow_patterns][max_typescript_eslint_no_require_imports_allow_pattern_len]u8 = undefined,
+
+    pub fn at(self: *const TypescriptEslintNoRequireImportsAllowPatterns, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *TypescriptEslintNoRequireImportsAllowPatterns, pattern: []const u8) bool {
+        if (pattern.len == 0) return false;
+        if (self.count >= max_typescript_eslint_no_require_imports_allow_patterns) return false;
+        if (pattern.len > max_typescript_eslint_no_require_imports_allow_pattern_len) return false;
+
+        @memcpy(self.storage[self.count][0..pattern.len], pattern);
+        self.lengths[self.count] = pattern.len;
+        self.count += 1;
+        return true;
+    }
+};
+
 pub const max_no_param_reassign_ignored_names = 32;
 pub const max_no_param_reassign_ignored_name_len = 128;
 pub const max_no_param_reassign_ignored_name_patterns = 32;
@@ -1865,6 +1889,7 @@ pub const Options = struct {
     typescript_eslint_no_redeclare_ignore_declaration_merge: bool = true,
     typescript_eslint_no_require_imports: bool = true,
     typescript_eslint_no_require_imports_allow_as_import: bool = false,
+    typescript_eslint_no_require_imports_allow: TypescriptEslintNoRequireImportsAllowPatterns = .{},
     typescript_eslint_no_shadow: bool = true,
     typescript_eslint_no_shadow_allow: NoShadowAllowNames = .{},
     typescript_eslint_no_shadow_builtin_globals: bool = false,
@@ -2513,6 +2538,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-require-imports")) {
             self.typescript_eslint_no_require_imports_allow_as_import = try typescriptEslintNoRequireImportsBoolOptionFromConfig(value, "allowAsImport", false);
+            self.typescript_eslint_no_require_imports_allow = try typescriptEslintNoRequireImportsAllowFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-this-alias")) {
             self.typescript_eslint_no_this_alias_allowed_names = try typescriptEslintNoThisAliasAllowedNamesFromConfig(value);
@@ -6274,6 +6300,33 @@ pub const Options = struct {
         return typescriptEslintNoNamespaceBoolOptionFromConfig(value, key, default);
     }
 
+    fn typescriptEslintNoRequireImportsAllowFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintNoRequireImportsAllowPatterns {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allow") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var patterns: TypescriptEslintNoRequireImportsAllowPatterns = .{};
+        for (allow) |entry| {
+            const pattern = switch (entry) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!patterns.append(pattern)) return error.UnsupportedRuleConfigValue;
+        }
+        return patterns;
+    }
+
     fn typescriptEslintNoThisAliasAllowedNamesFromConfig(value: std.json.Value) RuleConfigError!NoThisAliasAllowedNames {
         const items = switch (value) {
             .array => |array| array.items,
@@ -6674,6 +6727,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-require-imports", true));
     try std.testing.expect(options.typescript_eslint_no_require_imports);
     try std.testing.expect(!options.typescript_eslint_no_require_imports_allow_as_import);
+    try std.testing.expectEqual(@as(usize, 0), options.typescript_eslint_no_require_imports_allow.count);
 
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
@@ -8415,13 +8469,16 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_require_imports_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowAsImport\":true}]",
+        "[\"error\",{\"allowAsImport\":true,\"allow\":[\"^legacy-\",\"fs$\"]}]",
         .{},
     );
     defer typescript_no_require_imports_config.deinit();
     try options.setByRuleConfigValue("@typescript-eslint/no-require-imports", typescript_no_require_imports_config.value);
     try std.testing.expect(options.typescript_eslint_no_require_imports);
     try std.testing.expect(options.typescript_eslint_no_require_imports_allow_as_import);
+    try std.testing.expectEqual(@as(usize, 2), options.typescript_eslint_no_require_imports_allow.count);
+    try std.testing.expectEqualStrings("^legacy-", options.typescript_eslint_no_require_imports_allow.at(0));
+    try std.testing.expectEqualStrings("fs$", options.typescript_eslint_no_require_imports_allow.at(1));
 
     var typescript_restrict_plus_operands_config = try std.json.parseFromSlice(
         std.json.Value,

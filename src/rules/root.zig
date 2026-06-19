@@ -921,6 +921,7 @@ pub fn runSemantic(
     if (options.typescript_eslint_no_require_imports) {
         try typescript_eslint_no_require_imports.run(allocator, diagnostics, tree, semantic_result.symbol_table, .{
             .allow_as_import = options.typescript_eslint_no_require_imports_allow_as_import,
+            .allow = options.typescript_eslint_no_require_imports_allow,
         });
     }
 
