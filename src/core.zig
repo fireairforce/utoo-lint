@@ -1656,6 +1656,7 @@ pub const Options = struct {
     typescript_eslint_no_inferrable_types_ignore_parameters: bool = false,
     typescript_eslint_no_inferrable_types_ignore_properties: bool = false,
     typescript_eslint_no_invalid_void_type: bool = true,
+    typescript_eslint_no_invalid_void_type_allow_as_this_parameter: bool = false,
     typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments: bool = true,
     typescript_eslint_no_loss_of_precision: bool = true,
     typescript_eslint_no_loop_func: bool = true,
@@ -2229,6 +2230,7 @@ pub const Options = struct {
             self.typescript_eslint_no_inferrable_types_ignore_properties = try typescriptEslintNoInferrableTypesBoolOptionFromConfig(value, "ignoreProperties", false);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-invalid-void-type")) {
+            self.typescript_eslint_no_invalid_void_type_allow_as_this_parameter = try typescriptEslintNoInvalidVoidTypeBoolOptionFromConfig(value, "allowAsThisParameter", false);
             self.typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments = try typescriptEslintNoInvalidVoidTypeBoolOptionFromConfig(value, "allowInGenericTypeArguments", true);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
@@ -7457,12 +7459,13 @@ test "Options can apply ESLint-style rule config values" {
     var typescript_no_invalid_void_type_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowInGenericTypeArguments\":false}]",
+        "[\"error\",{\"allowAsThisParameter\":true,\"allowInGenericTypeArguments\":false}]",
         .{},
     );
     defer typescript_no_invalid_void_type_config.deinit();
     try options.setByRuleConfigValue("@typescript-eslint/no-invalid-void-type", typescript_no_invalid_void_type_config.value);
     try std.testing.expect(options.typescript_eslint_no_invalid_void_type);
+    try std.testing.expect(options.typescript_eslint_no_invalid_void_type_allow_as_this_parameter);
     try std.testing.expect(!options.typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments);
 
     var typescript_restrict_plus_operands_config = try std.json.parseFromSlice(
