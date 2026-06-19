@@ -1683,6 +1683,7 @@ pub const Options = struct {
     no_useless_rename_ignore_destructuring: bool = false,
     no_useless_rename_ignore_import: bool = false,
     no_useless_rename_ignore_export: bool = false,
+    no_unused_private_class_members: bool = true,
     no_unused_expressions: bool = true,
     no_unused_expressions_allow_short_circuit: NoUnusedExpressionsAllowShortCircuit = .no,
     no_unused_expressions_allow_ternary: NoUnusedExpressionsAllowTernary = .no,
