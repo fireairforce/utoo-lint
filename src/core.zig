@@ -769,6 +769,51 @@ pub const ReactNoUnknownPropertyIgnoreNames = struct {
     }
 };
 
+pub const max_react_prop_types_ignore_names = 32;
+pub const max_react_prop_types_ignore_name_len = 128;
+
+pub const ReactPropTypesIgnoreNamesError = error{
+    EmptyReactPropTypesIgnoreName,
+    TooManyReactPropTypesIgnoreNames,
+    ReactPropTypesIgnoreNameTooLong,
+};
+
+pub const ReactPropTypesIgnoreNames = struct {
+    count: usize = 0,
+    lengths: [max_react_prop_types_ignore_names]usize = undefined,
+    storage: [max_react_prop_types_ignore_names][max_react_prop_types_ignore_name_len]u8 = undefined,
+
+    pub fn contains(self: *const ReactPropTypesIgnoreNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn ignoresPath(self: *const ReactPropTypesIgnoreNames, path: []const u8) bool {
+        for (0..self.count) |index| {
+            const name = self.at(index);
+            if (std.mem.eql(u8, path, name)) return true;
+            if (path.len > name.len and path[name.len] == '.' and std.mem.eql(u8, path[0..name.len], name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const ReactPropTypesIgnoreNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *ReactPropTypesIgnoreNames, name: []const u8) ReactPropTypesIgnoreNamesError!void {
+        if (name.len == 0) return error.EmptyReactPropTypesIgnoreName;
+        if (self.count >= max_react_prop_types_ignore_names) return error.TooManyReactPropTypesIgnoreNames;
+        if (name.len > max_react_prop_types_ignore_name_len) return error.ReactPropTypesIgnoreNameTooLong;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const max_typescript_eslint_ban_type_entries = 32;
 pub const max_typescript_eslint_ban_type_name_len = 128;
 pub const max_typescript_eslint_ban_type_message_len = 512;
@@ -1625,6 +1670,7 @@ pub const Options = struct {
     react_no_unknown_property_require_data_lowercase: bool = false,
     react_prop_types: bool = true,
     react_prop_types_skip_undeclared: bool = false,
+    react_prop_types_ignore: ReactPropTypesIgnoreNames = .{},
     react_no_unused_prop_types: bool = true,
     react_no_unused_prop_types_skip_shape_props: bool = true,
     react_no_unused_state: bool = true,
@@ -2205,6 +2251,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/prop-types")) {
             self.react_prop_types_skip_undeclared = try reactPropTypesSkipUndeclaredFromConfig(value);
+            self.react_prop_types_ignore = try reactPropTypesIgnoreFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/no-unused-prop-types")) {
             self.react_no_unused_prop_types_skip_shape_props = try reactNoUnusedPropTypesSkipShapePropsFromConfig(value);
@@ -2793,6 +2840,33 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn reactPropTypesIgnoreFromConfig(value: std.json.Value) RuleConfigError!ReactPropTypesIgnoreNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const ignore_items = switch (config.get("ignore") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var ignore = ReactPropTypesIgnoreNames{};
+        for (ignore_items) |item| {
+            const name = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            ignore.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return ignore;
     }
 
     fn reactJsxNoTargetBlankAllowReferrerFromConfig(value: std.json.Value) RuleConfigError!bool {
@@ -6356,13 +6430,16 @@ test "Options can apply ESLint-style rule config values" {
     var react_prop_types_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"skipUndeclared\":true}]",
+        "[\"error\",{\"skipUndeclared\":true,\"ignore\":[\"name\",\"user\"]}]",
         .{},
     );
     defer react_prop_types_config.deinit();
     try options.setByRuleConfigValue("react/prop-types", react_prop_types_config.value);
     try std.testing.expect(options.react_prop_types);
     try std.testing.expect(options.react_prop_types_skip_undeclared);
+    try std.testing.expect(options.react_prop_types_ignore.contains("name"));
+    try std.testing.expect(options.react_prop_types_ignore.ignoresPath("user.name"));
+    try std.testing.expect(!options.react_prop_types_ignore.contains("age"));
 
     var react_no_string_refs_config = try std.json.parseFromSlice(
         std.json.Value,
