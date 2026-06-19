@@ -1809,6 +1809,7 @@ pub const Options = struct {
     react_forbid_prop_types_check_child_context_types: bool = false,
     react_no_array_index_key: bool = true,
     react_no_children_prop: bool = true,
+    react_no_children_prop_allow_functions: bool = false,
     react_no_find_dom_node: bool = true,
     react_no_is_mounted: bool = true,
     react_no_multi_comp: bool = true,
@@ -2478,6 +2479,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/no-multi-comp")) {
             self.react_no_multi_comp_ignore_stateless = try reactNoMultiCompIgnoreStatelessFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/no-children-prop")) {
+            self.react_no_children_prop_allow_functions = try reactNoChildrenPropAllowFunctionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/no-unknown-property")) {
             self.react_no_unknown_property_ignore = try reactNoUnknownPropertyIgnoreFromConfig(value);
@@ -3426,6 +3430,23 @@ pub const Options = struct {
             }
         }
         return result;
+    }
+
+    fn reactNoChildrenPropAllowFunctionsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowFunctions") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn typescriptEslintBanTypesConfigFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintBanTypesConfig {
@@ -7214,6 +7235,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("react/no-multi-comp", react_no_multi_comp_config.value);
     try std.testing.expect(options.react_no_multi_comp);
     try std.testing.expect(!options.react_no_multi_comp_ignore_stateless);
+
+    var react_no_children_prop_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowFunctions\":true}]",
+        .{},
+    );
+    defer react_no_children_prop_config.deinit();
+    try options.setByRuleConfigValue("react/no-children-prop", react_no_children_prop_config.value);
+    try std.testing.expect(options.react_no_children_prop);
+    try std.testing.expect(options.react_no_children_prop_allow_functions);
 
     var react_no_unknown_property_config = try std.json.parseFromSlice(
         std.json.Value,
