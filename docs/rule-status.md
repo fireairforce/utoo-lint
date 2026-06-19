@@ -277,7 +277,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-array-constructor`](https://typescript-eslint.io/rules/no-array-constructor/) | Implemented |
 | [`@typescript-eslint/no-confusing-non-null-assertion`](https://typescript-eslint.io/rules/no-confusing-non-null-assertion/) | Implemented |
 | [`@typescript-eslint/no-dupe-class-members`](https://typescript-eslint.io/rules/no-dupe-class-members/) | Implemented |
-| [`@typescript-eslint/no-empty-function`](https://typescript-eslint.io/rules/no-empty-function/) | Supports base `allow` kinds plus `private-constructors` and `protected-constructors` configuration |
+| [`@typescript-eslint/no-empty-function`](https://typescript-eslint.io/rules/no-empty-function/) | Supports base `allow` kinds plus `private-constructors`, `protected-constructors`, `decoratedFunctions`, and `overrideMethods` configuration |
 | [`@typescript-eslint/no-empty-interface`](https://typescript-eslint.io/rules/no-empty-interface/) | Supports `allowSingleExtends` configuration |
 | [`@typescript-eslint/no-duplicate-enum-values`](https://typescript-eslint.io/rules/no-duplicate-enum-values/) | Implemented |
 | [`@typescript-eslint/no-extra-semi`](https://typescript-eslint.io/rules/no-extra-semi/) | Implemented |
