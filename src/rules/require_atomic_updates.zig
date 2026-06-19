@@ -8,6 +8,10 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "require-atomic-updates";
 
+pub const Options = struct {
+    allow_properties: bool = false,
+};
+
 const SymbolId = traverser.semantic.SymbolId;
 const ReferenceLookup = std.AutoHashMap(ast.NodeIndex, SymbolId);
 const SymbolSet = std.AutoHashMap(SymbolId, void);
@@ -31,6 +35,7 @@ pub fn run(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
+    options: Options,
 ) Allocator.Error!void {
     var reference_lookup = ReferenceLookup.init(allocator);
     defer reference_lookup.deinit();
@@ -46,6 +51,7 @@ pub fn run(
         .diagnostics = diagnostics,
         .symbol_table = symbol_table,
         .reference_lookup = &reference_lookup,
+        .options = options,
     };
     try traverser.basic.traverse(Visitor, tree, &visitor);
 }
@@ -55,6 +61,7 @@ const Visitor = struct {
     diagnostics: *core.DiagnosticList,
     symbol_table: traverser.semantic.SymbolTable,
     reference_lookup: *const ReferenceLookup,
+    options: Options,
 
     pub fn enter_function(
         self: *Visitor,
@@ -91,6 +98,7 @@ const Visitor = struct {
             .symbol_table = self.symbol_table,
             .reference_lookup = self.reference_lookup,
             .function_span = function_span,
+            .options = self.options,
             .read_symbols = SymbolSet.init(self.allocator),
             .stale_symbols = SymbolSet.init(self.allocator),
             .read_objects = SymbolSet.init(self.allocator),
@@ -109,6 +117,7 @@ const Analyzer = struct {
     symbol_table: traverser.semantic.SymbolTable,
     reference_lookup: *const ReferenceLookup,
     function_span: ast.Span,
+    options: Options,
     read_symbols: SymbolSet,
     stale_symbols: SymbolSet,
     read_objects: SymbolSet,
@@ -375,6 +384,8 @@ const Analyzer = struct {
                 try self.addVariableDiagnostic(diagnostic_node, name);
             },
             .member_expression => |member| {
+                if (self.options.allow_properties) return;
+
                 const symbol_id = rootObjectSymbol(self.tree, self.reference_lookup, member.object);
                 if (symbol_id == .none or !self.stale_objects.contains(symbol_id)) return;
 
