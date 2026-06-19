@@ -512,6 +512,27 @@ pub fn main(init: std.process.Init) !void {
             options.no_redeclare = false;
         } else if (std.mem.eql(u8, arg, "--no-redeclare-builtin-globals=on")) {
             options.no_redeclare_builtin_globals = .yes;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-exports=off")) {
+            options.no_restricted_exports = false;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-exports=on")) {
+            options.no_restricted_exports = true;
+        } else if (std.mem.startsWith(u8, arg, "--no-restricted-exports-name=")) {
+            appendNoRestrictedExportName(arg["--no-restricted-exports-name=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--no-restricted-exports-default-direct=on")) {
+            options.no_restricted_exports = true;
+            options.no_restricted_exports_default.direct = true;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-exports-default-named=on")) {
+            options.no_restricted_exports = true;
+            options.no_restricted_exports_default.named = true;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-exports-default-from=on")) {
+            options.no_restricted_exports = true;
+            options.no_restricted_exports_default.default_from = true;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-exports-named-from=on")) {
+            options.no_restricted_exports = true;
+            options.no_restricted_exports_default.named_from = true;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-exports-namespace-from=on")) {
+            options.no_restricted_exports = true;
+            options.no_restricted_exports_default.namespace_from = true;
         } else if (std.mem.eql(u8, arg, "--no-restricted-properties=off")) {
             options.no_restricted_properties = false;
         } else if (std.mem.eql(u8, arg, "--no-regex-spaces=off")) {
@@ -1206,6 +1227,14 @@ fn parseNoWarningCommentsTerms(value: []const u8, options: *lint.Options) void {
     options.no_warning_comments_terms = terms;
 }
 
+fn appendNoRestrictedExportName(value: []const u8, options: *lint.Options) void {
+    options.no_restricted_exports_names.append(value) catch {
+        std.debug.print("utoo-lint: invalid --no-restricted-exports-name value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.no_restricted_exports = true;
+}
+
 fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --no-multiple-empty-lines-max value: {s}\n", .{value});
@@ -1801,6 +1830,14 @@ fn printHelp() void {
         \\  --no-prototype-builtins=off Disable no-prototype-builtins
         \\  --no-redeclare=off        Disable no-redeclare
         \\  --no-redeclare-builtin-globals=on Report redeclarations of built-in globals
+        \\  --no-restricted-exports=off Disable no-restricted-exports
+        \\  --no-restricted-exports=on Enable no-restricted-exports
+        \\  --no-restricted-exports-name=NAME Restrict an exported name
+        \\  --no-restricted-exports-default-direct=on Restrict direct default exports
+        \\  --no-restricted-exports-default-named=on Restrict local named default exports
+        \\  --no-restricted-exports-default-from=on Restrict re-exported default exports
+        \\  --no-restricted-exports-named-from=on Restrict re-exported named defaults
+        \\  --no-restricted-exports-namespace-from=on Restrict namespace default re-exports
         \\  --no-restricted-properties=off Disable no-restricted-properties
         \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-return-await=off     Disable no-return-await
