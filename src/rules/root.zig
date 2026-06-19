@@ -738,6 +738,9 @@ pub fn runSemantic(
                 diagnostics,
                 tree,
                 file_path,
+                .{
+                    .ignore = options.import_no_unresolved_ignore,
+                },
             );
         }
     }

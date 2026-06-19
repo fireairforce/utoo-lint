@@ -106,6 +106,39 @@ test "reports import/no-unresolved for missing packages" {
     try std.testing.expectEqualStrings("Unable to resolve path to module 'definitely-missing-package'.", ruleDiagnostic(result, 0).message);
 }
 
+test "supports configured import/no-unresolved ignore patterns" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.createDirPath(std.testing.io, "src");
+    const source =
+        \\import img from './missing.img';
+        \\import virtual from 'virtual:module';
+        \\import missing from './missing.js';
+    ;
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "src/entry.js", .data = source });
+
+    const file_path = try entryPath(&tmp);
+    defer std.testing.allocator.free(file_path);
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignore\":[\"\\\\.img$\",\"^virtual:\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = optionsOnly();
+    try options.setByRuleConfigValue("import/no-unresolved", config.value);
+
+    var result = try lint.lintSourceWithIo(std.testing.allocator, std.testing.io, source, file_path, options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.import_no_unresolved.id));
+    try std.testing.expectEqualStrings("Unable to resolve path to module './missing.js'.", ruleDiagnostic(result, 0).message);
+}
+
 test "can disable import/no-unresolved" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
