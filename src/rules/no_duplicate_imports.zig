@@ -9,6 +9,7 @@ pub const id = "no-duplicate-imports";
 
 pub const Options = struct {
     allow_separate_type_imports: bool = false,
+    include_exports: bool = false,
 };
 
 const ImportKind = enum {
@@ -44,13 +45,23 @@ pub fn checkWithOptions(
 
     for (tree.extra(program.body)) |statement_index| {
         const declaration = switch (tree.data(statement_index)) {
-            .import_declaration => |declaration| declaration,
+            .import_declaration => |declaration| ImportOrExportDeclaration{
+                .source = importSource(tree, declaration) orelse continue,
+                .kind = importKind(tree, declaration),
+                .import_kind = declaration.import_kind,
+            },
+            .export_named_declaration => |declaration| blk: {
+                if (!options.include_exports) continue;
+                break :blk ImportOrExportDeclaration{
+                    .source = exportNamedSource(tree, declaration) orelse continue,
+                    .kind = .named_only,
+                    .import_kind = declaration.export_kind,
+                };
+            },
             else => continue,
         };
-        const source = importSource(tree, declaration) orelse continue;
-        const kind = importKind(tree, declaration);
 
-        if (hasDuplicate(seen.items, source, kind, declaration.import_kind, options)) {
+        if (hasDuplicate(seen.items, declaration.source, declaration.kind, declaration.import_kind, options)) {
             try core.addDiagnosticFmt(
                 allocator,
                 diagnostics,
@@ -58,18 +69,24 @@ pub fn checkWithOptions(
                 id,
                 tree.span(statement_index),
                 "Duplicate import from \"{s}\".",
-                .{source},
+                .{declaration.source},
             );
             continue;
         }
 
         try seen.append(allocator, .{
-            .source = source,
-            .kind = kind,
+            .source = declaration.source,
+            .kind = declaration.kind,
             .import_kind = declaration.import_kind,
         });
     }
 }
+
+const ImportOrExportDeclaration = struct {
+    source: []const u8,
+    kind: ImportKind,
+    import_kind: ast.ImportOrExportKind,
+};
 
 fn importSource(tree: *const ast.Tree, declaration: ast.ImportDeclaration) ?[]const u8 {
     return switch (tree.data(declaration.source)) {
@@ -87,6 +104,14 @@ fn importKind(tree: *const ast.Tree, declaration: ast.ImportDeclaration) ImportK
         if (tree.data(specifier) != .import_specifier) return .other;
     }
     return .named_only;
+}
+
+fn exportNamedSource(tree: *const ast.Tree, declaration: ast.ExportNamedDeclaration) ?[]const u8 {
+    if (declaration.source == .null) return null;
+    return switch (tree.data(declaration.source)) {
+        .string_literal => |literal| tree.string(literal.value),
+        else => null,
+    };
 }
 
 fn hasDuplicate(

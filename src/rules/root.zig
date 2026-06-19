@@ -1218,6 +1218,7 @@ const BasicVisitor = struct {
         if (self.options.no_duplicate_imports and !self.options.import_no_duplicates) {
             try no_duplicate_imports.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, program, .{
                 .allow_separate_type_imports = self.options.no_duplicate_imports_allow_separate_type_imports,
+                .include_exports = self.options.no_duplicate_imports_include_exports,
             });
         }
         if (self.options.typescript_eslint_adjacent_overload_signatures) {
