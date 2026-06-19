@@ -742,6 +742,7 @@ pub fn runSemantic(
                 tree,
                 file_path,
                 .{
+                    .commonjs = options.import_no_unresolved_commonjs,
                     .ignore = options.import_no_unresolved_ignore,
                 },
             );
