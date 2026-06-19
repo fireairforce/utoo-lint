@@ -395,6 +395,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_constant_binary_expression.zig");
+}
+
+comptime {
     _ = @import("rules/no_constant_condition.zig");
 }
 

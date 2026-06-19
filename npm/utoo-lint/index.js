@@ -127,6 +127,7 @@ const BUILTIN_RULE_IDS = [
   "no-cond-assign",
   "no-console",
   "no-const-assign",
+  "no-constant-binary-expression",
   "no-constant-condition",
   "no-constructor-return",
   "no-continue",
