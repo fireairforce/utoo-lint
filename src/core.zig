@@ -26,6 +26,7 @@ pub const CurlyStyle = enum {
     all,
     multi_line,
     multi,
+    multi_or_nest,
 };
 
 pub const ObjectShorthandStyle = enum {
@@ -2487,6 +2488,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "all")) return .all;
         if (std.mem.eql(u8, style, "multi-line")) return .multi_line;
         if (std.mem.eql(u8, style, "multi")) return .multi;
+        if (std.mem.eql(u8, style, "multi-or-nest")) return .multi_or_nest;
         return error.UnsupportedRuleConfigValue;
     }
 
@@ -6723,6 +6725,16 @@ test "Options can apply ESLint-style rule config values" {
     defer curly_multi_config.deinit();
     try options.setByRuleConfigValue("curly", curly_multi_config.value);
     try std.testing.expectEqual(CurlyStyle.multi, options.curly_style);
+
+    var curly_multi_or_nest_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"multi-or-nest\"]",
+        .{},
+    );
+    defer curly_multi_or_nest_config.deinit();
+    try options.setByRuleConfigValue("curly", curly_multi_or_nest_config.value);
+    try std.testing.expectEqual(CurlyStyle.multi_or_nest, options.curly_style);
 
     var eqeqeq_config = try std.json.parseFromSlice(
         std.json.Value,
