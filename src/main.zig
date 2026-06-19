@@ -140,6 +140,14 @@ pub fn main(init: std.process.Init) !void {
             options.capitalized_comments_mode = .never;
         } else if (std.mem.eql(u8, arg, "--capitalized-comments-ignore-inline-comments=on")) {
             options.capitalized_comments_ignore_inline_comments = .yes;
+        } else if (std.mem.eql(u8, arg, "--complexity=off")) {
+            options.complexity = false;
+        } else if (std.mem.startsWith(u8, arg, "--complexity-max=")) {
+            parseComplexityMax(arg["--complexity-max=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--complexity-variant=classic")) {
+            options.complexity_variant = .classic;
+        } else if (std.mem.eql(u8, arg, "--complexity-variant=modified")) {
+            options.complexity_variant = .modified;
         } else if (std.mem.eql(u8, arg, "--curly=off")) {
             options.curly = false;
         } else if (std.mem.eql(u8, arg, "--dot-notation=off")) {
@@ -1273,6 +1281,14 @@ fn appendConsistentThisAlias(value: []const u8, options: *lint.Options) void {
     options.consistent_this = true;
 }
 
+fn parseComplexityMax(value: []const u8, options: *lint.Options) void {
+    const max = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --complexity-max value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.complexity_max = max;
+}
+
 fn parseMaxClassesPerFileMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --max-classes-per-file-max value: {s}\n", .{value});
@@ -1645,6 +1661,9 @@ fn printHelp() void {
         \\  --capitalized-comments=off Disable capitalized-comments
         \\  --capitalized-comments=never Require lowercase comment starts
         \\  --capitalized-comments-ignore-inline-comments=on Ignore inline comments
+        \\  --complexity=off          Disable complexity
+        \\  --complexity-max=N        Set complexity maximum
+        \\  --complexity-variant=modified Use modified switch complexity
         \\  --consistent-return=off  Disable consistent-return
         \\  --consistent-this=off    Disable consistent-this
         \\  --consistent-this=on     Enable consistent-this with default alias

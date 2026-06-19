@@ -9,6 +9,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for optional `allowImplicit`, `checkForEach`, and `allowVoid` behavior |
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
 | [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Supports `always`, `never`, `ignoreInlineComments`, and `ignoreConsecutiveComments` configuration |
+| [`complexity`](https://eslint.org/docs/latest/rules/complexity) | Supports `max`, deprecated `maximum`, `classic` and `modified` variants, functions, arrow functions, and static blocks |
 | [`consistent-return`](https://eslint.org/docs/latest/rules/consistent-return) | Implemented for mixed explicit value/bare returns and value-returning functions that can fall through |
 | [`consistent-this`](https://eslint.org/docs/latest/rules/consistent-this) | Supports configured aliases for direct `this` captures and same-scope deferred assignment checks |
 | [`constructor-super`](https://eslint.org/docs/latest/rules/constructor-super) | Implemented |

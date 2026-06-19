@@ -88,6 +88,7 @@ const BUILTIN_RULE_IDS = [
   "array-callback-return",
   "block-scoped-var",
   "capitalized-comments",
+  "complexity",
   "consistent-return",
   "consistent-this",
   "constructor-super",
