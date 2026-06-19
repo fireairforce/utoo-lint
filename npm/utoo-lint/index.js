@@ -231,6 +231,7 @@ const BUILTIN_RULE_IDS = [
   "no-unused-expressions",
   "no-unused-labels",
   "no-unused-vars",
+  "no-useless-backreference",
   "no-useless-call",
   "no-useless-catch",
   "no-useless-computed-key",

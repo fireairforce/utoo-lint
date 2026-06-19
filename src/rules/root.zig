@@ -219,6 +219,7 @@ pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_unsafe_optional_chaining = @import("no_unsafe_optional_chaining.zig");
 pub const no_useless_computed_key = @import("no_useless_computed_key.zig");
+pub const no_useless_backreference = @import("no_useless_backreference.zig");
 pub const no_useless_call = @import("no_useless_call.zig");
 pub const no_useless_concat = @import("no_useless_concat.zig");
 pub const no_useless_constructor = @import("no_useless_constructor.zig");
@@ -914,6 +915,10 @@ pub fn runSemantic(
 
     if (options.no_misleading_character_class) {
         try no_misleading_character_class.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.no_useless_backreference) {
+        try no_useless_backreference.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     const use_typescript_no_loop_func = options.typescript_eslint_no_loop_func and tree.isTs();
@@ -4073,6 +4078,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_regex_spaces) {
             try no_regex_spaces.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.no_useless_backreference) {
+            try no_useless_backreference.checkRegExpLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         if (self.options.require_unicode_regexp) {
             try require_unicode_regexp.checkRegExpLiteralWithOptions(self.allocator, self.diagnostics, ctx.tree, literal, index, .{

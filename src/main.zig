@@ -627,6 +627,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_useless_computed_key = false;
         } else if (std.mem.eql(u8, arg, "--no-useless-computed-key-enforce-for-class-members=off")) {
             options.no_useless_computed_key_enforce_for_class_members = .no;
+        } else if (std.mem.eql(u8, arg, "--no-useless-backreference=off")) {
+            options.no_useless_backreference = false;
         } else if (std.mem.eql(u8, arg, "--no-useless-call=off")) {
             options.no_useless_call = false;
         } else if (std.mem.eql(u8, arg, "--no-useless-concat=off")) {
@@ -1926,6 +1928,7 @@ fn printHelp() void {
         \\  --no-unsafe-optional-chaining-disallow-arithmetic-operators=on Report optional chains in arithmetic operators
         \\  --no-useless-computed-key=off Disable no-useless-computed-key
         \\  --no-useless-computed-key-enforce-for-class-members=off Disable class member checks
+        \\  --no-useless-backreference=off Disable no-useless-backreference
         \\  --no-useless-call=off     Disable no-useless-call
         \\  --no-useless-concat=off   Disable no-useless-concat
         \\  --no-useless-constructor=off Disable no-useless-constructor
