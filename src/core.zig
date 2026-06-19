@@ -1673,6 +1673,7 @@ pub const Options = struct {
     react_prop_types_ignore: ReactPropTypesIgnoreNames = .{},
     react_no_unused_prop_types: bool = true,
     react_no_unused_prop_types_skip_shape_props: bool = true,
+    react_no_unused_prop_types_ignore: ReactPropTypesIgnoreNames = .{},
     react_no_unused_state: bool = true,
     react_no_string_refs: bool = true,
     react_no_string_refs_no_template_literals: bool = false,
@@ -2255,6 +2256,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/no-unused-prop-types")) {
             self.react_no_unused_prop_types_skip_shape_props = try reactNoUnusedPropTypesSkipShapePropsFromConfig(value);
+            self.react_no_unused_prop_types_ignore = try reactPropTypesIgnoreFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/no-string-refs")) {
             self.react_no_string_refs_no_template_literals = try reactNoStringRefsNoTemplateLiteralsFromConfig(value);
@@ -6517,13 +6519,16 @@ test "Options can apply ESLint-style rule config values" {
     var react_no_unused_prop_types_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"skipShapeProps\":false}]",
+        "[\"error\",{\"skipShapeProps\":false,\"ignore\":[\"age\",\"user\"]}]",
         .{},
     );
     defer react_no_unused_prop_types_config.deinit();
     try options.setByRuleConfigValue("react/no-unused-prop-types", react_no_unused_prop_types_config.value);
     try std.testing.expect(options.react_no_unused_prop_types);
     try std.testing.expect(!options.react_no_unused_prop_types_skip_shape_props);
+    try std.testing.expect(options.react_no_unused_prop_types_ignore.contains("age"));
+    try std.testing.expect(options.react_no_unused_prop_types_ignore.ignoresPath("user.id"));
+    try std.testing.expect(!options.react_no_unused_prop_types_ignore.contains("role"));
 
     var array_callback_return_config = try std.json.parseFromSlice(
         std.json.Value,
