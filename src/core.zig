@@ -1645,6 +1645,7 @@ pub const Options = struct {
     react_jsx_pascal_case: bool = true,
     react_jsx_pascal_case_allow_all_caps: bool = true,
     react_jsx_pascal_case_allow_leading_underscore: bool = false,
+    react_jsx_pascal_case_allow_namespace: bool = false,
     react_jsx_pascal_case_ignore: ReactJsxPascalCaseIgnoreNames = .{},
     react_jsx_uses_react: bool = true,
     react_jsx_uses_vars: bool = true,
@@ -2252,6 +2253,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "react/jsx-pascal-case")) {
             self.react_jsx_pascal_case_allow_all_caps = try reactJsxPascalCaseAllowAllCapsFromConfig(value);
             self.react_jsx_pascal_case_allow_leading_underscore = try reactJsxPascalCaseAllowLeadingUnderscoreFromConfig(value);
+            self.react_jsx_pascal_case_allow_namespace = try reactJsxPascalCaseAllowNamespaceFromConfig(value);
             self.react_jsx_pascal_case_ignore = try reactJsxPascalCaseIgnoreFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/prop-types")) {
@@ -5505,6 +5507,23 @@ pub const Options = struct {
         };
     }
 
+    fn reactJsxPascalCaseAllowNamespaceFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowNamespace") orelse return false) {
+            .bool => |allow_namespace| allow_namespace,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn reactJsxPascalCaseIgnoreFromConfig(value: std.json.Value) RuleConfigError!ReactJsxPascalCaseIgnoreNames {
         const items = switch (value) {
             .array => |array| array.items,
@@ -6457,7 +6476,7 @@ test "Options can apply ESLint-style rule config values" {
     var react_jsx_pascal_case_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"allowAllCaps\":false,\"allowLeadingUnderscore\":true,\"ignore\":[\"bar\",\"Legacy_widget\"]}]",
+        "[\"error\",{\"allowAllCaps\":false,\"allowLeadingUnderscore\":true,\"allowNamespace\":true,\"ignore\":[\"bar\",\"Legacy_widget\"]}]",
         .{},
     );
     defer react_jsx_pascal_case_config.deinit();
@@ -6465,6 +6484,7 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.react_jsx_pascal_case);
     try std.testing.expect(!options.react_jsx_pascal_case_allow_all_caps);
     try std.testing.expect(options.react_jsx_pascal_case_allow_leading_underscore);
+    try std.testing.expect(options.react_jsx_pascal_case_allow_namespace);
     try std.testing.expect(options.react_jsx_pascal_case_ignore.contains("bar"));
     try std.testing.expect(options.react_jsx_pascal_case_ignore.contains("Legacy_widget"));
     try std.testing.expect(!options.react_jsx_pascal_case_ignore.contains("other"));
