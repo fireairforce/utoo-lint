@@ -213,6 +213,12 @@ pub const RadixStyle = enum {
     as_needed,
 };
 
+pub const RequireUnicodeRegexpRequireFlag = enum {
+    any,
+    u,
+    v,
+};
+
 pub const NoSequencesAllowInParentheses = enum {
     yes,
     no,
@@ -1967,6 +1973,8 @@ pub const Options = struct {
     require_await: bool = true,
     require_atomic_updates: bool = true,
     require_atomic_updates_allow_properties: bool = false,
+    require_unicode_regexp: bool = true,
+    require_unicode_regexp_require_flag: RequireUnicodeRegexpRequireFlag = .any,
     require_yield: bool = true,
     spaced_comment: bool = true,
     spaced_comment_style: SpacedCommentStyle = .always,
@@ -2485,6 +2493,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "require-atomic-updates")) {
             self.require_atomic_updates_allow_properties = try requireAtomicUpdatesBoolOptionFromConfig(value, "allowProperties", false);
+        }
+        if (std.mem.eql(u8, cli_name, "require-unicode-regexp")) {
+            self.require_unicode_regexp_require_flag = try requireUnicodeRegexpRequireFlagFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
             self.no_return_assign_style = try noReturnAssignStyleFromConfig(value);
@@ -5069,6 +5080,26 @@ pub const Options = struct {
         };
         if (std.mem.eql(u8, style, "always")) return .always;
         if (std.mem.eql(u8, style, "as-needed")) return .as_needed;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn requireUnicodeRegexpRequireFlagFromConfig(value: std.json.Value) RuleConfigError!RequireUnicodeRegexpRequireFlag {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .any,
+        };
+        if (items.len < 2) return .any;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const require_flag = switch (config.get("requireFlag") orelse return .any) {
+            .string => |flag| flag,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, require_flag, "u")) return .u;
+        if (std.mem.eql(u8, require_flag, "v")) return .v;
         return error.UnsupportedRuleConfigValue;
     }
 
@@ -8551,6 +8582,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("require-atomic-updates", require_atomic_updates_config.value);
     try std.testing.expect(options.require_atomic_updates);
     try std.testing.expect(options.require_atomic_updates_allow_properties);
+
+    var require_unicode_regexp_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"requireFlag\":\"v\"}]",
+        .{},
+    );
+    defer require_unicode_regexp_config.deinit();
+    try options.setByRuleConfigValue("require-unicode-regexp", require_unicode_regexp_config.value);
+    try std.testing.expect(options.require_unicode_regexp);
+    try std.testing.expectEqual(RequireUnicodeRegexpRequireFlag.v, options.require_unicode_regexp_require_flag);
 
     var no_useless_rename_config = try std.json.parseFromSlice(
         std.json.Value,

@@ -175,6 +175,7 @@ fn hasSemanticRules(options: Options) bool {
         options.prefer_regex_literals or
         options.radix or
         options.require_atomic_updates or
+        options.require_unicode_regexp or
         options.symbol_description or
         options.typescript_eslint_no_redeclare or
         options.typescript_eslint_no_require_imports or

@@ -282,6 +282,7 @@ pub const react_hooks_rules_of_hooks = @import("react_hooks_rules_of_hooks.zig")
 pub const radix = @import("radix.zig");
 pub const require_await = @import("require_await.zig");
 pub const require_atomic_updates = @import("require_atomic_updates.zig");
+pub const require_unicode_regexp = @import("require_unicode_regexp.zig");
 const reassignment_rules = @import("reassignment_rules.zig");
 pub const require_yield = @import("require_yield.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
@@ -1001,6 +1002,12 @@ pub fn runSemantic(
     if (options.require_atomic_updates) {
         try require_atomic_updates.run(allocator, diagnostics, tree, semantic_result.symbol_table, .{
             .allow_properties = options.require_atomic_updates_allow_properties,
+        });
+    }
+
+    if (options.require_unicode_regexp) {
+        try require_unicode_regexp.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .require_flag = options.require_unicode_regexp_require_flag,
         });
     }
 
@@ -3726,6 +3733,11 @@ const BasicVisitor = struct {
         }
         if (self.options.no_regex_spaces) {
             try no_regex_spaces.check(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.require_unicode_regexp) {
+            try require_unicode_regexp.checkRegExpLiteralWithOptions(self.allocator, self.diagnostics, ctx.tree, literal, index, .{
+                .require_flag = self.options.require_unicode_regexp_require_flag,
+            });
         }
         if (self.options.no_useless_escape) {
             try no_useless_escape.checkRegExpLiteralWithOptions(self.allocator, self.diagnostics, ctx.tree, literal, index, .{

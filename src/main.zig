@@ -757,6 +757,12 @@ pub fn main(init: std.process.Init) !void {
             options.require_await = false;
         } else if (std.mem.eql(u8, arg, "--require-atomic-updates=off")) {
             options.require_atomic_updates = false;
+        } else if (std.mem.eql(u8, arg, "--require-unicode-regexp=off")) {
+            options.require_unicode_regexp = false;
+        } else if (std.mem.eql(u8, arg, "--require-unicode-regexp-require-flag=u")) {
+            options.require_unicode_regexp_require_flag = .u;
+        } else if (std.mem.eql(u8, arg, "--require-unicode-regexp-require-flag=v")) {
+            options.require_unicode_regexp_require_flag = .v;
         } else if (std.mem.eql(u8, arg, "--require-yield=off")) {
             options.require_yield = false;
         } else if (std.mem.eql(u8, arg, "--spaced-comment=off")) {
@@ -1795,6 +1801,9 @@ fn printHelp() void {
         \\  --radix=off               Disable radix
         \\  --require-await=off      Disable require-await
         \\  --require-atomic-updates=off Disable require-atomic-updates
+        \\  --require-unicode-regexp=off Disable require-unicode-regexp
+        \\  --require-unicode-regexp-require-flag=u Require the u flag for regexps
+        \\  --require-unicode-regexp-require-flag=v Require the v flag for regexps
         \\  --require-yield=off       Disable require-yield
         \\  --spaced-comment=off      Disable spaced-comment
         \\  --spaced-comment=never    Disallow spacing after comment markers
