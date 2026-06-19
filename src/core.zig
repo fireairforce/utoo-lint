@@ -1669,6 +1669,8 @@ pub const Options = struct {
     react_forbid_prop_types_forbid_any: bool = true,
     react_forbid_prop_types_forbid_array: bool = true,
     react_forbid_prop_types_forbid_object: bool = true,
+    react_forbid_prop_types_check_context_types: bool = false,
+    react_forbid_prop_types_check_child_context_types: bool = false,
     react_no_array_index_key: bool = true,
     react_no_children_prop: bool = true,
     react_no_find_dom_node: bool = true,
@@ -2243,6 +2245,8 @@ pub const Options = struct {
             self.react_forbid_prop_types_forbid_any = forbid.any;
             self.react_forbid_prop_types_forbid_array = forbid.array;
             self.react_forbid_prop_types_forbid_object = forbid.object;
+            self.react_forbid_prop_types_check_context_types = try reactForbidPropTypesBoolOptionFromConfig(value, "checkContextTypes", false);
+            self.react_forbid_prop_types_check_child_context_types = try reactForbidPropTypesBoolOptionFromConfig(value, "checkChildContextTypes", false);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-filename-extension")) {
             self.react_jsx_filename_extension_extensions = try reactJsxFilenameExtensionsFromConfig(value);
@@ -5295,6 +5299,23 @@ pub const Options = struct {
         return forbid;
     }
 
+    fn reactForbidPropTypesBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn reactJsxFilenameExtensionsFromConfig(value: std.json.Value) RuleConfigError!ReactJsxFilenameExtensions {
         const items = switch (value) {
             .array => |array| array.items,
@@ -6485,6 +6506,20 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(!options.react_forbid_prop_types_forbid_any);
     try std.testing.expect(options.react_forbid_prop_types_forbid_array);
     try std.testing.expect(!options.react_forbid_prop_types_forbid_object);
+    try std.testing.expect(!options.react_forbid_prop_types_check_context_types);
+    try std.testing.expect(!options.react_forbid_prop_types_check_child_context_types);
+
+    var react_forbid_prop_types_context_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"checkContextTypes\":true,\"checkChildContextTypes\":true}]",
+        .{},
+    );
+    defer react_forbid_prop_types_context_config.deinit();
+    try options.setByRuleConfigValue("react/forbid-prop-types", react_forbid_prop_types_context_config.value);
+    try std.testing.expect(options.react_forbid_prop_types);
+    try std.testing.expect(options.react_forbid_prop_types_check_context_types);
+    try std.testing.expect(options.react_forbid_prop_types_check_child_context_types);
 
     var react_default_props_match_prop_types_config = try std.json.parseFromSlice(
         std.json.Value,

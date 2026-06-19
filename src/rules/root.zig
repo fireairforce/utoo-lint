@@ -1130,6 +1130,16 @@ const BasicVisitor = struct {
         };
     }
 
+    fn reactForbidPropTypesOptions(self: *const BasicVisitor) react_forbid_prop_types.Options {
+        return .{
+            .forbid_any = self.options.react_forbid_prop_types_forbid_any,
+            .forbid_array = self.options.react_forbid_prop_types_forbid_array,
+            .forbid_object = self.options.react_forbid_prop_types_forbid_object,
+            .check_context_types = self.options.react_forbid_prop_types_check_context_types,
+            .check_child_context_types = self.options.react_forbid_prop_types_check_child_context_types,
+        };
+    }
+
     fn funcNamesStyle(self: *const BasicVisitor, function: ast.Function) func_names.Style {
         const style = if (function.generator and self.options.func_names_has_generator_style)
             self.options.func_names_generator_style
@@ -2572,11 +2582,7 @@ const BasicVisitor = struct {
             try react_no_unused_state.checkAssignmentExpression(self.allocator, ctx.tree, expression, ctx, &self.react_no_unused_state_state);
         }
         if (self.options.react_forbid_prop_types) {
-            try react_forbid_prop_types.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state, .{
-                .forbid_any = self.options.react_forbid_prop_types_forbid_any,
-                .forbid_array = self.options.react_forbid_prop_types_forbid_array,
-                .forbid_object = self.options.react_forbid_prop_types_forbid_object,
-            });
+            try react_forbid_prop_types.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state, self.reactForbidPropTypesOptions());
         }
         return .proceed;
     }
@@ -3256,11 +3262,7 @@ const BasicVisitor = struct {
             try react_no_unused_state.enterObjectExpression(self.allocator, ctx.tree, index, ctx.path.parent(), &self.react_no_unused_state_state);
         }
         if (self.options.react_forbid_prop_types) {
-            try react_forbid_prop_types.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state, .{
-                .forbid_any = self.options.react_forbid_prop_types_forbid_any,
-                .forbid_array = self.options.react_forbid_prop_types_forbid_array,
-                .forbid_object = self.options.react_forbid_prop_types_forbid_object,
-            });
+            try react_forbid_prop_types.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state, self.reactForbidPropTypesOptions());
         }
         return .proceed;
     }
@@ -3418,11 +3420,7 @@ const BasicVisitor = struct {
             try react_no_typos.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, index, ctx);
         }
         if (self.options.react_forbid_prop_types) {
-            try react_forbid_prop_types.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, self.react_forbid_prop_types_state, .{
-                .forbid_any = self.options.react_forbid_prop_types_forbid_any,
-                .forbid_array = self.options.react_forbid_prop_types_forbid_array,
-                .forbid_object = self.options.react_forbid_prop_types_forbid_object,
-            });
+            try react_forbid_prop_types.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, self.react_forbid_prop_types_state, self.reactForbidPropTypesOptions());
         }
         if (self.options.react_no_unused_state) {
             try react_no_unused_state.enterMethodDefinition(self.allocator, ctx.tree, method, &self.react_no_unused_state_state);
@@ -3498,11 +3496,7 @@ const BasicVisitor = struct {
             try react_no_typos.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, ctx, self.react_no_typos_state);
         }
         if (self.options.react_forbid_prop_types) {
-            try react_forbid_prop_types.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, self.react_forbid_prop_types_state, .{
-                .forbid_any = self.options.react_forbid_prop_types_forbid_any,
-                .forbid_array = self.options.react_forbid_prop_types_forbid_array,
-                .forbid_object = self.options.react_forbid_prop_types_forbid_object,
-            });
+            try react_forbid_prop_types.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, self.react_forbid_prop_types_state, self.reactForbidPropTypesOptions());
         }
         if (self.options.react_no_unused_state) {
             try react_no_unused_state.enterPropertyDefinition(self.allocator, ctx.tree, property, &self.react_no_unused_state_state);
