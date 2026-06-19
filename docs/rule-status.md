@@ -298,7 +298,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-useless-empty-export`](https://typescript-eslint.io/rules/no-useless-empty-export/) | Implemented |
 | [`@typescript-eslint/no-unused-expressions`](https://typescript-eslint.io/rules/no-unused-expressions/) | Supports `allowShortCircuit`, `allowTernary`, and `allowTaggedTemplates` configuration |
 | [`@typescript-eslint/no-unused-vars`](https://typescript-eslint.io/rules/no-unused-vars/) | Supports `vars`, `args`, `caughtErrors`, `ignoreRestSiblings`, `reportUsedIgnorePattern`, and common `argsIgnorePattern`/`caughtErrorsIgnorePattern`/`destructuredArrayIgnorePattern`/`varsIgnorePattern` configuration |
-| [`@typescript-eslint/no-use-before-define`](https://typescript-eslint.io/rules/no-use-before-define/) | Supports `functions`, `classes`, `variables`, `allowNamedExports`, and `ignoreTypeReferences` configuration |
+| [`@typescript-eslint/no-use-before-define`](https://typescript-eslint.io/rules/no-use-before-define/) | Supports `functions`, `classes`, `variables`, `typedefs`, `allowNamedExports`, and `ignoreTypeReferences` configuration |
 | [`@typescript-eslint/no-var-requires`](https://typescript-eslint.io/rules/no-var-requires/) | Implemented |
 | [`@typescript-eslint/no-wrapper-object-types`](https://typescript-eslint.io/rules/no-wrapper-object-types/) | Implemented |
 | [`@typescript-eslint/prefer-as-const`](https://typescript-eslint.io/rules/prefer-as-const/) | Implemented |
