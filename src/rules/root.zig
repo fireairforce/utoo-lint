@@ -1203,7 +1203,9 @@ const BasicVisitor = struct {
             );
         }
         if (self.options.import_no_duplicates) {
-            try import_no_duplicates.check(self.allocator, self.diagnostics, ctx.tree, program);
+            try import_no_duplicates.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, program, .{
+                .consider_query_string = self.options.import_no_duplicates_consider_query_string,
+            });
         }
         if (self.options.alipay_ant_no_import_src) {
             try alipay_ant_no_import_src.check(self.allocator, self.diagnostics, ctx.tree, program);

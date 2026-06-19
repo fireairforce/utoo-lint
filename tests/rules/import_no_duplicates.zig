@@ -41,6 +41,46 @@ test "does not report import/no-duplicates for distinct module sources" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.import_no_duplicates.id));
 }
 
+test "reports import/no-duplicates for repeated module sources with query strings by default" {
+    const source =
+        \\import view from "./template?raw";
+        \\import compiled from "./template?compiled";
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.import_no_duplicates.id));
+}
+
+test "supports configured import/no-duplicates considerQueryString option" {
+    const source =
+        \\import view from "./template?raw";
+        \\import compiled from "./template?compiled";
+    ;
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"considerQueryString\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options.allDisabled();
+    try options.setByRuleConfigValue("import/no-duplicates", config.value);
+    options.parser_semantic_errors = false;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.import_no_duplicates.id));
+}
+
 test "falls back to no-duplicate-imports when import/no-duplicates is disabled" {
     const source =
         \\import foo from "alpha";
