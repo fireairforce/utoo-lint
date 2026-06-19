@@ -608,6 +608,8 @@ pub const max_no_restricted_properties = 32;
 pub const max_no_restricted_property_name_len = 128;
 pub const max_no_restricted_property_message_len = 256;
 pub const max_no_restricted_property_allow_names = 16;
+pub const max_id_denylist_names = 64;
+pub const max_id_denylist_name_len = 128;
 
 pub const NoRestrictedPropertyNameList = struct {
     count: usize = 0,
@@ -706,6 +708,40 @@ pub const NoRestrictedProperties = struct {
 
     pub fn at(self: *const NoRestrictedProperties, index: usize) *const NoRestrictedPropertyEntry {
         return &self.entries[index];
+    }
+};
+
+pub const IdDenylistNamesError = error{
+    EmptyIdDenylistName,
+    TooManyIdDenylistNames,
+    IdDenylistNameTooLong,
+};
+
+pub const IdDenylistNames = struct {
+    count: usize = 0,
+    lengths: [max_id_denylist_names]usize = undefined,
+    storage: [max_id_denylist_names][max_id_denylist_name_len]u8 = undefined,
+
+    pub fn contains(self: *const IdDenylistNames, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const IdDenylistNames, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *IdDenylistNames, name: []const u8) IdDenylistNamesError!void {
+        if (name.len == 0) return error.EmptyIdDenylistName;
+        if (self.count >= max_id_denylist_names) return error.TooManyIdDenylistNames;
+        if (name.len > max_id_denylist_name_len) return error.IdDenylistNameTooLong;
+        if (self.contains(name)) return;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
     }
 };
 
@@ -1499,6 +1535,8 @@ pub const Options = struct {
     grouped_accessor_pairs: bool = true,
     grouped_accessor_pairs_style: GroupedAccessorPairsStyle = .any_order,
     guard_for_in: bool = true,
+    id_denylist: bool = true,
+    id_denylist_names: IdDenylistNames = .{},
     linebreak_style: bool = true,
     linebreak_style_style: LinebreakStyle = .unix,
     logical_assignment_operators: bool = true,
@@ -2255,6 +2293,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "grouped-accessor-pairs")) {
             self.grouped_accessor_pairs_style = try groupedAccessorPairsStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "id-denylist")) {
+            self.id_denylist_names = try idDenylistNamesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "eqeqeq")) {
             self.eqeqeq_style = try eqeqeqStyleFromConfig(value);
@@ -3294,6 +3335,25 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "getBeforeSet")) return .get_before_set;
         if (std.mem.eql(u8, style, "setBeforeGet")) return .set_before_get;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn idDenylistNamesFromConfig(value: std.json.Value) RuleConfigError!IdDenylistNames {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+
+        var names = IdDenylistNames{};
+        if (items.len < 2) return names;
+
+        for (items[1..]) |item| {
+            const name = switch (item) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            names.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return names;
     }
 
     fn reactNoUnusedPropTypesSkipShapePropsFromConfig(value: std.json.Value) RuleConfigError!bool {
