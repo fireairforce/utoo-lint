@@ -287,7 +287,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-redeclare`](https://typescript-eslint.io/rules/no-redeclare/) | Supports `builtinGlobals` and `ignoreDeclarationMerge` configuration |
 | [`@typescript-eslint/no-require-imports`](https://typescript-eslint.io/rules/no-require-imports/) | Implemented |
 | [`@typescript-eslint/no-shadow`](https://typescript-eslint.io/rules/no-shadow/) | Supports `allow`, `builtinGlobals`, `hoist`, `ignoreOnInitialization`, `ignoreTypeValueShadow`, and `ignoreFunctionTypeParameterNameValueShadow` configuration |
-| [`@typescript-eslint/no-this-alias`](https://typescript-eslint.io/rules/no-this-alias/) | Implemented for `allowedNames` configuration |
+| [`@typescript-eslint/no-this-alias`](https://typescript-eslint.io/rules/no-this-alias/) | Supports `allowedNames` and `allowDestructuring` configuration |
 | [`@typescript-eslint/no-unsafe-declaration-merging`](https://typescript-eslint.io/rules/no-unsafe-declaration-merging/) | Implemented |
 | [`@typescript-eslint/triple-slash-reference`](https://typescript-eslint.io/rules/triple-slash-reference/) | Implemented for `path`, `types`, and `lib` `always`/`never` configurations |
 | [`@typescript-eslint/typedef`](https://typescript-eslint.io/rules/typedef/) | Supports `propertyDeclaration`, `memberVariableDeclaration`, `parameter`, `arrowParameter`, `arrayDestructuring`, `objectDestructuring`, `variableDeclaration`, and `variableDeclarationIgnoreFunction` configuration |
