@@ -7,6 +7,10 @@ const Allocator = @import("std").mem.Allocator;
 
 pub const id = "@typescript-eslint/no-invalid-void-type";
 
+pub const Options = struct {
+    allow_in_generic_type_arguments: bool = true,
+};
+
 const Ancestor = struct {
     index: ast.NodeIndex,
     depth: usize,
@@ -18,6 +22,17 @@ pub fn check(
     tree: *const ast.Tree,
     index: ast.NodeIndex,
     ctx: *traverser.basic.Ctx,
+) Allocator.Error!void {
+    return checkWithOptions(allocator, diagnostics, tree, index, ctx, .{});
+}
+
+pub fn checkWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    ctx: *traverser.basic.Ctx,
+    options: Options,
 ) Allocator.Error!void {
     const parent = nearestNonParenthesizedAncestor(tree, ctx, 1) orelse return;
 
@@ -33,7 +48,7 @@ pub fn check(
             );
             return;
         },
-        .ts_type_parameter_instantiation => return,
+        .ts_type_parameter_instantiation => if (options.allow_in_generic_type_arguments) return,
         .ts_type_annotation => {
             if (isReturnTypeAnnotation(tree, parent.index, ctx.path.ancestor(parent.depth + 1))) return;
         },

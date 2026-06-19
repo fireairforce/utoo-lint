@@ -1656,6 +1656,7 @@ pub const Options = struct {
     typescript_eslint_no_inferrable_types_ignore_parameters: bool = false,
     typescript_eslint_no_inferrable_types_ignore_properties: bool = false,
     typescript_eslint_no_invalid_void_type: bool = true,
+    typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments: bool = true,
     typescript_eslint_no_loss_of_precision: bool = true,
     typescript_eslint_no_loop_func: bool = true,
     typescript_eslint_no_misused_new: bool = true,
@@ -2226,6 +2227,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-inferrable-types")) {
             self.typescript_eslint_no_inferrable_types_ignore_parameters = try typescriptEslintNoInferrableTypesBoolOptionFromConfig(value, "ignoreParameters", false);
             self.typescript_eslint_no_inferrable_types_ignore_properties = try typescriptEslintNoInferrableTypesBoolOptionFromConfig(value, "ignoreProperties", false);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-invalid-void-type")) {
+            self.typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments = try typescriptEslintNoInvalidVoidTypeBoolOptionFromConfig(value, "allowInGenericTypeArguments", true);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-shadow")) {
             self.typescript_eslint_no_shadow_allow = try noShadowAllowFromConfig(value);
@@ -5647,6 +5651,23 @@ pub const Options = struct {
         };
     }
 
+    fn typescriptEslintNoInvalidVoidTypeBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn typescriptEslintNoEmptyInterfaceAllowSingleExtendsFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -7432,6 +7453,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_inferrable_types);
     try std.testing.expect(options.typescript_eslint_no_inferrable_types_ignore_parameters);
     try std.testing.expect(options.typescript_eslint_no_inferrable_types_ignore_properties);
+
+    var typescript_no_invalid_void_type_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowInGenericTypeArguments\":false}]",
+        .{},
+    );
+    defer typescript_no_invalid_void_type_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-invalid-void-type", typescript_no_invalid_void_type_config.value);
+    try std.testing.expect(options.typescript_eslint_no_invalid_void_type);
+    try std.testing.expect(!options.typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments);
 
     var typescript_restrict_plus_operands_config = try std.json.parseFromSlice(
         std.json.Value,

@@ -68,6 +68,34 @@ test "reports @typescript-eslint/no-invalid-void-type for void in unions inside 
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.typescript_eslint_no_invalid_void_type.id));
 }
 
+test "supports configured @typescript-eslint/no-invalid-void-type generic type arguments" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowInGenericTypeArguments\":false}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .typescript_eslint_no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("@typescript-eslint/no-invalid-void-type", config.value);
+
+    const source =
+        \\type PromiseVoid = Promise<void>;
+        \\type Callback = Map<string, void>;
+        \\function returnsVoid(): void {}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.typescript_eslint_no_invalid_void_type.id));
+}
+
 test "can disable @typescript-eslint/no-invalid-void-type" {
     const source =
         \\type Alias = void;

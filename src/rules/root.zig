@@ -1961,7 +1961,9 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_no_invalid_void_type) {
-            try typescript_eslint_no_invalid_void_type.check(self.allocator, self.diagnostics, ctx.tree, index, ctx);
+            try typescript_eslint_no_invalid_void_type.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, index, ctx, .{
+                .allow_in_generic_type_arguments = self.options.typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments,
+            });
         }
         return .proceed;
     }
