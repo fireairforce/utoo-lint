@@ -104,6 +104,7 @@ const BUILTIN_RULE_IDS = [
   "init-declarations",
   "linebreak-style",
   "logical-assignment-operators",
+  "max-lines",
   "new-cap",
   "new-parens",
   "no-alert",

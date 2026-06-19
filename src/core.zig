@@ -1641,6 +1641,10 @@ pub const Options = struct {
     max_classes_per_file_ignore_expressions: bool = false,
     max_depth: bool = true,
     max_depth_max: usize = 4,
+    max_lines: bool = false,
+    max_lines_max: usize = 300,
+    max_lines_skip_blank_lines: bool = false,
+    max_lines_skip_comments: bool = false,
     max_nested_callbacks: bool = true,
     max_nested_callbacks_max: usize = 10,
     max_params: bool = true,
@@ -2421,6 +2425,11 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "max-depth")) {
             self.max_depth_max = try maxDepthMaxFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "max-lines")) {
+            self.max_lines_max = try maxLinesMaxFromConfig(value);
+            self.max_lines_skip_blank_lines = try maxLinesBoolOptionFromConfig(value, "skipBlankLines");
+            self.max_lines_skip_comments = try maxLinesBoolOptionFromConfig(value, "skipComments");
         }
         if (std.mem.eql(u8, cli_name, "max-nested-callbacks")) {
             self.max_nested_callbacks_max = try maxNestedCallbacksMaxFromConfig(value);
@@ -4143,6 +4152,46 @@ pub const Options = struct {
             },
             else => return error.UnsupportedRuleConfigValue,
         }
+    }
+
+    fn maxLinesMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return 300,
+        };
+        if (items.len < 2) return 300;
+
+        switch (items[1]) {
+            .integer => |max| return nonNegativeIntegerToUsize(max),
+            .object => |object| {
+                if (object.get("max")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                return 300;
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+    }
+
+    fn maxLinesBoolOptionFromConfig(value: std.json.Value, option_name: []const u8) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const object = switch (items[1]) {
+            .object => |object| object,
+            else => return false,
+        };
+        return switch (object.get(option_name) orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn maxClassesPerFileMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
