@@ -28,6 +28,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for `always`, optional `never`, and optional `enforceForIfStatements: true` behavior |
 | [`max-depth`](https://eslint.org/docs/latest/rules/max-depth) | Supports `max`, deprecated `maximum`, function scopes, static blocks, and `else if` chains |
 | [`max-params`](https://eslint.org/docs/latest/rules/max-params) | Supports `max`, deprecated `maximum`, and `countThis` configuration |
+| [`max-statements`](https://eslint.org/docs/latest/rules/max-statements) | Supports `max`, deprecated `maximum`, `ignoreTopLevelFunctions`, and static block isolation |
 | [`new-cap`](https://eslint.org/docs/latest/rules/new-cap) | Supports `newIsCap`, `capIsNew`, `properties`, exception names, and exception patterns |
 | [`new-parens`](https://eslint.org/docs/latest/rules/new-parens) | Implemented |
 | [`no-alert`](https://eslint.org/docs/latest/rules/no-alert) | Implemented with global `this`, `window`, and `globalThis` detection |

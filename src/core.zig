@@ -1509,6 +1509,9 @@ pub const Options = struct {
     max_params: bool = true,
     max_params_max: usize = 3,
     max_params_count_this: MaxParamsCountThis = .except_void,
+    max_statements: bool = true,
+    max_statements_max: usize = 10,
+    max_statements_ignore_top_level_functions: bool = false,
     new_cap: bool = true,
     new_cap_new_is_cap: bool = true,
     new_cap_cap_is_new: bool = true,
@@ -2268,6 +2271,10 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "max-params")) {
             self.max_params_max = try maxParamsMaxFromConfig(value);
             self.max_params_count_this = try maxParamsCountThisFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "max-statements")) {
+            self.max_statements_max = try maxStatementsMaxFromConfig(value);
+            self.max_statements_ignore_top_level_functions = try maxStatementsIgnoreTopLevelFunctionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "import/no-cycle")) {
             self.import_no_cycle_amd = try importNoCycleBoolOptionFromConfig(value, "amd", false);
@@ -3887,6 +3894,52 @@ pub const Options = struct {
             return if (count_void_this) .always else .except_void;
         }
         return .except_void;
+    }
+
+    fn maxStatementsMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return 10,
+        };
+        if (items.len < 2) return 10;
+
+        switch (items[1]) {
+            .integer => |max| return nonNegativeIntegerToUsize(max),
+            .object => |object| {
+                if (object.get("maximum")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                if (object.get("max")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                return 10;
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+    }
+
+    fn maxStatementsIgnoreTopLevelFunctionsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 3) return false;
+
+        return switch (items[2]) {
+            .object => |object| switch (object.get("ignoreTopLevelFunctions") orelse return false) {
+                .bool => |enabled| enabled,
+                else => error.UnsupportedRuleConfigValue,
+            },
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn newCapBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
