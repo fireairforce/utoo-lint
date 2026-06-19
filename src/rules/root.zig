@@ -198,6 +198,7 @@ pub const no_throw_literal = @import("no_throw_literal.zig");
 pub const no_this_before_super = @import("no_this_before_super.zig");
 pub const no_trailing_spaces = @import("no_trailing_spaces.zig");
 pub const no_unreachable = @import("no_unreachable.zig");
+pub const no_unreachable_loop = @import("no_unreachable_loop.zig");
 pub const no_undef_init = @import("no_undef_init.zig");
 pub const no_underscore_dangle = @import("no_underscore_dangle.zig");
 pub const no_undefined = @import("no_undefined.zig");
@@ -1122,6 +1123,16 @@ const BasicVisitor = struct {
         };
     }
 
+    fn noUnreachableLoopOptions(self: *const BasicVisitor) no_unreachable_loop.Options {
+        return .{
+            .ignore_while = self.options.no_unreachable_loop_ignore_while,
+            .ignore_do_while = self.options.no_unreachable_loop_ignore_do_while,
+            .ignore_for = self.options.no_unreachable_loop_ignore_for,
+            .ignore_for_in = self.options.no_unreachable_loop_ignore_for_in,
+            .ignore_for_of = self.options.no_unreachable_loop_ignore_for_of,
+        };
+    }
+
     fn noUselessRenameOptions(self: *const BasicVisitor) no_useless_rename.Options {
         return .{
             .ignore_destructuring = self.options.no_useless_rename_ignore_destructuring,
@@ -1492,7 +1503,7 @@ const BasicVisitor = struct {
     pub fn enter_while_statement(
         self: *BasicVisitor,
         statement: ast.WhileStatement,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.curly) {
@@ -1510,13 +1521,16 @@ const BasicVisitor = struct {
                 .none => {},
             }
         }
+        if (self.options.no_unreachable_loop) {
+            try no_unreachable_loop.checkWhileStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
+        }
         return .proceed;
     }
 
     pub fn enter_do_while_statement(
         self: *BasicVisitor,
         statement: ast.DoWhileStatement,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.curly) {
@@ -1529,6 +1543,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_constant_condition and self.options.no_constant_condition_check_loops != .none) {
             try no_constant_condition.check(self.allocator, self.diagnostics, ctx.tree, statement.@"test");
+        }
+        if (self.options.no_unreachable_loop) {
+            try no_unreachable_loop.checkDoWhileStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
         }
         return .proceed;
     }
@@ -1555,6 +1572,9 @@ const BasicVisitor = struct {
         }
         if (self.options.for_direction) {
             try for_direction.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+        }
+        if (self.options.no_unreachable_loop) {
+            try no_unreachable_loop.checkForStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
         }
         return .proceed;
     }
@@ -2230,17 +2250,23 @@ const BasicVisitor = struct {
         if (self.options.no_for_in) {
             try no_for_in.check(self.allocator, self.diagnostics, ctx.tree, index);
         }
+        if (self.options.no_unreachable_loop) {
+            try no_unreachable_loop.checkForInStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
+        }
         return .proceed;
     }
 
     pub fn enter_for_of_statement(
         self: *BasicVisitor,
         statement: ast.ForOfStatement,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.curly) {
             try curly.checkBodyWithOptions(self.allocator, self.diagnostics, ctx.tree, statement.body, self.curlyOptions());
+        }
+        if (self.options.no_unreachable_loop) {
+            try no_unreachable_loop.checkForOfStatement(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noUnreachableLoopOptions());
         }
         return .proceed;
     }

@@ -537,6 +537,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_trailing_spaces = false;
         } else if (std.mem.eql(u8, arg, "--no-unreachable=off")) {
             options.no_unreachable = false;
+        } else if (std.mem.eql(u8, arg, "--no-unreachable-loop=off")) {
+            options.no_unreachable_loop = false;
         } else if (std.mem.eql(u8, arg, "--no-undef-init=off")) {
             options.no_undef_init = false;
         } else if (std.mem.eql(u8, arg, "--no-underscore-dangle=off")) {
@@ -1684,6 +1686,7 @@ fn printHelp() void {
         \\  --no-tabs=off             Disable no-tabs
         \\  --no-trailing-spaces=off  Disable no-trailing-spaces
         \\  --no-unreachable=off      Disable no-unreachable
+        \\  --no-unreachable-loop=off Disable no-unreachable-loop
         \\  --no-undef-init=off       Disable no-undef-init
         \\  --no-underscore-dangle=off Disable no-underscore-dangle
         \\  --no-underscore-dangle-allow-after-this=on Allow dangling underscores after this
