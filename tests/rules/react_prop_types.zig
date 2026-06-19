@@ -54,6 +54,39 @@ test "supports configured react/prop-types skipUndeclared" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.react_prop_types.id));
 }
 
+test "supports configured react/prop-types ignore" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignore\":[\"name\",\"user\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("react/prop-types", config.value);
+
+    const source =
+        \\import React from 'react';
+        \\function Foo(props) {
+        \\  return <div>{props.name}{props.user.name}{props.age}</div>;
+        \\}
+        \\Foo.propTypes = {};
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "sample.jsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_prop_types.id));
+    var saw_age = false;
+    for (result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.react_prop_types.id)) {
+            saw_age = std.mem.eql(u8, diagnostic.message, "'age' is missing in props validation");
+        }
+    }
+    try std.testing.expect(saw_age);
+}
+
 test "allows react/prop-types declared object children" {
     const source =
         \\import React from 'react';
