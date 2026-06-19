@@ -95,6 +95,47 @@ test "supports configured react/jsx-filename-extension extensions" {
     try std.testing.expect(!helpers.hasRule(tsx_result, "parse"));
 }
 
+test "allows configured react/jsx-filename-extension files without JSX by default" {
+    const source =
+        \\const view = null;
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.react_jsx_filename_extension.id));
+    try std.testing.expect(!helpers.hasRule(result, "parse"));
+}
+
+test "supports react/jsx-filename-extension as-needed allow mode" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":\"as-needed\",\"extensions\":[\".jsx\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("react/jsx-filename-extension", config.value);
+
+    var result = try lint.lintSource(std.testing.allocator, "const view = null;", "fixture.jsx", options);
+    defer result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.react_jsx_filename_extension.id));
+    try std.testing.expect(hasMessage(result, "Only files containing JSX may use the extension '.jsx'"));
+    try std.testing.expect(!helpers.hasRule(result, "parse"));
+
+    var jsx_result = try lint.lintSource(std.testing.allocator, "const view = <div />;", "fixture.jsx", options);
+    defer jsx_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(jsx_result, lint.rules.react_jsx_filename_extension.id));
+    try std.testing.expect(!helpers.hasRule(jsx_result, "parse"));
+
+    var js_result = try lint.lintSource(std.testing.allocator, "const view = null;", "fixture.js", options);
+    defer js_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(js_result, lint.rules.react_jsx_filename_extension.id));
+    try std.testing.expect(!helpers.hasRule(js_result, "parse"));
+}
+
 test "preserves parser diagnostics when JSX fallback still fails" {
     const source =
         \\const view = <div;

@@ -56,6 +56,11 @@ pub const UnicodeBomStyle = enum {
     always,
 };
 
+pub const ReactJsxFilenameExtensionAllow = enum {
+    always,
+    as_needed,
+};
+
 pub const NoCondAssignStyle = enum {
     except_parens,
     always,
@@ -1626,6 +1631,7 @@ pub const Options = struct {
     react_jsx_boolean_value_style: ReactJsxBooleanValueStyle = .never,
     react_jsx_filename_extension: bool = true,
     react_jsx_filename_extension_extensions: ReactJsxFilenameExtensions = .{},
+    react_jsx_filename_extension_allow: ReactJsxFilenameExtensionAllow = .always,
     react_jsx_no_duplicate_props: bool = true,
     react_jsx_no_duplicate_props_ignore_case: bool = true,
     react_jsx_no_comment_textnodes: bool = true,
@@ -2240,6 +2246,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-filename-extension")) {
             self.react_jsx_filename_extension_extensions = try reactJsxFilenameExtensionsFromConfig(value);
+            self.react_jsx_filename_extension_allow = try reactJsxFilenameExtensionAllowFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/jsx-boolean-value")) {
             self.react_jsx_boolean_value_style = try reactJsxBooleanValueStyleFromConfig(value);
@@ -5315,6 +5322,26 @@ pub const Options = struct {
         return extensions;
     }
 
+    fn reactJsxFilenameExtensionAllowFromConfig(value: std.json.Value) RuleConfigError!ReactJsxFilenameExtensionAllow {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .always,
+        };
+        if (items.len < 2) return .always;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const allow = switch (config.get("allow") orelse return .always) {
+            .string => |string| string,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, allow, "always")) return .always;
+        if (std.mem.eql(u8, allow, "as-needed")) return .as_needed;
+        return error.UnsupportedRuleConfigValue;
+    }
+
     fn reactJsxBooleanValueStyleFromConfig(value: std.json.Value) RuleConfigError!ReactJsxBooleanValueStyle {
         const items = switch (value) {
             .array => |array| array.items,
@@ -6503,6 +6530,18 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.react_jsx_filename_extension);
     try std.testing.expectEqual(@as(usize, 1), options.react_jsx_filename_extension_extensions.len());
     try std.testing.expectEqualStrings(".tsx", options.react_jsx_filename_extension_extensions.at(0));
+    try std.testing.expectEqual(ReactJsxFilenameExtensionAllow.always, options.react_jsx_filename_extension_allow);
+
+    var react_jsx_filename_extension_allow_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allow\":\"as-needed\"}]",
+        .{},
+    );
+    defer react_jsx_filename_extension_allow_config.deinit();
+    try options.setByRuleConfigValue("react/jsx-filename-extension", react_jsx_filename_extension_allow_config.value);
+    try std.testing.expect(options.react_jsx_filename_extension);
+    try std.testing.expectEqual(ReactJsxFilenameExtensionAllow.as_needed, options.react_jsx_filename_extension_allow);
 
     var react_jsx_no_bind_config = try std.json.parseFromSlice(
         std.json.Value,

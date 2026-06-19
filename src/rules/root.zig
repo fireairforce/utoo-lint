@@ -1245,7 +1245,7 @@ const BasicVisitor = struct {
     pub fn exit_program(
         self: *BasicVisitor,
         _: ast.Program,
-        _: ast.NodeIndex,
+        index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) void {
         if (self.options.react_display_name) {
@@ -1254,6 +1254,12 @@ const BasicVisitor = struct {
         if (self.options.react_default_props_match_prop_types) {
             react_default_props_match_prop_types.finish(self.allocator, self.diagnostics, ctx.tree, &self.react_default_props_match_prop_types_state, .{
                 .allow_required_defaults = self.options.react_default_props_match_prop_types_allow_required_defaults,
+            }) catch {};
+        }
+        if (self.options.react_jsx_filename_extension) {
+            react_jsx_filename_extension.finish(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state, .{
+                .extensions = self.options.react_jsx_filename_extension_extensions,
+                .allow = self.options.react_jsx_filename_extension_allow,
             }) catch {};
         }
     }
@@ -3087,6 +3093,7 @@ const BasicVisitor = struct {
         if (self.options.react_jsx_filename_extension) {
             try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state, .{
                 .extensions = self.options.react_jsx_filename_extension_extensions,
+                .allow = self.options.react_jsx_filename_extension_allow,
             });
         }
         if (self.options.react_button_has_type) {
@@ -3120,6 +3127,7 @@ const BasicVisitor = struct {
         if (self.options.react_jsx_filename_extension) {
             try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state, .{
                 .extensions = self.options.react_jsx_filename_extension_extensions,
+                .allow = self.options.react_jsx_filename_extension_allow,
             });
         }
         return .proceed;
