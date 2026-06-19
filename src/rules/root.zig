@@ -705,6 +705,9 @@ pub fn runSemantic(
                 diagnostics,
                 tree,
                 file_path,
+                .{
+                    .max_depth = options.import_no_cycle_max_depth,
+                },
             );
         }
     }

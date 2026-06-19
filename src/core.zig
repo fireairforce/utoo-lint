@@ -1476,6 +1476,7 @@ pub const Options = struct {
     import_newline_after_import_consider_comments: bool = false,
     import_no_amd: bool = true,
     import_no_cycle: bool = true,
+    import_no_cycle_max_depth: usize = 1024,
     import_no_duplicates: bool = true,
     import_no_named_as_default: bool = true,
     import_no_named_as_default_member: bool = true,
@@ -2071,6 +2072,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "logical-assignment-operators")) {
             self.logical_assignment_operators_style = try logicalAssignmentOperatorsStyleFromConfig(value);
             self.logical_assignment_operators_enforce_for_if_statements = try logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "import/no-cycle")) {
+            self.import_no_cycle_max_depth = try importNoCycleMaxDepthFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "import/newline-after-import")) {
             self.import_newline_after_import_count = try importNewlineAfterImportCountFromConfig(value);
@@ -3956,6 +3960,25 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn importNoCycleMaxDepthFromConfig(value: std.json.Value) RuleConfigError!usize {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return 1024,
+        };
+        if (items.len < 2) return 1024;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const max_depth = switch (config.get("maxDepth") orelse return 1024) {
+            .integer => |max_depth| max_depth,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (max_depth < 1) return error.UnsupportedRuleConfigValue;
+        return @intCast(max_depth);
     }
 
     fn importNewlineAfterImportCountFromConfig(value: std.json.Value) RuleConfigError!usize {
@@ -6647,6 +6670,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.import_no_cycle);
     try std.testing.expect(options.setByCliName("import/no-cycle", true));
     try std.testing.expect(options.import_no_cycle);
+    try std.testing.expectEqual(@as(usize, 1024), options.import_no_cycle_max_depth);
 
     try std.testing.expect(!options.import_no_named_as_default);
     try std.testing.expect(options.setByCliName("import/no-named-as-default", true));
@@ -7149,6 +7173,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("consistent-return", consistent_return_config.value);
     try std.testing.expect(options.consistent_return);
     try std.testing.expect(options.consistent_return_treat_undefined_as_unspecified);
+
+    var import_no_cycle_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"maxDepth\":1}]",
+        .{},
+    );
+    defer import_no_cycle_config.deinit();
+    try options.setByRuleConfigValue("import/no-cycle", import_no_cycle_config.value);
+    try std.testing.expect(options.import_no_cycle);
+    try std.testing.expectEqual(@as(usize, 1), options.import_no_cycle_max_depth);
 
     var import_no_unresolved_config = try std.json.parseFromSlice(
         std.json.Value,
