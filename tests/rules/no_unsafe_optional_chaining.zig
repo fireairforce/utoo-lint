@@ -72,6 +72,39 @@ test "allows no-unsafe-optional-chaining for safe optional continuation" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unsafe_optional_chaining.id));
 }
 
+test "allows arithmetic optional chains by default" {
+    const source =
+        \\+obj?.value;
+        \\obj?.value - 1;
+        \\total += obj?.value;
+        \\
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unsafe_optional_chaining.id));
+}
+
+test "reports arithmetic optional chains when configured" {
+    const source =
+        \\+obj?.first;
+        \\-obj?.second;
+        \\obj?.third - 1;
+        \\1 * obj?.fourth;
+        \\total += obj?.fifth;
+        \\
+    ;
+
+    var options = baseOptions();
+    options.no_unsafe_optional_chaining_disallow_arithmetic_operators = true;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.no_unsafe_optional_chaining.id));
+}
+
 test "can disable no-unsafe-optional-chaining" {
     const source =
         \\(obj?.foo).bar;

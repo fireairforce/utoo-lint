@@ -8,16 +8,30 @@ const Allocator = std.mem.Allocator;
 
 pub const id = "no-unsafe-optional-chaining";
 
+pub const Options = struct {
+    disallow_arithmetic_operators: bool = false,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+) Allocator.Error!void {
+    try runWithOptions(allocator, diagnostics, tree, .{});
+}
+
+pub fn runWithOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    options: Options,
 ) Allocator.Error!void {
     if (std.mem.indexOf(u8, tree.source, "?.") == null) return;
 
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
+        .options = options,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -26,6 +40,7 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    options: Options,
 
     pub fn enter_chain_expression(
         self: *Visitor,
@@ -33,7 +48,7 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        const unsafe_parent = unsafeParent(ctx.tree, index, &ctx.path) orelse return .proceed;
+        const unsafe_parent = unsafeParent(ctx.tree, index, &ctx.path, self.options) orelse return .proceed;
         try self.addDiagnostic(ctx.tree, unsafe_parent.report_index);
         return .proceed;
     }
@@ -58,6 +73,7 @@ fn unsafeParent(
     tree: *const ast.Tree,
     chain_index: ast.NodeIndex,
     path: *const traverser.NodePath,
+    options: Options,
 ) ?UnsafeParent {
     var child = chain_index;
     var depth: usize = 1;
@@ -94,7 +110,7 @@ fn unsafeParent(
                 child = parent_index;
                 continue;
             },
-            else => return unsafeDirectParent(tree, parent_index, child, path, depth),
+            else => return unsafeDirectParent(tree, parent_index, child, path, depth, options),
         }
     }
 
@@ -107,6 +123,7 @@ fn unsafeDirectParent(
     child: ast.NodeIndex,
     path: *const traverser.NodePath,
     parent_depth: usize,
+    options: Options,
 ) ?UnsafeParent {
     switch (tree.data(parent_index)) {
         .member_expression => |member| {
@@ -139,6 +156,20 @@ fn unsafeDirectParent(
             if (expression.right == child and isUnsafeBinaryOperator(expression.operator)) {
                 return .{ .report_index = child };
             }
+            if (options.disallow_arithmetic_operators and
+                (expression.left == child or expression.right == child) and
+                isArithmeticBinaryOperator(expression.operator))
+            {
+                return .{ .report_index = child };
+            }
+        },
+        .unary_expression => |expression| {
+            if (options.disallow_arithmetic_operators and
+                expression.argument == child and
+                isArithmeticUnaryOperator(expression.operator))
+            {
+                return .{ .report_index = child };
+            }
         },
         .variable_declarator => |declarator| {
             if (declarator.init == child and isDestructuringPattern(tree, declarator.id)) {
@@ -147,6 +178,12 @@ fn unsafeDirectParent(
         },
         .assignment_expression => |expression| {
             if (expression.right == child and isDestructuringPattern(tree, expression.left)) {
+                return .{ .report_index = child };
+            }
+            if (options.disallow_arithmetic_operators and
+                (expression.left == child or expression.right == child) and
+                isArithmeticAssignmentOperator(expression.operator))
+            {
                 return .{ .report_index = child };
             }
         },
@@ -178,6 +215,39 @@ fn isUnsafeSpreadParent(tree: *const ast.Tree, parent: ?ast.NodeIndex) bool {
 fn isUnsafeBinaryOperator(operator: ast.BinaryOperator) bool {
     return switch (operator) {
         .in, .instanceof => true,
+        else => false,
+    };
+}
+
+fn isArithmeticBinaryOperator(operator: ast.BinaryOperator) bool {
+    return switch (operator) {
+        .add,
+        .subtract,
+        .multiply,
+        .divide,
+        .modulo,
+        .exponent,
+        => true,
+        else => false,
+    };
+}
+
+fn isArithmeticAssignmentOperator(operator: ast.AssignmentOperator) bool {
+    return switch (operator) {
+        .add_assign,
+        .subtract_assign,
+        .multiply_assign,
+        .divide_assign,
+        .modulo_assign,
+        .exponent_assign,
+        => true,
+        else => false,
+    };
+}
+
+fn isArithmeticUnaryOperator(operator: ast.UnaryOperator) bool {
+    return switch (operator) {
+        .positive, .negate => true,
         else => false,
     };
 }

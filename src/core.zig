@@ -1672,6 +1672,7 @@ pub const Options = struct {
     no_unsafe_negation: bool = true,
     no_unsafe_negation_enforce_for_ordering_relations: bool = false,
     no_unsafe_optional_chaining: bool = true,
+    no_unsafe_optional_chaining_disallow_arithmetic_operators: bool = false,
     no_useless_computed_key: bool = true,
     no_useless_computed_key_enforce_for_class_members: NoUselessComputedKeyEnforceForClassMembers = .yes,
     no_useless_call: bool = true,
@@ -2300,6 +2301,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-unsafe-negation")) {
             self.no_unsafe_negation_enforce_for_ordering_relations = try noUnsafeNegationBoolOptionFromConfig(value, "enforceForOrderingRelations", false);
+        }
+        if (std.mem.eql(u8, cli_name, "no-unsafe-optional-chaining")) {
+            self.no_unsafe_optional_chaining_disallow_arithmetic_operators = try noUnsafeOptionalChainingBoolOptionFromConfig(value, "disallowArithmeticOperators", false);
         }
         if (std.mem.eql(u8, cli_name, "no-useless-rename")) {
             self.no_useless_rename_ignore_destructuring = try noUselessRenameBoolOptionFromConfig(value, "ignoreDestructuring");
@@ -5321,6 +5325,10 @@ pub const Options = struct {
         };
     }
 
+    fn noUnsafeOptionalChainingBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        return noUnsafeNegationBoolOptionFromConfig(value, key, default);
+    }
+
     fn noIrregularWhitespaceBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -8313,6 +8321,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-unsafe-negation", no_unsafe_negation_config.value);
     try std.testing.expect(options.no_unsafe_negation);
     try std.testing.expect(options.no_unsafe_negation_enforce_for_ordering_relations);
+
+    var no_unsafe_optional_chaining_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"disallowArithmeticOperators\":true}]",
+        .{},
+    );
+    defer no_unsafe_optional_chaining_config.deinit();
+    try options.setByRuleConfigValue("no-unsafe-optional-chaining", no_unsafe_optional_chaining_config.value);
+    try std.testing.expect(options.no_unsafe_optional_chaining);
+    try std.testing.expect(options.no_unsafe_optional_chaining_disallow_arithmetic_operators);
 
     var no_return_assign_config = try std.json.parseFromSlice(
         std.json.Value,
