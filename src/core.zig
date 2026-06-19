@@ -22,6 +22,46 @@ pub const EqeqeqStyle = enum {
     smart,
 };
 
+pub const max_consistent_this_aliases = 32;
+pub const max_consistent_this_alias_len = 128;
+
+pub const ConsistentThisAliasesError = error{
+    EmptyConsistentThisAlias,
+    TooManyConsistentThisAliases,
+    ConsistentThisAliasTooLong,
+};
+
+pub const ConsistentThisAliases = struct {
+    custom: bool = false,
+    count: usize = 0,
+    lengths: [max_consistent_this_aliases]usize = undefined,
+    storage: [max_consistent_this_aliases][max_consistent_this_alias_len]u8 = undefined,
+
+    pub fn contains(self: *const ConsistentThisAliases, name: []const u8) bool {
+        if (!self.custom) return std.mem.eql(u8, name, "that");
+
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const ConsistentThisAliases, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *ConsistentThisAliases, name: []const u8) ConsistentThisAliasesError!void {
+        if (name.len == 0) return error.EmptyConsistentThisAlias;
+        if (self.count >= max_consistent_this_aliases) return error.TooManyConsistentThisAliases;
+        if (name.len > max_consistent_this_alias_len) return error.ConsistentThisAliasTooLong;
+        if (self.contains(name)) return;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
 pub const CurlyStyle = enum {
     all,
     multi_line,
@@ -1509,6 +1549,8 @@ pub const Options = struct {
     capitalized_comments_mode: CapitalizedCommentsMode = .always,
     capitalized_comments_ignore_inline_comments: CapitalizedCommentsIgnoreInlineComments = .no,
     capitalized_comments_ignore_consecutive_comments: CapitalizedCommentsIgnoreConsecutiveComments = .no,
+    consistent_this: bool = false,
+    consistent_this_aliases: ConsistentThisAliases = .{},
     consistent_return: bool = true,
     consistent_return_treat_undefined_as_unspecified: bool = false,
     constructor_super: bool = true,
@@ -2263,6 +2305,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "consistent-return")) {
             self.consistent_return_treat_undefined_as_unspecified = try consistentReturnTreatUndefinedAsUnspecifiedFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "consistent-this")) {
+            self.consistent_this_aliases = try consistentThisAliasesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "curly")) {
             self.curly_style = try curlyStyleFromConfig(value);
@@ -3026,6 +3071,24 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn consistentThisAliasesFromConfig(value: std.json.Value) RuleConfigError!ConsistentThisAliases {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        var aliases = ConsistentThisAliases{ .custom = true };
+        for (items[1..]) |item| {
+            const alias = switch (item) {
+                .string => |alias| alias,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            aliases.append(alias) catch return error.UnsupportedRuleConfigValue;
+        }
+        return aliases;
     }
 
     fn accessorPairsGetWithoutSetFromConfig(value: std.json.Value) RuleConfigError!AccessorPairsGetWithoutSet {

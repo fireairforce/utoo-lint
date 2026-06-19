@@ -89,6 +89,7 @@ const BUILTIN_RULE_IDS = [
   "block-scoped-var",
   "capitalized-comments",
   "consistent-return",
+  "consistent-this",
   "constructor-super",
   "curly",
   "default-case",

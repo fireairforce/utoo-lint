@@ -18,6 +18,7 @@ pub const accessor_pairs = @import("accessor_pairs.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
 pub const block_scoped_var = @import("block_scoped_var.zig");
 pub const capitalized_comments = @import("capitalized_comments.zig");
+pub const consistent_this = @import("consistent_this.zig");
 pub const consistent_return = @import("consistent_return.zig");
 pub const constructor_super = @import("constructor_super.zig");
 pub const dot_notation = @import("dot_notation.zig");
@@ -1127,6 +1128,7 @@ const BasicVisitor = struct {
     react_no_unused_state_state: react_no_unused_state.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
+    consistent_this_state: consistent_this.State = .{},
     max_classes_per_file_state: max_classes_per_file.State = .{},
     max_statements_state: max_statements.State = .{},
     max_nested_callbacks_state: max_nested_callbacks.State = .{},
@@ -1271,6 +1273,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.consistent_this) {
+            self.consistent_this_state.enterScope();
+        }
         if (self.options.max_classes_per_file) {
             max_classes_per_file.enterProgram(&self.max_classes_per_file_state);
         }
@@ -1376,6 +1381,9 @@ const BasicVisitor = struct {
                 .allow = self.options.react_jsx_filename_extension_allow,
             }) catch {};
         }
+        if (self.options.consistent_this) {
+            self.consistent_this_state.exitScope(self.allocator, self.diagnostics) catch {};
+        }
     }
 
     pub fn enter_function(
@@ -1384,6 +1392,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.consistent_this) {
+            self.consistent_this_state.enterScope();
+        }
         if (self.options.max_statements) {
             try max_statements.enterFunction(self.allocator, &self.max_statements_state, index);
         }
@@ -1458,6 +1469,9 @@ const BasicVisitor = struct {
         }
         if (self.options.max_nested_callbacks) {
             max_nested_callbacks.exitFunction(&self.max_nested_callbacks_state, index);
+        }
+        if (self.options.consistent_this) {
+            self.consistent_this_state.exitScope(self.allocator, self.diagnostics) catch {};
         }
     }
 
@@ -1825,6 +1839,17 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.consistent_this) {
+            try consistent_this.checkVariableDeclarator(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                declarator,
+                index,
+                &self.consistent_this_state,
+                &self.options.consistent_this_aliases,
+            );
+        }
         if (self.options.typescript_eslint_prefer_as_const) {
             try typescript_eslint_prefer_as_const.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator);
         }
@@ -2753,6 +2778,17 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.consistent_this) {
+            try consistent_this.checkAssignmentExpression(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                expression,
+                index,
+                &self.consistent_this_state,
+                &self.options.consistent_this_aliases,
+            );
+        }
         if (self.options.no_bitwise) {
             try no_bitwise.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noBitwiseOptions());
         }

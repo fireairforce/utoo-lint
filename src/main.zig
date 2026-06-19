@@ -114,6 +114,12 @@ pub fn main(init: std.process.Init) !void {
             options.accessor_pairs_set_without_get = .no;
         } else if (std.mem.eql(u8, arg, "--consistent-return=off")) {
             options.consistent_return = false;
+        } else if (std.mem.eql(u8, arg, "--consistent-this=off")) {
+            options.consistent_this = false;
+        } else if (std.mem.eql(u8, arg, "--consistent-this=on")) {
+            options.consistent_this = true;
+        } else if (std.mem.startsWith(u8, arg, "--consistent-this-alias=")) {
+            appendConsistentThisAlias(arg["--consistent-this-alias=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--constructor-super=off")) {
             options.constructor_super = false;
         } else if (std.mem.eql(u8, arg, "--array-callback-return=off")) {
@@ -1215,6 +1221,17 @@ fn appendIdDenylistName(value: []const u8, options: *lint.Options) void {
     };
 }
 
+fn appendConsistentThisAlias(value: []const u8, options: *lint.Options) void {
+    if (!options.consistent_this_aliases.custom) {
+        options.consistent_this_aliases = .{ .custom = true };
+    }
+    options.consistent_this_aliases.append(value) catch {
+        std.debug.print("utoo-lint: invalid --consistent-this-alias value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.consistent_this = true;
+}
+
 fn parseMaxClassesPerFileMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --max-classes-per-file-max value: {s}\n", .{value});
@@ -1579,6 +1596,9 @@ fn printHelp() void {
         \\  --capitalized-comments=never Require lowercase comment starts
         \\  --capitalized-comments-ignore-inline-comments=on Ignore inline comments
         \\  --consistent-return=off  Disable consistent-return
+        \\  --consistent-this=off    Disable consistent-this
+        \\  --consistent-this=on     Enable consistent-this with default alias
+        \\  --consistent-this-alias=NAME Add a consistent-this alias
         \\  --constructor-super=off  Disable constructor-super
         \\  --curly=off              Disable curly
         \\  --dot-notation=off       Disable dot-notation
