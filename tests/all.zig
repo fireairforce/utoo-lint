@@ -823,6 +823,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_useless_backreference.zig");
+}
+
+comptime {
     _ = @import("rules/no_useless_call.zig");
 }
 

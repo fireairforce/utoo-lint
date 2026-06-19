@@ -1960,6 +1960,7 @@ pub const Options = struct {
     no_unsafe_optional_chaining_disallow_arithmetic_operators: bool = false,
     no_useless_computed_key: bool = true,
     no_useless_computed_key_enforce_for_class_members: NoUselessComputedKeyEnforceForClassMembers = .yes,
+    no_useless_backreference: bool = true,
     no_useless_call: bool = true,
     no_useless_concat: bool = true,
     no_useless_constructor: bool = true,
