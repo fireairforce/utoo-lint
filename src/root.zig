@@ -169,6 +169,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_use_before_define or
         options.prefer_const or
         options.prefer_exponentiation_operator or
+        options.prefer_named_capture_group or
         options.prefer_numeric_literals or
         options.prefer_object_has_own or
         options.prefer_object_spread or

@@ -739,6 +739,10 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_const_destructuring = .all;
         } else if (std.mem.eql(u8, arg, "--prefer-exponentiation-operator=off")) {
             options.prefer_exponentiation_operator = false;
+        } else if (std.mem.eql(u8, arg, "--prefer-named-capture-group=on")) {
+            options.prefer_named_capture_group = true;
+        } else if (std.mem.eql(u8, arg, "--prefer-named-capture-group=off")) {
+            options.prefer_named_capture_group = false;
         } else if (std.mem.eql(u8, arg, "--prefer-numeric-literals=off")) {
             options.prefer_numeric_literals = false;
         } else if (std.mem.eql(u8, arg, "--prefer-promise-reject-errors=off")) {
@@ -1961,6 +1965,8 @@ fn printHelp() void {
         \\  --prefer-const=off        Disable prefer-const
         \\  --prefer-const-destructuring=all Require all destructured bindings to be const candidates
         \\  --prefer-exponentiation-operator=off Disable prefer-exponentiation-operator
+        \\  --prefer-named-capture-group=on Enable prefer-named-capture-group
+        \\  --prefer-named-capture-group=off Disable prefer-named-capture-group
         \\  --prefer-numeric-literals=off Disable prefer-numeric-literals
         \\  --prefer-promise-reject-errors=off Disable prefer-promise-reject-errors
         \\  --prefer-destructuring=off Disable prefer-destructuring

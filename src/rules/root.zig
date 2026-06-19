@@ -242,6 +242,7 @@ pub const operator_assignment = @import("operator_assignment.zig");
 pub const prefer_const = @import("prefer_const.zig");
 pub const prefer_destructuring = @import("prefer_destructuring.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
+pub const prefer_named_capture_group = @import("prefer_named_capture_group.zig");
 pub const prefer_numeric_literals = @import("prefer_numeric_literals.zig");
 pub const prefer_object_has_own = @import("prefer_object_has_own.zig");
 pub const prefer_object_spread = @import("prefer_object_spread.zig");
@@ -1003,6 +1004,10 @@ pub fn runSemantic(
         try prefer_regex_literals.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
             .disallow_redundant_wrapping = options.prefer_regex_literals_disallow_redundant_wrapping,
         });
+    }
+
+    if (options.prefer_named_capture_group) {
+        try prefer_named_capture_group.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.prefer_numeric_literals) {
@@ -4081,6 +4086,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_useless_backreference) {
             try no_useless_backreference.checkRegExpLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
+        }
+        if (self.options.prefer_named_capture_group) {
+            try prefer_named_capture_group.checkRegExpLiteral(self.allocator, self.diagnostics, ctx.tree, literal, index);
         }
         if (self.options.require_unicode_regexp) {
             try require_unicode_regexp.checkRegExpLiteralWithOptions(self.allocator, self.diagnostics, ctx.tree, literal, index, .{

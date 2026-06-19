@@ -250,6 +250,7 @@ const BUILTIN_RULE_IDS = [
   "prefer-const",
   "prefer-destructuring",
   "prefer-exponentiation-operator",
+  "prefer-named-capture-group",
   "prefer-numeric-literals",
   "prefer-object-has-own",
   "prefer-object-spread",
