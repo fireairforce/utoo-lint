@@ -1,15 +1,17 @@
 const parser = @import("parser");
 const core = @import("../core.zig");
+const std = @import("std");
 
 const ast = parser.ast;
 const traverser = parser.traverser;
-const Allocator = @import("std").mem.Allocator;
+const Allocator = std.mem.Allocator;
 
 pub const id = "@typescript-eslint/no-invalid-void-type";
 
 pub const Options = struct {
     allow_as_this_parameter: bool = false,
     allow_in_generic_type_arguments: bool = true,
+    allowed_generic_type_names: core.TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNames = .{},
 };
 
 const Ancestor = struct {
@@ -49,7 +51,10 @@ pub fn checkWithOptions(
             );
             return;
         },
-        .ts_type_parameter_instantiation => if (options.allow_in_generic_type_arguments) return,
+        .ts_type_parameter_instantiation => {
+            if (options.allow_in_generic_type_arguments) return;
+            if (allowedGenericTypeArgument(tree, parent.index, ctx.path.ancestor(parent.depth + 1), &options.allowed_generic_type_names)) return;
+        },
         .ts_type_annotation => {
             if (isReturnTypeAnnotation(tree, parent.index, ctx.path.ancestor(parent.depth + 1))) return;
             if (options.allow_as_this_parameter and isThisParameterAnnotation(tree, parent.index, ctx.path.ancestor(parent.depth + 1))) return;
@@ -100,4 +105,38 @@ fn isThisParameterAnnotation(tree: *const ast.Tree, annotation_index: ast.NodeIn
         .ts_this_parameter => |parameter| parameter.type_annotation == annotation_index,
         else => false,
     };
+}
+
+fn allowedGenericTypeArgument(
+    tree: *const ast.Tree,
+    type_arguments_index: ast.NodeIndex,
+    owner_index: ?ast.NodeIndex,
+    allowed_names: *const core.TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNames,
+) bool {
+    const owner = owner_index orelse return false;
+
+    return switch (tree.data(owner)) {
+        .ts_type_reference => |reference| reference.type_arguments == type_arguments_index and allowedGenericTypeName(tree, reference.type_name, allowed_names),
+        else => false,
+    };
+}
+
+fn allowedGenericTypeName(
+    tree: *const ast.Tree,
+    type_name_index: ast.NodeIndex,
+    allowed_names: *const core.TypescriptEslintNoInvalidVoidTypeAllowedGenericTypeNames,
+) bool {
+    const name = switch (tree.data(type_name_index)) {
+        .identifier_reference => |identifier| tree.string(identifier.name),
+        .identifier_name => |identifier| tree.string(identifier.name),
+        .ts_qualified_name => sourceText(tree, type_name_index),
+        else => return false,
+    };
+
+    return allowed_names.contains(std.mem.trim(u8, name, " \t\r\n"));
+}
+
+fn sourceText(tree: *const ast.Tree, index: ast.NodeIndex) []const u8 {
+    const span = tree.span(index);
+    return tree.source[span.start..span.end];
 }

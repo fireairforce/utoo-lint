@@ -1964,6 +1964,7 @@ const BasicVisitor = struct {
             try typescript_eslint_no_invalid_void_type.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, index, ctx, .{
                 .allow_as_this_parameter = self.options.typescript_eslint_no_invalid_void_type_allow_as_this_parameter,
                 .allow_in_generic_type_arguments = self.options.typescript_eslint_no_invalid_void_type_allow_in_generic_type_arguments,
+                .allowed_generic_type_names = self.options.typescript_eslint_no_invalid_void_type_allowed_generic_type_names,
             });
         }
         return .proceed;
