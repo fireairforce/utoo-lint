@@ -14,8 +14,9 @@ pub fn run(
     tree: *const ast.Tree,
     skip_shape_props: bool,
     ignore: *const core.ReactPropTypesIgnoreNames,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
-    var state = try react_prop_types.collect(allocator, tree);
+    var state = try react_prop_types.collectWithCustomValidators(allocator, tree, custom_validators);
     defer state.deinit(allocator);
 
     for (state.components.items) |component| {

@@ -1692,6 +1692,7 @@ pub const Options = struct {
     react_no_unused_prop_types: bool = true,
     react_no_unused_prop_types_skip_shape_props: bool = true,
     react_no_unused_prop_types_ignore: ReactPropTypesIgnoreNames = .{},
+    react_no_unused_prop_types_custom_validators: ReactPropTypesIgnoreNames = .{},
     react_no_unused_state: bool = true,
     react_no_string_refs: bool = true,
     react_no_string_refs_no_template_literals: bool = false,
@@ -2289,6 +2290,7 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "react/no-unused-prop-types")) {
             self.react_no_unused_prop_types_skip_shape_props = try reactNoUnusedPropTypesSkipShapePropsFromConfig(value);
             self.react_no_unused_prop_types_ignore = try reactPropTypesIgnoreFromConfig(value);
+            self.react_no_unused_prop_types_custom_validators = try reactPropTypesCustomValidatorsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/no-string-refs")) {
             self.react_no_string_refs_no_template_literals = try reactNoStringRefsNoTemplateLiteralsFromConfig(value);
@@ -6755,6 +6757,18 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.react_no_unused_prop_types_ignore.contains("age"));
     try std.testing.expect(options.react_no_unused_prop_types_ignore.ignoresPath("user.id"));
     try std.testing.expect(!options.react_no_unused_prop_types_ignore.contains("role"));
+    try std.testing.expect(!options.react_no_unused_prop_types_custom_validators.contains("CustomValidator"));
+
+    var react_no_unused_prop_types_custom_validators_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"customValidators\":[\"CustomValidator\"]}]",
+        .{},
+    );
+    defer react_no_unused_prop_types_custom_validators_config.deinit();
+    try options.setByRuleConfigValue("react/no-unused-prop-types", react_no_unused_prop_types_custom_validators_config.value);
+    try std.testing.expect(options.react_no_unused_prop_types_custom_validators.contains("CustomValidator"));
+    try std.testing.expect(!options.react_no_unused_prop_types_custom_validators.contains("OtherValidator"));
 
     var array_callback_return_config = try std.json.parseFromSlice(
         std.json.Value,

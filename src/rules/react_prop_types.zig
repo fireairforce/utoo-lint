@@ -137,7 +137,7 @@ pub fn collect(
     return collectWithCustomValidators(allocator, tree, &custom_validators);
 }
 
-fn collectWithCustomValidators(
+pub fn collectWithCustomValidators(
     allocator: Allocator,
     tree: *const ast.Tree,
     custom_validators: *const core.ReactPropTypesIgnoreNames,
