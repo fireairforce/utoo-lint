@@ -1003,6 +1003,7 @@ pub fn runSemantic(
             options.typescript_eslint_no_unused_vars_args,
             options.typescript_eslint_no_unused_vars_caught_errors,
             options.typescript_eslint_no_unused_vars_ignore_rest_siblings,
+            options.typescript_eslint_no_unused_vars_ignore_using_declarations,
             options.typescript_eslint_no_unused_vars_args_ignore_pattern,
             options.typescript_eslint_no_unused_vars_caught_errors_ignore_pattern,
             options.typescript_eslint_no_unused_vars_destructured_array_ignore_pattern,
