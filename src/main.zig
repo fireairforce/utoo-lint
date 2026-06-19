@@ -685,6 +685,18 @@ pub fn main(init: std.process.Init) !void {
             options.max_depth = false;
         } else if (std.mem.startsWith(u8, arg, "--max-depth-max=")) {
             parseMaxDepthMax(arg["--max-depth-max=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--max-lines=off")) {
+            options.max_lines = false;
+        } else if (std.mem.eql(u8, arg, "--max-lines=on")) {
+            options.max_lines = true;
+        } else if (std.mem.startsWith(u8, arg, "--max-lines-max=")) {
+            parseMaxLinesMax(arg["--max-lines-max=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--max-lines-skip-blank-lines=on")) {
+            options.max_lines = true;
+            options.max_lines_skip_blank_lines = true;
+        } else if (std.mem.eql(u8, arg, "--max-lines-skip-comments=on")) {
+            options.max_lines = true;
+            options.max_lines_skip_comments = true;
         } else if (std.mem.eql(u8, arg, "--max-nested-callbacks=off")) {
             options.max_nested_callbacks = false;
         } else if (std.mem.startsWith(u8, arg, "--max-nested-callbacks-max=")) {
@@ -1281,6 +1293,15 @@ fn parseMaxDepthMax(value: []const u8, options: *lint.Options) void {
     options.max_depth_max = max;
 }
 
+fn parseMaxLinesMax(value: []const u8, options: *lint.Options) void {
+    const max = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --max-lines-max value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.max_lines = true;
+    options.max_lines_max = max;
+}
+
 fn parseMaxNestedCallbacksMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --max-nested-callbacks-max value: {s}\n", .{value});
@@ -1784,6 +1805,11 @@ fn printHelp() void {
         \\  --max-classes-per-file-ignore-expressions=on Ignore class expressions
         \\  --max-depth=off           Disable max-depth
         \\  --max-depth-max=N         Set max-depth maximum
+        \\  --max-lines=on            Enable max-lines
+        \\  --max-lines=off           Disable max-lines
+        \\  --max-lines-max=N         Set max-lines maximum
+        \\  --max-lines-skip-blank-lines=on Ignore blank lines for max-lines
+        \\  --max-lines-skip-comments=on Ignore comment-only lines for max-lines
         \\  --max-nested-callbacks=off Disable max-nested-callbacks
         \\  --max-nested-callbacks-max=N Set max-nested-callbacks maximum
         \\  --max-params=off          Disable max-params

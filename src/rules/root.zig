@@ -88,6 +88,7 @@ pub const linebreak_style = @import("linebreak_style.zig");
 pub const logical_assignment_operators = @import("logical_assignment_operators.zig");
 pub const max_classes_per_file = @import("max_classes_per_file.zig");
 pub const max_depth = @import("max_depth.zig");
+pub const max_lines = @import("max_lines.zig");
 pub const max_nested_callbacks = @import("max_nested_callbacks.zig");
 pub const max_params = @import("max_params.zig");
 pub const max_statements = @import("max_statements.zig");
@@ -524,6 +525,13 @@ pub fn runBasic(
                 .unix => .unix,
                 .windows => .windows,
             },
+        });
+    }
+    if (options.max_lines) {
+        try max_lines.runWithOptions(allocator, diagnostics, tree, .{
+            .max = options.max_lines_max,
+            .skip_blank_lines = options.max_lines_skip_blank_lines,
+            .skip_comments = options.max_lines_skip_comments,
         });
     }
     if (options.no_irregular_whitespace) {
