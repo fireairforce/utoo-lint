@@ -19,6 +19,7 @@ pub const Options = struct {
     vars: core.NoUnusedVarsVars = .all,
     check_caught_errors: bool = true,
     ignore_rest_siblings: bool = false,
+    ignore_using_declarations: bool = false,
     check_type_parameters: bool = false,
     react_jsx_uses_react: bool = false,
     react_jsx_uses_vars: bool = true,
@@ -107,6 +108,11 @@ pub fn runWithOptions(
     if (options.ignore_rest_siblings) {
         var visitor = RestSiblingVisitor{ .ignored_decls = &ignored_decls };
         try traverser.basic.traverse(RestSiblingVisitor, tree, &visitor);
+    }
+
+    if (options.ignore_using_declarations) {
+        var visitor = UsingDeclarationVisitor{ .ignored_decls = &ignored_decls };
+        try traverser.basic.traverse(UsingDeclarationVisitor, tree, &visitor);
     }
 
     if (options.destructured_array_ignore_pattern.pattern() != null) {
@@ -375,6 +381,57 @@ const RestSiblingVisitor = struct {
 
     fn collectBinding(
         self: *RestSiblingVisitor,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!void {
+        if (index == .null) return;
+
+        switch (ctx.tree.data(index)) {
+            .binding_identifier => try self.ignored_decls.put(index, {}),
+            .assignment_pattern => |assignment| try self.collectBinding(assignment.left, ctx),
+            .binding_rest_element => |rest| try self.collectBinding(rest.argument, ctx),
+            .array_pattern => |array| {
+                for (ctx.tree.extra(array.elements)) |element| {
+                    try self.collectBinding(element, ctx);
+                }
+                try self.collectBinding(array.rest, ctx);
+            },
+            .object_pattern => |object| {
+                for (ctx.tree.extra(object.properties)) |property_index| {
+                    const property = ctx.tree.data(property_index).binding_property;
+                    try self.collectBinding(property.value, ctx);
+                }
+                try self.collectBinding(object.rest, ctx);
+            },
+            else => {},
+        }
+    }
+};
+
+const UsingDeclarationVisitor = struct {
+    ignored_decls: *IgnoredDecls,
+
+    pub fn enter_variable_declaration(
+        self: *UsingDeclarationVisitor,
+        declaration: ast.VariableDeclaration,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (declaration.kind != .using and declaration.kind != .await_using) return .proceed;
+
+        for (ctx.tree.extra(declaration.declarators)) |declarator_index| {
+            const declarator = switch (ctx.tree.data(declarator_index)) {
+                .variable_declarator => |declarator| declarator,
+                else => continue,
+            };
+            try self.collectBinding(declarator.id, ctx);
+        }
+
+        return .proceed;
+    }
+
+    fn collectBinding(
+        self: *UsingDeclarationVisitor,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!void {

@@ -156,6 +156,40 @@ test "supports configured no-unused-vars ignoreRestSiblings" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unused_vars.id));
 }
 
+test "supports configured no-unused-vars ignoreUsingDeclarations" {
+    const source =
+        \\using resource = acquire();
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_undef = false,
+        .typescript_eslint_no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(default_result, lint.rules.no_unused_vars.id));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreUsingDeclarations\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("no-unused-vars", config.value);
+    options.no_undef = false;
+    options.typescript_eslint_no_unused_vars = false;
+    options.parser_semantic_errors = false;
+
+    var ignored_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer ignored_result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(ignored_result, lint.rules.no_unused_vars.id));
+}
+
 test "supports configured no-unused-vars varsIgnorePattern" {
     var config = try std.json.parseFromSlice(
         std.json.Value,
