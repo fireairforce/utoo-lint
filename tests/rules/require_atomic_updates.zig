@@ -39,6 +39,35 @@ test "reports require-atomic-updates for stale property writes after await" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.require_atomic_updates.id));
 }
 
+test "supports configured require-atomic-updates allowProperties" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowProperties\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("require-atomic-updates", config.value);
+
+    const source =
+        \\let total = 0;
+        \\async function update(obj, value) {
+        \\  total += await value;
+        \\  obj.count += await value;
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.require_atomic_updates.id));
+}
+
 test "reports require-atomic-updates across yield in generators" {
     const source =
         \\let total = 0;

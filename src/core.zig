@@ -1611,6 +1611,7 @@ pub const Options = struct {
     radix_style: RadixStyle = .always,
     require_await: bool = true,
     require_atomic_updates: bool = true,
+    require_atomic_updates_allow_properties: bool = false,
     require_yield: bool = true,
     spaced_comment: bool = true,
     spaced_comment_style: SpacedCommentStyle = .always,
@@ -2059,6 +2060,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "radix")) {
             self.radix_style = try radixStyleFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "require-atomic-updates")) {
+            self.require_atomic_updates_allow_properties = try requireAtomicUpdatesBoolOptionFromConfig(value, "allowProperties", false);
         }
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
             self.no_return_assign_style = try noReturnAssignStyleFromConfig(value);
@@ -4025,6 +4029,23 @@ pub const Options = struct {
         };
         const option = config.get(key) orelse return default;
         return switch (option) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn requireAtomicUpdatesBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
@@ -7168,6 +7189,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("radix", radix_config.value);
     try std.testing.expect(options.radix);
     try std.testing.expectEqual(RadixStyle.as_needed, options.radix_style);
+
+    var require_atomic_updates_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowProperties\":true}]",
+        .{},
+    );
+    defer require_atomic_updates_config.deinit();
+    try options.setByRuleConfigValue("require-atomic-updates", require_atomic_updates_config.value);
+    try std.testing.expect(options.require_atomic_updates);
+    try std.testing.expect(options.require_atomic_updates_allow_properties);
 
     var no_useless_rename_config = try std.json.parseFromSlice(
         std.json.Value,

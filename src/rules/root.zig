@@ -969,7 +969,9 @@ pub fn runSemantic(
     }
 
     if (options.require_atomic_updates) {
-        try require_atomic_updates.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+        try require_atomic_updates.run(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .allow_properties = options.require_atomic_updates_allow_properties,
+        });
     }
 
     if (options.no_unused_vars and !options.typescript_eslint_no_unused_vars) {
