@@ -121,8 +121,9 @@ pub fn run(
     tree: *const ast.Tree,
     skip_undeclared: bool,
     ignore: *const core.ReactPropTypesIgnoreNames,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
-    var state = try collect(allocator, tree);
+    var state = try collectWithCustomValidators(allocator, tree, custom_validators);
     defer state.deinit(allocator);
 
     try finish(allocator, diagnostics, tree, &state, skip_undeclared, ignore);
@@ -132,10 +133,19 @@ pub fn collect(
     allocator: Allocator,
     tree: *const ast.Tree,
 ) Allocator.Error!State {
+    const custom_validators = core.ReactPropTypesIgnoreNames{};
+    return collectWithCustomValidators(allocator, tree, &custom_validators);
+}
+
+fn collectWithCustomValidators(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
+) Allocator.Error!State {
     var state = State{};
     errdefer state.deinit(allocator);
 
-    try collectComponents(allocator, tree, &state);
+    try collectComponents(allocator, tree, &state, custom_validators);
 
     var visitor = UsageVisitor{
         .allocator = allocator,
@@ -152,6 +162,7 @@ fn collectComponents(
     allocator: Allocator,
     tree: *const ast.Tree,
     state: *State,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
     const program = switch (tree.data(tree.root)) {
         .program => |program| program,
@@ -159,7 +170,7 @@ fn collectComponents(
     };
 
     for (tree.extra(program.body)) |statement_index| {
-        try collectTopLevelDeclaration(allocator, tree, statement_index, state);
+        try collectTopLevelDeclaration(allocator, tree, statement_index, state, custom_validators);
     }
 }
 
@@ -168,25 +179,26 @@ fn collectTopLevelDeclaration(
     tree: *const ast.Tree,
     statement_index: ast.NodeIndex,
     state: *State,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
     switch (tree.data(statement_index)) {
         .function => |function| try collectFunctionDeclaration(allocator, tree, function, statement_index, state),
-        .class => |class| try collectClassDeclaration(allocator, tree, class, statement_index, state),
+        .class => |class| try collectClassDeclaration(allocator, tree, class, statement_index, state, custom_validators),
         .variable_declaration => |declaration| {
             for (tree.extra(declaration.declarators)) |declarator_index| {
                 const declarator = switch (tree.data(declarator_index)) {
                     .variable_declarator => |declarator| declarator,
                     else => continue,
                 };
-                try collectVariableDeclarator(allocator, tree, declarator, declarator_index, state);
+                try collectVariableDeclarator(allocator, tree, declarator, declarator_index, state, custom_validators);
             }
         },
-        .expression_statement => |statement| try collectExpressionStatement(allocator, tree, statement.expression, state),
+        .expression_statement => |statement| try collectExpressionStatement(allocator, tree, statement.expression, state, custom_validators),
         .export_named_declaration => |declaration| {
-            if (declaration.declaration != .null) try collectTopLevelDeclaration(allocator, tree, declaration.declaration, state);
+            if (declaration.declaration != .null) try collectTopLevelDeclaration(allocator, tree, declaration.declaration, state, custom_validators);
         },
         .export_default_declaration => |declaration| {
-            if (declaration.declaration != .null) try collectTopLevelDeclaration(allocator, tree, declaration.declaration, state);
+            if (declaration.declaration != .null) try collectTopLevelDeclaration(allocator, tree, declaration.declaration, state, custom_validators);
         },
         else => {},
     }
@@ -212,12 +224,13 @@ fn collectClassDeclaration(
     class: ast.Class,
     index: ast.NodeIndex,
     state: *State,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
     if (!isComponentClass(tree, class)) return;
     const name = bindingIdentifierName(tree, class.id) orelse return;
     const component_index = try state.ensureComponent(allocator, name, index, true);
     try appendNode(allocator, &state.components.items[component_index].class_nodes, index);
-    try collectClassPropTypes(allocator, tree, class, component_index, state);
+    try collectClassPropTypes(allocator, tree, class, component_index, state, custom_validators);
 }
 
 fn collectVariableDeclarator(
@@ -226,6 +239,7 @@ fn collectVariableDeclarator(
     declarator: ast.VariableDeclarator,
     index: ast.NodeIndex,
     state: *State,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
     const name = bindingIdentifierName(tree, declarator.id) orelse return;
     if (!startsUppercase(name) or declarator.init == .null) return;
@@ -241,7 +255,7 @@ fn collectVariableDeclarator(
             if (isCreateReactClassCall(tree, call)) {
                 const object = createClassObject(tree, call) orelse return;
                 const component_index = try state.ensureComponent(allocator, name, index, true);
-                try collectCreateClassPropTypes(allocator, tree, object, component_index, state);
+                try collectCreateClassPropTypes(allocator, tree, object, component_index, state, custom_validators);
                 return;
             }
 
@@ -259,6 +273,7 @@ fn collectExpressionStatement(
     tree: *const ast.Tree,
     expression_index: ast.NodeIndex,
     state: *State,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
     const assignment = switch (tree.data(unwrapTransparent(tree, expression_index))) {
         .assignment_expression => |assignment| assignment,
@@ -269,9 +284,9 @@ fn collectExpressionStatement(
     const target = propTypesAssignmentTarget(tree, assignment.left) orelse return;
     const component_index = try state.ensureComponent(allocator, target.component, assignment.left, false);
     if (target.prop) |prop| {
-        try addDeclaredPropValue(allocator, tree, &state.components.items[component_index].declared_props, prop, assignment.left, assignment.right);
+        try addDeclaredPropValue(allocator, tree, &state.components.items[component_index].declared_props, prop, assignment.left, assignment.right, custom_validators);
     } else {
-        try collectPropTypesObject(allocator, tree, assignment.right, component_index, state);
+        try collectPropTypesObject(allocator, tree, assignment.right, component_index, state, custom_validators);
     }
 }
 
@@ -281,6 +296,7 @@ fn collectClassPropTypes(
     class: ast.Class,
     component_index: usize,
     state: *State,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
     const body = switch (tree.data(class.body)) {
         .class_body => |body| body,
@@ -295,7 +311,7 @@ fn collectClassPropTypes(
         if (!property.static) continue;
         const key = propertyName(tree, property.key, property.computed) orelse continue;
         if (!std.mem.eql(u8, key, "propTypes")) continue;
-        try collectPropTypesObject(allocator, tree, property.value, component_index, state);
+        try collectPropTypesObject(allocator, tree, property.value, component_index, state, custom_validators);
     }
 }
 
@@ -305,6 +321,7 @@ fn collectCreateClassPropTypes(
     object: ast.ObjectExpression,
     component_index: usize,
     state: *State,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
     for (tree.extra(object.properties)) |property_index| {
         const property = switch (tree.data(property_index)) {
@@ -313,7 +330,7 @@ fn collectCreateClassPropTypes(
         };
         const key = propertyName(tree, property.key, property.computed) orelse continue;
         if (!std.mem.eql(u8, key, "propTypes")) continue;
-        try collectPropTypesObject(allocator, tree, property.value, component_index, state);
+        try collectPropTypesObject(allocator, tree, property.value, component_index, state, custom_validators);
     }
 }
 
@@ -323,6 +340,7 @@ fn collectPropTypesObject(
     value: ast.NodeIndex,
     component_index: usize,
     state: *State,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
     const object = switch (tree.data(unwrapTransparent(tree, value))) {
         .object_expression => |object| object,
@@ -340,6 +358,7 @@ fn collectPropTypesObject(
                     name,
                     property_index,
                     property.value,
+                    custom_validators,
                 );
             },
             else => {},
@@ -354,6 +373,7 @@ fn addDeclaredPropValue(
     name: []const u8,
     node: ast.NodeIndex,
     value: ast.NodeIndex,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
     var prop = try ensureDeclaredProp(allocator, props, name, node);
     const target = stripIsRequired(tree, value);
@@ -365,6 +385,11 @@ fn addDeclaredPropValue(
     }
 
     if (propTypeCall(tree, target)) |call| {
+        if (isCustomValidatorCall(tree, call, custom_validators)) {
+            prop.accepts_any_children = true;
+            return;
+        }
+
         const callee_name = propTypeTargetName(tree, call.callee) orelse return;
         if (acceptsAnyChildren(callee_name)) {
             prop.accepts_any_children = true;
@@ -374,15 +399,19 @@ fn addDeclaredPropValue(
             prop.kind = if (std.mem.eql(u8, callee_name, "shape")) .shape else .exact;
             const arguments = tree.extra(call.arguments);
             if (arguments.len == 0) return;
-            try collectShapeChildren(allocator, tree, arguments[0], prop);
+            try collectShapeChildren(allocator, tree, arguments[0], prop, custom_validators);
         } else if (std.mem.eql(u8, callee_name, "arrayOf") or std.mem.eql(u8, callee_name, "objectOf")) {
             const arguments = tree.extra(call.arguments);
             if (arguments.len == 0) return;
             const child_call = propTypeCall(tree, stripIsRequired(tree, arguments[0])) orelse return;
+            if (isCustomValidatorCall(tree, child_call, custom_validators)) {
+                prop.accepts_any_children = true;
+                return;
+            }
             const child_name = propTypeTargetName(tree, child_call.callee) orelse return;
             if (std.mem.eql(u8, child_name, "shape") or std.mem.eql(u8, child_name, "exact")) {
                 const child_arguments = tree.extra(child_call.arguments);
-                if (child_arguments.len > 0) try collectShapeChildren(allocator, tree, child_arguments[0], prop);
+                if (child_arguments.len > 0) try collectShapeChildren(allocator, tree, child_arguments[0], prop, custom_validators);
             } else if (acceptsAnyChildren(child_name)) {
                 prop.accepts_any_children = true;
             }
@@ -395,6 +424,7 @@ fn collectShapeChildren(
     tree: *const ast.Tree,
     value: ast.NodeIndex,
     parent: *DeclaredProp,
+    custom_validators: *const core.ReactPropTypesIgnoreNames,
 ) Allocator.Error!void {
     const object = switch (tree.data(unwrapTransparent(tree, value))) {
         .object_expression => |object| object,
@@ -407,8 +437,17 @@ fn collectShapeChildren(
             else => continue,
         };
         const name = propertyName(tree, property.key, property.computed) orelse continue;
-        try addDeclaredPropValue(allocator, tree, &parent.children, name, property_index, property.value);
+        try addDeclaredPropValue(allocator, tree, &parent.children, name, property_index, property.value, custom_validators);
     }
+}
+
+fn isCustomValidatorCall(tree: *const ast.Tree, call: ast.CallExpression, custom_validators: *const core.ReactPropTypesIgnoreNames) bool {
+    const member = switch (tree.data(unwrapTransparent(tree, call.callee))) {
+        .member_expression => |member| member,
+        else => return false,
+    };
+    const object_name = identifierReferenceName(tree, member.object) orelse return false;
+    return custom_validators.contains(object_name);
 }
 
 fn ensureDeclaredProp(
