@@ -298,6 +298,7 @@ pub const require_atomic_updates = @import("require_atomic_updates.zig");
 pub const require_unicode_regexp = @import("require_unicode_regexp.zig");
 const reassignment_rules = @import("reassignment_rules.zig");
 pub const require_yield = @import("require_yield.zig");
+pub const sort_vars = @import("sort_vars.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_adjacent_overload_signatures = @import("typescript_eslint_adjacent_overload_signatures.zig");
@@ -2686,6 +2687,11 @@ const BasicVisitor = struct {
                 .check_var = self.options.one_var_check_var,
                 .check_let = self.options.one_var_check_let,
                 .check_const = self.options.one_var_check_const,
+            });
+        }
+        if (self.options.sort_vars) {
+            try sort_vars.checkVariableDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, .{
+                .ignore_case = self.options.sort_vars_ignore_case,
             });
         }
         if (self.options.typescript_eslint_typedef and (self.options.typescript_eslint_typedef_variable_declaration or

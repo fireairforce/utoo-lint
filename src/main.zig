@@ -857,6 +857,13 @@ pub fn main(init: std.process.Init) !void {
             options.require_unicode_regexp_require_flag = .v;
         } else if (std.mem.eql(u8, arg, "--require-yield=off")) {
             options.require_yield = false;
+        } else if (std.mem.eql(u8, arg, "--sort-vars=on")) {
+            options.sort_vars = true;
+        } else if (std.mem.eql(u8, arg, "--sort-vars=off")) {
+            options.sort_vars = false;
+        } else if (std.mem.eql(u8, arg, "--sort-vars-ignore-case=on")) {
+            options.sort_vars = true;
+            options.sort_vars_ignore_case = true;
         } else if (std.mem.eql(u8, arg, "--spaced-comment=off")) {
             options.spaced_comment = false;
         } else if (std.mem.eql(u8, arg, "--spaced-comment=never")) {
@@ -2024,6 +2031,9 @@ fn printHelp() void {
         \\  --require-unicode-regexp-require-flag=u Require the u flag for regexps
         \\  --require-unicode-regexp-require-flag=v Require the v flag for regexps
         \\  --require-yield=off       Disable require-yield
+        \\  --sort-vars=on            Enable sort-vars
+        \\  --sort-vars=off           Disable sort-vars
+        \\  --sort-vars-ignore-case=on Enable sort-vars and ignore case
         \\  --spaced-comment=off      Disable spaced-comment
         \\  --spaced-comment=never    Disallow spacing after comment markers
         \\  --symbol-description=off  Disable symbol-description

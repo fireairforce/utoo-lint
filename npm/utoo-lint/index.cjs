@@ -260,6 +260,7 @@ const BUILTIN_RULE_IDS = [
   "require-await",
   "require-atomic-updates",
   "require-yield",
+  "sort-vars",
   "spaced-comment",
   "symbol-description",
   "unicode-bom",

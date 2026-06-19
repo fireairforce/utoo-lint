@@ -899,6 +899,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/sort_vars.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_const.zig");
 }
 
