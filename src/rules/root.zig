@@ -1051,6 +1051,7 @@ pub fn runSemantic(
                 .any => .any,
                 .all => .all,
             },
+            .ignore_read_before_assign = options.prefer_const_ignore_read_before_assign,
         });
     }
 }

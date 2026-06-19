@@ -1512,6 +1512,7 @@ pub const Options = struct {
     no_undef_typeof: bool = false,
     prefer_const: bool = true,
     prefer_const_destructuring: PreferConstDestructuring = .any,
+    prefer_const_ignore_read_before_assign: bool = true,
     prefer_exponentiation_operator: bool = true,
     prefer_numeric_literals: bool = true,
     prefer_object_has_own: bool = true,
@@ -2041,6 +2042,7 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "prefer-const")) {
             self.prefer_const_destructuring = try preferConstDestructuringFromConfig(value);
+            self.prefer_const_ignore_read_before_assign = try preferConstBoolOptionFromConfig(value, "ignoreReadBeforeAssign", true);
         }
         if (std.mem.eql(u8, cli_name, "prefer-destructuring")) {
             self.prefer_destructuring_variable_declarator_array = try preferDestructuringOptionFromConfig(value, "VariableDeclarator", "array", true);
@@ -4008,6 +4010,24 @@ pub const Options = struct {
         if (std.mem.eql(u8, destructuring, "any")) return .any;
         if (std.mem.eql(u8, destructuring, "all")) return .all;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    fn preferConstBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const option = config.get(key) orelse return default;
+        return switch (option) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
     }
 
     fn preferDestructuringOptionFromConfig(
@@ -7067,13 +7087,14 @@ test "Options can apply ESLint-style rule config values" {
     var prefer_const_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"destructuring\":\"all\"}]",
+        "[\"error\",{\"destructuring\":\"all\",\"ignoreReadBeforeAssign\":false}]",
         .{},
     );
     defer prefer_const_config.deinit();
     try options.setByRuleConfigValue("prefer-const", prefer_const_config.value);
     try std.testing.expect(options.prefer_const);
     try std.testing.expectEqual(PreferConstDestructuring.all, options.prefer_const_destructuring);
+    try std.testing.expect(!options.prefer_const_ignore_read_before_assign);
 
     var prefer_destructuring_config = try std.json.parseFromSlice(
         std.json.Value,
