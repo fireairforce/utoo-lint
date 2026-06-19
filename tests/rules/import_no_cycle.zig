@@ -99,6 +99,79 @@ test "supports configured import/no-cycle maxDepth option" {
     try std.testing.expectEqualStrings("Dependency cycle detected.", ruleDiagnostic(result, 0).message);
 }
 
+test "supports configured import/no-cycle commonjs dependencies" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.createDirPath(std.testing.io, "src");
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/direct.js",
+        .data = "const entry = require('./entry');\nmodule.exports = entry;\n",
+    });
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/middle.js",
+        .data = "const leaf = require('./leaf');\nmodule.exports = leaf;\n",
+    });
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/leaf.js",
+        .data = "const entry = require('./entry');\nmodule.exports = entry;\n",
+    });
+
+    const source =
+        \\const direct = require('./direct');
+        \\const middle = require('./middle');
+        \\module.exports = direct + middle;
+    ;
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/entry.js",
+        .data = source,
+    });
+    const file_path = try fixturePath(&tmp, "entry.js");
+    defer std.testing.allocator.free(file_path);
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"commonjs\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = baseOptions();
+    try options.setByRuleConfigValue("import/no-cycle", config.value);
+
+    var result = try lint.lintSourceWithIo(std.testing.allocator, std.testing.io, source, file_path, options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.import_no_cycle.id));
+    try std.testing.expectEqualStrings("Dependency cycle detected.", ruleDiagnostic(result, 0).message);
+    try std.testing.expectEqualStrings("Dependency cycle via ./leaf:1", ruleDiagnostic(result, 1).message);
+}
+
+test "allows import/no-cycle commonjs dependencies by default" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.createDirPath(std.testing.io, "src");
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/direct.js",
+        .data = "const entry = require('./entry');\nmodule.exports = entry;\n",
+    });
+
+    const source = "const direct = require('./direct');\nmodule.exports = direct;\n";
+    try tmp.dir.writeFile(std.testing.io, .{
+        .sub_path = "src/entry.js",
+        .data = source,
+    });
+    const file_path = try fixturePath(&tmp, "entry.js");
+    defer std.testing.allocator.free(file_path);
+
+    var result = try lint.lintSourceWithIo(std.testing.allocator, std.testing.io, source, file_path, baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.import_no_cycle.id));
+}
+
 test "ignores import/no-cycle type imports unresolved modules and self imports" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -183,12 +256,16 @@ fn baseOptions() lint.Options {
 }
 
 fn entryPath(tmp: *std.testing.TmpDir) ![]u8 {
+    return fixturePath(tmp, "entry.ts");
+}
+
+fn fixturePath(tmp: *std.testing.TmpDir, name: []const u8) ![]u8 {
     return std.fs.path.resolve(std.testing.allocator, &.{
         ".zig-cache",
         "tmp",
         &tmp.sub_path,
         "src",
-        "entry.ts",
+        name,
     });
 }
 
