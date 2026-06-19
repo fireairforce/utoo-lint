@@ -62,6 +62,50 @@ test "supports configured react/forbid-prop-types forbid list" {
     try std.testing.expect(hasMessage(result, "Prop type \"array\" is forbidden"));
 }
 
+test "supports configured react/forbid-prop-types context type checks" {
+    const source =
+        \\class View extends React.Component {
+        \\  static contextTypes = {
+        \\    anyValue: PropTypes.any,
+        \\  };
+        \\}
+        \\View.childContextTypes = {
+        \\  objectValue: PropTypes.object,
+        \\};
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(default_result, lint.rules.react_forbid_prop_types.id));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"checkContextTypes\":true,\"checkChildContextTypes\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("react/forbid-prop-types", config.value);
+
+    var configured_result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", options);
+    defer configured_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(configured_result, lint.rules.react_forbid_prop_types.id));
+    try std.testing.expect(hasMessage(configured_result, "Prop type \"any\" is forbidden"));
+    try std.testing.expect(hasMessage(configured_result, "Prop type \"object\" is forbidden"));
+}
+
 test "reports react/forbid-prop-types in assignments and variable references" {
     const source =
         \\const declaredTypes = {

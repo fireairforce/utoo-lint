@@ -16,6 +16,8 @@ pub const Options = struct {
     forbid_any: bool = true,
     forbid_array: bool = true,
     forbid_object: bool = true,
+    check_context_types: bool = false,
+    check_child_context_types: bool = false,
 };
 
 pub const State = struct {
@@ -74,7 +76,7 @@ pub fn checkPropertyDefinition(
     state: State,
     options: Options,
 ) Allocator.Error!void {
-    if (!isPropTypesKey(tree, property.key, property.computed)) return;
+    if (!isCheckedTypesKey(tree, property.key, property.computed, options)) return;
     try checkNode(allocator, diagnostics, tree, property.value, state, options);
 }
 
@@ -90,7 +92,7 @@ pub fn checkAssignmentExpression(
         .member_expression => |member| member,
         else => return,
     };
-    if (!isPropTypesKey(tree, member.property, member.computed)) return;
+    if (!isCheckedTypesKey(tree, member.property, member.computed, options)) return;
     try checkNode(allocator, diagnostics, tree, expression.right, state, options);
 }
 
@@ -107,7 +109,7 @@ pub fn checkObjectExpression(
             .object_property => |property| property,
             else => continue,
         };
-        if (!isPropTypesKey(tree, property.key, property.computed)) continue;
+        if (!isCheckedTypesKey(tree, property.key, property.computed, options)) continue;
         try checkNode(allocator, diagnostics, tree, property.value, state, options);
     }
 }
@@ -120,7 +122,7 @@ pub fn checkMethodDefinition(
     state: State,
     options: Options,
 ) Allocator.Error!void {
-    if (!isPropTypesKey(tree, method.key, method.computed)) return;
+    if (!isCheckedTypesKey(tree, method.key, method.computed, options)) return;
     const argument = returnArgument(tree, method.value) orelse return;
     try checkNode(allocator, diagnostics, tree, argument, state, options);
 }
@@ -377,9 +379,11 @@ fn returnArgumentFromStatement(tree: *const ast.Tree, statement: ast.NodeIndex) 
     }
 }
 
-fn isPropTypesKey(tree: *const ast.Tree, key: ast.NodeIndex, computed: bool) bool {
+fn isCheckedTypesKey(tree: *const ast.Tree, key: ast.NodeIndex, computed: bool, options: Options) bool {
     const name = propertyName(tree, key, computed) orelse return false;
-    return std.mem.eql(u8, name, "propTypes");
+    return std.mem.eql(u8, name, "propTypes") or
+        (options.check_context_types and std.mem.eql(u8, name, "contextTypes")) or
+        (options.check_child_context_types and std.mem.eql(u8, name, "childContextTypes"));
 }
 
 fn callExpression(tree: *const ast.Tree, node: ast.NodeIndex) ?ast.CallExpression {
