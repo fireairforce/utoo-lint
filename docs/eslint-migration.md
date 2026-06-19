@@ -27,9 +27,9 @@ npx utoo-lint migrate eslint --from eslint.config.js --output utoo.json
 
 The generated config is a native `utoo-lint` config, not an ESLint config
 executed through a compatibility layer. The migrator copies supported rule
-severities, keeps `files` and `ignores` patterns, skips formatter-only rules
-such as `prettier/prettier`, and reports unsupported rules that still need a
-native utoo rule or a deliberate replacement.
+configs, keeps `files` and `ignores` patterns, skips formatter-only rules such
+as `prettier/prettier`, and reports unsupported rules that still need a native
+utoo rule or a deliberate replacement.
 
 For a preview without writing a file:
 
@@ -37,9 +37,9 @@ For a preview without writing a file:
 npx utoo-lint migrate eslint --print --report=json
 ```
 
-Rule-specific ESLint options are not interpreted by `utoo-lint` yet. When a rule
-uses an array config, the migrator keeps the severity and reports that the rule
-options were dropped.
+Rule values are preserved in the generated native config, including arrays such
+as `["error", { ...options }]`. Native utoo rules consume the options they
+support; unsupported rules are reported instead of being copied.
 
 ## Add a Config File
 
@@ -73,7 +73,7 @@ Rule values support the common ESLint forms:
 
 - `"off"`, `0`, or `false` disable a rule.
 - `"warn"`, `"error"`, `1`, `2`, or `true` enable a rule.
-- Arrays such as `["error", { ...options }]` use the first item as severity. Rule-specific options are not interpreted yet.
+- Arrays such as `["error", { ...options }]` use the first item as severity and pass supported options to the native rule implementation.
 
 CLI flags are applied after config files, so command-line toggles override config:
 

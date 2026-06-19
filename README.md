@@ -91,7 +91,8 @@ directory or its ancestors. Use `--config=path/to/utoo.json` for an explicit fil
 ```
 
 Rule values may be `off`, `warn`, `error`, `0`, `1`, `2`, booleans, or an
-ESLint-style array whose first item is the severity.
+ESLint-style array whose first item is the severity and later items are native
+rule options.
 
 To migrate an existing ESLint config into the native utoo format:
 
