@@ -3160,7 +3160,10 @@ const BasicVisitor = struct {
             try jsx_a11y_iframe_has_title.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
         }
         if (self.options.jsx_a11y_img_redundant_alt) {
-            try jsx_a11y_img_redundant_alt.check(self.allocator, self.diagnostics, ctx.tree, opening, index);
+            try jsx_a11y_img_redundant_alt.check(self.allocator, self.diagnostics, ctx.tree, opening, index, .{
+                .components = self.options.jsx_a11y_img_redundant_alt_components,
+                .words = self.options.jsx_a11y_img_redundant_alt_words,
+            });
         }
         if (self.options.alipay_ant_prefer_safe_image_renderer) {
             try alipay_ant_prefer_safe_image_renderer.check(self.allocator, self.diagnostics, ctx.tree, opening);

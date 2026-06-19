@@ -47,6 +47,43 @@ test "allows jsx-a11y/img-redundant-alt non-redundant hidden or dynamic alt text
     try std.testing.expect(!helpers.hasRule(result, lint.rules.jsx_a11y_img_redundant_alt.id));
 }
 
+test "supports configured jsx-a11y/img-redundant-alt components and words" {
+    const source =
+        \\const one = <Image alt="Bild von profile" />;
+        \\const two = <img alt="Bild von profile" />;
+        \\const three = <Avatar alt="Bild von profile" />;
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(default_result, lint.rules.jsx_a11y_img_redundant_alt.id));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"components\":[\"Image\"],\"words\":[\"Bild\"]}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("jsx-a11y/img-redundant-alt", config.value);
+
+    var configured_result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", options);
+    defer configured_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(configured_result, lint.rules.jsx_a11y_img_redundant_alt.id));
+}
+
 test "can disable jsx-a11y/img-redundant-alt" {
     const source =
         \\const node = <img alt="image" />;
