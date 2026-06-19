@@ -637,6 +637,10 @@ pub fn main(init: std.process.Init) !void {
             options.max_depth = false;
         } else if (std.mem.startsWith(u8, arg, "--max-depth-max=")) {
             parseMaxDepthMax(arg["--max-depth-max=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--max-nested-callbacks=off")) {
+            options.max_nested_callbacks = false;
+        } else if (std.mem.startsWith(u8, arg, "--max-nested-callbacks-max=")) {
+            parseMaxNestedCallbacksMax(arg["--max-nested-callbacks-max=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--max-params=off")) {
             options.max_params = false;
         } else if (std.mem.startsWith(u8, arg, "--max-params-max=")) {
@@ -1191,6 +1195,14 @@ fn parseMaxDepthMax(value: []const u8, options: *lint.Options) void {
     options.max_depth_max = max;
 }
 
+fn parseMaxNestedCallbacksMax(value: []const u8, options: *lint.Options) void {
+    const max = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --max-nested-callbacks-max value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.max_nested_callbacks_max = max;
+}
+
 fn parseMaxParamsMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --max-params-max value: {s}\n", .{value});
@@ -1674,6 +1686,8 @@ fn printHelp() void {
         \\  --logical-assignment-operators-enforce-for-if-statements=on Enable logical-assignment-operators if-statement checks
         \\  --max-depth=off           Disable max-depth
         \\  --max-depth-max=N         Set max-depth maximum
+        \\  --max-nested-callbacks=off Disable max-nested-callbacks
+        \\  --max-nested-callbacks-max=N Set max-nested-callbacks maximum
         \\  --max-params=off          Disable max-params
         \\  --max-params-max=N        Set max-params maximum
         \\  --max-statements=off      Disable max-statements

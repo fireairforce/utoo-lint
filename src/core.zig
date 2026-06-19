@@ -1506,6 +1506,8 @@ pub const Options = struct {
     logical_assignment_operators_enforce_for_if_statements: LogicalAssignmentOperatorsEnforceForIfStatements = .no,
     max_depth: bool = true,
     max_depth_max: usize = 4,
+    max_nested_callbacks: bool = true,
+    max_nested_callbacks_max: usize = 10,
     max_params: bool = true,
     max_params_max: usize = 3,
     max_params_count_this: MaxParamsCountThis = .except_void,
@@ -2267,6 +2269,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "max-depth")) {
             self.max_depth_max = try maxDepthMaxFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "max-nested-callbacks")) {
+            self.max_nested_callbacks_max = try maxNestedCallbacksMaxFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "max-params")) {
             self.max_params_max = try maxParamsMaxFromConfig(value);
@@ -3855,6 +3860,36 @@ pub const Options = struct {
                     return nonNegativeIntegerToUsize(max);
                 }
                 return 4;
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+    }
+
+    fn maxNestedCallbacksMaxFromConfig(value: std.json.Value) RuleConfigError!usize {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return 10,
+        };
+        if (items.len < 2) return 10;
+
+        switch (items[1]) {
+            .integer => |max| return nonNegativeIntegerToUsize(max),
+            .object => |object| {
+                if (object.get("maximum")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                if (object.get("max")) |max_value| {
+                    const max = switch (max_value) {
+                        .integer => |max| max,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    return nonNegativeIntegerToUsize(max);
+                }
+                return 10;
             },
             else => return error.UnsupportedRuleConfigValue,
         }

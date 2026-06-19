@@ -279,6 +279,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/max_nested_callbacks.zig");
+}
+
+comptime {
     _ = @import("rules/max_params.zig");
 }
 
