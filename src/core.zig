@@ -1476,6 +1476,7 @@ pub const Options = struct {
     import_newline_after_import_consider_comments: bool = false,
     import_no_amd: bool = true,
     import_no_cycle: bool = true,
+    import_no_cycle_amd: bool = false,
     import_no_cycle_commonjs: bool = false,
     import_no_cycle_max_depth: usize = 1024,
     import_no_duplicates: bool = true,
@@ -2079,6 +2080,7 @@ pub const Options = struct {
             self.logical_assignment_operators_enforce_for_if_statements = try logicalAssignmentOperatorsEnforceForIfStatementsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "import/no-cycle")) {
+            self.import_no_cycle_amd = try importNoCycleBoolOptionFromConfig(value, "amd", false);
             self.import_no_cycle_commonjs = try importNoCycleBoolOptionFromConfig(value, "commonjs", false);
             self.import_no_cycle_max_depth = try importNoCycleMaxDepthFromConfig(value);
         }
@@ -6710,6 +6712,7 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.import_no_cycle);
     try std.testing.expect(options.setByCliName("import/no-cycle", true));
     try std.testing.expect(options.import_no_cycle);
+    try std.testing.expect(!options.import_no_cycle_amd);
     try std.testing.expect(!options.import_no_cycle_commonjs);
     try std.testing.expectEqual(@as(usize, 1024), options.import_no_cycle_max_depth);
 
@@ -7220,12 +7223,13 @@ test "Options can apply ESLint-style rule config values" {
     var import_no_cycle_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
-        "[\"error\",{\"commonjs\":true,\"maxDepth\":1}]",
+        "[\"error\",{\"amd\":true,\"commonjs\":true,\"maxDepth\":1}]",
         .{},
     );
     defer import_no_cycle_config.deinit();
     try options.setByRuleConfigValue("import/no-cycle", import_no_cycle_config.value);
     try std.testing.expect(options.import_no_cycle);
+    try std.testing.expect(options.import_no_cycle_amd);
     try std.testing.expect(options.import_no_cycle_commonjs);
     try std.testing.expectEqual(@as(usize, 1), options.import_no_cycle_max_depth);
 

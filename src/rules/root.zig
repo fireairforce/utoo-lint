@@ -706,6 +706,7 @@ pub fn runSemantic(
                 tree,
                 file_path,
                 .{
+                    .amd = options.import_no_cycle_amd,
                     .commonjs = options.import_no_cycle_commonjs,
                     .max_depth = options.import_no_cycle_max_depth,
                 },
