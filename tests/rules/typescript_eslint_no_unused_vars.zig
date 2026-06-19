@@ -112,6 +112,51 @@ test "supports configured @typescript-eslint/no-unused-vars ignoreUsingDeclarati
     try std.testing.expect(!helpers.hasRule(ignored_result, lint.rules.no_unused_vars.id));
 }
 
+test "supports configured @typescript-eslint/no-unused-vars ignoreClassWithStaticInitBlock" {
+    const source =
+        \\class IgnoredWithStatic {
+        \\  static {
+        \\    const stillReported: number = 1;
+        \\    setup();
+        \\  }
+        \\}
+        \\const reportedExpression = class {
+        \\  static {
+        \\    setup();
+        \\  }
+        \\};
+        \\class ReportedPlain {}
+    ;
+
+    var default_result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer default_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(default_result, lint.rules.typescript_eslint_no_unused_vars.id));
+    try std.testing.expect(!helpers.hasRule(default_result, lint.rules.no_unused_vars.id));
+
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreClassWithStaticInitBlock\":true}]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{};
+    try options.setByRuleConfigValue("@typescript-eslint/no-unused-vars", config.value);
+    options.no_undef = false;
+    options.parser_semantic_errors = false;
+
+    var ignored_result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer ignored_result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(ignored_result, lint.rules.typescript_eslint_no_unused_vars.id));
+    try std.testing.expect(!helpers.hasRule(ignored_result, lint.rules.no_unused_vars.id));
+}
+
 test "supports configured @typescript-eslint/no-unused-vars args none" {
     var config = try std.json.parseFromSlice(
         std.json.Value,
