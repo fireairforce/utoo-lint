@@ -911,6 +911,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_named_capture_group.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_numeric_literals.zig");
 }
 

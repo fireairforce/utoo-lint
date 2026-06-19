@@ -183,6 +183,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`prefer-const`](https://eslint.org/docs/latest/rules/prefer-const) | Supports `destructuring` and `ignoreReadBeforeAssign` configuration |
 | [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Supports object/array variable declarator and assignment expression configuration plus `enforceForRenamedProperties` |
 | [`prefer-exponentiation-operator`](https://eslint.org/docs/latest/rules/prefer-exponentiation-operator) | Implemented |
+| [`prefer-named-capture-group`](https://eslint.org/docs/latest/rules/prefer-named-capture-group) | Detects unnamed capture groups in regex literals and static `RegExp` constructors |
 | [`prefer-numeric-literals`](https://eslint.org/docs/latest/rules/prefer-numeric-literals) | Implemented for static string and template `parseInt` calls with binary, octal, or hexadecimal radix |
 | [`prefer-object-has-own`](https://eslint.org/docs/latest/rules/prefer-object-has-own) | Implemented |
 | [`prefer-object-spread`](https://eslint.org/docs/latest/rules/prefer-object-spread) | Implemented for `Object.assign` calls with a new object literal target |
