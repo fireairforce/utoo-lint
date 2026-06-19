@@ -179,6 +179,7 @@ pub const no_process_env = @import("no_process_env.zig");
 pub const no_process_exit = @import("no_process_exit.zig");
 pub const no_prototype_builtins = @import("no_prototype_builtins.zig");
 pub const no_redeclare = @import("no_redeclare.zig");
+pub const no_restricted_properties = @import("no_restricted_properties.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_return_await = @import("no_return_await.zig");
 pub const no_return_assign = @import("no_return_assign.zig");
@@ -3029,6 +3030,9 @@ const BasicVisitor = struct {
         if (self.options.no_iterator) {
             try no_iterator.check(self.allocator, self.diagnostics, ctx.tree, member, index);
         }
+        if (self.options.no_restricted_properties) {
+            try no_restricted_properties.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member, index, self.options.no_restricted_properties_entries);
+        }
         if (self.options.no_process_env) {
             try no_process_env.check(self.allocator, self.diagnostics, ctx.tree, member, index);
         }
@@ -3440,6 +3444,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern);
+        }
+        if (self.options.no_restricted_properties) {
+            try no_restricted_properties.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern, self.options.no_restricted_properties_entries);
         }
         return .proceed;
     }

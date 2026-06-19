@@ -655,6 +655,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_restricted_properties.zig");
+}
+
+comptime {
     _ = @import("rules/no_regex_spaces.zig");
 }
 
