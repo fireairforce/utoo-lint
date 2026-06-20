@@ -102,6 +102,7 @@ const BUILTIN_RULE_IDS = [
   "for-direction",
   "func-name-matching",
   "func-names",
+  "func-style",
   "getter-return",
   "grouped-accessor-pairs",
   "guard-for-in",

@@ -1484,6 +1484,18 @@ pub const FuncNamesStyle = enum {
     never,
 };
 
+pub const FuncStyleStyle = enum {
+    expression,
+    declaration,
+};
+
+pub const FuncStyleNamedExports = enum {
+    unset,
+    expression,
+    declaration,
+    ignore,
+};
+
 pub const FuncNameMatchingStyle = enum {
     always,
     never,
@@ -1731,6 +1743,11 @@ pub const Options = struct {
     func_names_style: FuncNamesStyle = .always,
     func_names_has_generator_style: bool = false,
     func_names_generator_style: FuncNamesStyle = .always,
+    func_style: bool = false,
+    func_style_style: FuncStyleStyle = .expression,
+    func_style_allow_arrow_functions: bool = false,
+    func_style_allow_type_annotation: bool = false,
+    func_style_named_exports: FuncStyleNamedExports = .unset,
     getter_return: bool = true,
     getter_return_allow_implicit: bool = false,
     grouped_accessor_pairs: bool = true,
@@ -2519,6 +2536,13 @@ pub const Options = struct {
             const generator_style = try funcNamesGeneratorStyleFromConfig(value);
             self.func_names_has_generator_style = generator_style != null;
             self.func_names_generator_style = generator_style orelse self.func_names_style;
+        }
+        if (std.mem.eql(u8, cli_name, "func-style")) {
+            const config = try funcStyleFromConfig(value);
+            self.func_style_style = config.style;
+            self.func_style_allow_arrow_functions = config.allow_arrow_functions;
+            self.func_style_allow_type_annotation = config.allow_type_annotation;
+            self.func_style_named_exports = config.named_exports;
         }
         if (std.mem.eql(u8, cli_name, "getter-return")) {
             self.getter_return_allow_implicit = try getterReturnAllowImplicitFromConfig(value);
@@ -3679,6 +3703,77 @@ pub const Options = struct {
         if (std.mem.eql(u8, style, "as-needed")) return .as_needed;
         if (std.mem.eql(u8, style, "never")) return .never;
         return error.UnsupportedRuleConfigValue;
+    }
+
+    const FuncStyleConfig = struct {
+        style: FuncStyleStyle = .expression,
+        allow_arrow_functions: bool = false,
+        allow_type_annotation: bool = false,
+        named_exports: FuncStyleNamedExports = .unset,
+    };
+
+    fn funcStyleFromConfig(value: std.json.Value) RuleConfigError!FuncStyleConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+
+        var config = FuncStyleConfig{};
+        if (items.len >= 2) {
+            const style = switch (items[1]) {
+                .string => |style| style,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, style, "expression")) {
+                config.style = .expression;
+            } else if (std.mem.eql(u8, style, "declaration")) {
+                config.style = .declaration;
+            } else {
+                return error.UnsupportedRuleConfigValue;
+            }
+        }
+
+        if (items.len >= 3) {
+            const object = switch (items[2]) {
+                .object => |object| object,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (object.get("allowArrowFunctions")) |entry| {
+                config.allow_arrow_functions = switch (entry) {
+                    .bool => |enabled| enabled,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+            }
+            if (object.get("allowTypeAnnotation")) |entry| {
+                config.allow_type_annotation = switch (entry) {
+                    .bool => |enabled| enabled,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+            }
+            if (object.get("overrides")) |entry| {
+                const overrides = switch (entry) {
+                    .object => |overrides| overrides,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                if (overrides.get("namedExports")) |named_exports| {
+                    const mode = switch (named_exports) {
+                        .string => |mode| mode,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    if (std.mem.eql(u8, mode, "expression")) {
+                        config.named_exports = .expression;
+                    } else if (std.mem.eql(u8, mode, "declaration")) {
+                        config.named_exports = .declaration;
+                    } else if (std.mem.eql(u8, mode, "ignore")) {
+                        config.named_exports = .ignore;
+                    } else {
+                        return error.UnsupportedRuleConfigValue;
+                    }
+                }
+            }
+        }
+
+        return config;
     }
 
     fn groupedAccessorPairsStyleFromConfig(value: std.json.Value) RuleConfigError!GroupedAccessorPairsStyle {
@@ -8732,6 +8827,20 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(FuncNamesStyle.never, options.func_names_style);
     try std.testing.expect(options.func_names_has_generator_style);
     try std.testing.expectEqual(FuncNamesStyle.as_needed, options.func_names_generator_style);
+
+    var func_style_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"declaration\",{\"allowArrowFunctions\":true,\"allowTypeAnnotation\":true,\"overrides\":{\"namedExports\":\"ignore\"}}]",
+        .{},
+    );
+    defer func_style_config.deinit();
+    try options.setByRuleConfigValue("func-style", func_style_config.value);
+    try std.testing.expect(options.func_style);
+    try std.testing.expectEqual(FuncStyleStyle.declaration, options.func_style_style);
+    try std.testing.expect(options.func_style_allow_arrow_functions);
+    try std.testing.expect(options.func_style_allow_type_annotation);
+    try std.testing.expectEqual(FuncStyleNamedExports.ignore, options.func_style_named_exports);
 
     var grouped_accessor_pairs_get_config = try std.json.parseFromSlice(
         std.json.Value,
