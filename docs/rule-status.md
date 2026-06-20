@@ -203,6 +203,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`require-yield`](https://eslint.org/docs/latest/rules/require-yield) | Implemented |
 | [`sort-vars`](https://eslint.org/docs/latest/rules/sort-vars) | Supports same-declaration identifier sorting and `ignoreCase` configuration |
 | [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, `markers`, and `exceptions` configuration |
+| [`strict`](https://eslint.org/docs/latest/rules/strict) | Supports `safe`, `global`, `function`, and `never` modes |
 | [`symbol-description`](https://eslint.org/docs/latest/rules/symbol-description) | Implemented |
 | [`unicode-bom`](https://eslint.org/docs/latest/rules/unicode-bom) | Supports `never` and `always` configuration |
 | [`use-isnan`](https://eslint.org/docs/latest/rules/use-isnan) | Supports `enforceForIndexOf` and `enforceForSwitchCase` configuration |

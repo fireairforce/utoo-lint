@@ -266,6 +266,7 @@ const BUILTIN_RULE_IDS = [
   "require-yield",
   "sort-vars",
   "spaced-comment",
+  "strict",
   "symbol-description",
   "unicode-bom",
   "use-isnan",

@@ -96,6 +96,13 @@ pub const InitDeclarationsMode = enum {
     never,
 };
 
+pub const StrictMode = enum {
+    safe,
+    global,
+    function,
+    never,
+};
+
 pub const EolLastStyle = enum {
     always,
     never,
@@ -2253,6 +2260,8 @@ pub const Options = struct {
     spaced_comment_style: SpacedCommentStyle = .always,
     spaced_comment_markers: SpacedCommentMarkers = .{},
     spaced_comment_exceptions: SpacedCommentMarkers = .{},
+    strict: bool = false,
+    strict_mode: StrictMode = .safe,
     symbol_description: bool = true,
     typescript_eslint_adjacent_overload_signatures: bool = true,
     typescript_eslint_array_type: bool = true,
@@ -2822,6 +2831,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "sort-vars")) {
             self.sort_vars_ignore_case = try sortVarsIgnoreCaseFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "strict")) {
+            self.strict_mode = try strictModeFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-return-assign")) {
             self.no_return_assign_style = try noReturnAssignStyleFromConfig(value);
@@ -5954,6 +5966,24 @@ pub const Options = struct {
             .bool => |ignore_case| ignore_case,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn strictModeFromConfig(value: std.json.Value) RuleConfigError!StrictMode {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .safe,
+        };
+        if (items.len < 2) return .safe;
+
+        const mode = switch (items[1]) {
+            .string => |mode| mode,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, mode, "safe")) return .safe;
+        if (std.mem.eql(u8, mode, "global")) return .global;
+        if (std.mem.eql(u8, mode, "function")) return .function;
+        if (std.mem.eql(u8, mode, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
     }
 
     fn noSequencesAllowInParenthesesFromConfig(value: std.json.Value) RuleConfigError!NoSequencesAllowInParentheses {
@@ -9511,6 +9541,17 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("sort-vars", sort_vars_config.value);
     try std.testing.expect(options.sort_vars);
     try std.testing.expect(options.sort_vars_ignore_case);
+
+    var strict_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"global\"]",
+        .{},
+    );
+    defer strict_config.deinit();
+    try options.setByRuleConfigValue("strict", strict_config.value);
+    try std.testing.expect(options.strict);
+    try std.testing.expectEqual(StrictMode.global, options.strict_mode);
 
     var no_useless_rename_config = try std.json.parseFromSlice(
         std.json.Value,
