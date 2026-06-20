@@ -350,6 +350,7 @@ const BUILTIN_RULE_IDS = [
   "react/no-array-index-key",
   "react/no-children-prop",
   "react/no-danger",
+  "react/no-danger-with-children",
   "react/no-find-dom-node",
   "react/no-is-mounted",
   "react/no-multi-comp",
