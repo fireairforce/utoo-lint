@@ -31,6 +31,7 @@ pub const eslint_comments_no_restricted_disable = @import("eslint_comments_no_re
 pub const for_direction = @import("for_direction.zig");
 pub const func_name_matching = @import("func_name_matching.zig");
 pub const func_names = @import("func_names.zig");
+pub const func_style = @import("func_style.zig");
 pub const getter_return = @import("getter_return.zig");
 pub const grouped_accessor_pairs = @import("grouped_accessor_pairs.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
@@ -379,6 +380,23 @@ fn funcNameMatchingOptions(options: *const core.Options) func_name_matching.Opti
         .style = funcNameMatchingStyle(options.func_name_matching_style),
         .include_commonjs_module_exports = options.func_name_matching_include_commonjs_module_exports,
         .consider_property_descriptor = options.func_name_matching_consider_property_descriptor,
+    };
+}
+
+fn funcStyleOptions(options: *const core.Options) func_style.Options {
+    return .{
+        .style = switch (options.func_style_style) {
+            .expression => .expression,
+            .declaration => .declaration,
+        },
+        .allow_arrow_functions = options.func_style_allow_arrow_functions,
+        .allow_type_annotation = options.func_style_allow_type_annotation,
+        .named_exports = switch (options.func_style_named_exports) {
+            .unset => .unset,
+            .expression => .expression,
+            .declaration => .declaration,
+            .ignore => .ignore,
+        },
     };
 }
 
@@ -1489,6 +1507,9 @@ const BasicVisitor = struct {
         if (self.options.func_names) {
             try func_names.checkWithStyle(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, self.funcNamesStyle(function));
         }
+        if (self.options.func_style) {
+            try func_style.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, funcStyleOptions(&self.options));
+        }
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, function.params);
         }
@@ -1967,6 +1988,9 @@ const BasicVisitor = struct {
         }
         if (self.options.func_name_matching) {
             try func_name_matching.checkVariableDeclaratorWithOptions(self.allocator, self.diagnostics, ctx.tree, declarator, funcNameMatchingOptions(&self.options));
+        }
+        if (self.options.func_style) {
+            try func_style.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator, index, ctx, funcStyleOptions(&self.options));
         }
         if (self.options.react_no_children_prop) {
             react_no_children_prop.checkVariableDeclarator(ctx.tree, declarator, &self.react_no_children_prop_bindings);

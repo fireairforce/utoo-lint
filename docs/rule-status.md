@@ -23,6 +23,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`for-direction`](https://eslint.org/docs/latest/rules/for-direction) | Implemented |
 | [`func-name-matching`](https://eslint.org/docs/latest/rules/func-name-matching) | Supports `always`, `never`, `includeCommonJSModuleExports`, and `considerPropertyDescriptor` configuration |
 | [`func-names`](https://eslint.org/docs/latest/rules/func-names) | Supports `always`, `as-needed`, `never`, and `generators` configuration |
+| [`func-style`](https://eslint.org/docs/latest/rules/func-style) | Supports declaration/expression styles, `allowArrowFunctions`, and `overrides.namedExports` |
 | [`getter-return`](https://eslint.org/docs/latest/rules/getter-return) | Supports optional `allowImplicit` behavior |
 | [`grouped-accessor-pairs`](https://eslint.org/docs/latest/rules/grouped-accessor-pairs) | Implemented for `anyOrder`, `getBeforeSet`, and `setBeforeGet` options |
 | [`guard-for-in`](https://eslint.org/docs/latest/rules/guard-for-in) | Implemented |
