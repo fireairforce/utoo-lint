@@ -86,6 +86,11 @@ pub const LinebreakStyle = enum {
     windows,
 };
 
+pub const SortKeysOrder = enum {
+    asc,
+    desc,
+};
+
 pub const SortImportsMemberSyntax = enum {
     none,
     all,
@@ -2497,6 +2502,12 @@ pub const Options = struct {
     sort_imports_ignore_member_sort: bool = false,
     sort_imports_allow_separated_groups: bool = false,
     sort_imports_member_syntax_order: SortImportsMemberSyntaxOrder = .{},
+    sort_keys: bool = false,
+    sort_keys_order: SortKeysOrder = .asc,
+    sort_keys_case_sensitive: bool = true,
+    sort_keys_natural: bool = false,
+    sort_keys_min_keys: usize = 2,
+    sort_keys_allow_line_separated_groups: bool = false,
     spaced_comment: bool = true,
     spaced_comment_style: SpacedCommentStyle = .always,
     spaced_comment_markers: SpacedCommentMarkers = .{},
@@ -3101,6 +3112,13 @@ pub const Options = struct {
             self.sort_imports_ignore_member_sort = try sortImportsBoolOptionFromConfig(value, "ignoreMemberSort", false);
             self.sort_imports_allow_separated_groups = try sortImportsBoolOptionFromConfig(value, "allowSeparatedGroups", false);
             self.sort_imports_member_syntax_order = try sortImportsMemberSyntaxOrderFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "sort-keys")) {
+            self.sort_keys_order = try sortKeysOrderFromConfig(value);
+            self.sort_keys_case_sensitive = try sortKeysBoolOptionFromConfig(value, "caseSensitive", true);
+            self.sort_keys_natural = try sortKeysBoolOptionFromConfig(value, "natural", false);
+            self.sort_keys_min_keys = try sortKeysMinKeysFromConfig(value);
+            self.sort_keys_allow_line_separated_groups = try sortKeysBoolOptionFromConfig(value, "allowLineSeparatedGroups", false);
         }
         if (std.mem.eql(u8, cli_name, "strict")) {
             self.strict_mode = try strictModeFromConfig(value);
@@ -6622,6 +6640,56 @@ pub const Options = struct {
         if (items.len < 2) return null;
 
         return switch (items[1]) {
+            .object => |object| object,
+            else => null,
+        };
+    }
+
+    fn sortKeysOrderFromConfig(value: std.json.Value) RuleConfigError!SortKeysOrder {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .asc,
+        };
+        if (items.len < 2) return .asc;
+
+        const order = switch (items[1]) {
+            .string => |order| order,
+            .object => return .asc,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (std.mem.eql(u8, order, "asc")) return .asc;
+        if (std.mem.eql(u8, order, "desc")) return .desc;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn sortKeysBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const config = sortKeysConfigObject(value) orelse return default;
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn sortKeysMinKeysFromConfig(value: std.json.Value) RuleConfigError!usize {
+        const config = sortKeysConfigObject(value) orelse return 2;
+        return switch (config.get("minKeys") orelse return 2) {
+            .integer => |min_keys| nonNegativeIntegerToUsize(min_keys),
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn sortKeysConfigObject(value: std.json.Value) ?std.json.ObjectMap {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return null,
+        };
+        if (items.len < 2) return null;
+        const index: usize = switch (items[1]) {
+            .object => 1,
+            .string => if (items.len >= 3) 2 else return null,
+            else => return null,
+        };
+        return switch (items[index]) {
             .object => |object| object,
             else => null,
         };
