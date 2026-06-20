@@ -239,6 +239,7 @@ const BUILTIN_RULE_IDS = [
   "no-undefined",
   "no-unneeded-ternary",
   "no-unreachable",
+  "no-unreachable-loop",
   "no-unsafe-finally",
   "no-unsafe-negation",
   "no-unsafe-optional-chaining",
