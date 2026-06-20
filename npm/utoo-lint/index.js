@@ -304,6 +304,7 @@ const BUILTIN_RULE_IDS = [
   "vars-on-top",
   "wrap-iife",
   "yoda",
+  "eslint-comments/no-restricted-disable",
   "import/default",
   "import/export",
   "import/first",
