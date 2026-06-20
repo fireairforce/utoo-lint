@@ -346,6 +346,7 @@ const BUILTIN_RULE_IDS = [
   "react/jsx-uses-vars",
   "react/jsx-no-target-blank",
   "react/jsx-pascal-case",
+  "react/no-access-state-in-setstate",
   "react/no-children-prop",
   "react/no-danger",
   "react/no-find-dom-node",
