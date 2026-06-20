@@ -10,6 +10,8 @@ pub const Options = core.Options;
 pub const Diagnostic = core.Diagnostic;
 pub const Result = core.Result;
 pub const SourcePosition = core.SourcePosition;
+pub const NoRestrictedImportEntry = core.NoRestrictedImportEntry;
+pub const NoRestrictedImportKind = core.NoRestrictedImportKind;
 pub const rules = @import("rules/root.zig");
 
 pub fn lintSource(
