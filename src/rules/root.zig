@@ -192,6 +192,7 @@ pub const no_process_exit = @import("no_process_exit.zig");
 pub const no_prototype_builtins = @import("no_prototype_builtins.zig");
 pub const no_redeclare = @import("no_redeclare.zig");
 pub const no_restricted_exports = @import("no_restricted_exports.zig");
+pub const no_restricted_globals = @import("no_restricted_globals.zig");
 pub const no_restricted_properties = @import("no_restricted_properties.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_return_await = @import("no_return_await.zig");
@@ -843,6 +844,10 @@ pub fn runSemantic(
         try no_redeclare.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
             .builtin_globals = options.no_redeclare_builtin_globals == .yes,
         });
+    }
+
+    if (options.no_restricted_globals) {
+        try no_restricted_globals.run(allocator, diagnostics, tree, semantic_result.symbol_table, options.no_restricted_globals_entries);
     }
 
     if (use_typescript_no_redeclare) {

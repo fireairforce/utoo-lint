@@ -203,6 +203,7 @@ const BUILTIN_RULE_IDS = [
   "no-proto",
   "no-prototype-builtins",
   "no-restricted-exports",
+  "no-restricted-globals",
   "no-regex-spaces",
   "no-return-assign",
   "no-return-await",

@@ -658,6 +658,10 @@ pub const max_no_restricted_properties = 32;
 pub const max_no_restricted_property_name_len = 128;
 pub const max_no_restricted_property_message_len = 256;
 pub const max_no_restricted_property_allow_names = 16;
+pub const max_no_restricted_globals = 64;
+pub const max_no_restricted_global_name_len = 128;
+pub const max_no_restricted_global_message_len = 256;
+pub const max_no_restricted_global_objects = 16;
 pub const max_no_restricted_export_names = 64;
 pub const max_no_restricted_export_name_len = 128;
 pub const max_id_denylist_names = 64;
@@ -760,6 +764,97 @@ pub const NoRestrictedProperties = struct {
 
     pub fn at(self: *const NoRestrictedProperties, index: usize) *const NoRestrictedPropertyEntry {
         return &self.entries[index];
+    }
+};
+
+pub const NoRestrictedGlobalEntry = struct {
+    name_length: usize = 0,
+    name_storage: [max_no_restricted_global_name_len]u8 = undefined,
+
+    has_message: bool = false,
+    message_length: usize = 0,
+    message_storage: [max_no_restricted_global_message_len]u8 = undefined,
+
+    pub fn name(self: *const NoRestrictedGlobalEntry) []const u8 {
+        return self.name_storage[0..self.name_length];
+    }
+
+    pub fn message(self: *const NoRestrictedGlobalEntry) ?[]const u8 {
+        if (!self.has_message) return null;
+        return self.message_storage[0..self.message_length];
+    }
+
+    pub fn setName(self: *NoRestrictedGlobalEntry, value: []const u8) bool {
+        if (value.len == 0 or value.len > max_no_restricted_global_name_len) return false;
+        @memcpy(self.name_storage[0..value.len], value);
+        self.name_length = value.len;
+        return true;
+    }
+
+    pub fn setMessage(self: *NoRestrictedGlobalEntry, value: []const u8) bool {
+        if (value.len == 0 or value.len > max_no_restricted_global_message_len) return false;
+        @memcpy(self.message_storage[0..value.len], value);
+        self.message_length = value.len;
+        self.has_message = true;
+        return true;
+    }
+};
+
+pub const NoRestrictedGlobalObjects = struct {
+    count: usize = 0,
+    lengths: [max_no_restricted_global_objects]usize = undefined,
+    storage: [max_no_restricted_global_objects][max_no_restricted_global_name_len]u8 = undefined,
+
+    pub fn contains(self: *const NoRestrictedGlobalObjects, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const NoRestrictedGlobalObjects, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *NoRestrictedGlobalObjects, name: []const u8) bool {
+        if (name.len == 0 or name.len > max_no_restricted_global_name_len) return false;
+        if (self.count >= max_no_restricted_global_objects) return false;
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
+    }
+};
+
+pub const NoRestrictedGlobals = struct {
+    count: usize = 0,
+    entries: [max_no_restricted_globals]NoRestrictedGlobalEntry = undefined,
+    check_global_object: bool = false,
+    global_objects: NoRestrictedGlobalObjects = .{},
+
+    pub fn append(self: *NoRestrictedGlobals, entry: NoRestrictedGlobalEntry) bool {
+        if (self.count >= max_no_restricted_globals) return false;
+        self.entries[self.count] = entry;
+        self.count += 1;
+        return true;
+    }
+
+    pub fn appendName(self: *NoRestrictedGlobals, name: []const u8) bool {
+        var entry = NoRestrictedGlobalEntry{};
+        if (!entry.setName(name)) return false;
+        return self.append(entry);
+    }
+
+    pub fn at(self: *const NoRestrictedGlobals, index: usize) *const NoRestrictedGlobalEntry {
+        return &self.entries[index];
+    }
+
+    pub fn find(self: *const NoRestrictedGlobals, name: []const u8) ?*const NoRestrictedGlobalEntry {
+        for (0..self.count) |index| {
+            const entry = self.at(index);
+            if (std.mem.eql(u8, entry.name(), name)) return entry;
+        }
+        return null;
     }
 };
 
@@ -1906,6 +2001,8 @@ pub const Options = struct {
     no_restricted_exports: bool = false,
     no_restricted_exports_names: NoRestrictedExportNames = .{},
     no_restricted_exports_default: NoRestrictedExportsDefaultOptions = .{},
+    no_restricted_globals: bool = false,
+    no_restricted_globals_entries: NoRestrictedGlobals = .{},
     no_restricted_properties: bool = true,
     no_restricted_properties_entries: NoRestrictedProperties = .{},
     no_regex_spaces: bool = true,
@@ -2635,6 +2732,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-restricted-exports")) {
             self.no_restricted_exports_names = try noRestrictedExportNamesFromConfig(value);
             self.no_restricted_exports_default = try noRestrictedExportsDefaultOptionsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-restricted-globals")) {
+            self.no_restricted_globals_entries = try noRestrictedGlobalsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-restricted-properties")) {
             self.no_restricted_properties_entries = try noRestrictedPropertiesFromConfig(value);
@@ -5496,6 +5596,93 @@ pub const Options = struct {
             if (!restrictions.append(entry)) return error.UnsupportedRuleConfigValue;
         }
         return restrictions;
+    }
+
+    fn noRestrictedGlobalsFromConfig(value: std.json.Value) RuleConfigError!NoRestrictedGlobals {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        switch (items[1]) {
+            .object => |object| {
+                if (object.get("globals") != null) {
+                    return noRestrictedGlobalsFromObjectConfig(object);
+                }
+            },
+            else => {},
+        }
+
+        var restrictions = NoRestrictedGlobals{};
+        for (items[1..]) |item| {
+            const entry = try noRestrictedGlobalEntryFromConfig(item);
+            if (!restrictions.append(entry)) return error.UnsupportedRuleConfigValue;
+        }
+        return restrictions;
+    }
+
+    fn noRestrictedGlobalsFromObjectConfig(config: std.json.ObjectMap) RuleConfigError!NoRestrictedGlobals {
+        var restrictions = NoRestrictedGlobals{};
+
+        const globals_value = config.get("globals") orelse return error.UnsupportedRuleConfigValue;
+        const globals = switch (globals_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        for (globals) |item| {
+            const entry = try noRestrictedGlobalEntryFromConfig(item);
+            if (!restrictions.append(entry)) return error.UnsupportedRuleConfigValue;
+        }
+
+        if (config.get("checkGlobalObject")) |value| {
+            restrictions.check_global_object = switch (value) {
+                .bool => |enabled| enabled,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+        }
+
+        if (config.get("globalObjects")) |value| {
+            const objects = switch (value) {
+                .array => |array| array.items,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            for (objects) |item| {
+                const name = switch (item) {
+                    .string => |string| string,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                if (!restrictions.global_objects.append(name)) return error.UnsupportedRuleConfigValue;
+            }
+        }
+
+        return restrictions;
+    }
+
+    fn noRestrictedGlobalEntryFromConfig(value: std.json.Value) RuleConfigError!NoRestrictedGlobalEntry {
+        var entry = NoRestrictedGlobalEntry{};
+        switch (value) {
+            .string => |name| {
+                if (!entry.setName(name)) return error.UnsupportedRuleConfigValue;
+            },
+            .object => |object| {
+                const name_value = object.get("name") orelse return error.UnsupportedRuleConfigValue;
+                const name = switch (name_value) {
+                    .string => |string| string,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                if (!entry.setName(name)) return error.UnsupportedRuleConfigValue;
+                if (object.get("message")) |message_value| {
+                    const message = switch (message_value) {
+                        .string => |string| string,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    if (!entry.setMessage(message)) return error.UnsupportedRuleConfigValue;
+                }
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+        return entry;
     }
 
     const NoRestrictedPropertyStringTarget = enum {
@@ -9015,6 +9202,34 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.no_restricted_properties_entries.at(1).allow_objects.contains("router"));
     try std.testing.expect(options.no_restricted_properties_entries.at(2).allow_properties.contains("settings"));
     try std.testing.expect(options.no_restricted_properties_entries.at(2).allow_properties.contains("version"));
+
+    var no_restricted_globals_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"event\",{\"name\":\"fdescribe\",\"message\":\"Use describe instead.\"}]",
+        .{},
+    );
+    defer no_restricted_globals_config.deinit();
+    try options.setByRuleConfigValue("no-restricted-globals", no_restricted_globals_config.value);
+    try std.testing.expect(options.no_restricted_globals);
+    try std.testing.expectEqual(@as(usize, 2), options.no_restricted_globals_entries.count);
+    try std.testing.expectEqualStrings("event", options.no_restricted_globals_entries.at(0).name());
+    try std.testing.expectEqualStrings("fdescribe", options.no_restricted_globals_entries.at(1).name());
+    try std.testing.expectEqualStrings("Use describe instead.", options.no_restricted_globals_entries.at(1).message().?);
+
+    var no_restricted_globals_object_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"globals\":[\"event\"],\"checkGlobalObject\":true,\"globalObjects\":[\"customGlobal\"]}]",
+        .{},
+    );
+    defer no_restricted_globals_object_config.deinit();
+    try options.setByRuleConfigValue("no-restricted-globals", no_restricted_globals_object_config.value);
+    try std.testing.expect(options.no_restricted_globals);
+    try std.testing.expectEqual(@as(usize, 1), options.no_restricted_globals_entries.count);
+    try std.testing.expectEqualStrings("event", options.no_restricted_globals_entries.at(0).name());
+    try std.testing.expect(options.no_restricted_globals_entries.check_global_object);
+    try std.testing.expect(options.no_restricted_globals_entries.global_objects.contains("customGlobal"));
 
     var typescript_no_redeclare_config = try std.json.parseFromSlice(
         std.json.Value,

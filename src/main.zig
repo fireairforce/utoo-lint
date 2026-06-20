@@ -543,6 +543,12 @@ pub fn main(init: std.process.Init) !void {
         } else if (std.mem.eql(u8, arg, "--no-restricted-exports-namespace-from=on")) {
             options.no_restricted_exports = true;
             options.no_restricted_exports_default.namespace_from = true;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-globals=off")) {
+            options.no_restricted_globals = false;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-globals=on")) {
+            options.no_restricted_globals = true;
+        } else if (std.mem.startsWith(u8, arg, "--no-restricted-globals-name=")) {
+            appendNoRestrictedGlobalName(arg["--no-restricted-globals-name=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--no-restricted-properties=off")) {
             options.no_restricted_properties = false;
         } else if (std.mem.eql(u8, arg, "--no-regex-spaces=off")) {
@@ -1285,6 +1291,14 @@ fn appendNoRestrictedExportName(value: []const u8, options: *lint.Options) void 
     options.no_restricted_exports = true;
 }
 
+fn appendNoRestrictedGlobalName(value: []const u8, options: *lint.Options) void {
+    if (!options.no_restricted_globals_entries.appendName(value)) {
+        std.debug.print("utoo-lint: invalid --no-restricted-globals-name value: {s}\n", .{value});
+        std.process.exit(2);
+    }
+    options.no_restricted_globals = true;
+}
+
 fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --no-multiple-empty-lines-max value: {s}\n", .{value});
@@ -1929,6 +1943,9 @@ fn printHelp() void {
         \\  --no-restricted-exports-default-from=on Restrict re-exported default exports
         \\  --no-restricted-exports-named-from=on Restrict re-exported named defaults
         \\  --no-restricted-exports-namespace-from=on Restrict namespace default re-exports
+        \\  --no-restricted-globals=off Disable no-restricted-globals
+        \\  --no-restricted-globals=on Enable no-restricted-globals
+        \\  --no-restricted-globals-name=NAME Restrict a global name
         \\  --no-restricted-properties=off Disable no-restricted-properties
         \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-return-await=off     Disable no-return-await
