@@ -226,6 +226,7 @@ const BUILTIN_RULE_IDS = [
   "no-self-compare",
   "no-sequences",
   "no-setter-return",
+  "no-shadow",
   "no-shadow-restricted-names",
   "no-sparse-arrays",
   "no-tabs",
