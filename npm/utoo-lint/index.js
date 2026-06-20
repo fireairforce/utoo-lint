@@ -331,6 +331,7 @@ const BUILTIN_RULE_IDS = [
   "react/forbid-prop-types",
   "react/jsx-boolean-value",
   "react/jsx-filename-extension",
+  "react/jsx-key",
   "react/jsx-no-comment-textnodes",
   "react/jsx-no-duplicate-props",
   "react/jsx-no-target-blank",
