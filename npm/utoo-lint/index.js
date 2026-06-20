@@ -323,6 +323,7 @@ const BUILTIN_RULE_IDS = [
   "jsx-a11y/aria-props",
   "jsx-a11y/aria-proptypes",
   "jsx-a11y/aria-role",
+  "jsx-a11y/aria-unsupported-elements",
   "jsx-a11y/iframe-has-title",
   "jsx-a11y/img-redundant-alt",
   "jsx-a11y/no-access-key",
