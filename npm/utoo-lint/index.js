@@ -347,6 +347,7 @@ const BUILTIN_RULE_IDS = [
   "react/no-unescaped-entities",
   "react/no-unknown-property",
   "react/no-unused-prop-types",
+  "react/prefer-es6-class",
   "react/prop-types",
   "react-hooks/rules-of-hooks",
   "@typescript-eslint/adjacent-overload-signatures",
