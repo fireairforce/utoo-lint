@@ -307,6 +307,7 @@ pub const require_unicode_regexp = @import("require_unicode_regexp.zig");
 const reassignment_rules = @import("reassignment_rules.zig");
 pub const require_yield = @import("require_yield.zig");
 pub const sort_imports = @import("sort_imports.zig");
+pub const sort_keys = @import("sort_keys.zig");
 pub const sort_vars = @import("sort_vars.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
 pub const strict = @import("strict.zig");
@@ -3787,6 +3788,15 @@ const BasicVisitor = struct {
         }
         if (self.options.no_dupe_keys) {
             try no_dupe_keys.check(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
+        if (self.options.sort_keys) {
+            try sort_keys.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression, .{
+                .order = self.options.sort_keys_order,
+                .case_sensitive = self.options.sort_keys_case_sensitive,
+                .natural = self.options.sort_keys_natural,
+                .min_keys = self.options.sort_keys_min_keys,
+                .allow_line_separated_groups = self.options.sort_keys_allow_line_separated_groups,
+            });
         }
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkObjectExpression(self.allocator, self.diagnostics, ctx.tree, expression);

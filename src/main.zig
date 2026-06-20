@@ -940,6 +940,24 @@ pub fn main(init: std.process.Init) !void {
         } else if (std.mem.eql(u8, arg, "--sort-imports-allow-separated-groups=on")) {
             options.sort_imports = true;
             options.sort_imports_allow_separated_groups = true;
+        } else if (std.mem.eql(u8, arg, "--sort-keys=on")) {
+            options.sort_keys = true;
+        } else if (std.mem.eql(u8, arg, "--sort-keys=off")) {
+            options.sort_keys = false;
+        } else if (std.mem.eql(u8, arg, "--sort-keys=desc")) {
+            options.sort_keys = true;
+            options.sort_keys_order = .desc;
+        } else if (std.mem.eql(u8, arg, "--sort-keys-case-sensitive=off")) {
+            options.sort_keys = true;
+            options.sort_keys_case_sensitive = false;
+        } else if (std.mem.eql(u8, arg, "--sort-keys-natural=on")) {
+            options.sort_keys = true;
+            options.sort_keys_natural = true;
+        } else if (std.mem.startsWith(u8, arg, "--sort-keys-min-keys=")) {
+            parseSortKeysMinKeys(arg["--sort-keys-min-keys=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--sort-keys-allow-line-separated-groups=on")) {
+            options.sort_keys = true;
+            options.sort_keys_allow_line_separated_groups = true;
         } else if (std.mem.eql(u8, arg, "--sort-vars=on")) {
             options.sort_vars = true;
         } else if (std.mem.eql(u8, arg, "--sort-vars=off")) {
@@ -1503,6 +1521,15 @@ fn parseMaxParamsMax(value: []const u8, options: *lint.Options) void {
         std.process.exit(2);
     };
     options.max_params_max = max;
+}
+
+fn parseSortKeysMinKeys(value: []const u8, options: *lint.Options) void {
+    const min_keys = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --sort-keys-min-keys value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.sort_keys = true;
+    options.sort_keys_min_keys = min_keys;
 }
 
 fn parseMaxStatementsMax(value: []const u8, options: *lint.Options) void {
@@ -2223,6 +2250,13 @@ fn printHelp() void {
         \\  --sort-imports-ignore-declaration-sort=on Ignore declaration order
         \\  --sort-imports-ignore-member-sort=on Ignore member order
         \\  --sort-imports-allow-separated-groups=on Allow blank-line separated import groups
+        \\  --sort-keys=on            Enable sort-keys
+        \\  --sort-keys=off           Disable sort-keys
+        \\  --sort-keys=desc          Require descending object keys
+        \\  --sort-keys-case-sensitive=off Compare object keys case-insensitively
+        \\  --sort-keys-natural=on    Compare object keys with natural numeric order
+        \\  --sort-keys-min-keys=N    Require sorting only when an object has at least N keys
+        \\  --sort-keys-allow-line-separated-groups=on Allow blank-line separated key groups
         \\  --sort-vars=on            Enable sort-vars
         \\  --sort-vars=off           Disable sort-vars
         \\  --sort-vars-ignore-case=on Enable sort-vars and ignore case
