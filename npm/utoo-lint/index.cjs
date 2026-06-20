@@ -207,6 +207,7 @@ const BUILTIN_RULE_IDS = [
   "no-redeclare",
   "no-restricted-exports",
   "no-restricted-globals",
+  "no-restricted-imports",
   "no-regex-spaces",
   "no-return-assign",
   "no-return-await",

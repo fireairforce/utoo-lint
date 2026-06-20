@@ -671,6 +671,11 @@ pub const max_no_restricted_global_message_len = 256;
 pub const max_no_restricted_global_objects = 16;
 pub const max_no_restricted_export_names = 64;
 pub const max_no_restricted_export_name_len = 128;
+pub const max_no_restricted_imports = 16;
+pub const max_no_restricted_import_source_len = 256;
+pub const max_no_restricted_import_message_len = 256;
+pub const max_no_restricted_import_names = 8;
+pub const max_no_restricted_import_name_len = 128;
 pub const max_id_denylist_names = 64;
 pub const max_id_denylist_name_len = 128;
 pub const max_id_length_exceptions = 64;
@@ -1028,6 +1033,100 @@ pub const NoRestrictedExportsDefaultOptions = struct {
     default_from: bool = false,
     named_from: bool = false,
     namespace_from: bool = false,
+};
+
+pub const NoRestrictedImportKind = enum {
+    path,
+    pattern,
+};
+
+pub const NoRestrictedImportNameList = struct {
+    count: usize = 0,
+    lengths: [max_no_restricted_import_names]usize = undefined,
+    storage: [max_no_restricted_import_names][max_no_restricted_import_name_len]u8 = undefined,
+
+    pub fn contains(self: *const NoRestrictedImportNameList, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const NoRestrictedImportNameList, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *NoRestrictedImportNameList, name: []const u8) bool {
+        if (name.len == 0 or name.len > max_no_restricted_import_name_len) return false;
+        if (self.count >= max_no_restricted_import_names) return false;
+        if (self.contains(name)) return true;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
+    }
+};
+
+pub const NoRestrictedImportEntry = struct {
+    kind: NoRestrictedImportKind = .path,
+    source_length: usize = 0,
+    source_storage: [max_no_restricted_import_source_len]u8 = undefined,
+
+    has_message: bool = false,
+    message_length: usize = 0,
+    message_storage: [max_no_restricted_import_message_len]u8 = undefined,
+
+    import_names: NoRestrictedImportNameList = .{},
+    allow_import_names: NoRestrictedImportNameList = .{},
+    allow_type_imports: bool = false,
+
+    pub fn source(self: *const NoRestrictedImportEntry) []const u8 {
+        return self.source_storage[0..self.source_length];
+    }
+
+    pub fn message(self: *const NoRestrictedImportEntry) ?[]const u8 {
+        if (!self.has_message) return null;
+        return self.message_storage[0..self.message_length];
+    }
+
+    pub fn setSource(self: *NoRestrictedImportEntry, value: []const u8) bool {
+        if (value.len == 0 or value.len > max_no_restricted_import_source_len) return false;
+        @memcpy(self.source_storage[0..value.len], value);
+        self.source_length = value.len;
+        return true;
+    }
+
+    pub fn setMessage(self: *NoRestrictedImportEntry, value: []const u8) bool {
+        if (value.len == 0 or value.len > max_no_restricted_import_message_len) return false;
+        @memcpy(self.message_storage[0..value.len], value);
+        self.message_length = value.len;
+        self.has_message = true;
+        return true;
+    }
+};
+
+pub const NoRestrictedImports = struct {
+    count: usize = 0,
+    entries: [max_no_restricted_imports]NoRestrictedImportEntry = undefined,
+
+    pub fn append(self: *NoRestrictedImports, entry: NoRestrictedImportEntry) bool {
+        if (self.count >= max_no_restricted_imports) return false;
+        self.entries[self.count] = entry;
+        self.count += 1;
+        return true;
+    }
+
+    pub fn appendPath(self: *NoRestrictedImports, name: []const u8) bool {
+        var entry = NoRestrictedImportEntry{};
+        entry.kind = .path;
+        if (!entry.setSource(name)) return false;
+        return self.append(entry);
+    }
+
+    pub fn at(self: *const NoRestrictedImports, index: usize) *const NoRestrictedImportEntry {
+        return &self.entries[index];
+    }
 };
 
 pub const max_no_unused_vars_ignore_pattern_len = 256;
@@ -2123,6 +2222,8 @@ pub const Options = struct {
     no_restricted_exports_default: NoRestrictedExportsDefaultOptions = .{},
     no_restricted_globals: bool = false,
     no_restricted_globals_entries: NoRestrictedGlobals = .{},
+    no_restricted_imports: bool = false,
+    no_restricted_imports_entries: NoRestrictedImports = .{},
     no_restricted_properties: bool = true,
     no_restricted_properties_entries: NoRestrictedProperties = .{},
     no_regex_spaces: bool = true,
@@ -2876,6 +2977,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-restricted-globals")) {
             self.no_restricted_globals_entries = try noRestrictedGlobalsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-restricted-imports")) {
+            self.no_restricted_imports_entries = try noRestrictedImportsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-restricted-properties")) {
             self.no_restricted_properties_entries = try noRestrictedPropertiesFromConfig(value);
@@ -4061,6 +4165,161 @@ pub const Options = struct {
             .object => |object| object,
             else => null,
         };
+    }
+
+    fn noRestrictedImportsFromConfig(value: std.json.Value) RuleConfigError!NoRestrictedImports {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+
+        var result = NoRestrictedImports{};
+        if (items.len < 2) return result;
+
+        for (items[1..]) |item| {
+            switch (item) {
+                .string => |source| {
+                    if (!result.appendPath(source)) return error.UnsupportedRuleConfigValue;
+                },
+                .object => |object| {
+                    if (object.get("paths") != null or object.get("patterns") != null) {
+                        if (object.get("paths")) |paths_value| {
+                            try appendNoRestrictedImportConfigItems(&result, paths_value, .path);
+                        }
+                        if (object.get("patterns")) |patterns_value| {
+                            try appendNoRestrictedImportPatternItems(&result, patterns_value);
+                        }
+                    } else {
+                        try appendNoRestrictedImportObject(&result, object, .path);
+                    }
+                },
+                else => return error.UnsupportedRuleConfigValue,
+            }
+        }
+
+        return result;
+    }
+
+    fn appendNoRestrictedImportConfigItems(
+        result: *NoRestrictedImports,
+        value: std.json.Value,
+        kind: NoRestrictedImportKind,
+    ) RuleConfigError!void {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        for (items) |item| {
+            switch (item) {
+                .string => |source| {
+                    var entry = NoRestrictedImportEntry{ .kind = kind };
+                    if (!entry.setSource(source)) return error.UnsupportedRuleConfigValue;
+                    if (!result.append(entry)) return error.UnsupportedRuleConfigValue;
+                },
+                .object => |object| try appendNoRestrictedImportObject(result, object, kind),
+                else => return error.UnsupportedRuleConfigValue,
+            }
+        }
+    }
+
+    fn appendNoRestrictedImportPatternItems(result: *NoRestrictedImports, value: std.json.Value) RuleConfigError!void {
+        switch (value) {
+            .array => try appendNoRestrictedImportConfigItems(result, value, .pattern),
+            .object => |object| try appendNoRestrictedImportPatternObject(result, object),
+            else => return error.UnsupportedRuleConfigValue,
+        }
+    }
+
+    fn appendNoRestrictedImportPatternObject(result: *NoRestrictedImports, object: std.json.ObjectMap) RuleConfigError!void {
+        if (object.get("group")) |group_value| {
+            const groups = switch (group_value) {
+                .array => |array| array.items,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            for (groups) |group_item| {
+                const source = switch (group_item) {
+                    .string => |source| source,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                var entry = try noRestrictedImportEntryFromObject(object, .pattern);
+                if (!entry.setSource(source)) return error.UnsupportedRuleConfigValue;
+                if (!result.append(entry)) return error.UnsupportedRuleConfigValue;
+            }
+            return;
+        }
+
+        try appendNoRestrictedImportObject(result, object, .pattern);
+    }
+
+    fn appendNoRestrictedImportObject(
+        result: *NoRestrictedImports,
+        object: std.json.ObjectMap,
+        kind: NoRestrictedImportKind,
+    ) RuleConfigError!void {
+        var entry = try noRestrictedImportEntryFromObject(object, kind);
+        if (entry.source_length == 0) {
+            const source = switch (object.get("name") orelse return error.UnsupportedRuleConfigValue) {
+                .string => |source| source,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!entry.setSource(source)) return error.UnsupportedRuleConfigValue;
+        }
+        if (!result.append(entry)) return error.UnsupportedRuleConfigValue;
+    }
+
+    fn noRestrictedImportEntryFromObject(
+        object: std.json.ObjectMap,
+        kind: NoRestrictedImportKind,
+    ) RuleConfigError!NoRestrictedImportEntry {
+        var entry = NoRestrictedImportEntry{ .kind = kind };
+
+        if (object.get("name")) |name_value| {
+            const source = switch (name_value) {
+                .string => |source| source,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!entry.setSource(source)) return error.UnsupportedRuleConfigValue;
+        }
+        if (object.get("message")) |message_value| {
+            const message = switch (message_value) {
+                .string => |message| message,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!entry.setMessage(message)) return error.UnsupportedRuleConfigValue;
+        }
+        if (object.get("importNames")) |names_value| {
+            try appendNoRestrictedImportNames(&entry.import_names, names_value);
+        }
+        if (object.get("allowImportNames")) |names_value| {
+            try appendNoRestrictedImportNames(&entry.allow_import_names, names_value);
+        }
+        if (object.get("allowTypeImports")) |allow_type_imports_value| {
+            entry.allow_type_imports = switch (allow_type_imports_value) {
+                .bool => |enabled| enabled,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+        }
+
+        return entry;
+    }
+
+    fn appendNoRestrictedImportNames(
+        names: *NoRestrictedImportNameList,
+        value: std.json.Value,
+    ) RuleConfigError!void {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        for (items) |item| {
+            const name = switch (item) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!names.append(name)) return error.UnsupportedRuleConfigValue;
+        }
     }
 
     fn boolObjectOption(object: std.json.ObjectMap, key: []const u8, default: bool) RuleConfigError!bool {

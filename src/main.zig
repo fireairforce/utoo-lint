@@ -560,6 +560,14 @@ pub fn main(init: std.process.Init) !void {
             options.no_restricted_globals = true;
         } else if (std.mem.startsWith(u8, arg, "--no-restricted-globals-name=")) {
             appendNoRestrictedGlobalName(arg["--no-restricted-globals-name=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--no-restricted-imports=off")) {
+            options.no_restricted_imports = false;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-imports=on")) {
+            options.no_restricted_imports = true;
+        } else if (std.mem.startsWith(u8, arg, "--no-restricted-imports-name=")) {
+            appendNoRestrictedImportName(arg["--no-restricted-imports-name=".len..], &options, .path);
+        } else if (std.mem.startsWith(u8, arg, "--no-restricted-imports-pattern=")) {
+            appendNoRestrictedImportName(arg["--no-restricted-imports-pattern=".len..], &options, .pattern);
         } else if (std.mem.eql(u8, arg, "--no-restricted-properties=off")) {
             options.no_restricted_properties = false;
         } else if (std.mem.eql(u8, arg, "--no-regex-spaces=off")) {
@@ -1349,6 +1357,15 @@ fn appendNoRestrictedGlobalName(value: []const u8, options: *lint.Options) void 
     options.no_restricted_globals = true;
 }
 
+fn appendNoRestrictedImportName(value: []const u8, options: *lint.Options, kind: lint.NoRestrictedImportKind) void {
+    var entry = lint.NoRestrictedImportEntry{ .kind = kind };
+    if (!entry.setSource(value) or !options.no_restricted_imports_entries.append(entry)) {
+        std.debug.print("utoo-lint: invalid no-restricted-imports value: {s}\n", .{value});
+        std.process.exit(2);
+    }
+    options.no_restricted_imports = true;
+}
+
 fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --no-multiple-empty-lines-max value: {s}\n", .{value});
@@ -2042,6 +2059,10 @@ fn printHelp() void {
         \\  --no-restricted-globals=off Disable no-restricted-globals
         \\  --no-restricted-globals=on Enable no-restricted-globals
         \\  --no-restricted-globals-name=NAME Restrict a global name
+        \\  --no-restricted-imports=off Disable no-restricted-imports
+        \\  --no-restricted-imports=on Enable no-restricted-imports
+        \\  --no-restricted-imports-name=NAME Restrict an import source
+        \\  --no-restricted-imports-pattern=PATTERN Restrict import sources matching a simple * pattern
         \\  --no-restricted-properties=off Disable no-restricted-properties
         \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-return-await=off     Disable no-return-await
