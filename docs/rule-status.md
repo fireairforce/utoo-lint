@@ -133,6 +133,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-proto`](https://eslint.org/docs/latest/rules/no-proto) | Implemented |
 | [`no-prototype-builtins`](https://eslint.org/docs/latest/rules/no-prototype-builtins) | Implemented |
 | [`no-restricted-exports`](https://eslint.org/docs/latest/rules/no-restricted-exports) | Supports `restrictedNamedExports` and `restrictDefaultExports` |
+| [`no-restricted-globals`](https://eslint.org/docs/latest/rules/no-restricted-globals) | Supports direct global restrictions, custom messages, and optional global object checks |
 | [`no-restricted-properties`](https://eslint.org/docs/latest/rules/no-restricted-properties) | Supports object/property restrictions, destructuring, and `allowObjects`/`allowProperties` configuration |
 | [`no-regex-spaces`](https://eslint.org/docs/latest/rules/no-regex-spaces) | Implemented |
 | [`no-return-assign`](https://eslint.org/docs/latest/rules/no-return-assign) | Implemented for `except-parens` and optional `always` behavior |

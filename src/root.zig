@@ -160,6 +160,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_object_constructor or
         options.no_promise_executor_return or
         options.no_redeclare or
+        options.no_restricted_globals or
         options.no_regex_spaces or
         options.no_shadow or
         options.no_undef or
