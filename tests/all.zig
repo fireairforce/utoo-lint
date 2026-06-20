@@ -1151,6 +1151,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/strict.zig");
+}
+
+comptime {
     _ = @import("rules/symbol_description.zig");
 }
 

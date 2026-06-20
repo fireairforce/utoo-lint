@@ -303,6 +303,7 @@ const reassignment_rules = @import("reassignment_rules.zig");
 pub const require_yield = @import("require_yield.zig");
 pub const sort_vars = @import("sort_vars.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
+pub const strict = @import("strict.zig");
 pub const symbol_description = @import("symbol_description.zig");
 pub const typescript_eslint_adjacent_overload_signatures = @import("typescript_eslint_adjacent_overload_signatures.zig");
 pub const typescript_eslint_array_type = @import("typescript_eslint_array_type.zig");
@@ -532,6 +533,14 @@ pub fn runBasic(
                 .unix => .unix,
                 .windows => .windows,
             },
+        });
+    }
+    if (options.strict) {
+        try strict.runWithMode(allocator, diagnostics, tree, switch (options.strict_mode) {
+            .safe => .safe,
+            .global => .global,
+            .function => .function,
+            .never => .never,
         });
     }
     if (options.max_lines) {
