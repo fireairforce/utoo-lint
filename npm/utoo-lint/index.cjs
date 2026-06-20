@@ -355,6 +355,7 @@ const BUILTIN_RULE_IDS = [
   "react/no-redundant-should-component-update",
   "react/no-render-return-value",
   "react/no-string-refs",
+  "react/no-this-in-sfc",
   "react/no-unescaped-entities",
   "react/no-unknown-property",
   "react/no-unused-prop-types",
