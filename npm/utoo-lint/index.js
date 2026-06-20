@@ -284,6 +284,7 @@ const BUILTIN_RULE_IDS = [
   "radix",
   "require-await",
   "require-atomic-updates",
+  "require-unicode-regexp",
   "require-yield",
   "sort-imports",
   "sort-keys",
