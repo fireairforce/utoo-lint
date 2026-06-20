@@ -366,6 +366,12 @@ pub fn main(init: std.process.Init) !void {
             options.no_implicit_coercion_number = .no;
         } else if (std.mem.eql(u8, arg, "--no-implicit-coercion-string=off")) {
             options.no_implicit_coercion_string = .no;
+        } else if (std.mem.eql(u8, arg, "--no-implicit-globals=off")) {
+            options.no_implicit_globals = false;
+        } else if (std.mem.eql(u8, arg, "--no-implicit-globals=on")) {
+            options.no_implicit_globals = true;
+        } else if (std.mem.eql(u8, arg, "--no-implicit-globals-lexical-bindings=on")) {
+            options.no_implicit_globals_lexical_bindings = true;
         } else if (std.mem.eql(u8, arg, "--no-implied-eval=off")) {
             options.no_implied_eval = false;
         } else if (std.mem.eql(u8, arg, "--no-import-assign=off")) {
@@ -2052,6 +2058,9 @@ fn printHelp() void {
         \\  --no-implicit-coercion-boolean=off Disable boolean coercion checks
         \\  --no-implicit-coercion-number=off Disable number coercion checks
         \\  --no-implicit-coercion-string=off Disable string coercion checks
+        \\  --no-implicit-globals=off Disable no-implicit-globals
+        \\  --no-implicit-globals=on Enable no-implicit-globals
+        \\  --no-implicit-globals-lexical-bindings=on Check top-level lexical declarations
         \\  --no-implied-eval=off      Disable no-implied-eval
         \\  --no-import-assign=off     Disable no-import-assign
         \\  --alipay-ant-disallow-typos=off Disable @alipay/ant/disallow-typos

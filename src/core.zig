@@ -2267,6 +2267,8 @@ pub const Options = struct {
     no_implicit_coercion_allow_subtract: bool = false,
     no_implicit_coercion_allow_double_negative: bool = false,
     no_implicit_coercion_disallow_template_shorthand: bool = false,
+    no_implicit_globals: bool = false,
+    no_implicit_globals_lexical_bindings: bool = false,
     no_implied_eval: bool = true,
     no_import_assign: bool = true,
     alipay_ant_disallow_typos: bool = true,
@@ -3152,6 +3154,9 @@ pub const Options = struct {
             self.no_implicit_coercion_allow_subtract = try noImplicitCoercionAllowFromConfig(value, "-");
             self.no_implicit_coercion_allow_double_negative = try noImplicitCoercionAllowFromConfig(value, "- -");
             self.no_implicit_coercion_disallow_template_shorthand = try noImplicitCoercionDisallowTemplateShorthandFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-implicit-globals")) {
+            self.no_implicit_globals_lexical_bindings = try noImplicitGlobalsLexicalBindingsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-inner-declarations")) {
             self.no_inner_declarations_mode = try noInnerDeclarationsModeFromConfig(value);
@@ -5852,6 +5857,20 @@ pub const Options = struct {
 
     fn noFallthroughReportUnusedFallthroughCommentFromConfig(value: std.json.Value) RuleConfigError!bool {
         return noFallthroughBoolOptionFromConfig(value, "reportUnusedFallthroughComment", false);
+    }
+
+    fn noImplicitGlobalsLexicalBindingsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return try boolObjectOption(config, "lexicalBindings", false);
     }
 
     fn noFallthroughCommentPatternFromConfig(value: std.json.Value) RuleConfigError!NoFallthroughCommentPattern {

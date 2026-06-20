@@ -169,6 +169,7 @@ const BUILTIN_RULE_IDS = [
   "no-global-is-finite",
   "no-global-is-nan",
   "no-implicit-coercion",
+  "no-implicit-globals",
   "no-implied-eval",
   "no-import-assign",
   "no-inline-comments",
