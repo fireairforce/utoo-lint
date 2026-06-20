@@ -114,6 +114,7 @@ const BUILTIN_RULE_IDS = [
   "init-declarations",
   "linebreak-style",
   "logical-assignment-operators",
+  "max-classes-per-file",
   "max-lines",
   "max-lines-per-function",
   "new-cap",
