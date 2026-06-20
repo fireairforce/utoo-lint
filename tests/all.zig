@@ -739,6 +739,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_restricted_modules.zig");
+}
+
+comptime {
     _ = @import("rules/no_restricted_properties.zig");
 }
 
