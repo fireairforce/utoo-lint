@@ -963,6 +963,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/prefer_arrow_callback.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_const.zig");
 }
 
