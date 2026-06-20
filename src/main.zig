@@ -801,6 +801,11 @@ pub fn main(init: std.process.Init) !void {
             options.prefer_numeric_literals = false;
         } else if (std.mem.eql(u8, arg, "--prefer-promise-reject-errors=off")) {
             options.prefer_promise_reject_errors = false;
+        } else if (std.mem.eql(u8, arg, "--preserve-caught-error=off")) {
+            options.preserve_caught_error = false;
+        } else if (std.mem.eql(u8, arg, "--preserve-caught-error-require-catch-parameter=on")) {
+            options.preserve_caught_error = true;
+            options.preserve_caught_error_require_catch_parameter = true;
         } else if (std.mem.eql(u8, arg, "--prefer-destructuring=off")) {
             options.prefer_destructuring = false;
         } else if (std.mem.eql(u8, arg, "--prefer-regex-literals=off")) {
@@ -2118,6 +2123,8 @@ fn printHelp() void {
         \\  --prefer-named-capture-group=off Disable prefer-named-capture-group
         \\  --prefer-numeric-literals=off Disable prefer-numeric-literals
         \\  --prefer-promise-reject-errors=off Disable prefer-promise-reject-errors
+        \\  --preserve-caught-error=off Disable preserve-caught-error
+        \\  --preserve-caught-error-require-catch-parameter=on Require catch parameters
         \\  --prefer-destructuring=off Disable prefer-destructuring
         \\  --prefer-object-has-own=off Disable prefer-object-has-own
         \\  --prefer-object-spread=off Disable prefer-object-spread
