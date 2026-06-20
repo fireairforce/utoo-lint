@@ -216,6 +216,7 @@ const BUILTIN_RULE_IDS = [
   "no-restricted-globals",
   "no-restricted-imports",
   "no-restricted-modules",
+  "no-restricted-properties",
   "no-restricted-syntax",
   "no-regex-spaces",
   "no-return-assign",
