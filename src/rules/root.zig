@@ -154,6 +154,7 @@ pub const no_global_assign = @import("no_global_assign.zig");
 pub const no_global_is_finite = @import("no_global_is_finite.zig");
 pub const no_global_is_nan = @import("no_global_is_nan.zig");
 pub const no_implicit_coercion = @import("no_implicit_coercion.zig");
+pub const no_implicit_globals = @import("no_implicit_globals.zig");
 pub const no_implied_eval = @import("no_implied_eval.zig");
 pub const no_import_assign = @import("no_import_assign.zig");
 pub const no_inline_comments = @import("no_inline_comments.zig");
@@ -1443,6 +1444,11 @@ const BasicVisitor = struct {
                 self.options.import_newline_after_import_exact_count,
                 self.options.import_newline_after_import_consider_comments,
             );
+        }
+        if (self.options.no_implicit_globals) {
+            try no_implicit_globals.checkProgram(self.allocator, self.diagnostics, ctx.tree, program, .{
+                .lexical_bindings = self.options.no_implicit_globals_lexical_bindings,
+            });
         }
         if (self.options.import_no_duplicates) {
             try import_no_duplicates.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, program, .{

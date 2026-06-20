@@ -559,6 +559,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_implicit_globals.zig");
+}
+
+comptime {
     _ = @import("rules/no_implied_eval.zig");
 }
 
