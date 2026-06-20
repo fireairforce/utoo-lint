@@ -36,6 +36,7 @@ pub const getter_return = @import("getter_return.zig");
 pub const grouped_accessor_pairs = @import("grouped_accessor_pairs.zig");
 pub const guard_for_in = @import("guard_for_in.zig");
 pub const id_denylist = @import("id_denylist.zig");
+pub const id_length = @import("id_length.zig");
 pub const init_declarations = @import("init_declarations.zig");
 pub const alipay_ant_disallow_typos = @import("alipay_ant_disallow_typos.zig");
 pub const alipay_ant_exhaustive_deps = @import("alipay_ant_exhaustive_deps.zig");
@@ -397,6 +398,17 @@ fn funcStyleOptions(options: *const core.Options) func_style.Options {
             .declaration => .declaration,
             .ignore => .ignore,
         },
+    };
+}
+
+fn idLengthOptions(options: *const core.Options) id_length.Options {
+    return .{
+        .min = options.id_length_min,
+        .has_max = options.id_length_has_max,
+        .max = options.id_length_max,
+        .properties = options.id_length_properties,
+        .exceptions = options.id_length_exceptions,
+        .exception_patterns = options.id_length_exception_patterns,
     };
 }
 
@@ -1510,6 +1522,9 @@ const BasicVisitor = struct {
         if (self.options.func_style) {
             try func_style.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, funcStyleOptions(&self.options));
         }
+        if (self.options.id_length) {
+            try id_length.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, idLengthOptions(&self.options));
+        }
         if (self.options.default_param_last) {
             try default_param_last.check(self.allocator, self.diagnostics, ctx.tree, function.params);
         }
@@ -1616,6 +1631,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, class.id, false);
+        }
+        if (self.options.id_length) {
+            try id_length.checkClass(self.allocator, self.diagnostics, ctx.tree, class, idLengthOptions(&self.options));
         }
         if (self.options.no_useless_constructor and !self.options.typescript_eslint_no_useless_constructor) {
             try no_useless_constructor.checkClass(self.allocator, self.diagnostics, ctx.tree, class);
@@ -1991,6 +2009,9 @@ const BasicVisitor = struct {
         }
         if (self.options.func_style) {
             try func_style.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator, index, ctx, funcStyleOptions(&self.options));
+        }
+        if (self.options.id_length) {
+            try id_length.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator, idLengthOptions(&self.options));
         }
         if (self.options.react_no_children_prop) {
             react_no_children_prop.checkVariableDeclarator(ctx.tree, declarator, &self.react_no_children_prop_bindings);
@@ -2425,6 +2446,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, clause.param, false);
+        }
+        if (self.options.id_length) {
+            try id_length.checkCatchClause(self.allocator, self.diagnostics, ctx.tree, clause, idLengthOptions(&self.options));
         }
         if (self.options.complexity) {
             complexity.increase(&self.complexity_state);
@@ -2880,6 +2904,9 @@ const BasicVisitor = struct {
                 .max = self.options.max_params_max,
                 .count_this = self.options.max_params_count_this,
             });
+        }
+        if (self.options.id_length) {
+            try id_length.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression, idLengthOptions(&self.options));
         }
         if (self.options.typescript_eslint_typedef and self.options.typescript_eslint_typedef_arrow_parameter) {
             try typescript_eslint_typedef.checkArrowFunctionParameters(self.allocator, self.diagnostics, ctx.tree, expression);
@@ -3790,6 +3817,9 @@ const BasicVisitor = struct {
                 .enforce_in_method_names = self.options.no_underscore_dangle_enforce_in_method_names,
             });
         }
+        if (self.options.id_length) {
+            try id_length.checkObjectProperty(self.allocator, self.diagnostics, ctx.tree, property, idLengthOptions(&self.options));
+        }
         if (self.options.react_no_unused_state) {
             try react_no_unused_state.enterObjectProperty(self.allocator, ctx.tree, property, index, ctx.path.parent(), &self.react_no_unused_state_state);
         }
@@ -3888,6 +3918,9 @@ const BasicVisitor = struct {
                 .enforce_in_method_names = self.options.no_underscore_dangle_enforce_in_method_names,
             });
         }
+        if (self.options.id_length) {
+            try id_length.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, idLengthOptions(&self.options));
+        }
         if (self.options.typescript_eslint_explicit_member_accessibility) {
             try typescript_eslint_explicit_member_accessibility.checkMethodDefinition(
                 self.allocator,
@@ -3948,6 +3981,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_multi_assign) {
             try no_multi_assign.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property);
+        }
+        if (self.options.id_length) {
+            try id_length.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, idLengthOptions(&self.options));
         }
         if (self.options.typescript_eslint_explicit_member_accessibility) {
             try typescript_eslint_explicit_member_accessibility.checkPropertyDefinition(
@@ -4043,6 +4079,9 @@ const BasicVisitor = struct {
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, specifier.local, false);
         }
+        if (self.options.id_length) {
+            try id_length.checkImportSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, idLengthOptions(&self.options));
+        }
         return .proceed;
     }
 
@@ -4055,6 +4094,9 @@ const BasicVisitor = struct {
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, specifier.local, false);
         }
+        if (self.options.id_length) {
+            try id_length.checkImportDefaultSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, idLengthOptions(&self.options));
+        }
         return .proceed;
     }
 
@@ -4066,6 +4108,9 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, specifier.local, false);
+        }
+        if (self.options.id_length) {
+            try id_length.checkImportNamespaceSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, idLengthOptions(&self.options));
         }
         return .proceed;
     }

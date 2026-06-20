@@ -690,6 +690,24 @@ pub fn main(init: std.process.Init) !void {
             options.no_with = false;
         } else if (std.mem.eql(u8, arg, "--no-var=off")) {
             options.no_var = false;
+        } else if (std.mem.eql(u8, arg, "--id-length=off")) {
+            options.id_length = false;
+        } else if (std.mem.eql(u8, arg, "--id-length=on")) {
+            options.id_length = true;
+        } else if (std.mem.startsWith(u8, arg, "--id-length-min=")) {
+            parseIdLengthMin(arg["--id-length-min=".len..], &options);
+        } else if (std.mem.startsWith(u8, arg, "--id-length-max=")) {
+            parseIdLengthMax(arg["--id-length-max=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--id-length-properties=always")) {
+            options.id_length = true;
+            options.id_length_properties = .always;
+        } else if (std.mem.eql(u8, arg, "--id-length-properties=never")) {
+            options.id_length = true;
+            options.id_length_properties = .never;
+        } else if (std.mem.startsWith(u8, arg, "--id-length-exception=")) {
+            appendIdLengthException(arg["--id-length-exception=".len..], &options);
+        } else if (std.mem.startsWith(u8, arg, "--id-length-exception-pattern=")) {
+            appendIdLengthExceptionPattern(arg["--id-length-exception-pattern=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--id-denylist=off")) {
             options.id_denylist = false;
         } else if (std.mem.startsWith(u8, arg, "--id-denylist-name=")) {
@@ -1339,6 +1357,41 @@ fn appendIdDenylistName(value: []const u8, options: *lint.Options) void {
     };
 }
 
+fn parseIdLengthMin(value: []const u8, options: *lint.Options) void {
+    const min = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --id-length-min value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.id_length_min = min;
+    options.id_length = true;
+}
+
+fn parseIdLengthMax(value: []const u8, options: *lint.Options) void {
+    const max = std.fmt.parseInt(usize, value, 10) catch {
+        std.debug.print("utoo-lint: invalid --id-length-max value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.id_length_max = max;
+    options.id_length_has_max = true;
+    options.id_length = true;
+}
+
+fn appendIdLengthException(value: []const u8, options: *lint.Options) void {
+    options.id_length_exceptions.append(value) catch {
+        std.debug.print("utoo-lint: invalid --id-length-exception value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.id_length = true;
+}
+
+fn appendIdLengthExceptionPattern(value: []const u8, options: *lint.Options) void {
+    options.id_length_exception_patterns.append(value) catch {
+        std.debug.print("utoo-lint: invalid --id-length-exception-pattern value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.id_length = true;
+}
+
 fn appendConsistentThisAlias(value: []const u8, options: *lint.Options) void {
     if (!options.consistent_this_aliases.custom) {
         options.consistent_this_aliases = .{ .custom = true };
@@ -1897,6 +1950,13 @@ fn printHelp() void {
         \\  --no-labels=off           Disable no-labels
         \\  --no-lone-blocks=off      Disable no-lone-blocks
         \\  --no-lonely-if=off        Disable no-lonely-if
+        \\  --id-length=on            Enable id-length
+        \\  --id-length=off           Disable id-length
+        \\  --id-length-min=N         Set id-length minimum
+        \\  --id-length-max=N         Set id-length maximum
+        \\  --id-length-properties=never Ignore property names
+        \\  --id-length-exception=NAME Add an id-length exception
+        \\  --id-length-exception-pattern=PATTERN Add an id-length exception pattern
         \\  --id-denylist=off         Disable id-denylist
         \\  --id-denylist-name=NAME   Add a restricted identifier name
         \\  --logical-assignment-operators=off Disable logical-assignment-operators
