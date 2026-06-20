@@ -95,6 +95,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/id_match.zig");
+}
+
+comptime {
     _ = @import("rules/init_declarations.zig");
 }
 

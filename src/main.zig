@@ -716,6 +716,24 @@ pub fn main(init: std.process.Init) !void {
             appendIdLengthException(arg["--id-length-exception=".len..], &options);
         } else if (std.mem.startsWith(u8, arg, "--id-length-exception-pattern=")) {
             appendIdLengthExceptionPattern(arg["--id-length-exception-pattern=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--id-match=off")) {
+            options.id_match = false;
+        } else if (std.mem.eql(u8, arg, "--id-match=on")) {
+            options.id_match = true;
+        } else if (std.mem.startsWith(u8, arg, "--id-match-pattern=")) {
+            setIdMatchPattern(arg["--id-match-pattern=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--id-match-properties=on")) {
+            options.id_match = true;
+            options.id_match_properties = true;
+        } else if (std.mem.eql(u8, arg, "--id-match-class-fields=on")) {
+            options.id_match = true;
+            options.id_match_class_fields = true;
+        } else if (std.mem.eql(u8, arg, "--id-match-only-declarations=on")) {
+            options.id_match = true;
+            options.id_match_only_declarations = true;
+        } else if (std.mem.eql(u8, arg, "--id-match-ignore-destructuring=on")) {
+            options.id_match = true;
+            options.id_match_ignore_destructuring = true;
         } else if (std.mem.eql(u8, arg, "--id-denylist=off")) {
             options.id_denylist = false;
         } else if (std.mem.startsWith(u8, arg, "--id-denylist-name=")) {
@@ -1450,6 +1468,14 @@ fn appendIdLengthExceptionPattern(value: []const u8, options: *lint.Options) voi
     options.id_length = true;
 }
 
+fn setIdMatchPattern(value: []const u8, options: *lint.Options) void {
+    options.id_match_pattern.set(value) catch {
+        std.debug.print("utoo-lint: invalid --id-match-pattern value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.id_match = true;
+}
+
 fn appendConsistentThisAlias(value: []const u8, options: *lint.Options) void {
     if (!options.consistent_this_aliases.custom) {
         options.consistent_this_aliases = .{ .custom = true };
@@ -2024,6 +2050,13 @@ fn printHelp() void {
         \\  --id-length-properties=never Ignore property names
         \\  --id-length-exception=NAME Add an id-length exception
         \\  --id-length-exception-pattern=PATTERN Add an id-length exception pattern
+        \\  --id-match=on             Enable id-match
+        \\  --id-match=off            Disable id-match
+        \\  --id-match-pattern=PATTERN Set id-match pattern
+        \\  --id-match-properties=on  Check object and method property names
+        \\  --id-match-class-fields=on Check class field names
+        \\  --id-match-only-declarations=on Check declarations only
+        \\  --id-match-ignore-destructuring=on Ignore destructured bindings
         \\  --id-denylist=off         Disable id-denylist
         \\  --id-denylist-name=NAME   Add a restricted identifier name
         \\  --logical-assignment-operators=off Disable logical-assignment-operators
