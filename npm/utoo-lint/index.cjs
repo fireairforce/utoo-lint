@@ -344,6 +344,7 @@ const BUILTIN_RULE_IDS = [
   "react/jsx-no-target-blank",
   "react/jsx-pascal-case",
   "react/no-access-state-in-setstate",
+  "react/no-array-index-key",
   "react/no-children-prop",
   "react/no-danger",
   "react/no-find-dom-node",
