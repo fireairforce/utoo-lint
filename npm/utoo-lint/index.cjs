@@ -83,6 +83,7 @@ process.stdout.write(json);
 const BUILTIN_RULE_IDS = [
   "accessor-pairs",
   "array-callback-return",
+  "arrow-body-style",
   "block-scoped-var",
   "capitalized-comments",
   "complexity",

@@ -7,6 +7,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/arrow_body_style.zig");
+}
+
+comptime {
     _ = @import("rules/block_scoped_var.zig");
 }
 

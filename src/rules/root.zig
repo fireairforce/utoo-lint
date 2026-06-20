@@ -16,6 +16,7 @@ const symbol_checks = @import("symbol_checks.zig");
 pub const curly = @import("curly.zig");
 pub const accessor_pairs = @import("accessor_pairs.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
+pub const arrow_body_style = @import("arrow_body_style.zig");
 pub const block_scoped_var = @import("block_scoped_var.zig");
 pub const capitalized_comments = @import("capitalized_comments.zig");
 pub const complexity = @import("complexity.zig");
@@ -405,6 +406,17 @@ fn funcStyleOptions(options: *const core.Options) func_style.Options {
             .declaration => .declaration,
             .ignore => .ignore,
         },
+    };
+}
+
+fn arrowBodyStyleOptions(options: *const core.Options) arrow_body_style.Options {
+    return .{
+        .style = switch (options.arrow_body_style_style) {
+            .always => .always,
+            .as_needed => .as_needed,
+            .never => .never,
+        },
+        .require_return_for_object_literal = options.arrow_body_style_require_return_for_object_literal,
     };
 }
 
@@ -2939,6 +2951,9 @@ const BasicVisitor = struct {
         }
         if (self.options.max_nested_callbacks) {
             try max_nested_callbacks.enterArrowFunction(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, &self.max_nested_callbacks_state, self.maxNestedCallbacksOptions());
+        }
+        if (self.options.arrow_body_style) {
+            try arrow_body_style.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression, index, arrowBodyStyleOptions(&self.options));
         }
         if (self.options.no_return_assign and expression.expression) {
             try no_return_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression.body, .{

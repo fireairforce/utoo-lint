@@ -76,6 +76,12 @@ pub const ObjectShorthandStyle = enum {
     never,
 };
 
+pub const ArrowBodyStyle = enum {
+    always,
+    as_needed,
+    never,
+};
+
 pub const OperatorAssignmentStyle = enum {
     always,
     never,
@@ -2012,6 +2018,9 @@ pub const Options = struct {
     array_callback_return_allow_implicit: ArrayCallbackReturnAllowImplicit = .no,
     array_callback_return_check_for_each: ArrayCallbackReturnCheckForEach = .no,
     array_callback_return_allow_void: ArrayCallbackReturnAllowVoid = .no,
+    arrow_body_style: bool = false,
+    arrow_body_style_style: ArrowBodyStyle = .as_needed,
+    arrow_body_style_require_return_for_object_literal: bool = false,
     block_scoped_var: bool = true,
     capitalized_comments: bool = true,
     capitalized_comments_mode: CapitalizedCommentsMode = .always,
@@ -2826,6 +2835,11 @@ pub const Options = struct {
             self.array_callback_return_allow_implicit = try arrayCallbackReturnAllowImplicitFromConfig(value);
             self.array_callback_return_check_for_each = try arrayCallbackReturnCheckForEachFromConfig(value);
             self.array_callback_return_allow_void = try arrayCallbackReturnAllowVoidFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "arrow-body-style")) {
+            const config = try arrowBodyStyleFromConfig(value);
+            self.arrow_body_style_style = config.style;
+            self.arrow_body_style_require_return_for_object_literal = config.require_return_for_object_literal;
         }
         if (std.mem.eql(u8, cli_name, "capitalized-comments")) {
             self.capitalized_comments_mode = try capitalizedCommentsModeFromConfig(value);
@@ -3757,6 +3771,43 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    const ArrowBodyStyleConfig = struct {
+        style: ArrowBodyStyle = .as_needed,
+        require_return_for_object_literal: bool = false,
+    };
+
+    fn arrowBodyStyleFromConfig(value: std.json.Value) RuleConfigError!ArrowBodyStyleConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const style_value = switch (items[1]) {
+            .string => |style| style,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = ArrowBodyStyleConfig{};
+        if (std.mem.eql(u8, style_value, "always")) {
+            result.style = .always;
+        } else if (std.mem.eql(u8, style_value, "as-needed")) {
+            result.style = .as_needed;
+        } else if (std.mem.eql(u8, style_value, "never")) {
+            result.style = .never;
+        } else {
+            return error.UnsupportedRuleConfigValue;
+        }
+
+        if (items.len < 3) return result;
+        const config = switch (items[2]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        result.require_return_for_object_literal = try boolObjectOption(config, "requireReturnForObjectLiteral", false);
+        return result;
     }
 
     fn capitalizedCommentsModeFromConfig(value: std.json.Value) RuleConfigError!CapitalizedCommentsMode {
