@@ -325,6 +325,7 @@ const BUILTIN_RULE_IDS = [
   "jsx-a11y/img-redundant-alt",
   "jsx-a11y/no-access-key",
   "jsx-a11y/no-distracting-elements",
+  "react/button-has-type",
   "react/jsx-boolean-value",
   "react/jsx-no-comment-textnodes",
   "react/jsx-no-duplicate-props",
