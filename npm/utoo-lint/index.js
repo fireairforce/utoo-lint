@@ -244,6 +244,7 @@ const BUILTIN_RULE_IDS = [
   "no-unreachable",
   "no-unsafe-finally",
   "no-unsafe-negation",
+  "no-unsafe-optional-chaining",
   "no-unused-expressions",
   "no-unused-labels",
   "no-unused-vars",
