@@ -306,6 +306,7 @@ pub const require_atomic_updates = @import("require_atomic_updates.zig");
 pub const require_unicode_regexp = @import("require_unicode_regexp.zig");
 const reassignment_rules = @import("reassignment_rules.zig");
 pub const require_yield = @import("require_yield.zig");
+pub const sort_imports = @import("sort_imports.zig");
 pub const sort_vars = @import("sort_vars.zig");
 pub const spaced_comment = @import("spaced_comment.zig");
 pub const strict = @import("strict.zig");
@@ -1404,6 +1405,15 @@ const BasicVisitor = struct {
         if (self.options.import_no_duplicates) {
             try import_no_duplicates.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, program, .{
                 .consider_query_string = self.options.import_no_duplicates_consider_query_string,
+            });
+        }
+        if (self.options.sort_imports) {
+            try sort_imports.check(self.allocator, self.diagnostics, ctx.tree, program, .{
+                .ignore_case = self.options.sort_imports_ignore_case,
+                .ignore_declaration_sort = self.options.sort_imports_ignore_declaration_sort,
+                .ignore_member_sort = self.options.sort_imports_ignore_member_sort,
+                .allow_separated_groups = self.options.sort_imports_allow_separated_groups,
+                .member_syntax_order = self.options.sort_imports_member_syntax_order,
             });
         }
         if (self.options.alipay_ant_no_import_src) {

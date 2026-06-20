@@ -86,6 +86,24 @@ pub const LinebreakStyle = enum {
     windows,
 };
 
+pub const SortImportsMemberSyntax = enum {
+    none,
+    all,
+    multiple,
+    single,
+};
+
+pub const SortImportsMemberSyntaxOrder = struct {
+    values: [4]SortImportsMemberSyntax = .{ .none, .all, .multiple, .single },
+
+    pub fn rank(self: SortImportsMemberSyntaxOrder, syntax: SortImportsMemberSyntax) usize {
+        for (self.values, 0..) |value, index| {
+            if (value == syntax) return index;
+        }
+        return self.values.len;
+    }
+};
+
 pub const ComplexityVariant = enum {
     classic,
     modified,
@@ -2473,6 +2491,12 @@ pub const Options = struct {
     require_yield: bool = true,
     sort_vars: bool = false,
     sort_vars_ignore_case: bool = false,
+    sort_imports: bool = false,
+    sort_imports_ignore_case: bool = false,
+    sort_imports_ignore_declaration_sort: bool = false,
+    sort_imports_ignore_member_sort: bool = false,
+    sort_imports_allow_separated_groups: bool = false,
+    sort_imports_member_syntax_order: SortImportsMemberSyntaxOrder = .{},
     spaced_comment: bool = true,
     spaced_comment_style: SpacedCommentStyle = .always,
     spaced_comment_markers: SpacedCommentMarkers = .{},
@@ -3070,6 +3094,13 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "sort-vars")) {
             self.sort_vars_ignore_case = try sortVarsIgnoreCaseFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "sort-imports")) {
+            self.sort_imports_ignore_case = try sortImportsBoolOptionFromConfig(value, "ignoreCase", false);
+            self.sort_imports_ignore_declaration_sort = try sortImportsBoolOptionFromConfig(value, "ignoreDeclarationSort", false);
+            self.sort_imports_ignore_member_sort = try sortImportsBoolOptionFromConfig(value, "ignoreMemberSort", false);
+            self.sort_imports_allow_separated_groups = try sortImportsBoolOptionFromConfig(value, "allowSeparatedGroups", false);
+            self.sort_imports_member_syntax_order = try sortImportsMemberSyntaxOrderFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "strict")) {
             self.strict_mode = try strictModeFromConfig(value);
@@ -6540,6 +6571,59 @@ pub const Options = struct {
         return switch (config.get("ignoreCase") orelse return false) {
             .bool => |ignore_case| ignore_case,
             else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn sortImportsBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const config = sortImportsConfigObject(value) orelse return default;
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn sortImportsMemberSyntaxOrderFromConfig(value: std.json.Value) RuleConfigError!SortImportsMemberSyntaxOrder {
+        const config = sortImportsConfigObject(value) orelse return .{};
+        const entries = switch (config.get("memberSyntaxSortOrder") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (entries.len != 4) return error.UnsupportedRuleConfigValue;
+
+        var result = SortImportsMemberSyntaxOrder{};
+        var seen = [_]bool{false} ** 4;
+        for (entries, 0..) |entry, index| {
+            const syntax_name = switch (entry) {
+                .string => |syntax_name| syntax_name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            const syntax = try sortImportsMemberSyntaxFromString(syntax_name);
+            const rank_index = @intFromEnum(syntax);
+            if (seen[rank_index]) return error.UnsupportedRuleConfigValue;
+            seen[rank_index] = true;
+            result.values[index] = syntax;
+        }
+        return result;
+    }
+
+    fn sortImportsMemberSyntaxFromString(value: []const u8) RuleConfigError!SortImportsMemberSyntax {
+        if (std.mem.eql(u8, value, "none")) return .none;
+        if (std.mem.eql(u8, value, "all")) return .all;
+        if (std.mem.eql(u8, value, "multiple")) return .multiple;
+        if (std.mem.eql(u8, value, "single")) return .single;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn sortImportsConfigObject(value: std.json.Value) ?std.json.ObjectMap {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return null,
+        };
+        if (items.len < 2) return null;
+
+        return switch (items[1]) {
+            .object => |object| object,
+            else => null,
         };
     }
 
