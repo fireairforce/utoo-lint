@@ -200,6 +200,7 @@ pub const no_redeclare = @import("no_redeclare.zig");
 pub const no_restricted_exports = @import("no_restricted_exports.zig");
 pub const no_restricted_globals = @import("no_restricted_globals.zig");
 pub const no_restricted_imports = @import("no_restricted_imports.zig");
+pub const no_restricted_modules = @import("no_restricted_modules.zig");
 pub const no_restricted_properties = @import("no_restricted_properties.zig");
 pub const no_restricted_syntax = @import("no_restricted_syntax.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
@@ -3339,6 +3340,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_process_exit) {
             try no_process_exit.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        if (self.options.no_restricted_modules) {
+            try no_restricted_modules.check(self.allocator, self.diagnostics, ctx.tree, call, index, self.options.no_restricted_modules_entries);
         }
         if (self.options.use_isnan) {
             try use_isnan.checkCallExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, call, self.useIsnanOptions());

@@ -608,6 +608,14 @@ pub fn main(init: std.process.Init) !void {
             appendNoRestrictedImportName(arg["--no-restricted-imports-name=".len..], &options, .path);
         } else if (std.mem.startsWith(u8, arg, "--no-restricted-imports-pattern=")) {
             appendNoRestrictedImportName(arg["--no-restricted-imports-pattern=".len..], &options, .pattern);
+        } else if (std.mem.eql(u8, arg, "--no-restricted-modules=off")) {
+            options.no_restricted_modules = false;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-modules=on")) {
+            options.no_restricted_modules = true;
+        } else if (std.mem.startsWith(u8, arg, "--no-restricted-modules-name=")) {
+            appendNoRestrictedModuleName(arg["--no-restricted-modules-name=".len..], &options, .path);
+        } else if (std.mem.startsWith(u8, arg, "--no-restricted-modules-pattern=")) {
+            appendNoRestrictedModuleName(arg["--no-restricted-modules-pattern=".len..], &options, .pattern);
         } else if (std.mem.eql(u8, arg, "--no-restricted-properties=off")) {
             options.no_restricted_properties = false;
         } else if (std.mem.eql(u8, arg, "--no-restricted-syntax=off")) {
@@ -1472,6 +1480,15 @@ fn appendNoRestrictedImportName(value: []const u8, options: *lint.Options, kind:
     options.no_restricted_imports = true;
 }
 
+fn appendNoRestrictedModuleName(value: []const u8, options: *lint.Options, kind: lint.NoRestrictedImportKind) void {
+    var entry = lint.NoRestrictedImportEntry{ .kind = kind };
+    if (!entry.setSource(value) or !options.no_restricted_modules_entries.append(entry)) {
+        std.debug.print("utoo-lint: invalid no-restricted-modules value: {s}\n", .{value});
+        std.process.exit(2);
+    }
+    options.no_restricted_modules = true;
+}
+
 fn appendNoRestrictedSyntaxSelector(value: []const u8, options: *lint.Options) void {
     var entry = lint.NoRestrictedSyntaxEntry{};
     if (!entry.setSelector(value) or !options.no_restricted_syntax_entries.append(entry)) {
@@ -2217,6 +2234,10 @@ fn printHelp() void {
         \\  --no-restricted-imports=on Enable no-restricted-imports
         \\  --no-restricted-imports-name=NAME Restrict an import source
         \\  --no-restricted-imports-pattern=PATTERN Restrict import sources matching a simple * pattern
+        \\  --no-restricted-modules=off Disable no-restricted-modules
+        \\  --no-restricted-modules=on Enable no-restricted-modules
+        \\  --no-restricted-modules-name=NAME Restrict a require() source
+        \\  --no-restricted-modules-pattern=PATTERN Restrict require() sources matching a simple * pattern
         \\  --no-restricted-properties=off Disable no-restricted-properties
         \\  --no-restricted-syntax=off Disable no-restricted-syntax
         \\  --no-restricted-syntax=on Enable no-restricted-syntax

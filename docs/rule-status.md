@@ -142,6 +142,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-restricted-exports`](https://eslint.org/docs/latest/rules/no-restricted-exports) | Supports `restrictedNamedExports` and `restrictDefaultExports` |
 | [`no-restricted-globals`](https://eslint.org/docs/latest/rules/no-restricted-globals) | Supports direct global restrictions, custom messages, and optional global object checks |
 | [`no-restricted-imports`](https://eslint.org/docs/latest/rules/no-restricted-imports) | Supports restricted `paths`, simple `patterns`, custom messages, import name allow/deny lists, type-only allowances, and re-export checks |
+| [`no-restricted-modules`](https://eslint.org/docs/latest/rules/no-restricted-modules) | Supports restricted CommonJS `require()` sources, `paths`, simple `patterns`, negated patterns, and custom messages |
 | [`no-restricted-properties`](https://eslint.org/docs/latest/rules/no-restricted-properties) | Supports object/property restrictions, destructuring, and `allowObjects`/`allowProperties` configuration |
 | [`no-restricted-syntax`](https://eslint.org/docs/latest/rules/no-restricted-syntax) | Supports lightweight AST node selector restrictions with custom messages |
 | [`no-regex-spaces`](https://eslint.org/docs/latest/rules/no-regex-spaces) | Implemented |

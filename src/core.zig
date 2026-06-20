@@ -1304,6 +1304,8 @@ pub const NoRestrictedImports = struct {
     }
 };
 
+pub const NoRestrictedModules = NoRestrictedImports;
+
 pub const max_no_unused_vars_ignore_pattern_len = 256;
 
 pub const NoUnusedVarsIgnorePatternError = error{
@@ -2416,6 +2418,8 @@ pub const Options = struct {
     no_restricted_globals_entries: NoRestrictedGlobals = .{},
     no_restricted_imports: bool = false,
     no_restricted_imports_entries: NoRestrictedImports = .{},
+    no_restricted_modules: bool = false,
+    no_restricted_modules_entries: NoRestrictedModules = .{},
     no_restricted_properties: bool = true,
     no_restricted_properties_entries: NoRestrictedProperties = .{},
     no_restricted_syntax: bool = false,
@@ -3210,6 +3214,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-restricted-imports")) {
             self.no_restricted_imports_entries = try noRestrictedImportsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-restricted-modules")) {
+            self.no_restricted_modules_entries = try noRestrictedModulesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-restricted-properties")) {
             self.no_restricted_properties_entries = try noRestrictedPropertiesFromConfig(value);
@@ -4573,6 +4580,10 @@ pub const Options = struct {
         }
 
         return result;
+    }
+
+    fn noRestrictedModulesFromConfig(value: std.json.Value) RuleConfigError!NoRestrictedModules {
+        return try noRestrictedImportsFromConfig(value);
     }
 
     fn appendNoRestrictedImportConfigItems(
