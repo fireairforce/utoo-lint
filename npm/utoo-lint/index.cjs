@@ -338,6 +338,7 @@ const BUILTIN_RULE_IDS = [
   "react/no-danger",
   "react/no-find-dom-node",
   "react/no-is-mounted",
+  "react/no-multi-comp",
   "react/no-render-return-value",
   "react/no-unescaped-entities",
   "react/no-unused-prop-types",
