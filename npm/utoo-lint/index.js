@@ -363,6 +363,7 @@ const BUILTIN_RULE_IDS = [
   "react/no-unescaped-entities",
   "react/no-unknown-property",
   "react/no-unused-prop-types",
+  "react/no-unused-state",
   "react/prefer-es6-class",
   "react/prop-types",
   "react/self-closing-comp",
