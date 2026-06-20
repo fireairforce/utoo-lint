@@ -118,6 +118,7 @@ const BUILTIN_RULE_IDS = [
   "max-depth",
   "max-lines",
   "max-lines-per-function",
+  "max-nested-callbacks",
   "new-cap",
   "new-parens",
   "no-alert",
