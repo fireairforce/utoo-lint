@@ -132,6 +132,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-promise-executor-return`](https://eslint.org/docs/latest/rules/no-promise-executor-return) | Supports `allowVoid` configuration |
 | [`no-proto`](https://eslint.org/docs/latest/rules/no-proto) | Implemented |
 | [`no-prototype-builtins`](https://eslint.org/docs/latest/rules/no-prototype-builtins) | Implemented |
+| [`no-redeclare`](https://eslint.org/docs/latest/rules/no-redeclare) | Implemented with TypeScript-aware fallback to `@typescript-eslint/no-redeclare` |
 | [`no-restricted-exports`](https://eslint.org/docs/latest/rules/no-restricted-exports) | Supports `restrictedNamedExports` and `restrictDefaultExports` |
 | [`no-restricted-globals`](https://eslint.org/docs/latest/rules/no-restricted-globals) | Supports direct global restrictions, custom messages, and optional global object checks |
 | [`no-restricted-properties`](https://eslint.org/docs/latest/rules/no-restricted-properties) | Supports object/property restrictions, destructuring, and `allowObjects`/`allowProperties` configuration |

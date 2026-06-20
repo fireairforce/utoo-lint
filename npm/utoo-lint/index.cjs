@@ -202,6 +202,7 @@ const BUILTIN_RULE_IDS = [
   "no-promise-executor-return",
   "no-proto",
   "no-prototype-builtins",
+  "no-redeclare",
   "no-restricted-exports",
   "no-restricted-globals",
   "no-regex-spaces",
