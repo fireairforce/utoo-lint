@@ -318,6 +318,7 @@ const BUILTIN_RULE_IDS = [
   "import/no-unresolved",
   "import/no-self-import",
   "jsx-a11y/alt-text",
+  "jsx-a11y/anchor-has-content",
   "jsx-a11y/aria-props",
   "jsx-a11y/iframe-has-title",
   "jsx-a11y/img-redundant-alt",
