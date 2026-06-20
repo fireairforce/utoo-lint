@@ -673,6 +673,10 @@ pub const max_no_restricted_export_names = 64;
 pub const max_no_restricted_export_name_len = 128;
 pub const max_id_denylist_names = 64;
 pub const max_id_denylist_name_len = 128;
+pub const max_id_length_exceptions = 64;
+pub const max_id_length_exception_len = 128;
+pub const max_id_length_exception_patterns = 64;
+pub const max_id_length_exception_pattern_len = 256;
 
 pub const NoRestrictedPropertyNameList = struct {
     count: usize = 0,
@@ -896,6 +900,91 @@ pub const IdDenylistNames = struct {
         @memcpy(self.storage[self.count][0..name.len], name);
         self.lengths[self.count] = name.len;
         self.count += 1;
+    }
+};
+
+pub const IdLengthProperties = enum {
+    always,
+    never,
+};
+
+pub const IdLengthExceptionsError = error{
+    EmptyIdLengthException,
+    TooManyIdLengthExceptions,
+    IdLengthExceptionTooLong,
+};
+
+pub const IdLengthExceptions = struct {
+    count: usize = 0,
+    lengths: [max_id_length_exceptions]usize = undefined,
+    storage: [max_id_length_exceptions][max_id_length_exception_len]u8 = undefined,
+
+    pub fn contains(self: *const IdLengthExceptions, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const IdLengthExceptions, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *IdLengthExceptions, name: []const u8) IdLengthExceptionsError!void {
+        if (name.len == 0) return error.EmptyIdLengthException;
+        if (self.count >= max_id_length_exceptions) return error.TooManyIdLengthExceptions;
+        if (name.len > max_id_length_exception_len) return error.IdLengthExceptionTooLong;
+        if (self.contains(name)) return;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
+pub const IdLengthExceptionPatternsError = error{
+    EmptyIdLengthExceptionPattern,
+    TooManyIdLengthExceptionPatterns,
+    IdLengthExceptionPatternTooLong,
+};
+
+pub const IdLengthExceptionPatterns = struct {
+    count: usize = 0,
+    lengths: [max_id_length_exception_patterns]usize = undefined,
+    storage: [max_id_length_exception_patterns][max_id_length_exception_pattern_len]u8 = undefined,
+
+    pub fn matches(self: *const IdLengthExceptionPatterns, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (simplePatternMatches(self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const IdLengthExceptionPatterns, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *IdLengthExceptionPatterns, pattern: []const u8) IdLengthExceptionPatternsError!void {
+        if (pattern.len == 0) return error.EmptyIdLengthExceptionPattern;
+        if (self.count >= max_id_length_exception_patterns) return error.TooManyIdLengthExceptionPatterns;
+        if (pattern.len > max_id_length_exception_pattern_len) return error.IdLengthExceptionPatternTooLong;
+
+        @memcpy(self.storage[self.count][0..pattern.len], pattern);
+        self.lengths[self.count] = pattern.len;
+        self.count += 1;
+    }
+
+    fn simplePatternMatches(pattern: []const u8, name: []const u8) bool {
+        if (pattern.len >= 2 and pattern[0] == '^' and pattern[pattern.len - 1] == '$') {
+            return std.mem.eql(u8, name, pattern[1 .. pattern.len - 1]);
+        }
+        if (pattern.len >= 1 and pattern[0] == '^') {
+            return std.mem.startsWith(u8, name, pattern[1..]);
+        }
+        if (pattern.len >= 1 and pattern[pattern.len - 1] == '$') {
+            return std.mem.endsWith(u8, name, pattern[0 .. pattern.len - 1]);
+        }
+        return std.mem.indexOf(u8, name, pattern) != null;
     }
 };
 
@@ -1755,6 +1844,13 @@ pub const Options = struct {
     guard_for_in: bool = true,
     id_denylist: bool = true,
     id_denylist_names: IdDenylistNames = .{},
+    id_length: bool = false,
+    id_length_min: usize = 2,
+    id_length_has_max: bool = false,
+    id_length_max: usize = 0,
+    id_length_properties: IdLengthProperties = .always,
+    id_length_exceptions: IdLengthExceptions = .{},
+    id_length_exception_patterns: IdLengthExceptionPatterns = .{},
     init_declarations: bool = false,
     init_declarations_mode: InitDeclarationsMode = .always,
     init_declarations_ignore_for_loop_init: bool = false,
@@ -2552,6 +2648,15 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "id-denylist")) {
             self.id_denylist_names = try idDenylistNamesFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "id-length")) {
+            const config = try idLengthFromConfig(value);
+            self.id_length_min = config.min;
+            self.id_length_has_max = config.has_max;
+            self.id_length_max = config.max;
+            self.id_length_properties = config.properties;
+            self.id_length_exceptions = config.exceptions;
+            self.id_length_exception_patterns = config.exception_patterns;
         }
         if (std.mem.eql(u8, cli_name, "init-declarations")) {
             self.init_declarations_mode = try initDeclarationsModeFromConfig(value);
@@ -3810,6 +3915,99 @@ pub const Options = struct {
             names.append(name) catch return error.UnsupportedRuleConfigValue;
         }
         return names;
+    }
+
+    const IdLengthConfig = struct {
+        min: usize = 2,
+        has_max: bool = false,
+        max: usize = 0,
+        properties: IdLengthProperties = .always,
+        exceptions: IdLengthExceptions = .{},
+        exception_patterns: IdLengthExceptionPatterns = .{},
+    };
+
+    fn idLengthFromConfig(value: std.json.Value) RuleConfigError!IdLengthConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = IdLengthConfig{};
+        if (config.get("min")) |min_value| {
+            result.min = try jsonNonNegativeIntegerToUsize(min_value);
+        }
+        if (config.get("max")) |max_value| {
+            result.max = try jsonNonNegativeIntegerToUsize(max_value);
+            result.has_max = true;
+        }
+        if (config.get("properties")) |properties_value| {
+            const properties = switch (properties_value) {
+                .string => |properties| properties,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, properties, "always")) {
+                result.properties = .always;
+            } else if (std.mem.eql(u8, properties, "never")) {
+                result.properties = .never;
+            } else {
+                return error.UnsupportedRuleConfigValue;
+            }
+        }
+        if (config.get("exceptions")) |exceptions_value| {
+            result.exceptions = try idLengthExceptionsFromValue(exceptions_value);
+        }
+        if (config.get("exceptionPatterns")) |patterns_value| {
+            result.exception_patterns = try idLengthExceptionPatternsFromValue(patterns_value);
+        }
+        return result;
+    }
+
+    fn idLengthExceptionsFromValue(value: std.json.Value) RuleConfigError!IdLengthExceptions {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var exceptions = IdLengthExceptions{};
+        for (items) |item| {
+            const name = switch (item) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            exceptions.append(name) catch return error.UnsupportedRuleConfigValue;
+        }
+        return exceptions;
+    }
+
+    fn idLengthExceptionPatternsFromValue(value: std.json.Value) RuleConfigError!IdLengthExceptionPatterns {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var patterns = IdLengthExceptionPatterns{};
+        for (items) |item| {
+            const pattern = switch (item) {
+                .string => |pattern| pattern,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            patterns.append(pattern) catch return error.UnsupportedRuleConfigValue;
+        }
+        return patterns;
+    }
+
+    fn jsonNonNegativeIntegerToUsize(value: std.json.Value) RuleConfigError!usize {
+        const integer = switch (value) {
+            .integer => |integer| integer,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return nonNegativeIntegerToUsize(integer);
     }
 
     fn noRestrictedExportNamesFromConfig(value: std.json.Value) RuleConfigError!NoRestrictedExportNames {

@@ -103,6 +103,7 @@ const BUILTIN_RULE_IDS = [
   "getter-return",
   "grouped-accessor-pairs",
   "guard-for-in",
+  "id-length",
   "init-declarations",
   "linebreak-style",
   "logical-assignment-operators",
