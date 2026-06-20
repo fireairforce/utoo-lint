@@ -570,6 +570,12 @@ pub fn main(init: std.process.Init) !void {
             appendNoRestrictedImportName(arg["--no-restricted-imports-pattern=".len..], &options, .pattern);
         } else if (std.mem.eql(u8, arg, "--no-restricted-properties=off")) {
             options.no_restricted_properties = false;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-syntax=off")) {
+            options.no_restricted_syntax = false;
+        } else if (std.mem.eql(u8, arg, "--no-restricted-syntax=on")) {
+            options.no_restricted_syntax = true;
+        } else if (std.mem.startsWith(u8, arg, "--no-restricted-syntax-selector=")) {
+            appendNoRestrictedSyntaxSelector(arg["--no-restricted-syntax-selector=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--no-regex-spaces=off")) {
             options.no_regex_spaces = false;
         } else if (std.mem.eql(u8, arg, "--no-return-await=off")) {
@@ -1418,6 +1424,15 @@ fn appendNoRestrictedImportName(value: []const u8, options: *lint.Options, kind:
     options.no_restricted_imports = true;
 }
 
+fn appendNoRestrictedSyntaxSelector(value: []const u8, options: *lint.Options) void {
+    var entry = lint.NoRestrictedSyntaxEntry{};
+    if (!entry.setSelector(value) or !options.no_restricted_syntax_entries.append(entry)) {
+        std.debug.print("utoo-lint: invalid --no-restricted-syntax-selector value: {s}\n", .{value});
+        std.process.exit(2);
+    }
+    options.no_restricted_syntax = true;
+}
+
 fn parseNoMultipleEmptyLinesMax(value: []const u8, options: *lint.Options) void {
     const max = std.fmt.parseInt(usize, value, 10) catch {
         std.debug.print("utoo-lint: invalid --no-multiple-empty-lines-max value: {s}\n", .{value});
@@ -2140,6 +2155,9 @@ fn printHelp() void {
         \\  --no-restricted-imports-name=NAME Restrict an import source
         \\  --no-restricted-imports-pattern=PATTERN Restrict import sources matching a simple * pattern
         \\  --no-restricted-properties=off Disable no-restricted-properties
+        \\  --no-restricted-syntax=off Disable no-restricted-syntax
+        \\  --no-restricted-syntax=on Enable no-restricted-syntax
+        \\  --no-restricted-syntax-selector=SELECTOR Restrict a simple AST node selector
         \\  --no-regex-spaces=off     Disable no-regex-spaces
         \\  --no-return-await=off     Disable no-return-await
         \\  --no-return-assign=off    Disable no-return-assign

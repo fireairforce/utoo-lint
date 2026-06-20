@@ -692,6 +692,9 @@ pub const max_no_restricted_globals = 64;
 pub const max_no_restricted_global_name_len = 128;
 pub const max_no_restricted_global_message_len = 256;
 pub const max_no_restricted_global_objects = 16;
+pub const max_no_restricted_syntax = 64;
+pub const max_no_restricted_syntax_selector_len = 128;
+pub const max_no_restricted_syntax_message_len = 256;
 pub const max_no_restricted_export_names = 64;
 pub const max_no_restricted_export_name_len = 128;
 pub const max_no_restricted_imports = 16;
@@ -895,6 +898,55 @@ pub const NoRestrictedGlobals = struct {
             if (std.mem.eql(u8, entry.name(), name)) return entry;
         }
         return null;
+    }
+};
+
+pub const NoRestrictedSyntaxEntry = struct {
+    selector_length: usize = 0,
+    selector_storage: [max_no_restricted_syntax_selector_len]u8 = undefined,
+
+    has_message: bool = false,
+    message_length: usize = 0,
+    message_storage: [max_no_restricted_syntax_message_len]u8 = undefined,
+
+    pub fn selector(self: *const NoRestrictedSyntaxEntry) []const u8 {
+        return self.selector_storage[0..self.selector_length];
+    }
+
+    pub fn message(self: *const NoRestrictedSyntaxEntry) ?[]const u8 {
+        if (!self.has_message) return null;
+        return self.message_storage[0..self.message_length];
+    }
+
+    pub fn setSelector(self: *NoRestrictedSyntaxEntry, value: []const u8) bool {
+        if (value.len == 0 or value.len > max_no_restricted_syntax_selector_len) return false;
+        @memcpy(self.selector_storage[0..value.len], value);
+        self.selector_length = value.len;
+        return true;
+    }
+
+    pub fn setMessage(self: *NoRestrictedSyntaxEntry, value: []const u8) bool {
+        if (value.len == 0 or value.len > max_no_restricted_syntax_message_len) return false;
+        @memcpy(self.message_storage[0..value.len], value);
+        self.message_length = value.len;
+        self.has_message = true;
+        return true;
+    }
+};
+
+pub const NoRestrictedSyntax = struct {
+    count: usize = 0,
+    entries: [max_no_restricted_syntax]NoRestrictedSyntaxEntry = undefined,
+
+    pub fn append(self: *NoRestrictedSyntax, entry: NoRestrictedSyntaxEntry) bool {
+        if (self.count >= max_no_restricted_syntax) return false;
+        self.entries[self.count] = entry;
+        self.count += 1;
+        return true;
+    }
+
+    pub fn at(self: *const NoRestrictedSyntax, index: usize) *const NoRestrictedSyntaxEntry {
+        return &self.entries[index];
     }
 };
 
@@ -2297,6 +2349,8 @@ pub const Options = struct {
     no_restricted_imports_entries: NoRestrictedImports = .{},
     no_restricted_properties: bool = true,
     no_restricted_properties_entries: NoRestrictedProperties = .{},
+    no_restricted_syntax: bool = false,
+    no_restricted_syntax_entries: NoRestrictedSyntax = .{},
     no_regex_spaces: bool = true,
     no_return_await: bool = true,
     no_return_assign: bool = true,
@@ -3074,6 +3128,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-restricted-properties")) {
             self.no_restricted_properties_entries = try noRestrictedPropertiesFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-restricted-syntax")) {
+            self.no_restricted_syntax_entries = try noRestrictedSyntaxFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "no-self-assign")) {
             self.no_self_assign_props = try noSelfAssignPropsFromConfig(value);
@@ -6382,6 +6439,48 @@ pub const Options = struct {
                     else => return error.UnsupportedRuleConfigValue,
                 };
                 if (!entry.setName(name)) return error.UnsupportedRuleConfigValue;
+                if (object.get("message")) |message_value| {
+                    const message = switch (message_value) {
+                        .string => |string| string,
+                        else => return error.UnsupportedRuleConfigValue,
+                    };
+                    if (!entry.setMessage(message)) return error.UnsupportedRuleConfigValue;
+                }
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+        return entry;
+    }
+
+    fn noRestrictedSyntaxFromConfig(value: std.json.Value) RuleConfigError!NoRestrictedSyntax {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        var restrictions = NoRestrictedSyntax{};
+        for (items[1..]) |item| {
+            const entry = try noRestrictedSyntaxEntryFromConfig(item);
+            if (!restrictions.append(entry)) return error.UnsupportedRuleConfigValue;
+        }
+        return restrictions;
+    }
+
+    fn noRestrictedSyntaxEntryFromConfig(value: std.json.Value) RuleConfigError!NoRestrictedSyntaxEntry {
+        var entry = NoRestrictedSyntaxEntry{};
+        switch (value) {
+            .string => |selector| {
+                if (!entry.setSelector(selector)) return error.UnsupportedRuleConfigValue;
+            },
+            .object => |object| {
+                const selector_value = object.get("selector") orelse return error.UnsupportedRuleConfigValue;
+                const selector = switch (selector_value) {
+                    .string => |string| string,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                if (!entry.setSelector(selector)) return error.UnsupportedRuleConfigValue;
+
                 if (object.get("message")) |message_value| {
                     const message = switch (message_value) {
                         .string => |string| string,

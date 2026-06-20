@@ -198,6 +198,7 @@ pub const no_restricted_exports = @import("no_restricted_exports.zig");
 pub const no_restricted_globals = @import("no_restricted_globals.zig");
 pub const no_restricted_imports = @import("no_restricted_imports.zig");
 pub const no_restricted_properties = @import("no_restricted_properties.zig");
+pub const no_restricted_syntax = @import("no_restricted_syntax.zig");
 pub const no_regex_spaces = @import("no_regex_spaces.zig");
 pub const no_return_await = @import("no_return_await.zig");
 pub const no_return_assign = @import("no_return_assign.zig");
@@ -1377,6 +1378,9 @@ const BasicVisitor = struct {
         }
         if (self.options.id_denylist) {
             try id_denylist.checkNode(self.allocator, self.diagnostics, ctx.tree, data, index, &ctx.path, &self.id_denylist_state, &self.options.id_denylist_names);
+        }
+        if (self.options.no_restricted_syntax) {
+            try no_restricted_syntax.checkNode(self.allocator, self.diagnostics, ctx.tree, data, index, self.options.no_restricted_syntax_entries);
         }
         if (self.options.no_undefined) {
             switch (data) {

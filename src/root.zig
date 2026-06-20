@@ -12,6 +12,7 @@ pub const Result = core.Result;
 pub const SourcePosition = core.SourcePosition;
 pub const NoRestrictedImportEntry = core.NoRestrictedImportEntry;
 pub const NoRestrictedImportKind = core.NoRestrictedImportKind;
+pub const NoRestrictedSyntaxEntry = core.NoRestrictedSyntaxEntry;
 pub const SortImportsMemberSyntax = core.SortImportsMemberSyntax;
 pub const rules = @import("rules/root.zig");
 
