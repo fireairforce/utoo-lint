@@ -2547,6 +2547,9 @@ pub const Options = struct {
     no_use_before_define_allow_named_exports: bool = false,
     no_undef: bool = true,
     no_undef_typeof: bool = false,
+    prefer_arrow_callback: bool = false,
+    prefer_arrow_callback_allow_named_functions: bool = false,
+    prefer_arrow_callback_allow_unbound_this: bool = true,
     prefer_const: bool = true,
     prefer_const_destructuring: PreferConstDestructuring = .any,
     prefer_const_ignore_read_before_assign: bool = true,
@@ -3278,6 +3281,10 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-promise-executor-return")) {
             self.no_promise_executor_return_allow_void = try noPromiseExecutorReturnAllowVoidFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "prefer-arrow-callback")) {
+            self.prefer_arrow_callback_allow_named_functions = try preferArrowCallbackBoolOptionFromConfig(value, "allowNamedFunctions", false);
+            self.prefer_arrow_callback_allow_unbound_this = try preferArrowCallbackBoolOptionFromConfig(value, "allowUnboundThis", true);
         }
         if (std.mem.eql(u8, cli_name, "prefer-const")) {
             self.prefer_const_destructuring = try preferConstDestructuringFromConfig(value);
@@ -6765,6 +6772,24 @@ pub const Options = struct {
     }
 
     fn preferConstBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const option = config.get(key) orelse return default;
+        return switch (option) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn preferArrowCallbackBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
             else => return default,

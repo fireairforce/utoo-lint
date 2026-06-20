@@ -261,6 +261,7 @@ const BUILTIN_RULE_IDS = [
   "object-shorthand",
   "one-var",
   "operator-assignment",
+  "prefer-arrow-callback",
   "prefer-const",
   "prefer-destructuring",
   "prefer-exponentiation-operator",

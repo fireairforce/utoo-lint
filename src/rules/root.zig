@@ -252,6 +252,7 @@ pub const no_with = @import("no_with.zig");
 pub const object_shorthand = @import("object_shorthand.zig");
 pub const one_var = @import("one_var.zig");
 pub const operator_assignment = @import("operator_assignment.zig");
+pub const prefer_arrow_callback = @import("prefer_arrow_callback.zig");
 pub const prefer_const = @import("prefer_const.zig");
 pub const prefer_destructuring = @import("prefer_destructuring.zig");
 pub const prefer_exponentiation_operator = @import("prefer_exponentiation_operator.zig");
@@ -1596,6 +1597,12 @@ const BasicVisitor = struct {
         }
         if (self.options.func_style) {
             try func_style.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, funcStyleOptions(&self.options));
+        }
+        if (self.options.prefer_arrow_callback) {
+            try prefer_arrow_callback.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, .{
+                .allow_named_functions = self.options.prefer_arrow_callback_allow_named_functions,
+                .allow_unbound_this = self.options.prefer_arrow_callback_allow_unbound_this,
+            });
         }
         if (self.options.camelcase) {
             try camelcase.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, camelcaseOptions(&self.options));

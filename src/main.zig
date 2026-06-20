@@ -867,6 +867,14 @@ pub fn main(init: std.process.Init) !void {
             options.no_use_before_define = false;
         } else if (std.mem.eql(u8, arg, "--no-undef=off")) {
             options.no_undef = false;
+        } else if (std.mem.eql(u8, arg, "--prefer-arrow-callback=off")) {
+            options.prefer_arrow_callback = false;
+        } else if (std.mem.eql(u8, arg, "--prefer-arrow-callback=on")) {
+            options.prefer_arrow_callback = true;
+        } else if (std.mem.eql(u8, arg, "--prefer-arrow-callback-allow-named-functions=on")) {
+            options.prefer_arrow_callback_allow_named_functions = true;
+        } else if (std.mem.eql(u8, arg, "--prefer-arrow-callback-allow-unbound-this=off")) {
+            options.prefer_arrow_callback_allow_unbound_this = false;
         } else if (std.mem.eql(u8, arg, "--prefer-const=off")) {
             options.prefer_const = false;
         } else if (std.mem.eql(u8, arg, "--prefer-const-destructuring=all")) {
@@ -2315,6 +2323,10 @@ fn printHelp() void {
         \\  --no-unassigned-vars=off Disable no-unassigned-vars
         \\  --no-use-before-define=off Disable no-use-before-define
         \\  --no-undef=off            Disable no-undef
+        \\  --prefer-arrow-callback=off Disable prefer-arrow-callback
+        \\  --prefer-arrow-callback=on Enable prefer-arrow-callback
+        \\  --prefer-arrow-callback-allow-named-functions=on Allow named function callbacks
+        \\  --prefer-arrow-callback-allow-unbound-this=off Report unbound this callbacks
         \\  --prefer-const=off        Disable prefer-const
         \\  --prefer-const-destructuring=all Require all destructured bindings to be const candidates
         \\  --prefer-exponentiation-operator=off Disable prefer-exponentiation-operator
