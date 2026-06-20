@@ -715,6 +715,8 @@ pub const max_id_length_exception_len = 128;
 pub const max_id_length_exception_patterns = 64;
 pub const max_id_length_exception_pattern_len = 256;
 pub const max_id_match_pattern_len = 256;
+pub const max_camelcase_allow_patterns = 64;
+pub const max_camelcase_allow_pattern_len = 256;
 
 pub const NoRestrictedPropertyNameList = struct {
     count: usize = 0,
@@ -1100,6 +1102,56 @@ pub const IdMatchPattern = struct {
     pub fn matches(self: *const IdMatchPattern, name: []const u8) bool {
         if (!self.custom) return true;
         return simplePatternMatches(self.pattern(), name);
+    }
+
+    fn simplePatternMatches(pattern_text: []const u8, name: []const u8) bool {
+        if (pattern_text.len >= 2 and pattern_text[0] == '^' and pattern_text[pattern_text.len - 1] == '$') {
+            return std.mem.eql(u8, name, pattern_text[1 .. pattern_text.len - 1]);
+        }
+        if (pattern_text.len >= 1 and pattern_text[0] == '^') {
+            return std.mem.startsWith(u8, name, pattern_text[1..]);
+        }
+        if (pattern_text.len >= 1 and pattern_text[pattern_text.len - 1] == '$') {
+            return std.mem.endsWith(u8, name, pattern_text[0 .. pattern_text.len - 1]);
+        }
+        return std.mem.indexOf(u8, name, pattern_text) != null;
+    }
+};
+
+pub const CamelcaseProperties = enum {
+    always,
+    never,
+};
+
+pub const CamelcaseAllowPatternsError = error{
+    EmptyCamelcaseAllowPattern,
+    TooManyCamelcaseAllowPatterns,
+    CamelcaseAllowPatternTooLong,
+};
+
+pub const CamelcaseAllowPatterns = struct {
+    count: usize = 0,
+    lengths: [max_camelcase_allow_patterns]usize = undefined,
+    storage: [max_camelcase_allow_patterns][max_camelcase_allow_pattern_len]u8 = undefined,
+
+    pub fn matches(self: *const CamelcaseAllowPatterns, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (simplePatternMatches(self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const CamelcaseAllowPatterns, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *CamelcaseAllowPatterns, pattern: []const u8) CamelcaseAllowPatternsError!void {
+        if (pattern.len == 0) return error.EmptyCamelcaseAllowPattern;
+        if (self.count >= max_camelcase_allow_patterns) return error.TooManyCamelcaseAllowPatterns;
+        if (pattern.len > max_camelcase_allow_pattern_len) return error.CamelcaseAllowPatternTooLong;
+        @memcpy(self.storage[self.count][0..pattern.len], pattern);
+        self.lengths[self.count] = pattern.len;
+        self.count += 1;
     }
 
     fn simplePatternMatches(pattern_text: []const u8, name: []const u8) bool {
@@ -2022,6 +2074,12 @@ pub const Options = struct {
     arrow_body_style_style: ArrowBodyStyle = .as_needed,
     arrow_body_style_require_return_for_object_literal: bool = false,
     block_scoped_var: bool = true,
+    camelcase: bool = false,
+    camelcase_properties: CamelcaseProperties = .always,
+    camelcase_ignore_destructuring: bool = false,
+    camelcase_ignore_imports: bool = false,
+    camelcase_ignore_globals: bool = false,
+    camelcase_allow: CamelcaseAllowPatterns = .{},
     capitalized_comments: bool = true,
     capitalized_comments_mode: CapitalizedCommentsMode = .always,
     capitalized_comments_ignore_inline_comments: CapitalizedCommentsIgnoreInlineComments = .no,
@@ -2840,6 +2898,14 @@ pub const Options = struct {
             const config = try arrowBodyStyleFromConfig(value);
             self.arrow_body_style_style = config.style;
             self.arrow_body_style_require_return_for_object_literal = config.require_return_for_object_literal;
+        }
+        if (std.mem.eql(u8, cli_name, "camelcase")) {
+            const config = try camelcaseFromConfig(value);
+            self.camelcase_properties = config.properties;
+            self.camelcase_ignore_destructuring = config.ignore_destructuring;
+            self.camelcase_ignore_imports = config.ignore_imports;
+            self.camelcase_ignore_globals = config.ignore_globals;
+            self.camelcase_allow = config.allow;
         }
         if (std.mem.eql(u8, cli_name, "capitalized-comments")) {
             self.capitalized_comments_mode = try capitalizedCommentsModeFromConfig(value);
@@ -3807,6 +3873,62 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         result.require_return_for_object_literal = try boolObjectOption(config, "requireReturnForObjectLiteral", false);
+        return result;
+    }
+
+    const CamelcaseConfig = struct {
+        properties: CamelcaseProperties = .always,
+        ignore_destructuring: bool = false,
+        ignore_imports: bool = false,
+        ignore_globals: bool = false,
+        allow: CamelcaseAllowPatterns = .{},
+    };
+
+    fn camelcaseFromConfig(value: std.json.Value) RuleConfigError!CamelcaseConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = CamelcaseConfig{};
+        if (config.get("properties")) |properties_value| {
+            const properties = switch (properties_value) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, properties, "always")) {
+                result.properties = .always;
+            } else if (std.mem.eql(u8, properties, "never")) {
+                result.properties = .never;
+            } else {
+                return error.UnsupportedRuleConfigValue;
+            }
+        }
+
+        result.ignore_destructuring = try boolObjectOption(config, "ignoreDestructuring", false);
+        result.ignore_imports = try boolObjectOption(config, "ignoreImports", false);
+        result.ignore_globals = try boolObjectOption(config, "ignoreGlobals", false);
+
+        if (config.get("allow")) |allow_value| {
+            const allow_items = switch (allow_value) {
+                .array => |array| array.items,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            for (allow_items) |allow_item| {
+                const pattern = switch (allow_item) {
+                    .string => |string| string,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                result.allow.append(pattern) catch return error.UnsupportedRuleConfigValue;
+            }
+        }
+
         return result;
     }
 

@@ -15,6 +15,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/camelcase.zig");
+}
+
+comptime {
     _ = @import("rules/capitalized_comments.zig");
 }
 
