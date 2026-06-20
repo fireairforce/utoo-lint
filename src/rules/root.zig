@@ -18,6 +18,7 @@ pub const accessor_pairs = @import("accessor_pairs.zig");
 pub const array_callback_return = @import("array_callback_return.zig");
 pub const arrow_body_style = @import("arrow_body_style.zig");
 pub const block_scoped_var = @import("block_scoped_var.zig");
+pub const camelcase = @import("camelcase.zig");
 pub const capitalized_comments = @import("capitalized_comments.zig");
 pub const complexity = @import("complexity.zig");
 pub const consistent_this = @import("consistent_this.zig");
@@ -417,6 +418,19 @@ fn arrowBodyStyleOptions(options: *const core.Options) arrow_body_style.Options 
             .never => .never,
         },
         .require_return_for_object_literal = options.arrow_body_style_require_return_for_object_literal,
+    };
+}
+
+fn camelcaseOptions(options: *const core.Options) camelcase.Options {
+    return .{
+        .properties = switch (options.camelcase_properties) {
+            .always => .always,
+            .never => .never,
+        },
+        .ignore_destructuring = options.camelcase_ignore_destructuring,
+        .ignore_imports = options.camelcase_ignore_imports,
+        .ignore_globals = options.camelcase_ignore_globals,
+        .allow = options.camelcase_allow,
     };
 }
 
@@ -1576,6 +1590,9 @@ const BasicVisitor = struct {
         if (self.options.func_style) {
             try func_style.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, funcStyleOptions(&self.options));
         }
+        if (self.options.camelcase) {
+            try camelcase.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, camelcaseOptions(&self.options));
+        }
         if (self.options.id_length) {
             try id_length.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, idLengthOptions(&self.options));
         }
@@ -1688,6 +1705,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, class.id, false);
+        }
+        if (self.options.camelcase) {
+            try camelcase.checkClass(self.allocator, self.diagnostics, ctx.tree, class, camelcaseOptions(&self.options));
         }
         if (self.options.id_length) {
             try id_length.checkClass(self.allocator, self.diagnostics, ctx.tree, class, idLengthOptions(&self.options));
@@ -2069,6 +2089,9 @@ const BasicVisitor = struct {
         }
         if (self.options.func_style) {
             try func_style.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator, index, ctx, funcStyleOptions(&self.options));
+        }
+        if (self.options.camelcase) {
+            try camelcase.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator, camelcaseOptions(&self.options));
         }
         if (self.options.id_length) {
             try id_length.checkVariableDeclarator(self.allocator, self.diagnostics, ctx.tree, declarator, idLengthOptions(&self.options));
@@ -2509,6 +2532,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkBinding(self.allocator, self.diagnostics, ctx.tree, clause.param, false);
+        }
+        if (self.options.camelcase) {
+            try camelcase.checkCatchClause(self.allocator, self.diagnostics, ctx.tree, clause, camelcaseOptions(&self.options));
         }
         if (self.options.id_length) {
             try id_length.checkCatchClause(self.allocator, self.diagnostics, ctx.tree, clause, idLengthOptions(&self.options));
@@ -2973,6 +2999,9 @@ const BasicVisitor = struct {
                 .max = self.options.max_params_max,
                 .count_this = self.options.max_params_count_this,
             });
+        }
+        if (self.options.camelcase) {
+            try camelcase.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression, camelcaseOptions(&self.options));
         }
         if (self.options.id_length) {
             try id_length.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression, idLengthOptions(&self.options));
@@ -3901,6 +3930,9 @@ const BasicVisitor = struct {
         if (self.options.id_length) {
             try id_length.checkObjectProperty(self.allocator, self.diagnostics, ctx.tree, property, idLengthOptions(&self.options));
         }
+        if (self.options.camelcase) {
+            try camelcase.checkObjectProperty(self.allocator, self.diagnostics, ctx.tree, property, camelcaseOptions(&self.options));
+        }
         if (self.options.id_match) {
             try id_match.checkObjectProperty(self.allocator, self.diagnostics, ctx.tree, property, idMatchOptions(&self.options));
         }
@@ -4005,6 +4037,9 @@ const BasicVisitor = struct {
         if (self.options.id_length) {
             try id_length.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, idLengthOptions(&self.options));
         }
+        if (self.options.camelcase) {
+            try camelcase.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, camelcaseOptions(&self.options));
+        }
         if (self.options.id_match) {
             try id_match.checkMethodDefinition(self.allocator, self.diagnostics, ctx.tree, method, idMatchOptions(&self.options));
         }
@@ -4071,6 +4106,9 @@ const BasicVisitor = struct {
         }
         if (self.options.id_length) {
             try id_length.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, idLengthOptions(&self.options));
+        }
+        if (self.options.camelcase) {
+            try camelcase.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, camelcaseOptions(&self.options));
         }
         if (self.options.id_match) {
             try id_match.checkPropertyDefinition(self.allocator, self.diagnostics, ctx.tree, property, idMatchOptions(&self.options));
@@ -4172,6 +4210,9 @@ const BasicVisitor = struct {
         if (self.options.id_length) {
             try id_length.checkImportSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, idLengthOptions(&self.options));
         }
+        if (self.options.camelcase) {
+            try camelcase.checkImportSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, camelcaseOptions(&self.options));
+        }
         if (self.options.id_match) {
             try id_match.checkImportSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, idMatchOptions(&self.options));
         }
@@ -4190,6 +4231,9 @@ const BasicVisitor = struct {
         if (self.options.id_length) {
             try id_length.checkImportDefaultSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, idLengthOptions(&self.options));
         }
+        if (self.options.camelcase) {
+            try camelcase.checkImportDefaultSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, camelcaseOptions(&self.options));
+        }
         if (self.options.id_match) {
             try id_match.checkImportDefaultSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, idMatchOptions(&self.options));
         }
@@ -4207,6 +4251,9 @@ const BasicVisitor = struct {
         }
         if (self.options.id_length) {
             try id_length.checkImportNamespaceSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, idLengthOptions(&self.options));
+        }
+        if (self.options.camelcase) {
+            try camelcase.checkImportNamespaceSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, camelcaseOptions(&self.options));
         }
         if (self.options.id_match) {
             try id_match.checkImportNamespaceSpecifier(self.allocator, self.diagnostics, ctx.tree, specifier, idMatchOptions(&self.options));

@@ -150,6 +150,24 @@ pub fn main(init: std.process.Init) !void {
             options.arrow_body_style_require_return_for_object_literal = true;
         } else if (std.mem.eql(u8, arg, "--block-scoped-var=off")) {
             options.block_scoped_var = false;
+        } else if (std.mem.eql(u8, arg, "--camelcase=off")) {
+            options.camelcase = false;
+        } else if (std.mem.eql(u8, arg, "--camelcase=on")) {
+            options.camelcase = true;
+        } else if (std.mem.eql(u8, arg, "--camelcase-properties=always")) {
+            options.camelcase = true;
+            options.camelcase_properties = .always;
+        } else if (std.mem.eql(u8, arg, "--camelcase-properties=never")) {
+            options.camelcase = true;
+            options.camelcase_properties = .never;
+        } else if (std.mem.eql(u8, arg, "--camelcase-ignore-destructuring=on")) {
+            options.camelcase = true;
+            options.camelcase_ignore_destructuring = true;
+        } else if (std.mem.eql(u8, arg, "--camelcase-ignore-imports=on")) {
+            options.camelcase = true;
+            options.camelcase_ignore_imports = true;
+        } else if (std.mem.startsWith(u8, arg, "--camelcase-allow=")) {
+            appendCamelcaseAllow(arg["--camelcase-allow=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--capitalized-comments=off")) {
             options.capitalized_comments = false;
         } else if (std.mem.eql(u8, arg, "--capitalized-comments=never")) {
@@ -1415,6 +1433,14 @@ fn parseNoWarningCommentsTerms(value: []const u8, options: *lint.Options) void {
     options.no_warning_comments_terms = terms;
 }
 
+fn appendCamelcaseAllow(value: []const u8, options: *lint.Options) void {
+    options.camelcase_allow.append(value) catch {
+        std.debug.print("utoo-lint: invalid --camelcase-allow value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.camelcase = true;
+}
+
 fn appendNoRestrictedExportName(value: []const u8, options: *lint.Options) void {
     options.no_restricted_exports_names.append(value) catch {
         std.debug.print("utoo-lint: invalid --no-restricted-exports-name value: {s}\n", .{value});
@@ -1919,6 +1945,12 @@ fn printHelp() void {
         \\  --arrow-body-style=never Disallow arrow body braces when possible
         \\  --arrow-body-style-require-return-for-object-literal=on Keep braces for returned object literals
         \\  --block-scoped-var=off   Disable block-scoped-var
+        \\  --camelcase=off          Disable camelcase
+        \\  --camelcase=on           Enable camelcase
+        \\  --camelcase-properties=never Ignore property names
+        \\  --camelcase-ignore-destructuring=on Ignore destructured bindings
+        \\  --camelcase-ignore-imports=on Ignore import bindings
+        \\  --camelcase-allow=PATTERN Add an allowed camelcase name pattern
         \\  --capitalized-comments=off Disable capitalized-comments
         \\  --capitalized-comments=never Require lowercase comment starts
         \\  --capitalized-comments-ignore-inline-comments=on Ignore inline comments
