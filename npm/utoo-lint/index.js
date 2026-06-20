@@ -373,6 +373,7 @@ const BUILTIN_RULE_IDS = [
   "@typescript-eslint/no-extra-non-null-assertion",
   "@typescript-eslint/no-inferrable-types",
   "@typescript-eslint/no-invalid-void-type",
+  "@typescript-eslint/no-loop-func",
   "@typescript-eslint/no-loss-of-precision",
   "@typescript-eslint/no-misused-new",
   "@typescript-eslint/no-namespace",

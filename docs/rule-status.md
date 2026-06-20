@@ -323,6 +323,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-extra-non-null-assertion`](https://typescript-eslint.io/rules/no-extra-non-null-assertion/) | Implemented |
 | [`@typescript-eslint/no-inferrable-types`](https://typescript-eslint.io/rules/no-inferrable-types/) | Supports `ignoreParameters` and `ignoreProperties` configuration |
 | [`@typescript-eslint/no-invalid-void-type`](https://typescript-eslint.io/rules/no-invalid-void-type/) | Supports `allowAsThisParameter` and boolean/string-list `allowInGenericTypeArguments` configuration |
+| [`@typescript-eslint/no-loop-func`](https://typescript-eslint.io/rules/no-loop-func/) | Implemented for TypeScript loop captures with core `no-loop-func` fallback when disabled |
 | [`@typescript-eslint/no-loss-of-precision`](https://typescript-eslint.io/rules/no-loss-of-precision/) | Implemented |
 | [`@typescript-eslint/no-misused-new`](https://typescript-eslint.io/rules/no-misused-new/) | Implemented |
 | [`@typescript-eslint/no-namespace`](https://typescript-eslint.io/rules/no-namespace/) | Implemented for `allowDeclarations` and `allowDefinitionFiles` configurations |
