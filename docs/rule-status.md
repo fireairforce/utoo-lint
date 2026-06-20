@@ -7,6 +7,7 @@ Each rule links to the corresponding ESLint rule reference.
 | --- | --- |
 | [`accessor-pairs`](https://eslint.org/docs/latest/rules/accessor-pairs) | Supports `setWithoutGet`, `getWithoutSet`, and `enforceForClassMembers` configuration |
 | [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for optional `allowImplicit`, `checkForEach`, and `allowVoid` behavior |
+| [`arrow-body-style`](https://eslint.org/docs/latest/rules/arrow-body-style) | Supports `always`, `as-needed`, `never`, and `requireReturnForObjectLiteral` diagnostics |
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
 | [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Supports `always`, `never`, `ignoreInlineComments`, and `ignoreConsecutiveComments` configuration |
 | [`complexity`](https://eslint.org/docs/latest/rules/complexity) | Supports `max`, deprecated `maximum`, `classic` and `modified` variants, functions, arrow functions, and static blocks |
