@@ -108,6 +108,7 @@ const BUILTIN_RULE_IDS = [
   "getter-return",
   "grouped-accessor-pairs",
   "guard-for-in",
+  "id-denylist",
   "id-length",
   "id-match",
   "init-declarations",
