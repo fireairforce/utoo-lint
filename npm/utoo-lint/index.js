@@ -337,6 +337,7 @@ const BUILTIN_RULE_IDS = [
   "react/jsx-no-duplicate-props",
   "react/jsx-no-target-blank",
   "react/jsx-pascal-case",
+  "react/no-children-prop",
   "react/no-danger",
   "react/no-find-dom-node",
   "react/no-is-mounted",
