@@ -248,6 +248,7 @@ const BUILTIN_RULE_IDS = [
   "no-unsafe-optional-chaining",
   "no-unused-expressions",
   "no-unused-labels",
+  "no-unused-private-class-members",
   "no-unused-vars",
   "no-use-before-define",
   "no-useless-backreference",
