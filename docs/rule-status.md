@@ -226,6 +226,12 @@ Each rule links to the corresponding ESLint rule reference.
 | [`wrap-iife`](https://eslint.org/docs/latest/rules/wrap-iife) | Implemented for `outside`, `inside`, and `any` options |
 | [`yoda`](https://eslint.org/docs/latest/rules/yoda) | Supports `never`, `always`, `onlyEquality`, and `exceptRange` configuration |
 
+## ESLint comments rules
+
+| Rule | Status |
+| --- | --- |
+| [`eslint-comments/no-restricted-disable`](https://mysticatea.github.io/eslint-plugin-eslint-comments/rules/no-restricted-disable.html) | Supports restricted disable comments for configured rules |
+
 ## Import plugin rules
 
 | Rule | Status |
