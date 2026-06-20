@@ -731,6 +731,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_restricted_syntax.zig");
+}
+
+comptime {
     _ = @import("rules/no_regex_spaces.zig");
 }
 
