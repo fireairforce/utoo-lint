@@ -229,6 +229,7 @@ pub const no_useless_call = @import("no_useless_call.zig");
 pub const no_useless_concat = @import("no_useless_concat.zig");
 pub const no_useless_constructor = @import("no_useless_constructor.zig");
 pub const no_undef = @import("no_undef.zig");
+pub const no_unassigned_vars = @import("no_unassigned_vars.zig");
 pub const no_useless_catch = @import("no_useless_catch.zig");
 pub const no_useless_escape = @import("no_useless_escape.zig");
 pub const no_useless_rename = @import("no_useless_rename.zig");
@@ -887,6 +888,10 @@ pub fn runSemantic(
 
     if (options.no_restricted_globals) {
         try no_restricted_globals.run(allocator, diagnostics, tree, semantic_result.symbol_table, options.no_restricted_globals_entries);
+    }
+
+    if (options.no_unassigned_vars) {
+        try no_unassigned_vars.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (use_typescript_no_redeclare) {

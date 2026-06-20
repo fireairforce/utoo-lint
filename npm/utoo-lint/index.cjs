@@ -225,6 +225,7 @@ const BUILTIN_RULE_IDS = [
   "no-trailing-spaces",
   "no-undef",
   "no-undef-init",
+  "no-unassigned-vars",
   "no-underscore-dangle",
   "no-undefined",
   "no-unneeded-ternary",

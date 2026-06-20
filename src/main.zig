@@ -781,6 +781,8 @@ pub fn main(init: std.process.Init) !void {
             options.use_isnan = false;
         } else if (std.mem.eql(u8, arg, "--no-unused-vars=off")) {
             options.no_unused_vars = false;
+        } else if (std.mem.eql(u8, arg, "--no-unassigned-vars=off")) {
+            options.no_unassigned_vars = false;
         } else if (std.mem.eql(u8, arg, "--no-use-before-define=off")) {
             options.no_use_before_define = false;
         } else if (std.mem.eql(u8, arg, "--no-undef=off")) {
@@ -2106,6 +2108,7 @@ fn printHelp() void {
         \\  --eqeqeq=off              Disable eqeqeq
         \\  --use-isnan=off           Disable use-isnan
         \\  --no-unused-vars=off      Disable no-unused-vars
+        \\  --no-unassigned-vars=off Disable no-unassigned-vars
         \\  --no-use-before-define=off Disable no-use-before-define
         \\  --no-undef=off            Disable no-undef
         \\  --prefer-const=off        Disable prefer-const

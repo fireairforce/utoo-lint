@@ -2155,6 +2155,7 @@ pub const Options = struct {
     no_trailing_spaces_ignore_comments: bool = false,
     no_unreachable: bool = true,
     no_undef_init: bool = true,
+    no_unassigned_vars: bool = true,
     no_underscore_dangle: bool = true,
     no_underscore_dangle_allow_after_this: bool = false,
     no_underscore_dangle_allow_after_super: bool = false,
