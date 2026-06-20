@@ -345,6 +345,7 @@ const BUILTIN_RULE_IDS = [
   "react/no-render-return-value",
   "react/no-string-refs",
   "react/no-unescaped-entities",
+  "react/no-unknown-property",
   "react/no-unused-prop-types",
   "react/prop-types",
   "react-hooks/rules-of-hooks",
