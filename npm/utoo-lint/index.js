@@ -272,6 +272,7 @@ const BUILTIN_RULE_IDS = [
   "require-await",
   "require-atomic-updates",
   "require-yield",
+  "sort-imports",
   "sort-vars",
   "spaced-comment",
   "strict",
