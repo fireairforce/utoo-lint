@@ -891,6 +891,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_unassigned_vars.zig");
+}
+
+comptime {
     _ = @import("rules/no_warning_comments.zig");
 }
 
