@@ -29,6 +29,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`guard-for-in`](https://eslint.org/docs/latest/rules/guard-for-in) | Implemented |
 | [`id-denylist`](https://eslint.org/docs/latest/rules/id-denylist) | Supports configured restricted identifiers, private identifiers, member-write checks, and renamed import/export skips |
 | [`id-length`](https://eslint.org/docs/latest/rules/id-length) | Supports `min`, `max`, `exceptions`, common `exceptionPatterns`, and `properties` for bindings, imports, functions, and class/object properties |
+| [`id-match`](https://eslint.org/docs/latest/rules/id-match) | Supports lightweight pattern matching for declarations and import aliases, with `properties`, `classFields`, `onlyDeclarations`, and `ignoreDestructuring` configuration |
 | [`init-declarations`](https://eslint.org/docs/latest/rules/init-declarations) | Supports `always`, `never`, and `ignoreForLoopInit` |
 | [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Supports `unix` and `windows` configuration |
 | [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for `always`, optional `never`, and optional `enforceForIfStatements: true` behavior |

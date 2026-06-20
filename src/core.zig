@@ -705,6 +705,7 @@ pub const max_id_length_exceptions = 64;
 pub const max_id_length_exception_len = 128;
 pub const max_id_length_exception_patterns = 64;
 pub const max_id_length_exception_pattern_len = 256;
+pub const max_id_match_pattern_len = 256;
 
 pub const NoRestrictedPropertyNameList = struct {
     count: usize = 0,
@@ -1002,17 +1003,58 @@ pub const IdLengthExceptionPatterns = struct {
         self.count += 1;
     }
 
-    fn simplePatternMatches(pattern: []const u8, name: []const u8) bool {
-        if (pattern.len >= 2 and pattern[0] == '^' and pattern[pattern.len - 1] == '$') {
-            return std.mem.eql(u8, name, pattern[1 .. pattern.len - 1]);
+    fn simplePatternMatches(pattern_text: []const u8, name: []const u8) bool {
+        if (pattern_text.len >= 2 and pattern_text[0] == '^' and pattern_text[pattern_text.len - 1] == '$') {
+            return std.mem.eql(u8, name, pattern_text[1 .. pattern_text.len - 1]);
         }
-        if (pattern.len >= 1 and pattern[0] == '^') {
-            return std.mem.startsWith(u8, name, pattern[1..]);
+        if (pattern_text.len >= 1 and pattern_text[0] == '^') {
+            return std.mem.startsWith(u8, name, pattern_text[1..]);
         }
-        if (pattern.len >= 1 and pattern[pattern.len - 1] == '$') {
-            return std.mem.endsWith(u8, name, pattern[0 .. pattern.len - 1]);
+        if (pattern_text.len >= 1 and pattern_text[pattern_text.len - 1] == '$') {
+            return std.mem.endsWith(u8, name, pattern_text[0 .. pattern_text.len - 1]);
         }
-        return std.mem.indexOf(u8, name, pattern) != null;
+        return std.mem.indexOf(u8, name, pattern_text) != null;
+    }
+};
+
+pub const IdMatchPatternError = error{
+    EmptyIdMatchPattern,
+    IdMatchPatternTooLong,
+};
+
+pub const IdMatchPattern = struct {
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_id_match_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const IdMatchPattern) []const u8 {
+        return self.storage[0..self.length];
+    }
+
+    pub fn set(self: *IdMatchPattern, value: []const u8) IdMatchPatternError!void {
+        if (value.len == 0) return error.EmptyIdMatchPattern;
+        if (value.len > max_id_match_pattern_len) return error.IdMatchPatternTooLong;
+        @memcpy(self.storage[0..value.len], value);
+        self.length = value.len;
+        self.custom = true;
+    }
+
+    pub fn matches(self: *const IdMatchPattern, name: []const u8) bool {
+        if (!self.custom) return true;
+        return simplePatternMatches(self.pattern(), name);
+    }
+
+    fn simplePatternMatches(pattern_text: []const u8, name: []const u8) bool {
+        if (pattern_text.len >= 2 and pattern_text[0] == '^' and pattern_text[pattern_text.len - 1] == '$') {
+            return std.mem.eql(u8, name, pattern_text[1 .. pattern_text.len - 1]);
+        }
+        if (pattern_text.len >= 1 and pattern_text[0] == '^') {
+            return std.mem.startsWith(u8, name, pattern_text[1..]);
+        }
+        if (pattern_text.len >= 1 and pattern_text[pattern_text.len - 1] == '$') {
+            return std.mem.endsWith(u8, name, pattern_text[0 .. pattern_text.len - 1]);
+        }
+        return std.mem.indexOf(u8, name, pattern_text) != null;
     }
 };
 
@@ -1973,6 +2015,12 @@ pub const Options = struct {
     id_length_properties: IdLengthProperties = .always,
     id_length_exceptions: IdLengthExceptions = .{},
     id_length_exception_patterns: IdLengthExceptionPatterns = .{},
+    id_match: bool = false,
+    id_match_pattern: IdMatchPattern = .{},
+    id_match_properties: bool = false,
+    id_match_class_fields: bool = false,
+    id_match_only_declarations: bool = false,
+    id_match_ignore_destructuring: bool = false,
     init_declarations: bool = false,
     init_declarations_mode: InitDeclarationsMode = .always,
     init_declarations_ignore_for_loop_init: bool = false,
@@ -2796,6 +2844,14 @@ pub const Options = struct {
             self.id_length_properties = config.properties;
             self.id_length_exceptions = config.exceptions;
             self.id_length_exception_patterns = config.exception_patterns;
+        }
+        if (std.mem.eql(u8, cli_name, "id-match")) {
+            const config = try idMatchFromConfig(value);
+            self.id_match_pattern = config.pattern;
+            self.id_match_properties = config.properties;
+            self.id_match_class_fields = config.class_fields;
+            self.id_match_only_declarations = config.only_declarations;
+            self.id_match_ignore_destructuring = config.ignore_destructuring;
         }
         if (std.mem.eql(u8, cli_name, "init-declarations")) {
             self.init_declarations_mode = try initDeclarationsModeFromConfig(value);
@@ -4159,6 +4215,41 @@ pub const Options = struct {
             patterns.append(pattern) catch return error.UnsupportedRuleConfigValue;
         }
         return patterns;
+    }
+
+    const IdMatchConfig = struct {
+        pattern: IdMatchPattern = .{},
+        properties: bool = false,
+        class_fields: bool = false,
+        only_declarations: bool = false,
+        ignore_destructuring: bool = false,
+    };
+
+    fn idMatchFromConfig(value: std.json.Value) RuleConfigError!IdMatchConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const pattern_value = switch (items[1]) {
+            .string => |pattern| pattern,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = IdMatchConfig{};
+        result.pattern.set(pattern_value) catch return error.UnsupportedRuleConfigValue;
+        if (items.len < 3) return result;
+
+        const config = switch (items[2]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        result.properties = try boolObjectOption(config, "properties", false);
+        result.class_fields = try boolObjectOption(config, "classFields", false);
+        result.only_declarations = try boolObjectOption(config, "onlyDeclarations", false);
+        result.ignore_destructuring = try boolObjectOption(config, "ignoreDestructuring", false);
+        return result;
     }
 
     fn jsonNonNegativeIntegerToUsize(value: std.json.Value) RuleConfigError!usize {

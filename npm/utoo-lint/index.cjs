@@ -104,6 +104,7 @@ const BUILTIN_RULE_IDS = [
   "grouped-accessor-pairs",
   "guard-for-in",
   "id-length",
+  "id-match",
   "init-declarations",
   "linebreak-style",
   "logical-assignment-operators",
