@@ -195,6 +195,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`prefer-object-has-own`](https://eslint.org/docs/latest/rules/prefer-object-has-own) | Implemented |
 | [`prefer-object-spread`](https://eslint.org/docs/latest/rules/prefer-object-spread) | Implemented for `Object.assign` calls with a new object literal target |
 | [`prefer-promise-reject-errors`](https://eslint.org/docs/latest/rules/prefer-promise-reject-errors) | Supports `allowEmptyReject` configuration |
+| [`preserve-caught-error`](https://eslint.org/docs/latest/rules/preserve-caught-error) | Reports rethrown built-in errors in `catch` blocks that omit or replace the caught error `cause`, with `requireCatchParameter` support |
 | [`prefer-regex-literals`](https://eslint.org/docs/latest/rules/prefer-regex-literals) | Supports `disallowRedundantWrapping` configuration |
 | [`prefer-rest-params`](https://eslint.org/docs/latest/rules/prefer-rest-params) | Implemented |
 | [`prefer-spread`](https://eslint.org/docs/latest/rules/prefer-spread) | Implemented |

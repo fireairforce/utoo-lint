@@ -253,6 +253,7 @@ pub const prefer_numeric_literals = @import("prefer_numeric_literals.zig");
 pub const prefer_object_has_own = @import("prefer_object_has_own.zig");
 pub const prefer_object_spread = @import("prefer_object_spread.zig");
 pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
+pub const preserve_caught_error = @import("preserve_caught_error.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
@@ -1050,6 +1051,12 @@ pub fn runSemantic(
 
     if (options.prefer_exponentiation_operator) {
         try prefer_exponentiation_operator.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.preserve_caught_error) {
+        try preserve_caught_error.run(allocator, diagnostics, tree, semantic_result.symbol_table, .{
+            .require_catch_parameter = options.preserve_caught_error_require_catch_parameter,
+        });
     }
 
     if (options.prefer_regex_literals) {

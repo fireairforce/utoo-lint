@@ -262,6 +262,7 @@ const BUILTIN_RULE_IDS = [
   "prefer-object-has-own",
   "prefer-object-spread",
   "prefer-promise-reject-errors",
+  "preserve-caught-error",
   "prefer-regex-literals",
   "prefer-rest-params",
   "prefer-spread",

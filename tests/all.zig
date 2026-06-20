@@ -959,6 +959,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/preserve_caught_error.zig");
+}
+
+comptime {
     _ = @import("rules/prefer_regex_literals.zig");
 }
 

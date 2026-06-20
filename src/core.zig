@@ -2257,6 +2257,8 @@ pub const Options = struct {
     prefer_object_has_own: bool = true,
     prefer_promise_reject_errors: bool = true,
     prefer_promise_reject_errors_allow_empty_reject: bool = false,
+    preserve_caught_error: bool = true,
+    preserve_caught_error_require_catch_parameter: bool = false,
     prefer_destructuring: bool = true,
     prefer_destructuring_variable_declarator_array: bool = true,
     prefer_destructuring_variable_declarator_object: bool = true,
@@ -2946,6 +2948,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "prefer-promise-reject-errors")) {
             self.prefer_promise_reject_errors_allow_empty_reject = try preferPromiseRejectErrorsAllowEmptyRejectFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "preserve-caught-error")) {
+            self.preserve_caught_error_require_catch_parameter = try preserveCaughtErrorRequireCatchParameterFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "prefer-regex-literals")) {
             self.prefer_regex_literals_disallow_redundant_wrapping = try preferRegexLiteralsDisallowRedundantWrappingFromConfig(value);
@@ -6154,6 +6159,23 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return switch (config.get("allowEmptyReject") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn preserveCaughtErrorRequireCatchParameterFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("requireCatchParameter") orelse return false) {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
