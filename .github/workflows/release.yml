@@ -223,9 +223,9 @@ jobs:
       - name: Publish npm packages
         env:
           NPM_TAG: ${{ steps.release_version.outputs.npm_tag }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for package_dir in npm/@utoo/lint-*; do
-            pnpm publish "${package_dir}" --access public --provenance --tag "${NPM_TAG}" --no-git-checks
+            pnpm publish "${package_dir}/" --access public --provenance --tag "${NPM_TAG}" --no-git-checks
           done
-          pnpm publish npm/utoo-lint --access public --provenance --tag "${NPM_TAG}" --no-git-checks
+
+          pnpm publish npm/utoo-lint/ --access public --provenance --tag "${NPM_TAG}" --no-git-checks

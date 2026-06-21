@@ -255,9 +255,10 @@ Publishing order:
 
 ```bash
 for package_dir in npm/@utoo/lint-*; do
-  pnpm publish "${package_dir}" --access public
+  pnpm publish "${package_dir}/" --access public
 done
-pnpm publish npm/utoo-lint --access public
+
+pnpm publish npm/utoo-lint/ --access public
 ```
 
 GitHub Actions stages the native package directories from the release matrix,
