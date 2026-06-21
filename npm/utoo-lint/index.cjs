@@ -364,6 +364,7 @@ const BUILTIN_RULE_IDS = [
   "react/no-will-update-set-state",
   "react/prefer-es6-class",
   "react/prop-types",
+  "react/require-render-return",
   "react/self-closing-comp",
   "react-hooks/rules-of-hooks",
   "@typescript-eslint/adjacent-overload-signatures",
