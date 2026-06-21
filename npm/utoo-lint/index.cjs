@@ -366,6 +366,7 @@ const BUILTIN_RULE_IDS = [
   "react/prop-types",
   "react/require-render-return",
   "react/self-closing-comp",
+  "react/style-prop-object",
   "react-hooks/rules-of-hooks",
   "@typescript-eslint/adjacent-overload-signatures",
   "@typescript-eslint/array-type",
