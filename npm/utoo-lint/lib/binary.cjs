@@ -1,4 +1,4 @@
-const { existsSync } = require("node:fs");
+const { chmodSync, existsSync, statSync } = require("node:fs");
 const { join } = require("node:path");
 
 const here = __dirname;
@@ -26,7 +26,7 @@ function resolveBinary(options = {}) {
 
   if (env.UTOO_LINT_BIN) {
     if (existsSync(env.UTOO_LINT_BIN)) {
-      return env.UTOO_LINT_BIN;
+      return ensureExecutable(env.UTOO_LINT_BIN, platform);
     }
     throw new Error(`utoo-lint: UTOO_LINT_BIN does not exist: ${env.UTOO_LINT_BIN}`);
   }
@@ -47,7 +47,7 @@ function resolveBinary(options = {}) {
     try {
       const resolved = candidate();
       if (existsSync(resolved)) {
-        return resolved;
+        return ensureExecutable(resolved, platform);
       }
     } catch {}
   }
@@ -56,6 +56,21 @@ function resolveBinary(options = {}) {
     `utoo-lint: missing native package ${packageName}. ` +
       "Run `./scripts/package-npm.sh` from the repository root, or install the matching optional dependency."
   );
+}
+
+function ensureExecutable(path, platform) {
+  if (platform === "win32") {
+    return path;
+  }
+  try {
+    const mode = statSync(path).mode;
+    if ((mode & 0o111) === 0) {
+      chmodSync(path, mode | 0o755);
+    }
+  } catch {
+    // Let spawn surface the actual filesystem error if chmod is not permitted.
+  }
+  return path;
 }
 
 module.exports = {
