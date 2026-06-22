@@ -18,8 +18,10 @@ Run the linter with:
 pnpm exec utoo-lint src
 ```
 
-If no target is provided, `utoo-lint` scans the current directory. It skips
-`.git`, `.zig-cache`, `node_modules`, `vendor`, and `zig-out`.
+If no target is provided, `utoo-lint` uses `files` from `utoo.json` or
+`utoo-lint.json`. When no config file or `files` entry exists, it scans the
+current directory. It skips `.git`, `.zig-cache`, `node_modules`, `vendor`, and
+`zig-out`.
 
 Use a config file:
 
@@ -88,6 +90,10 @@ const report = lintFiles(["src"], {
 
 console.log(report.diagnostics);
 ```
+
+Calling `lintFiles()` without patterns follows the same default target behavior
+as the CLI, so migration scripts usually do not need to expand config `files`
+manually.
 
 CommonJS is supported through `require("@utoo/lint")`.
 

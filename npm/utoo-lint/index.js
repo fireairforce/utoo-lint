@@ -468,7 +468,7 @@ export class UtooLint {
     this.options = { ...options };
   }
 
-  async lintFiles(patterns = ["."], options = {}) {
+  async lintFiles(patterns, options = {}) {
     const mergedOptions = mergeLintOptions(this.options, options);
     const customRuleConfig = [mergedOptions.baseConfig, mergedOptions.overrideConfig].filter(Boolean);
     const customRuleFilterMap = customRuleMapForConfig(customRuleConfig, new Map());
@@ -2503,6 +2503,152 @@ export function run(args = [], options = {}) {
   });
 }
 
+const UTOO_LINT_CLI_VALUE_FLAGS = new Set(["--config", "-c", "--format", "-f", "--rules", "--threads"]);
+
+function parseUtooLintCliArgs(args = []) {
+  const values = normalizeStringArray(args, "args");
+  const passthroughArgs = [];
+  const targets = [];
+  const options = {};
+  let help = false;
+  let versionFlag = false;
+
+  for (let index = 0; index < values.length; index += 1) {
+    const arg = values[index];
+    if (arg === "--") {
+      targets.push(...values.slice(index + 1));
+      break;
+    }
+    if (arg === "--help" || arg === "-h") {
+      help = true;
+      passthroughArgs.push(arg);
+      continue;
+    }
+    if (arg === "--version" || arg === "-v") {
+      versionFlag = true;
+      continue;
+    }
+    if (UTOO_LINT_CLI_VALUE_FLAGS.has(arg)) {
+      const value = values[index + 1];
+      if (!value) {
+        throw new Error(`utoo-lint: ${arg} requires a value`);
+      }
+      appendCliOption(passthroughArgs, options, arg, value);
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--config=")) {
+      appendCliOption(passthroughArgs, options, "--config", arg.slice("--config=".length));
+      continue;
+    }
+    if (arg.startsWith("--format=")) {
+      appendCliOption(passthroughArgs, options, "--format", arg.slice("--format=".length));
+      continue;
+    }
+    if (arg.startsWith("--rules=")) {
+      appendCliOption(passthroughArgs, options, "--rules", arg.slice("--rules=".length));
+      continue;
+    }
+    if (arg.startsWith("--threads=")) {
+      appendCliOption(passthroughArgs, options, "--threads", arg.slice("--threads=".length));
+      continue;
+    }
+    if (arg === "--no-config") {
+      options.noConfig = true;
+      delete options.config;
+      continue;
+    }
+    if (arg === "--json") {
+      passthroughArgs.push(arg);
+      continue;
+    }
+    if (arg.startsWith("-")) {
+      passthroughArgs.push(arg);
+      continue;
+    }
+    targets.push(arg);
+  }
+
+  return { help, options, passthroughArgs, targets, version: versionFlag };
+}
+
+function appendCliOption(passthroughArgs, options, flag, value) {
+  if (value == null || value === "") {
+    throw new Error(`utoo-lint: ${flag} requires a value`);
+  }
+  switch (flag) {
+    case "--config":
+    case "-c":
+      options.config = value;
+      delete options.noConfig;
+      return;
+    case "--format":
+    case "-f":
+      options.format = value;
+      return;
+    case "--rules":
+      options.rules = value;
+      return;
+    case "--threads":
+      options.threads = value;
+      return;
+    default:
+      passthroughArgs.push(`${flag}=${value}`);
+  }
+}
+
+function completedRunResult(status, stdout, stderr, options = {}) {
+  const inherited = options.stdio === "inherit";
+  if (inherited) {
+    if (stdout) {
+      process.stdout.write(stdout);
+    }
+    if (stderr) {
+      process.stderr.write(stderr);
+    }
+  }
+  return {
+    status,
+    signal: null,
+    error: undefined,
+    stdout: inherited ? null : stdout,
+    stderr: inherited ? null : stderr,
+    output: [null, inherited ? null : stdout, inherited ? null : stderr],
+    pid: 0
+  };
+}
+
+export function runCli(args = [], options = {}) {
+  const parsed = parseUtooLintCliArgs(args);
+  if (parsed.version) {
+    return completedRunResult(0, `v${version}\n`, "", options);
+  }
+  if (parsed.help) {
+    return run(parsed.passthroughArgs, options);
+  }
+
+  const cliOptions = {
+    ...options,
+    ...parsed.options
+  };
+  const targets = parsed.targets.length > 0 ? parsed.targets : defaultLintTargets(cliOptions);
+  const ignoredDiagnostics = ignoredLintPathDiagnostics(targets, cliOptions);
+  const lintPaths = filteredLintPaths(targets, cliOptions);
+  if (lintPaths.length === 0) {
+    return completedRunResult(ignoredDiagnostics.length > 0 ? 1 : 0, "", "", options);
+  }
+
+  return withTemporaryConfig(cliOptions, (resolvedOptions) => {
+    const cliArgs = buildRunCliArgs(lintPaths, resolvedOptions, parsed.passthroughArgs);
+    return run(cliArgs, {
+      ...resolvedOptions,
+      stdio: options.stdio,
+      encoding: options.encoding,
+      input: options.input
+    });
+  });
+}
+
 export function runFishlint(args = [], options = {}) {
   const cliArgs = normalizeStringArray(args, "args");
   const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
@@ -2715,14 +2861,15 @@ function booleanFlagValue(arg) {
   return true;
 }
 
-export function lintFiles(paths = ["."], options = {}) {
-  return withTemporaryConfig(options, (resolvedOptions) => {
-    const ignoredDiagnostics = ignoredLintPathDiagnostics(paths, resolvedOptions);
-    const lintPaths = filteredLintPaths(paths, resolvedOptions);
-    if (lintPaths.length === 0) {
-      return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, exitCode: ignoredDiagnostics.length > 0 ? 1 : 0 };
-    }
+export function lintFiles(paths, options = {}) {
+  const targets = lintTargetsForInput(paths, options);
+  const ignoredDiagnostics = ignoredLintPathDiagnostics(targets, options);
+  const lintPaths = filteredLintPaths(targets, options);
+  if (lintPaths.length === 0) {
+    return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, exitCode: ignoredDiagnostics.length > 0 ? 1 : 0 };
+  }
 
+  return withTemporaryConfig(options, (resolvedOptions) => {
     const cliArgs = buildLintArgs(lintPaths, resolvedOptions);
     const result = run(cliArgs, { ...resolvedOptions, stdio: undefined, encoding: "utf8" });
 
@@ -2814,6 +2961,21 @@ export function lintText(code, options = {}) {
 }
 
 function buildLintArgs(paths, options) {
+  return buildNativeLintArgs(paths, {
+    ...options,
+    format: "json",
+    extraArgs: options.extraArgs
+  });
+}
+
+function buildRunCliArgs(paths, options, passthroughArgs) {
+  return buildNativeLintArgs(paths, {
+    ...options,
+    extraArgs: passthroughArgs
+  });
+}
+
+function buildNativeLintArgs(paths, options) {
   const cliArgs = [];
 
   if (options.config) {
@@ -2832,7 +2994,9 @@ function buildLintArgs(paths, options) {
     cliArgs.push(`--threads=${options.threads}`);
   }
 
-  cliArgs.push("--format=json");
+  if (options.format) {
+    cliArgs.push(`--format=${options.format}`);
+  }
 
   if (options.extraArgs) {
     cliArgs.push(...normalizeStringArray(options.extraArgs, "extraArgs"));
@@ -3039,6 +3203,37 @@ function configDataFromFileConfig(options, filePath) {
   return configDataFromConfig(config, filePath, options.cwd);
 }
 
+function lintTargetsForInput(paths, options = {}) {
+  if (paths == null) {
+    return defaultLintTargets(options);
+  }
+  return normalizeStringArray(Array.isArray(paths) ? paths : [paths], "paths");
+}
+
+function defaultLintTargets(options = {}) {
+  if (options.noConfig) {
+    return ["."];
+  }
+
+  const configPath = configPathForOptions(options);
+  if (!configPath) {
+    return ["."];
+  }
+
+  const targets = filePatternsFromConfig(readConfig(configPath, options.cwd));
+  return targets.length > 0 ? targets : ["."];
+}
+
+function filePatternsFromConfig(config) {
+  if (!config) {
+    return [];
+  }
+  if (Array.isArray(config)) {
+    return config.flatMap((entry) => filePatternsFromConfig(entry));
+  }
+  return normalizeConfigPatterns(config.files);
+}
+
 function configAppliesToFile(config, filePath, cwd) {
   if (!filePath) {
     return true;
@@ -3062,6 +3257,9 @@ function normalizeConfigPatterns(patterns) {
   return values.flatMap((value) => {
     if (typeof value === "string") {
       return [value];
+    }
+    if (Array.isArray(value)) {
+      return normalizeConfigPatterns(value);
     }
     return [];
   });
@@ -3744,6 +3942,9 @@ function matchesIgnorePattern(target, pattern) {
 }
 
 function matchesConfigFilePattern(target, pattern) {
+  if (!hasGlobSyntax(pattern)) {
+    return target === pattern || target.startsWith(`${pattern}/`) || target.endsWith(`/${pattern}`);
+  }
   const expression = new RegExp(`^${globPatternRegExpSource(pattern)}$`);
   return expression.test(target);
 }

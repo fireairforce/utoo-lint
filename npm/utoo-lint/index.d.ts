@@ -82,6 +82,7 @@ export interface LintOptions {
   env?: Record<string, string | undefined>;
   threads?: number;
   rules?: string[] | string;
+  format?: "text" | "json" | string;
   config?: string;
   configFile?: string;
   noConfig?: boolean;
@@ -309,6 +310,7 @@ export function loadESLint(options?: { useFlatConfig?: boolean; cwd?: string }):
 export function lintFiles(patterns?: string | string[], options?: LintOptions): LintReport;
 export function lintText(code: string, options?: TextLintOptions): LintReport;
 export function run(args?: string[], options?: LintOptions): unknown;
+export function runCli(args?: string[], options?: LintOptions): unknown;
 export function runFishlint(args?: string[], options?: LintOptions): unknown;
 export function translateFishlintArgs(args?: string[], options?: { command?: string; warn?: (message: string) => void }): string[];
 export function resolveBinary(options?: { env?: Record<string, string | undefined>; platform?: string; arch?: string }): string;
