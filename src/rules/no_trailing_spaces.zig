@@ -91,8 +91,8 @@ fn isOnlyTrailingWhitespace(source: []const u8) bool {
 
 fn hasIgnoredCommentOnLine(comments: []const ast.Comment, line_start: usize, line_end: usize) bool {
     for (comments) |comment| {
-        const start: usize = comment.start;
-        const end: usize = comment.end;
+        const start: usize = comment.span.start;
+        const end: usize = comment.span.end;
 
         switch (comment.type) {
             .line => {

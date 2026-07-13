@@ -104,11 +104,11 @@ fn checkLine(
 
 fn isBeforeEndOfLineComment(tree: *const ast.Tree, index: usize, line_end: usize) bool {
     for (tree.comments) |comment| {
-        const start: usize = comment.start;
+        const start: usize = comment.span.start;
         if (start != index) continue;
         if (comment.type == .line) return true;
 
-        const end: usize = comment.end;
+        const end: usize = comment.span.end;
         if (end > line_end) return false;
         return isOnlyWhitespace(tree.source[end..line_end]);
     }
@@ -127,7 +127,7 @@ fn collectIgnoredSpans(allocator: Allocator, tree: *const ast.Tree, options: Opt
     errdefer ignored_spans.deinit(allocator);
 
     for (tree.comments) |comment| {
-        try ignored_spans.append(allocator, .{ .start = comment.start, .end = comment.end });
+        try ignored_spans.append(allocator, .{ .start = comment.span.start, .end = comment.span.end });
     }
 
     const data = tree.nodes.items(.data);

@@ -49,9 +49,9 @@ fn nextLine(tree: *const ast.Tree, import_index: ast.NodeIndex, next_index: ast.
         var first_comment_start: ?u32 = null;
 
         for (tree.comments) |comment| {
-            if (comment.start < import_end or comment.start >= next_start) continue;
-            if (first_comment_start == null or comment.start < first_comment_start.?) {
-                first_comment_start = comment.start;
+            if (comment.span.start < import_end or comment.span.start >= next_start) continue;
+            if (first_comment_start == null or comment.span.start < first_comment_start.?) {
+                first_comment_start = comment.span.start;
             }
         }
 

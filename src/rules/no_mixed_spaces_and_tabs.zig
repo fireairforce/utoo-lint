@@ -78,10 +78,10 @@ fn isIgnoredCommentLine(source: []const u8, comments: []const ast.Comment, line_
     for (comments) |comment| {
         if (comment.type != .block) continue;
 
-        const start_line = lineNumberAtOffset(source, comment.start);
+        const start_line = lineNumberAtOffset(source, comment.span.start);
         if (line_number <= start_line) continue;
 
-        const end_line = lineNumberAtOffset(source, comment.end);
+        const end_line = lineNumberAtOffset(source, comment.span.end);
         if (line_number <= end_line) return true;
     }
 

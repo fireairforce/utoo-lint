@@ -141,7 +141,7 @@ fn hasFallthroughCommentBetween(tree: *const ast.Tree, start: u32, end: u32, opt
     if (start > end) return false;
 
     for (tree.comments) |comment| {
-        if (comment.start < start or comment.end > end) continue;
+        if (comment.span.start < start or comment.span.end > end) continue;
         if (isFallthroughComment(tree.string(comment.value), options.comment_pattern)) return true;
     }
 

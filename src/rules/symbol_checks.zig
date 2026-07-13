@@ -5,7 +5,7 @@ const no_new_symbol = @import("no_new_symbol.zig");
 const symbol_description = @import("symbol_description.zig");
 
 const ast = parser.ast;
-const traverser = parser.traverser;
+const traverser = @import("../semantic_compat.zig").traverser;
 const Allocator = std.mem.Allocator;
 
 pub fn run(

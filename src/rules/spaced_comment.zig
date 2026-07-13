@@ -41,7 +41,7 @@ pub fn runWithOptions(
             .warning,
             id,
             message(options.style),
-            .{ .start = comment.start, .end = comment.end },
+            .{ .start = comment.span.start, .end = comment.span.end },
         );
     }
 }

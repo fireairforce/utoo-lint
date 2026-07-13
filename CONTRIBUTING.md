@@ -13,7 +13,8 @@ zig version
 ```
 
 The vendored Yuku `build.zig.zon` currently asks for
-`0.17.0-dev.224+c166c49b1` or newer.
+`0.16.0` or newer. The repository is currently tested with
+`0.17.0-dev.224+c166c49b1`.
 
 Initialize submodules before building:
 

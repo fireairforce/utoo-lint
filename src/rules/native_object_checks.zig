@@ -5,7 +5,7 @@ const no_new_native_nonconstructor = @import("no_new_native_nonconstructor.zig")
 const no_obj_calls = @import("no_obj_calls.zig");
 
 const ast = parser.ast;
-const traverser = parser.traverser;
+const traverser = @import("../semantic_compat.zig").traverser;
 const Allocator = std.mem.Allocator;
 
 pub fn run(

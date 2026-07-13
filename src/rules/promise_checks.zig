@@ -6,7 +6,7 @@ const no_promise_executor_return = @import("no_promise_executor_return.zig");
 const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
 
 const ast = parser.ast;
-const traverser = parser.traverser;
+const traverser = @import("../semantic_compat.zig").traverser;
 const Allocator = std.mem.Allocator;
 
 pub fn run(

@@ -38,7 +38,7 @@ pub fn runWithOptions(
             diagnostics,
             .@"error",
             id,
-            .{ .start = comment.start, .end = comment.end },
+            .{ .start = comment.span.start, .end = comment.span.end },
             "Do not use a triple slash reference for {s}, use `import` style instead.",
             .{reference.value},
         );

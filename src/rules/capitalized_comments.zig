@@ -56,7 +56,7 @@ pub fn runWithOptions(
             .warning,
             id,
             diagnosticMessage(options.mode),
-            .{ .start = comment.start, .end = comment.end },
+            .{ .start = comment.span.start, .end = comment.span.end },
         );
     }
 }
@@ -69,9 +69,9 @@ fn diagnosticMessage(mode: Mode) []const u8 {
 }
 
 fn isConsecutiveComment(tree: *const ast.Tree, previous: ast.Comment, current: ast.Comment) bool {
-    if (previous.end > current.start) return false;
+    if (previous.span.end > current.span.start) return false;
 
-    for (tree.source[previous.end..current.start]) |char| {
+    for (tree.source[previous.span.end..current.span.start]) |char| {
         if (!isWhitespace(char)) return false;
     }
     return true;
@@ -85,8 +85,8 @@ fn violatesMode(first: u8, mode: Mode) bool {
 }
 
 fn isInlineComment(tree: *const ast.Tree, comment: ast.Comment) bool {
-    return hasNonWhitespaceBeforeOnLine(tree.source, comment.start) and
-        hasNonWhitespaceAfterOnLine(tree.source, comment.end);
+    return hasNonWhitespaceBeforeOnLine(tree.source, comment.span.start) and
+        hasNonWhitespaceAfterOnLine(tree.source, comment.span.end);
 }
 
 fn hasNonWhitespaceBeforeOnLine(source: []const u8, offset: usize) bool {

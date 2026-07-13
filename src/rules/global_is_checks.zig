@@ -5,7 +5,7 @@ const no_global_is_finite = @import("no_global_is_finite.zig");
 const no_global_is_nan = @import("no_global_is_nan.zig");
 
 const ast = parser.ast;
-const traverser = parser.traverser;
+const traverser = @import("../semantic_compat.zig").traverser;
 const Allocator = std.mem.Allocator;
 
 pub fn run(

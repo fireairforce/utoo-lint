@@ -93,7 +93,7 @@ fn startsWith(source: []const u8, bytes: []const u8) bool {
 fn isInsideIgnoredSpan(tree: *const ast.Tree, offset: u32, options: Options) bool {
     if (options.skip_comments) {
         for (tree.comments) |comment| {
-            if (comment.start <= offset and offset < comment.end) return true;
+            if (comment.span.start <= offset and offset < comment.span.end) return true;
         }
     }
 

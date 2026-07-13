@@ -2,7 +2,7 @@ const parser = @import("parser");
 const core = @import("../core.zig");
 const no_use_before_define = @import("no_use_before_define.zig");
 
-const traverser = parser.traverser;
+const traverser = @import("../semantic_compat.zig").traverser;
 const Allocator = @import("std").mem.Allocator;
 
 pub const id = "@typescript-eslint/no-use-before-define";

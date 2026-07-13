@@ -67,7 +67,7 @@ fn hasNoDefaultComment(tree: *const ast.Tree, index: ast.NodeIndex, options: Opt
     const switch_end = tree.span(index).end;
 
     for (tree.comments) |comment| {
-        if (comment.start < last_case_end or comment.end > switch_end) continue;
+        if (comment.span.start < last_case_end or comment.span.end > switch_end) continue;
         const value = std.mem.trim(u8, tree.string(comment.value), &std.ascii.whitespace);
         if (commentMatchesPattern(value, options.comment_pattern)) return true;
     }
