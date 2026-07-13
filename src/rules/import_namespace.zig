@@ -4,7 +4,7 @@ const core = @import("../core.zig");
 const export_map = @import("import_export_map.zig");
 
 const ast = parser.ast;
-const traverser = parser.traverser;
+const traverser = @import("../semantic_compat.zig").traverser;
 const Allocator = std.mem.Allocator;
 
 pub const id = "import/namespace";

@@ -133,8 +133,8 @@ fn isInsideComment(
     line_end: usize,
 ) bool {
     for (comments) |comment| {
-        const start: usize = comment.start;
-        const end: usize = comment.end;
+        const start: usize = comment.span.start;
+        const end: usize = comment.span.end;
         if (end <= line_start or start >= line_end) continue;
         if (start <= index and index < end) return true;
     }

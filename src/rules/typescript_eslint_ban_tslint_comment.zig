@@ -22,7 +22,7 @@ pub fn run(
             .@"error",
             id,
             "tslint comment detected.",
-            .{ .start = comment.start, .end = comment.end },
+            .{ .start = comment.span.start, .end = comment.span.end },
         );
     }
 }

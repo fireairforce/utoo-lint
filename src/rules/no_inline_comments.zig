@@ -28,8 +28,8 @@ pub fn runWithOptions(
     const source = tree.source;
 
     for (tree.comments) |comment| {
-        const start: usize = comment.start;
-        const end: usize = comment.end;
+        const start: usize = comment.span.start;
+        const end: usize = comment.span.end;
         const line_start = findLineStart(source, start);
         const line_end = findLineEnd(source, start);
 

@@ -41,7 +41,7 @@ pub fn runWithOptions(
                     diagnostics,
                     .warning,
                     id,
-                    .{ .start = comment.start, .end = comment.end },
+                    .{ .start = comment.span.start, .end = comment.span.end },
                     "Include a description after the \"@ts-{s}\" directive to explain why the @ts-{s} is necessary. The description must be {d} characters or longer.",
                     .{ directive.name, directive.name, options.minimum_description_length },
                 );
@@ -54,7 +54,7 @@ pub fn runWithOptions(
             diagnostics,
             .warning,
             id,
-            .{ .start = comment.start, .end = comment.end },
+            .{ .start = comment.span.start, .end = comment.span.end },
             "Do not use \"@ts-{s}\" directives.",
             .{directive.name},
         );

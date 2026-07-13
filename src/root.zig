@@ -1,6 +1,7 @@
 const std = @import("std");
 const parser = @import("parser");
 const core = @import("core.zig");
+const semantic_compat = @import("semantic_compat.zig");
 
 const ast = parser.ast;
 const Allocator = std.mem.Allocator;
@@ -46,7 +47,8 @@ pub fn lintSourceWithIo(
     const needs_semantic = hasSemanticRules(effective_options);
 
     if (needs_semantic) {
-        var semantic_result = try parser.semantic.analyze(&tree);
+        const semantic_model = try parser.semantic.analyze(&tree);
+        var semantic_result = semantic_compat.Result.init(&tree, semantic_model);
         try semantic_result.symbol_table.resolveAll(semantic_result.scope_tree);
         try appendParserDiagnostics(allocator, &diagnostics, &tree);
         try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);

@@ -25,7 +25,7 @@ pub fn run(
             .warning,
             id,
             "Disabling 'no-nested-ternary' is not allowed.",
-            .{ .start = comment.start, .end = comment.end },
+            .{ .start = comment.span.start, .end = comment.span.end },
         );
     }
 }

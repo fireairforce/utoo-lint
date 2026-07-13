@@ -3,7 +3,7 @@ const core = @import("../core.zig");
 const no_loop_func = @import("no_loop_func.zig");
 
 const ast = parser.ast;
-const traverser = parser.traverser;
+const traverser = @import("../semantic_compat.zig").traverser;
 const Allocator = @import("std").mem.Allocator;
 
 pub const id = "@typescript-eslint/no-loop-func";

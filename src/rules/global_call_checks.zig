@@ -6,7 +6,7 @@ const no_eval = @import("no_eval.zig");
 const no_implied_eval = @import("no_implied_eval.zig");
 
 const ast = parser.ast;
-const traverser = parser.traverser;
+const traverser = @import("../semantic_compat.zig").traverser;
 const Allocator = std.mem.Allocator;
 
 pub fn run(

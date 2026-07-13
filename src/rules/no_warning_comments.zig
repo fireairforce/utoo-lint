@@ -47,7 +47,7 @@ pub fn runWithOptions(
             diagnostics,
             .warning,
             id,
-            .{ .start = comment.start, .end = comment.end },
+            .{ .start = comment.span.start, .end = comment.span.end },
             "Unexpected '{s}' comment.",
             .{match},
         );

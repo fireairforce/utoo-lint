@@ -3,7 +3,7 @@ const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
-const traverser = parser.traverser;
+const traverser = @import("../semantic_compat.zig").traverser;
 const Allocator = std.mem.Allocator;
 
 pub const id = "no-label-var";
@@ -64,7 +64,7 @@ const Visitor = struct {
 
         try self.labels.append(self.allocator, .{
             .name = ctx.tree.string(label.name),
-            .scope = ctx.scope.currentScopeId(),
+            .scope = ctx.scope.current,
             .node = index,
         });
         return .proceed;
