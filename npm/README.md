@@ -174,8 +174,10 @@ missing explicit and `--glob` targets before invoking native lint. `--quiet`
 and `--quiet=true` filter warnings from compatibility output. Explicit ignored
 file paths emit ESLint-style warnings unless `--no-warn-ignored` or
 `--no-warn-ignored=true` is set.
-Fix controls such as `--fix`, `--fix-dry-run`, and `--fix-type` are accepted
-with a warning because utoo-lint does not apply fixes yet.
+`--fix` and `--fix-dry-run` apply fixes from supported native rules. The Node
+API also composes those fixes with fixes reported by custom rules. `--fix-type`
+remains accepted with a warning but is not implemented yet. Initial native
+autofix coverage includes `no-extra-semi` and `@typescript-eslint/no-extra-semi`.
 Display and reporting controls such as `--color`, `--no-color`, `--stats`,
 `--stats=true`, and `--no-warn-ignored` are accepted for the same reason.
 `--output-file` and `-o` write the native output to the requested report file.

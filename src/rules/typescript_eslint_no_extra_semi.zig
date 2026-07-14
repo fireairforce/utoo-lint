@@ -17,12 +17,14 @@ pub fn check(
 ) Allocator.Error!void {
     if (no_extra_semi.isStatementBody(tree, index, ctx)) return;
 
-    try core.addDiagnostic(
+    const span = tree.span(index);
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .@"error",
         id,
         "Unnecessary semicolon.",
-        tree.span(index),
+        span,
+        .{ .span = span, .replacement = "" },
     );
 }

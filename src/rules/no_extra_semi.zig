@@ -17,13 +17,15 @@ pub fn check(
 ) Allocator.Error!void {
     if (isStatementBody(tree, index, ctx)) return;
 
-    try core.addDiagnostic(
+    const span = tree.span(index);
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
         "Unnecessary semicolon.",
-        tree.span(index),
+        span,
+        .{ .span = span, .replacement = "" },
     );
 }
 
@@ -59,13 +61,15 @@ fn reportSemicolonsInRange(
     for (tree.source[start..end], start..) |byte, offset| {
         if (byte != ';') continue;
         const semicolon: u32 = @intCast(offset);
-        try core.addDiagnostic(
+        const span = ast.Span{ .start = semicolon, .end = semicolon + 1 };
+        try core.addDiagnosticWithFix(
             allocator,
             diagnostics,
             .warning,
             id,
             "Unnecessary semicolon.",
-            .{ .start = semicolon, .end = semicolon + 1 },
+            span,
+            .{ .span = span, .replacement = "" },
         );
     }
 }

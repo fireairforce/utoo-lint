@@ -58,3 +58,32 @@ test "can disable no-extra-semi" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_extra_semi.id));
 }
+
+test "autofixes unnecessary semicolons" {
+    const source =
+        \\const value = 1;;
+        \\class Example { ; method() {} ; field; }
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .typescript_eslint_no_extra_semi = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    for (result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.no_extra_semi.id)) {
+            try std.testing.expectEqual(@as(usize, 1), diagnostic.fixes.len);
+        }
+    }
+
+    var fixed = try lint.applyFixes(std.testing.allocator, source, result.diagnostics);
+    defer fixed.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualStrings(
+        \\const value = 1;
+        \\class Example {  method() {}  field; }
+    , fixed.output);
+}
