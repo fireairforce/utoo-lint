@@ -94,6 +94,7 @@ test "autofixes same-name aliases" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
         .parser_semantic_errors = false,
@@ -117,6 +118,7 @@ test "does not autofix aliases when replacement would discard comments" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
         .parser_semantic_errors = false,
@@ -137,6 +139,7 @@ test "autofixes parenthesized destructuring aliases to valid shorthand" {
     const source = "({ foo: (foo) } = source);";
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
         .parser_semantic_errors = false,

@@ -87,6 +87,7 @@ test "autofixes consecutive spaces in regex literals and constructors" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
         .prefer_regex_literals = false,
         .no_unused_vars = false,
         .no_undef = false,
@@ -110,6 +111,7 @@ test "autofix preserves the space consumed by a regex quantifier" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
         .parser_semantic_errors = false,
@@ -131,6 +133,7 @@ test "does not autofix constructor patterns with escapes or dynamic flags" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
         .prefer_regex_literals = false,
         .no_unused_vars = false,
         .no_undef = false,

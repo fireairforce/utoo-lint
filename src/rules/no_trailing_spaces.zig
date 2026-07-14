@@ -68,13 +68,17 @@ fn addDiagnostic(
     start: usize,
     end: usize,
 ) Allocator.Error!void {
-    try core.addDiagnostic(
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
         "Trailing spaces not allowed.",
         .{ .start = @intCast(start), .end = @intCast(end) },
+        .{
+            .span = .{ .start = @intCast(start), .end = @intCast(end) },
+            .replacement = "",
+        },
     );
 }
 

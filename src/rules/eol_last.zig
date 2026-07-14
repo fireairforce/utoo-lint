@@ -36,11 +36,29 @@ pub fn runWithOptions(
     switch (options.style) {
         .always => {
             if (source[source.len - 1] == '\n') return;
-            try addDiagnostic(allocator, diagnostics, source.len - 1, source.len, "Newline required at end of file but not found.");
+            try addDiagnosticWithFix(
+                allocator,
+                diagnostics,
+                source.len - 1,
+                source.len,
+                "Newline required at end of file but not found.",
+                source.len,
+                source.len,
+                "\n",
+            );
         },
         .never => {
             const span = finalLinebreakSpan(source) orelse return;
-            try addDiagnostic(allocator, diagnostics, span.start, span.end, "Newline not allowed at end of file.");
+            try addDiagnosticWithFix(
+                allocator,
+                diagnostics,
+                span.start,
+                span.end,
+                "Newline not allowed at end of file.",
+                span.start,
+                span.end,
+                "",
+            );
         },
     }
 }
@@ -62,19 +80,26 @@ fn finalLinebreakSpan(source: []const u8) ?Span {
     return null;
 }
 
-fn addDiagnostic(
+fn addDiagnosticWithFix(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     start: usize,
     end: usize,
     message: []const u8,
+    fix_start: usize,
+    fix_end: usize,
+    replacement: []const u8,
 ) Allocator.Error!void {
-    try core.addDiagnostic(
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
         message,
         .{ .start = @intCast(start), .end = @intCast(end) },
+        .{
+            .span = .{ .start = @intCast(fix_start), .end = @intCast(fix_end) },
+            .replacement = replacement,
+        },
     );
 }

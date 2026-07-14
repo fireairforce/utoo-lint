@@ -98,3 +98,50 @@ test "can disable eol-last" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.eol_last.id));
 }
+
+test "autofixes a missing final linebreak" {
+    var result = try lint.lintSourceAndFix(std.testing.allocator, "const value = 1;", "fixture.js", .{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings("const value = 1;\n", result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.eol_last.id));
+}
+
+test "completes a final carriage return as CRLF" {
+    var result = try lint.lintSourceAndFix(std.testing.allocator, "const value = 1;\r", "fixture.js", .{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings("const value = 1;\r\n", result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.eol_last.id));
+}
+
+test "autofixes a forbidden final CRLF" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"never\"]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("eol-last", config.value);
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, "const value = 1;\r\n", "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings("const value = 1;", result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.eol_last.id));
+}
