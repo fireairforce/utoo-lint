@@ -176,12 +176,12 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-unused-private-class-members`](https://eslint.org/docs/latest/rules/no-unused-private-class-members) | Implemented for private fields, methods, accessors, and static blocks |
 | [`no-use-before-define`](https://eslint.org/docs/latest/rules/no-use-before-define) | Supports `functions`, `classes`, `variables`, and `allowNamedExports` configuration |
 | [`no-unused-expressions`](https://eslint.org/docs/latest/rules/no-unused-expressions) | Implemented with optional `allowShortCircuit`, `allowTernary`, and `allowTaggedTemplates` behavior |
-| [`no-unused-labels`](https://eslint.org/docs/latest/rules/no-unused-labels) | Implemented with nested label shadowing |
+| [`no-unused-labels`](https://eslint.org/docs/latest/rules/no-unused-labels) | Implemented with nested label shadowing and autofix |
 | [`no-unused-vars`](https://eslint.org/docs/latest/rules/no-unused-vars) | Supports `vars`, `args`, `caughtErrors`, `ignoreRestSiblings`, `ignoreClassWithStaticInitBlock`, `ignoreUsingDeclarations`, `reportUsedIgnorePattern`, and common `argsIgnorePattern`/`caughtErrorsIgnorePattern`/`destructuredArrayIgnorePattern`/`varsIgnorePattern` configuration |
 | [`no-useless-backreference`](https://eslint.org/docs/latest/rules/no-useless-backreference) | Detects nested, forward, disjunctive, and negative-lookaround backreferences in regex literals and static `RegExp` constructors |
 | [`no-useless-call`](https://eslint.org/docs/latest/rules/no-useless-call) | Implemented |
 | [`no-useless-catch`](https://eslint.org/docs/latest/rules/no-useless-catch) | Implemented |
-| [`no-useless-computed-key`](https://eslint.org/docs/latest/rules/no-useless-computed-key) | Implemented with optional `enforceForClassMembers` behavior |
+| [`no-useless-computed-key`](https://eslint.org/docs/latest/rules/no-useless-computed-key) | Implemented with optional `enforceForClassMembers` behavior and autofix |
 | [`no-useless-concat`](https://eslint.org/docs/latest/rules/no-useless-concat) | Implemented for adjacent static string and template literals in concatenation chains |
 | [`no-useless-constructor`](https://eslint.org/docs/latest/rules/no-useless-constructor) | Implemented |
 | [`no-useless-escape`](https://eslint.org/docs/latest/rules/no-useless-escape) | Supports `allowRegexCharacters` configuration and ESLint template escape handling |

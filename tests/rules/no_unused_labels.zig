@@ -91,6 +91,85 @@ test "does not count references to shadowed nested labels" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_unused_labels.id));
 }
 
+test "autofixes labels without labeled break or continue" {
+    const source =
+        \\outer: while (ready) {
+        \\  break;
+        \\}
+        \\block: {
+        \\  call();
+        \\}
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_extra_label = false,
+        .no_labels = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\while (ready) {
+        \\  break;
+        \\}
+        \\{
+        \\  call();
+        \\}
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.no_unused_labels.id));
+}
+
+test "does not autofix unused labels when removal would discard comments or create directives" {
+    const source =
+        \\topLevel: "use strict";
+        \\function example() {
+        \\  functionBody: `directive`;
+        \\}
+        \\commented: /**/ {
+        \\  call();
+        \\}
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_extra_label = false,
+        .no_labels = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!result.fixed);
+    try std.testing.expectEqualStrings(source, result.output);
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result.result, lint.rules.no_unused_labels.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.no_unused_labels.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
+
+test "only removes outer labels when nested removal could create a directive" {
+    const source = "outer: inner: \"use strict\";";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_extra_label = false,
+        .no_labels = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings("inner: \"use strict\";", result.output);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result.result, lint.rules.no_unused_labels.id));
+    try std.testing.expectEqual(@as(usize, 0), result.result.diagnostics[0].fixes.len);
+}
+
 test "can disable no-unused-labels" {
     const source =
         \\outer: while (ready) {

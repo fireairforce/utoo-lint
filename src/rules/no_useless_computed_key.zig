@@ -22,7 +22,7 @@ pub fn checkObjectExpression(
         if (!isStaticKey(tree, property.key)) continue;
         if (isObjectProtoProperty(tree, property)) continue;
 
-        try addDiagnostic(allocator, diagnostics, tree, property.key);
+        try addDiagnostic(allocator, diagnostics, tree, property.key, property.key);
     }
 }
 
@@ -40,7 +40,7 @@ pub fn checkObjectPattern(
         if (!property.computed) continue;
         if (!isStaticKey(tree, property.key)) continue;
 
-        try addDiagnostic(allocator, diagnostics, tree, property.key);
+        try addDiagnostic(allocator, diagnostics, tree, property.key, property.key);
     }
 }
 
@@ -56,7 +56,7 @@ pub fn checkMethodDefinition(
     if (isClassConstructorMethod(tree, method)) return;
     if (isStaticPrototypeMember(tree, method.static, method.key)) return;
 
-    try addDiagnostic(allocator, diagnostics, tree, index);
+    try addDiagnostic(allocator, diagnostics, tree, index, method.key);
 }
 
 pub fn checkPropertyDefinition(
@@ -68,25 +68,83 @@ pub fn checkPropertyDefinition(
 ) Allocator.Error!void {
     if (!property.computed) return;
     if (!isStaticKey(tree, property.key)) return;
+    if (isConstructorKey(tree, property.key)) return;
     if (isStaticPrototypeMember(tree, property.static, property.key)) return;
 
-    try addDiagnostic(allocator, diagnostics, tree, index);
+    try addDiagnostic(allocator, diagnostics, tree, index, property.key);
 }
 
 fn addDiagnostic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
-    index: ast.NodeIndex,
+    diagnostic_index: ast.NodeIndex,
+    key_index: ast.NodeIndex,
 ) Allocator.Error!void {
-    try core.addDiagnostic(
+    const key_span = tree.span(key_index);
+    const fix_span = computedKeyFixSpan(tree, key_span) orelse {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Unnecessarily computed property key.",
+            tree.span(diagnostic_index),
+        );
+        return;
+    };
+
+    const key_source = tree.source[key_span.start..key_span.end];
+    var owned_replacement: ?[]u8 = null;
+    defer if (owned_replacement) |replacement| allocator.free(replacement);
+    const replacement = if (needsSpaceBeforeKey(tree, key_index, fix_span)) replacement: {
+        const value = try std.fmt.allocPrint(allocator, " {s}", .{key_source});
+        owned_replacement = value;
+        break :replacement value;
+    } else key_source;
+
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
         "Unnecessarily computed property key.",
-        tree.span(index),
+        tree.span(diagnostic_index),
+        .{
+            .span = fix_span,
+            .replacement = replacement,
+        },
     );
+}
+
+fn computedKeyFixSpan(tree: *const ast.Tree, key_span: ast.Span) ?ast.Span {
+    const source = tree.source;
+    var start: usize = @intCast(key_span.start);
+    while (start > 0 and std.ascii.isWhitespace(source[start - 1])) start -= 1;
+    if (start == 0 or source[start - 1] != '[') return null;
+    const left_bracket = start - 1;
+
+    var end: usize = @intCast(key_span.end);
+    while (end < source.len and std.ascii.isWhitespace(source[end])) end += 1;
+    if (end >= source.len or source[end] != ']') return null;
+
+    return .{ .start = @intCast(left_bracket), .end = @intCast(end + 1) };
+}
+
+fn needsSpaceBeforeKey(tree: *const ast.Tree, key_index: ast.NodeIndex, fix_span: ast.Span) bool {
+    if (tree.data(key_index) != .numeric_literal) return false;
+
+    const key_span = tree.span(key_index);
+    const key_source = tree.source[key_span.start..key_span.end];
+    if (key_source.len == 0 or key_source[0] == '.') return false;
+
+    const start: usize = @intCast(fix_span.start);
+    if (start == 0) return false;
+    return isIdentifierPart(tree.source[start - 1]);
+}
+
+fn isIdentifierPart(byte: u8) bool {
+    return std.ascii.isAlphanumeric(byte) or byte == '_' or byte == '$' or byte >= 0x80;
 }
 
 fn isStaticKey(tree: *const ast.Tree, index: ast.NodeIndex) bool {
@@ -105,7 +163,11 @@ fn isObjectProtoProperty(tree: *const ast.Tree, property: ast.ObjectProperty) bo
 
 fn isClassConstructorMethod(tree: *const ast.Tree, method: ast.MethodDefinition) bool {
     if (method.static or method.kind != .method) return false;
-    return keyName(tree, method.key) != null and std.mem.eql(u8, keyName(tree, method.key).?, "constructor");
+    return isConstructorKey(tree, method.key);
+}
+
+fn isConstructorKey(tree: *const ast.Tree, key: ast.NodeIndex) bool {
+    return keyName(tree, key) != null and std.mem.eql(u8, keyName(tree, key).?, "constructor");
 }
 
 fn isStaticPrototypeMember(tree: *const ast.Tree, is_static: bool, key: ast.NodeIndex) bool {
