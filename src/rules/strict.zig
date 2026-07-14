@@ -66,8 +66,8 @@ const Visitor = struct {
                 try reportDuplicateDirectives(self.allocator, self.diagnostics, ctx.tree, program.body);
             },
             .function => {},
-            .never => try reportDirectives(self.allocator, self.diagnostics, ctx.tree, program.body, "Strict mode is not permitted."),
-            .module => try reportDirectives(self.allocator, self.diagnostics, ctx.tree, program.body, "'use strict' is unnecessary inside of modules."),
+            .never => try reportDirectives(self.allocator, self.diagnostics, ctx.tree, program.body, "Strict mode is not permitted.", false),
+            .module => try reportDirectives(self.allocator, self.diagnostics, ctx.tree, program.body, "'use strict' is unnecessary inside of modules.", true),
         }
         return .proceed;
     }
@@ -101,7 +101,14 @@ const Visitor = struct {
                     .module => "'use strict' is unnecessary inside of modules.",
                     .function => unreachable,
                 };
-                try reportDirectives(self.allocator, self.diagnostics, ctx.tree, body_range.?, message);
+                try reportDirectives(
+                    self.allocator,
+                    self.diagnostics,
+                    ctx.tree,
+                    body_range.?,
+                    message,
+                    self.mode == .module,
+                );
             }
         }
 
@@ -146,9 +153,21 @@ const Visitor = struct {
                     "'use strict' directive inside a function with non-simple parameter list throws a syntax error since ES2016.",
                 );
             } else if (parent_is_strict) {
-                try addDiagnostic(self.allocator, self.diagnostics, tree, first_directive, "Unnecessary 'use strict' directive.");
+                try addRemovalDiagnostic(
+                    self.allocator,
+                    self.diagnostics,
+                    tree,
+                    first_directive,
+                    "Unnecessary 'use strict' directive.",
+                );
             } else if (self.class_depth > 0) {
-                try addDiagnostic(self.allocator, self.diagnostics, tree, first_directive, "'use strict' is unnecessary inside of classes.");
+                try addRemovalDiagnostic(
+                    self.allocator,
+                    self.diagnostics,
+                    tree,
+                    first_directive,
+                    "'use strict' is unnecessary inside of classes.",
+                );
             }
             try reportDuplicateDirectives(self.allocator, self.diagnostics, tree, body_range.?);
         } else if (parent_is_global and isSimpleParameterList(tree, function.params)) {
@@ -193,10 +212,15 @@ fn reportDirectives(
     tree: *const ast.Tree,
     body: ast.IndexRange,
     message: []const u8,
+    fixable: bool,
 ) Allocator.Error!void {
     for (tree.extra(body)) |statement| {
         if (!isUseStrictDirective(tree, statement)) break;
-        try addDiagnostic(allocator, diagnostics, tree, statement, message);
+        if (fixable) {
+            try addRemovalDiagnostic(allocator, diagnostics, tree, statement, message);
+        } else {
+            try addDiagnostic(allocator, diagnostics, tree, statement, message);
+        }
     }
 }
 
@@ -210,7 +234,7 @@ fn reportDuplicateDirectives(
     for (tree.extra(body)) |statement| {
         if (!isUseStrictDirective(tree, statement)) break;
         if (seen_first) {
-            try addDiagnostic(allocator, diagnostics, tree, statement, "Multiple 'use strict' directives.");
+            try addRemovalDiagnostic(allocator, diagnostics, tree, statement, "Multiple 'use strict' directives.");
         } else {
             seen_first = true;
         }
@@ -255,5 +279,24 @@ fn addDiagnostic(
         id,
         message,
         tree.span(index),
+    );
+}
+
+fn addRemovalDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    message: []const u8,
+) Allocator.Error!void {
+    const span = tree.span(index);
+    try core.addDiagnosticWithFix(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        message,
+        span,
+        .{ .span = span, .replacement = "" },
     );
 }
