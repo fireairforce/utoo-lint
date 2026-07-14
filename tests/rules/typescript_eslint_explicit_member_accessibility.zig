@@ -2,6 +2,23 @@ const std = @import("std");
 const lint = @import("utoo_lint");
 const helpers = @import("../helpers.zig");
 
+test "does not enable @typescript-eslint/explicit-member-accessibility by default" {
+    const source =
+        \\class Service {
+        \\  public start(): void {}
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_unused_vars = false,
+        .typescript_eslint_no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_explicit_member_accessibility.id));
+}
+
 test "reports @typescript-eslint/explicit-member-accessibility for public class members" {
     const source =
         \\class Service {
@@ -17,6 +34,7 @@ test "reports @typescript-eslint/explicit-member-accessibility for public class 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_unused_vars = false,
         .typescript_eslint_no_unused_vars = false,
+        .typescript_eslint_explicit_member_accessibility = true,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -43,6 +61,7 @@ test "allows @typescript-eslint/explicit-member-accessibility non-public and omi
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_unused_vars = false,
         .typescript_eslint_no_unused_vars = false,
+        .typescript_eslint_explicit_member_accessibility = true,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -66,6 +85,7 @@ test "reports @typescript-eslint/explicit-member-accessibility explicit mode for
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_unused_vars = false,
         .typescript_eslint_no_unused_vars = false,
+        .typescript_eslint_explicit_member_accessibility = true,
         .typescript_eslint_explicit_member_accessibility_accessibility = .explicit,
         .parser_semantic_errors = false,
     });
@@ -88,6 +108,7 @@ test "allows @typescript-eslint/explicit-member-accessibility accessibility off 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
         .no_unused_vars = false,
         .typescript_eslint_no_unused_vars = false,
+        .typescript_eslint_explicit_member_accessibility = true,
         .typescript_eslint_explicit_member_accessibility_accessibility = .off,
         .parser_semantic_errors = false,
     });
