@@ -88,3 +88,40 @@ test "can disable unicode-bom" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.unicode_bom.id));
 }
+
+test "autofixes a forbidden Unicode BOM" {
+    const source = "\xEF\xBB\xBFconst value = 1;\n";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings("const value = 1;\n", result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.unicode_bom.id));
+}
+
+test "autofixes a missing required Unicode BOM" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"always\"]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("unicode-bom", config.value);
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, "const value = 1;\n", "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings("\xEF\xBB\xBFconst value = 1;\n", result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.unicode_bom.id));
+}

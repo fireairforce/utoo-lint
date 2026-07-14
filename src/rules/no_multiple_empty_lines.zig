@@ -43,14 +43,13 @@ pub fn runWithOptions(
             else
                 options.max;
             if (empty_lines > max) {
-                try core.addDiagnosticFmt(
+                try addDiagnosticWithFix(
                     allocator,
                     diagnostics,
-                    .warning,
-                    id,
-                    .{ .start = @intCast(line_start), .end = @intCast(line_end) },
-                    "More than {d} blank lines not allowed.",
-                    .{max},
+                    line_start,
+                    line_end,
+                    nextLineStart(source, line_end),
+                    max,
                 );
             }
         } else {
@@ -59,11 +58,41 @@ pub fn runWithOptions(
 
         if (line_end >= source.len) break;
 
-        line_start = line_end + 1;
-        if (source[line_end] == '\r' and line_start < source.len and source[line_start] == '\n') {
-            line_start += 1;
-        }
+        line_start = nextLineStart(source, line_end);
     }
+}
+
+fn addDiagnosticWithFix(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    line_start: usize,
+    line_end: usize,
+    removal_end: usize,
+    max: usize,
+) Allocator.Error!void {
+    const message = try std.fmt.allocPrint(allocator, "More than {d} blank lines not allowed.", .{max});
+    defer allocator.free(message);
+
+    try core.addDiagnosticWithFix(
+        allocator,
+        diagnostics,
+        .warning,
+        id,
+        message,
+        .{ .start = @intCast(line_start), .end = @intCast(line_end) },
+        .{
+            .span = .{ .start = @intCast(line_start), .end = @intCast(removal_end) },
+            .replacement = "",
+        },
+    );
+}
+
+fn nextLineStart(source: []const u8, line_end: usize) usize {
+    if (line_end >= source.len) return source.len;
+
+    var start = line_end + 1;
+    if (source[line_end] == '\r' and start < source.len and source[start] == '\n') start += 1;
+    return start;
 }
 
 fn isLeadingEmptyLine(source: []const u8, line_start: usize) bool {

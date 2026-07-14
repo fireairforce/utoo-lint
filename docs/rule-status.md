@@ -33,7 +33,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`id-length`](https://eslint.org/docs/latest/rules/id-length) | Supports `min`, `max`, `exceptions`, common `exceptionPatterns`, and `properties` for bindings, imports, functions, and class/object properties |
 | [`id-match`](https://eslint.org/docs/latest/rules/id-match) | Supports lightweight pattern matching for declarations and import aliases, with `properties`, `classFields`, `onlyDeclarations`, and `ignoreDestructuring` configuration |
 | [`init-declarations`](https://eslint.org/docs/latest/rules/init-declarations) | Supports `always`, `never`, and `ignoreForLoopInit` |
-| [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Supports `unix` and `windows` configuration |
+| [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Supports `unix` and `windows` configuration with autofix |
 | [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for `always`, optional `never`, and optional `enforceForIfStatements: true` behavior |
 | [`max-classes-per-file`](https://eslint.org/docs/latest/rules/max-classes-per-file) | Supports `max` and `ignoreExpressions` configuration |
 | [`max-depth`](https://eslint.org/docs/latest/rules/max-depth) | Supports `max`, deprecated `maximum`, function scopes, static blocks, and `else if` chains |
@@ -113,9 +113,9 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-mixed-spaces-and-tabs`](https://eslint.org/docs/latest/rules/no-mixed-spaces-and-tabs) | Supports `smart-tabs` configuration |
 | [`no-misleading-character-class`](https://eslint.org/docs/latest/rules/no-misleading-character-class) | Implemented |
 | [`no-multi-assign`](https://eslint.org/docs/latest/rules/no-multi-assign) | Supports `ignoreNonDeclaration` configuration and class field initializers |
-| [`no-multi-spaces`](https://eslint.org/docs/latest/rules/no-multi-spaces) | Supports `ignoreEOLComments` and common `exceptions` configuration |
+| [`no-multi-spaces`](https://eslint.org/docs/latest/rules/no-multi-spaces) | Supports `ignoreEOLComments` and common `exceptions` configuration with autofix |
 | [`no-multi-str`](https://eslint.org/docs/latest/rules/no-multi-str) | Implemented |
-| [`no-multiple-empty-lines`](https://eslint.org/docs/latest/rules/no-multiple-empty-lines) | Implemented with optional `max`, `maxBOF`, and `maxEOF` behavior |
+| [`no-multiple-empty-lines`](https://eslint.org/docs/latest/rules/no-multiple-empty-lines) | Implemented with optional `max`, `maxBOF`, and `maxEOF` behavior and autofix |
 | [`no-negated-condition`](https://eslint.org/docs/latest/rules/no-negated-condition) | Implemented |
 | [`no-nested-ternary`](https://eslint.org/docs/latest/rules/no-nested-ternary) | Implemented |
 | [`no-new`](https://eslint.org/docs/latest/rules/no-new) | Implemented |
@@ -219,7 +219,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, `markers`, and `exceptions` configuration |
 | [`strict`](https://eslint.org/docs/latest/rules/strict) | Supports `safe`, `global`, `function`, and `never` modes |
 | [`symbol-description`](https://eslint.org/docs/latest/rules/symbol-description) | Implemented |
-| [`unicode-bom`](https://eslint.org/docs/latest/rules/unicode-bom) | Supports `never` and `always` configuration |
+| [`unicode-bom`](https://eslint.org/docs/latest/rules/unicode-bom) | Supports `never` and `always` configuration with autofix |
 | [`use-isnan`](https://eslint.org/docs/latest/rules/use-isnan) | Supports `enforceForIndexOf` and `enforceForSwitchCase` configuration |
 | [`valid-typeof`](https://eslint.org/docs/latest/rules/valid-typeof) | Supports `requireStringLiterals` configuration |
 | [`vars-on-top`](https://eslint.org/docs/latest/rules/vars-on-top) | Implemented |
