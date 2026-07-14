@@ -78,3 +78,72 @@ test "can disable no-regex-spaces" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_regex_spaces.id));
 }
+
+test "autofixes consecutive spaces in regex literals and constructors" {
+    const source =
+        \\const first = /foo  bar/;
+        \\const second = RegExp("foo   bar");
+        \\const third = new RegExp('end    ');
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .prefer_regex_literals = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\const first = /foo {2}bar/;
+        \\const second = RegExp("foo {3}bar");
+        \\const third = new RegExp('end {4}');
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.no_regex_spaces.id));
+}
+
+test "autofix preserves the space consumed by a regex quantifier" {
+    const source =
+        \\const valid = /  +/;
+        \\const fixed = /bar   {3}baz/;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\const valid = /  +/;
+        \\const fixed = /bar {2} {3}baz/;
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.no_regex_spaces.id));
+}
+
+test "does not autofix constructor patterns with escapes or dynamic flags" {
+    const source =
+        \\const escaped = new RegExp("\\d  ");
+        \\const dynamic = RegExp("foo  bar", flags);
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .prefer_regex_literals = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!result.fixed);
+    try std.testing.expectEqualStrings(source, result.output);
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result.result, lint.rules.no_regex_spaces.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.no_regex_spaces.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
