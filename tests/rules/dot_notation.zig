@@ -145,6 +145,60 @@ test "supports common dot-notation allowPattern forms" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.dot_notation.id));
 }
 
+test "autofixes computed properties without changing token boundaries" {
+    const source =
+        \\object["property"];
+        \\object[`template`];
+        \\object?.["optional"];
+        \\1["toString"];
+        \\object["property"]in other;
+    ;
+    const expected =
+        \\object.property;
+        \\object.template;
+        \\object?.optional;
+        \\1 .toString;
+        \\object.property in other;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .no_unused_vars = false,
+        .typescript_eslint_dot_notation = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.dot_notation.id));
+}
+
+test "does not autofix computed properties when comments would be discarded" {
+    const source =
+        \\object[/* keep */ "property"];
+        \\object["property" /* keep */];
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .no_unused_vars = false,
+        .typescript_eslint_dot_notation = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!result.fixed);
+    try std.testing.expectEqualStrings(source, result.output);
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result.result, lint.rules.dot_notation.id));
+}
+
 test "can disable dot-notation" {
     const source =
         \\object["property"];
