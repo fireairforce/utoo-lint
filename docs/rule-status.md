@@ -85,7 +85,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-ex-assign`](https://eslint.org/docs/latest/rules/no-ex-assign) | Implemented |
 | [`no-extend-native`](https://eslint.org/docs/latest/rules/no-extend-native) | Supports `exceptions` configuration |
 | [`no-extra-bind`](https://eslint.org/docs/latest/rules/no-extra-bind) | Implemented with side-effect- and comment-safe autofix |
-| [`no-extra-boolean-cast`](https://eslint.org/docs/latest/rules/no-extra-boolean-cast) | Supports `enforceForInnerExpressions` and legacy `enforceForLogicalOperands` configuration |
+| [`no-extra-boolean-cast`](https://eslint.org/docs/latest/rules/no-extra-boolean-cast) | Supports safe autofix, `enforceForInnerExpressions`, and legacy `enforceForLogicalOperands` configuration |
 | [`no-extra-label`](https://eslint.org/docs/latest/rules/no-extra-label) | Implemented with multi-pass autofix for redundant references and label declarations |
 | [`no-extra-semi`](https://eslint.org/docs/latest/rules/no-extra-semi) | Implemented |
 | [`no-fallthrough`](https://eslint.org/docs/latest/rules/no-fallthrough) | Supports `allowEmptyCase`, common `commentPattern`, and `reportUnusedFallthroughComment` configuration |
