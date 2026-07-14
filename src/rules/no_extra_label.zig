@@ -18,14 +18,30 @@ pub fn check(
     try reportRedundantLoopLabelReferences(allocator, diagnostics, tree, statement.body, label_name);
     if (containsLabelReference(tree, statement.body, label_name)) return;
 
-    try core.addDiagnostic(
-        allocator,
-        diagnostics,
-        .warning,
-        id,
-        "This label is unnecessary.",
-        tree.span(index),
-    );
+    const fix_span = ast.Span{
+        .start = tree.span(statement.label).start,
+        .end = tree.span(statement.body).start,
+    };
+    if (hasCommentBetween(tree, fix_span.start, fix_span.end)) {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "This label is unnecessary.",
+            tree.span(index),
+        );
+    } else {
+        try core.addDiagnosticWithFix(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "This label is unnecessary.",
+            tree.span(index),
+            .{ .span = fix_span, .replacement = "" },
+        );
+    }
 }
 
 fn reportRedundantLoopLabelReferences(
@@ -59,12 +75,12 @@ fn reportRedundantLoopBodyReferences(
     switch (tree.data(index)) {
         .break_statement => |statement| {
             if (sameLabel(tree, statement.label, label_name)) {
-                try addRedundantReferenceDiagnostic(allocator, diagnostics, tree, statement.label, label_name);
+                try addRedundantReferenceDiagnostic(allocator, diagnostics, tree, index, statement.label, label_name);
             }
         },
         .continue_statement => |statement| {
             if (sameLabel(tree, statement.label, label_name)) {
-                try addRedundantReferenceDiagnostic(allocator, diagnostics, tree, statement.label, label_name);
+                try addRedundantReferenceDiagnostic(allocator, diagnostics, tree, index, statement.label, label_name);
             }
         },
         .block_statement => |block| try reportRedundantReferencesInRange(allocator, diagnostics, tree, block.body, label_name),
@@ -115,18 +131,51 @@ fn addRedundantReferenceDiagnostic(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    statement: ast.NodeIndex,
     label: ast.NodeIndex,
     label_name: []const u8,
 ) Allocator.Error!void {
-    try core.addDiagnosticFmt(
+    const statement_span = tree.span(statement);
+    const keyword_end = statement_span.start + switch (tree.data(statement)) {
+        .break_statement => @as(u32, "break".len),
+        .continue_statement => @as(u32, "continue".len),
+        else => return,
+    };
+    const message = try std.fmt.allocPrint(allocator, "This label '{s}' is unnecessary.", .{label_name});
+    defer allocator.free(message);
+    const label_span = tree.span(label);
+
+    if (hasCommentBetween(tree, keyword_end, label_span.end)) {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            message,
+            label_span,
+        );
+        return;
+    }
+
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
-        tree.span(label),
-        "This label '{s}' is unnecessary.",
-        .{label_name},
+        message,
+        label_span,
+        .{
+            .span = .{ .start = keyword_end, .end = label_span.end },
+            .replacement = "",
+        },
     );
+}
+
+fn hasCommentBetween(tree: *const ast.Tree, start: u32, end: u32) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.start < end and comment.span.end > start) return true;
+    }
+    return false;
 }
 
 fn labelName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
