@@ -145,7 +145,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-restricted-modules`](https://eslint.org/docs/latest/rules/no-restricted-modules) | Supports restricted CommonJS `require()` sources, `paths`, simple `patterns`, negated patterns, and custom messages |
 | [`no-restricted-properties`](https://eslint.org/docs/latest/rules/no-restricted-properties) | Supports object/property restrictions, destructuring, and `allowObjects`/`allowProperties` configuration |
 | [`no-restricted-syntax`](https://eslint.org/docs/latest/rules/no-restricted-syntax) | Supports lightweight AST node selector restrictions with custom messages |
-| [`no-regex-spaces`](https://eslint.org/docs/latest/rules/no-regex-spaces) | Implemented |
+| [`no-regex-spaces`](https://eslint.org/docs/latest/rules/no-regex-spaces) | Implemented with safe autofix for literals and static string constructors |
 | [`no-return-assign`](https://eslint.org/docs/latest/rules/no-return-assign) | Implemented for `except-parens` and optional `always` behavior |
 | [`no-return-await`](https://eslint.org/docs/latest/rules/no-return-await) | Implemented for return statements, async arrow expression bodies, and nested tail expressions |
 | [`no-script-url`](https://eslint.org/docs/latest/rules/no-script-url) | Implemented |
