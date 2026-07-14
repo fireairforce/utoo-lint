@@ -21,7 +21,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`default-param-last`](https://eslint.org/docs/latest/rules/default-param-last) | Implemented |
 | [`dot-notation`](https://eslint.org/docs/latest/rules/dot-notation) | Supports autofix plus `allowKeywords` and common `allowPattern` configuration |
 | [`eol-last`](https://eslint.org/docs/latest/rules/eol-last) | Supports `always`, `never`, `unix`, and `windows` configuration with autofix |
-| [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Supports `always`, `allow-null`, and `smart` configuration |
+| [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Supports `always`, `allow-null`, and `smart` configuration with safe autofix |
 | [`for-direction`](https://eslint.org/docs/latest/rules/for-direction) | Implemented |
 | [`func-name-matching`](https://eslint.org/docs/latest/rules/func-name-matching) | Supports `always`, `never`, `includeCommonJSModuleExports`, and `considerPropertyDescriptor` configuration |
 | [`func-names`](https://eslint.org/docs/latest/rules/func-names) | Supports `always`, `as-needed`, `never`, and `generators` configuration |
@@ -223,7 +223,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`use-isnan`](https://eslint.org/docs/latest/rules/use-isnan) | Supports `enforceForIndexOf` and `enforceForSwitchCase` configuration |
 | [`valid-typeof`](https://eslint.org/docs/latest/rules/valid-typeof) | Supports `requireStringLiterals` configuration |
 | [`vars-on-top`](https://eslint.org/docs/latest/rules/vars-on-top) | Implemented |
-| [`wrap-iife`](https://eslint.org/docs/latest/rules/wrap-iife) | Implemented for `outside`, `inside`, and `any` options |
+| [`wrap-iife`](https://eslint.org/docs/latest/rules/wrap-iife) | Implemented for `outside`, `inside`, and `any` options with autofix |
 | [`yoda`](https://eslint.org/docs/latest/rules/yoda) | Supports `never`, `always`, `onlyEquality`, and `exceptRange` configuration |
 
 ## ESLint comments rules

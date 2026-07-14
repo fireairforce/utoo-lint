@@ -37,6 +37,24 @@ pub fn checkWithOptions(
     }
     if (options.style == .smart and isSmartException(tree, expression)) return;
 
+    if (canAutofix(tree, expression)) {
+        if (operatorSpan(tree, expression)) |fix_span| {
+            try core.addDiagnosticWithFix(
+                allocator,
+                diagnostics,
+                .warning,
+                id,
+                "Use strict equality operators.",
+                tree.span(index),
+                .{
+                    .span = fix_span,
+                    .replacement = if (expression.operator == .equal) "===" else "!==",
+                },
+            );
+            return;
+        }
+    }
+
     try core.addDiagnostic(
         allocator,
         diagnostics,
@@ -45,6 +63,40 @@ pub fn checkWithOptions(
         "Use strict equality operators.",
         tree.span(index),
     );
+}
+
+fn canAutofix(tree: *const ast.Tree, expression: ast.BinaryExpression) bool {
+    if (isTypeofExpression(tree, expression.left) or isTypeofExpression(tree, expression.right)) return true;
+    const left_kind = literalKind(tree, expression.left) orelse return false;
+    const right_kind = literalKind(tree, expression.right) orelse return false;
+    return left_kind == right_kind;
+}
+
+fn operatorSpan(tree: *const ast.Tree, expression: ast.BinaryExpression) ?ast.Span {
+    const operator = if (expression.operator == .equal) "==" else "!=";
+    var cursor: usize = @intCast(tree.span(expression.left).end);
+    const end: usize = @intCast(tree.span(expression.right).start);
+
+    while (cursor + operator.len <= end) {
+        if (commentEndingAfter(tree, cursor)) |comment_end| {
+            cursor = comment_end;
+            continue;
+        }
+        if (std.mem.startsWith(u8, tree.source[cursor..end], operator)) {
+            return .{ .start = @intCast(cursor), .end = @intCast(cursor + operator.len) };
+        }
+        cursor += 1;
+    }
+    return null;
+}
+
+fn commentEndingAfter(tree: *const ast.Tree, offset: usize) ?usize {
+    for (tree.comments) |comment| {
+        const start: usize = @intCast(comment.span.start);
+        const end: usize = @intCast(comment.span.end);
+        if (start <= offset and offset < end) return end;
+    }
+    return null;
 }
 
 fn isSmartException(tree: *const ast.Tree, expression: ast.BinaryExpression) bool {
@@ -86,6 +138,7 @@ fn literalKind(tree: *const ast.Tree, index: ast.NodeIndex) ?LiteralKind {
         .numeric_literal => .number,
         .regexp_literal => .object,
         .string_literal => .string,
+        .template_literal => |literal| if (tree.extra(literal.expressions).len == 0) .string else null,
         else => null,
     };
 }
