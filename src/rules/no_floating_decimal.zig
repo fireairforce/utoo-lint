@@ -17,14 +17,55 @@ pub fn check(
     const raw = tree.string(literal.raw);
     if (!hasFloatingDecimal(raw)) return;
 
-    try core.addDiagnostic(
+    const span = tree.span(index);
+    const fix_offset = if (raw[0] == '.') span.start else span.end;
+    const replacement = if (raw[0] == '.' and needsSpaceBeforeLeadingZero(tree.source, span.start)) " 0" else "0";
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
         "A leading or trailing decimal point should include a digit.",
-        tree.span(index),
+        span,
+        .{
+            .span = .{ .start = fix_offset, .end = fix_offset },
+            .replacement = replacement,
+        },
     );
+}
+
+fn needsSpaceBeforeLeadingZero(source: []const u8, offset: u32) bool {
+    if (offset == 0) return false;
+
+    const previous = source[@as(usize, @intCast(offset)) - 1];
+    return switch (previous) {
+        ' ',
+        '\t',
+        '\r',
+        '\n',
+        '(',
+        '[',
+        '{',
+        ',',
+        ';',
+        ':',
+        '?',
+        '=',
+        '+',
+        '-',
+        '*',
+        '/',
+        '%',
+        '!',
+        '~',
+        '<',
+        '>',
+        '&',
+        '|',
+        '^',
+        => false,
+        else => true,
+    };
 }
 
 fn hasFloatingDecimal(raw: []const u8) bool {

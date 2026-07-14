@@ -89,7 +89,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-extra-label`](https://eslint.org/docs/latest/rules/no-extra-label) | Implemented with multi-pass autofix for redundant references and label declarations |
 | [`no-extra-semi`](https://eslint.org/docs/latest/rules/no-extra-semi) | Implemented |
 | [`no-fallthrough`](https://eslint.org/docs/latest/rules/no-fallthrough) | Supports `allowEmptyCase`, common `commentPattern`, and `reportUnusedFallthroughComment` configuration |
-| [`no-floating-decimal`](https://eslint.org/docs/latest/rules/no-floating-decimal) | Implemented |
+| [`no-floating-decimal`](https://eslint.org/docs/latest/rules/no-floating-decimal) | Implemented with token-safe autofix |
 | [`no-for-in`](https://eslint.org/docs/latest/rules/no-for-in) | Implemented |
 | [`no-func-assign`](https://eslint.org/docs/latest/rules/no-func-assign) | Implemented |
 | [`no-global-assign`](https://eslint.org/docs/latest/rules/no-global-assign) | Supports `exceptions` configuration |
