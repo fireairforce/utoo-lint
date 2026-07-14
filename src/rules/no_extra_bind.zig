@@ -14,7 +14,8 @@ pub fn check(
     call: ast.CallExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
-    const callee_member = switch (tree.data(unwrapTransparent(tree, call.callee))) {
+    const member_index = unwrapTransparent(tree, call.callee);
+    const callee_member = switch (tree.data(member_index)) {
         .member_expression => |member| member,
         else => return,
     };
@@ -32,6 +33,19 @@ pub fn check(
     };
     if (!is_extra) return;
 
+    if (bindFixes(tree, call, index, callee_member, member_index)) |fixes| {
+        try core.addDiagnosticWithFixes(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "The function binding is unnecessary.",
+            tree.span(index),
+            &fixes,
+        );
+        return;
+    }
+
     try core.addDiagnostic(
         allocator,
         diagnostics,
@@ -40,6 +54,67 @@ pub fn check(
         "The function binding is unnecessary.",
         tree.span(index),
     );
+}
+
+fn bindFixes(
+    tree: *const ast.Tree,
+    call: ast.CallExpression,
+    call_index: ast.NodeIndex,
+    member: ast.MemberExpression,
+    member_index: ast.NodeIndex,
+) ?[2]core.Fix {
+    if (!argumentsCanBeDiscarded(tree, call.arguments)) return null;
+
+    const object_span = tree.span(member.object);
+    const member_span = tree.span(member_index);
+    const callee_span = tree.span(call.callee);
+    const call_span = tree.span(call_index);
+
+    if (object_span.end >= member_span.end or
+        member_span.end > callee_span.end or
+        callee_span.end >= call_span.end)
+    {
+        return null;
+    }
+    if (hasCommentBetween(tree, object_span.end, call_span.end)) return null;
+
+    return .{
+        .{
+            .span = .{ .start = object_span.end, .end = member_span.end },
+            .replacement = "",
+        },
+        .{
+            .span = .{ .start = callee_span.end, .end = call_span.end },
+            .replacement = "",
+        },
+    };
+}
+
+fn argumentsCanBeDiscarded(tree: *const ast.Tree, range: ast.IndexRange) bool {
+    const arguments = tree.extra(range);
+    if (arguments.len == 0) return true;
+    if (arguments.len != 1) return false;
+
+    return switch (tree.data(unwrapTransparent(tree, arguments[0]))) {
+        .identifier_reference,
+        .this_expression,
+        .function,
+        .string_literal,
+        .numeric_literal,
+        .bigint_literal,
+        .boolean_literal,
+        .null_literal,
+        .regexp_literal,
+        => true,
+        else => false,
+    };
+}
+
+fn hasCommentBetween(tree: *const ast.Tree, start: u32, end: u32) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.start < end and comment.span.end > start) return true;
+    }
+    return false;
 }
 
 fn functionUsesThis(tree: *const ast.Tree, function: ast.Function) bool {
