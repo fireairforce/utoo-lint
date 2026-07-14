@@ -35,13 +35,15 @@ pub fn runWithOptions(
 
     while (findLinebreak(source, index)) |linebreak| {
         if (!linebreakMatchesStyle(linebreak, options.style)) {
-            try core.addDiagnostic(
+            const span: ast.Span = .{ .start = @intCast(linebreak.start), .end = @intCast(linebreak.end) };
+            try core.addDiagnosticWithFix(
                 allocator,
                 diagnostics,
                 .warning,
                 id,
                 messageForStyle(options.style),
-                .{ .start = @intCast(linebreak.start), .end = @intCast(linebreak.end) },
+                span,
+                .{ .span = span, .replacement = linebreakForStyle(options.style) },
             );
         }
 
@@ -82,5 +84,12 @@ fn messageForStyle(style: Style) []const u8 {
     return switch (style) {
         .unix => "Expected linebreaks to be 'LF' but found 'CRLF'.",
         .windows => "Expected linebreaks to be 'CRLF' but found 'LF'.",
+    };
+}
+
+fn linebreakForStyle(style: Style) []const u8 {
+    return switch (style) {
+        .unix => "\n",
+        .windows => "\r\n",
     };
 }

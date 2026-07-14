@@ -90,13 +90,15 @@ fn checkLine(
         if (index - start > 1) {
             if (options.ignore_eol_comments == .yes and isBeforeEndOfLineComment(tree, index, line_end)) continue;
 
-            try core.addDiagnostic(
+            const span: ast.Span = .{ .start = @intCast(start), .end = @intCast(index) };
+            try core.addDiagnosticWithFix(
                 allocator,
                 diagnostics,
                 .warning,
                 id,
                 "Multiple spaces found before.",
-                .{ .start = @intCast(start), .end = @intCast(index) },
+                span,
+                .{ .span = span, .replacement = " " },
             );
         }
     }

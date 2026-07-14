@@ -143,3 +143,50 @@ test "can disable no-multiple-empty-lines" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_multiple_empty_lines.id));
 }
+
+test "autofixes excess blank lines between statements" {
+    const source =
+        "const first = 1;\n" ++
+        "\n" ++
+        "\n" ++
+        "\n" ++
+        "\n" ++
+        "const second = 2;\n";
+    const expected =
+        "const first = 1;\n" ++
+        "\n" ++
+        "\n" ++
+        "const second = 2;\n";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.no_multiple_empty_lines.id));
+}
+
+test "autofixes CRLF blank lines at the beginning and end of a file" {
+    const source =
+        "\r\n" ++
+        "\r\n" ++
+        "const value = 1;\r\n" ++
+        "\r\n" ++
+        "\r\n";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .linebreak_style_style = .windows,
+        .no_multiple_empty_lines_max_bof = 0,
+        .no_multiple_empty_lines_max_eof = 0,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings("const value = 1;\r\n", result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.no_multiple_empty_lines.id));
+}

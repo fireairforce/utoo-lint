@@ -171,3 +171,26 @@ test "can disable no-multi-spaces" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_multi_spaces.id));
 }
+
+test "autofixes reported runs of multiple spaces" {
+    const source =
+        "const first =  1;\n" ++
+        "if (foo   === bar) {}\n" ++
+        "const second = 2;  // comment\n";
+    const expected =
+        "const first = 1;\n" ++
+        "if (foo === bar) {}\n" ++
+        "const second = 2; // comment\n";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .no_inline_comments = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.no_multi_spaces.id));
+}

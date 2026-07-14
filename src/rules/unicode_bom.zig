@@ -36,28 +36,27 @@ pub fn runWithOptions(
     switch (options.style) {
         .never => {
             if (!has_bom) return;
-            try addDiagnostic(allocator, diagnostics, 0, bom.len, "Unexpected Unicode BOM (Byte Order Mark).");
+            try core.addDiagnosticWithFix(
+                allocator,
+                diagnostics,
+                .warning,
+                id,
+                "Unexpected Unicode BOM (Byte Order Mark).",
+                .{ .start = 0, .end = bom.len },
+                .{ .span = .{ .start = 0, .end = bom.len }, .replacement = "" },
+            );
         },
         .always => {
             if (has_bom) return;
-            try addDiagnostic(allocator, diagnostics, 0, @min(tree.source.len, 1), "Expected Unicode BOM (Byte Order Mark).");
+            try core.addDiagnosticWithFix(
+                allocator,
+                diagnostics,
+                .warning,
+                id,
+                "Expected Unicode BOM (Byte Order Mark).",
+                .{ .start = 0, .end = @intCast(@min(tree.source.len, 1)) },
+                .{ .span = .{ .start = 0, .end = 0 }, .replacement = bom },
+            );
         },
     }
-}
-
-fn addDiagnostic(
-    allocator: Allocator,
-    diagnostics: *core.DiagnosticList,
-    start: usize,
-    end: usize,
-    message: []const u8,
-) Allocator.Error!void {
-    try core.addDiagnostic(
-        allocator,
-        diagnostics,
-        .warning,
-        id,
-        message,
-        .{ .start = @intCast(start), .end = @intCast(end) },
-    );
 }

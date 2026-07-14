@@ -76,3 +76,54 @@ test "can disable linebreak-style" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.linebreak_style.id));
 }
+
+test "autofixes CRLF linebreaks to Unix LF" {
+    const source =
+        "const first = 1;\r\n" ++
+        "const second = 2;\r\n";
+    const expected =
+        "const first = 1;\n" ++
+        "const second = 2;\n";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.linebreak_style.id));
+}
+
+test "autofixes LF linebreaks to Windows CRLF" {
+    var config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",\"windows\"]",
+        .{},
+    );
+    defer config.deinit();
+
+    var options = lint.Options{
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    };
+    try options.setByRuleConfigValue("linebreak-style", config.value);
+
+    const source =
+        "const first = 1;\n" ++
+        "const second = 2;\r\n" ++
+        "const third = 3;\n";
+    const expected =
+        "const first = 1;\r\n" ++
+        "const second = 2;\r\n" ++
+        "const third = 3;\r\n";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.linebreak_style.id));
+}

@@ -91,6 +91,7 @@ test "autofixes trailing spaces without changing line endings" {
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
         .eol_last = false,
+        .linebreak_style = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
     });

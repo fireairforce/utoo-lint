@@ -113,6 +113,7 @@ test "autofixes a missing final linebreak" {
 
 test "completes a final carriage return as CRLF" {
     var result = try lint.lintSourceAndFix(std.testing.allocator, "const value = 1;\r", "fixture.js", .{
+        .linebreak_style = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
     });

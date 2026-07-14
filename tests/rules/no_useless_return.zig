@@ -166,6 +166,7 @@ test "autofixes redundant returns in statement lists" {
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
         .eol_last = false,
+        .no_multi_spaces = false,
         .no_undef = false,
         .no_unused_vars = false,
         .parser_semantic_errors = false,
