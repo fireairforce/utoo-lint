@@ -14,20 +14,24 @@ pub fn check(
     index: ast.NodeIndex,
 ) Allocator.Error!void {
     if (expression.arguments.len != 0) return;
-    if (hasTrailingParen(tree, index)) return;
+    if (hasOwnParens(tree, index, expression.callee)) return;
 
-    try core.addDiagnostic(
+    const span = tree.span(index);
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
         "Missing '()' invoking a constructor.",
-        tree.span(index),
+        span,
+        .{ .span = .{ .start = span.end, .end = span.end }, .replacement = "()" },
     );
 }
 
-fn hasTrailingParen(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+fn hasOwnParens(tree: *const ast.Tree, index: ast.NodeIndex, callee_index: ast.NodeIndex) bool {
     const span = tree.span(index);
+    if (tree.span(callee_index).end >= span.end) return false;
+
     const start: usize = @intCast(span.start);
     const end: usize = @intCast(span.end);
     if (start >= end or end > tree.source.len) return false;
