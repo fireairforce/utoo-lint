@@ -92,6 +92,7 @@ test "typescript autofix preserves ASI and constructor header comments" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.ts", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_unused_expressions = false,
         .typescript_eslint_no_unused_expressions = false,

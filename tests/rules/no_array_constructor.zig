@@ -64,6 +64,7 @@ test "autofixes Array constructors while preserving argument text" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_console = false,
         .no_unused_vars = false,
@@ -88,6 +89,7 @@ test "does not autofix Array constructors with unsafe call or comment boundaries
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_console = false,
         .no_unused_expressions = false,

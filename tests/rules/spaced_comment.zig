@@ -157,6 +157,7 @@ test "autofixes missing spaces after comment markers" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_inline_comments = false,
         .no_tabs = false,
@@ -181,6 +182,7 @@ test "autofixes spaces and tabs disallowed after comment markers" {
         "/**jsdoc comment */";
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .spaced_comment_style = .never,
         .no_inline_comments = false,
@@ -202,6 +204,7 @@ test "does not autofix a disallowed newline after a block comment marker" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .spaced_comment_style = .never,
         .no_unused_vars = false,

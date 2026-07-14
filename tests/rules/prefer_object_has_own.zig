@@ -102,6 +102,7 @@ test "autofixes Object.hasOwn safely without dropping comments or matching nonem
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_prototype_builtins = false,
         .no_undef = false,

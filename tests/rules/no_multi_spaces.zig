@@ -183,6 +183,7 @@ test "autofixes reported runs of multiple spaces" {
         "const second = 2; // comment\n";
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .no_inline_comments = false,
         .no_unused_vars = false,
         .no_undef = false,
