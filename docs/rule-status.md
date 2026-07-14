@@ -217,7 +217,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`sort-keys`](https://eslint.org/docs/latest/rules/sort-keys) | Supports object literal key ordering with `asc`/`desc`, `caseSensitive`, `natural`, `minKeys`, and `allowLineSeparatedGroups` |
 | [`sort-vars`](https://eslint.org/docs/latest/rules/sort-vars) | Supports same-declaration identifier sorting and `ignoreCase` configuration |
 | [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, `markers`, and `exceptions` configuration with safe autofix |
-| [`strict`](https://eslint.org/docs/latest/rules/strict) | Supports `safe`, `global`, `function`, and `never` modes |
+| [`strict`](https://eslint.org/docs/latest/rules/strict) | Supports `safe`, `global`, `function`, and `never` modes with autofix for redundant directives |
 | [`symbol-description`](https://eslint.org/docs/latest/rules/symbol-description) | Implemented |
 | [`unicode-bom`](https://eslint.org/docs/latest/rules/unicode-bom) | Supports `never` and `always` configuration with autofix |
 | [`use-isnan`](https://eslint.org/docs/latest/rules/use-isnan) | Supports `enforceForIndexOf` and `enforceForSwitchCase` configuration |
