@@ -45,7 +45,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`new-cap`](https://eslint.org/docs/latest/rules/new-cap) | Supports `newIsCap`, `capIsNew`, `properties`, exception names, and exception patterns |
 | [`new-parens`](https://eslint.org/docs/latest/rules/new-parens) | Implemented with nested-expression-safe autofix |
 | [`no-alert`](https://eslint.org/docs/latest/rules/no-alert) | Implemented with global `this`, `window`, and `globalThis` detection |
-| [`no-array-constructor`](https://eslint.org/docs/latest/rules/no-array-constructor) | Implemented |
+| [`no-array-constructor`](https://eslint.org/docs/latest/rules/no-array-constructor) | Implemented with argument-preserving, ASI-safe autofix |
 | [`no-async-promise-executor`](https://eslint.org/docs/latest/rules/no-async-promise-executor) | Implemented |
 | [`no-await-in-loop`](https://eslint.org/docs/latest/rules/no-await-in-loop) | Implemented |
 | [`no-bitwise`](https://eslint.org/docs/latest/rules/no-bitwise) | Implemented |
@@ -339,7 +339,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/explicit-member-accessibility`](https://typescript-eslint.io/rules/explicit-member-accessibility/) | Supports `accessibility: "no-public"`, `"explicit"`, and `"off"` |
 | [`@typescript-eslint/member-ordering`](https://typescript-eslint.io/rules/member-ordering/) | Implemented for fishlint's default class member ordering |
 | [`@typescript-eslint/method-signature-style`](https://typescript-eslint.io/rules/method-signature-style/) | Implemented for fishlint's `property` configuration |
-| [`@typescript-eslint/no-array-constructor`](https://typescript-eslint.io/rules/no-array-constructor/) | Implemented |
+| [`@typescript-eslint/no-array-constructor`](https://typescript-eslint.io/rules/no-array-constructor/) | Implemented with argument-preserving, ASI-safe autofix |
 | [`@typescript-eslint/no-confusing-non-null-assertion`](https://typescript-eslint.io/rules/no-confusing-non-null-assertion/) | Implemented |
 | [`@typescript-eslint/no-dupe-class-members`](https://typescript-eslint.io/rules/no-dupe-class-members/) | Implemented |
 | [`@typescript-eslint/no-empty-function`](https://typescript-eslint.io/rules/no-empty-function/) | Supports base `allow` kinds plus `private-constructors`, `protected-constructors`, `decoratedFunctions`, and `overrideMethods` configuration |

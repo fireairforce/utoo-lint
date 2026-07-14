@@ -52,6 +52,60 @@ test "does not report @typescript-eslint/no-array-constructor for single argumen
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_array_constructor.id));
 }
 
+test "autofixes @typescript-eslint/no-array-constructor diagnostics" {
+    const source =
+        \\const a = Array();
+        \\const b = new Array(1, 2);
+        \\Array?.();
+    ;
+    const expected =
+        \\const a = [];
+        \\const b = [1, 2];
+        \\[];
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.ts", .{
+        .eol_last = false,
+        .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.typescript_eslint_no_array_constructor.id));
+}
+
+test "typescript autofix preserves ASI and constructor header comments" {
+    const source =
+        \\previous()
+        \\Array()
+        \\new /* keep */ Array(1, 2)
+    ;
+    const expected =
+        \\previous()
+        \\;[]
+        \\new /* keep */ Array(1, 2)
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.ts", .{
+        .eol_last = false,
+        .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result.result, lint.rules.typescript_eslint_no_array_constructor.id));
+}
+
 test "can disable @typescript-eslint/no-array-constructor and fall back to core rule" {
     const source =
         \\const a = Array();
