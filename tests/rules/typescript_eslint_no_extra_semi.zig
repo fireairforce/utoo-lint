@@ -63,3 +63,19 @@ test "can disable @typescript-eslint/no-extra-semi and fall back to core rule" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_extra_semi.id));
     try std.testing.expect(helpers.hasRule(result, lint.rules.no_extra_semi.id));
 }
+
+test "autofixes @typescript-eslint/no-extra-semi diagnostics" {
+    const source = "const value = 1;;";
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    var fixed = try lint.applyFixes(std.testing.allocator, source, result.diagnostics);
+    defer fixed.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualStrings("const value = 1;", fixed.output);
+}

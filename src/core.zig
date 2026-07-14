@@ -8902,6 +8902,12 @@ pub const Diagnostic = struct {
     message: []const u8,
     span: ast.Span,
     severity: Severity,
+    fixes: []Fix,
+};
+
+pub const Fix = struct {
+    span: ast.Span,
+    replacement: []const u8,
 };
 
 pub const Result = struct {
@@ -8909,7 +8915,7 @@ pub const Result = struct {
 
     pub fn deinit(self: *Result, allocator: Allocator) void {
         for (self.diagnostics) |diagnostic| {
-            allocator.free(diagnostic.message);
+            freeDiagnostic(allocator, diagnostic);
         }
         allocator.free(self.diagnostics);
     }
@@ -8941,14 +8947,58 @@ pub fn addDiagnostic(
     message: []const u8,
     span: ast.Span,
 ) Allocator.Error!void {
+    return addDiagnosticWithFixes(
+        allocator,
+        diagnostics,
+        severity,
+        rule_id,
+        message,
+        span,
+        &.{},
+    );
+}
+
+pub fn addDiagnosticWithFix(
+    allocator: Allocator,
+    diagnostics: *DiagnosticList,
+    severity: Severity,
+    rule_id: []const u8,
+    message: []const u8,
+    span: ast.Span,
+    fix: Fix,
+) Allocator.Error!void {
+    return addDiagnosticWithFixes(
+        allocator,
+        diagnostics,
+        severity,
+        rule_id,
+        message,
+        span,
+        &.{fix},
+    );
+}
+
+pub fn addDiagnosticWithFixes(
+    allocator: Allocator,
+    diagnostics: *DiagnosticList,
+    severity: Severity,
+    rule_id: []const u8,
+    message: []const u8,
+    span: ast.Span,
+    fixes: []const Fix,
+) Allocator.Error!void {
     const owned_message = try allocator.dupe(u8, message);
     errdefer allocator.free(owned_message);
+
+    const owned_fixes = try dupeFixes(allocator, fixes);
+    errdefer freeFixes(allocator, owned_fixes);
 
     try diagnostics.append(allocator, .{
         .rule_id = rule_id,
         .message = owned_message,
         .span = span,
         .severity = severity,
+        .fixes = owned_fixes,
     });
 }
 
@@ -8969,14 +9019,45 @@ pub fn addDiagnosticFmt(
         .message = owned_message,
         .span = span,
         .severity = severity,
+        .fixes = &.{},
     });
 }
 
 pub fn freeDiagnostics(allocator: Allocator, diagnostics: *DiagnosticList) void {
     for (diagnostics.items) |diagnostic| {
-        allocator.free(diagnostic.message);
+        freeDiagnostic(allocator, diagnostic);
     }
     diagnostics.deinit(allocator);
+}
+
+fn dupeFixes(allocator: Allocator, fixes: []const Fix) Allocator.Error![]Fix {
+    if (fixes.len == 0) return &.{};
+
+    const owned = try allocator.alloc(Fix, fixes.len);
+    var initialized: usize = 0;
+    errdefer {
+        for (owned[0..initialized]) |fix| allocator.free(fix.replacement);
+        allocator.free(owned);
+    }
+
+    for (fixes, 0..) |fix, index| {
+        owned[index] = .{
+            .span = fix.span,
+            .replacement = try allocator.dupe(u8, fix.replacement),
+        };
+        initialized += 1;
+    }
+    return owned;
+}
+
+fn freeDiagnostic(allocator: Allocator, diagnostic: Diagnostic) void {
+    allocator.free(diagnostic.message);
+    freeFixes(allocator, diagnostic.fixes);
+}
+
+fn freeFixes(allocator: Allocator, fixes: []Fix) void {
+    for (fixes) |fix| allocator.free(fix.replacement);
+    if (fixes.len > 0) allocator.free(fixes);
 }
 
 pub fn isKnownGlobal(name: []const u8) bool {

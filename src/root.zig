@@ -1,6 +1,7 @@
 const std = @import("std");
 const parser = @import("parser");
 const core = @import("core.zig");
+const fixer = @import("fixer.zig");
 const semantic_compat = @import("semantic_compat.zig");
 
 const ast = parser.ast;
@@ -9,13 +10,93 @@ const Allocator = std.mem.Allocator;
 pub const Severity = core.Severity;
 pub const Options = core.Options;
 pub const Diagnostic = core.Diagnostic;
+pub const Fix = core.Fix;
 pub const Result = core.Result;
+pub const ApplyFixesResult = fixer.ApplyResult;
+pub const max_autofix_passes = 10;
 pub const SourcePosition = core.SourcePosition;
 pub const NoRestrictedImportEntry = core.NoRestrictedImportEntry;
 pub const NoRestrictedImportKind = core.NoRestrictedImportKind;
 pub const NoRestrictedSyntaxEntry = core.NoRestrictedSyntaxEntry;
 pub const SortImportsMemberSyntax = core.SortImportsMemberSyntax;
 pub const rules = @import("rules/root.zig");
+
+pub fn applyFixes(
+    allocator: Allocator,
+    source: []const u8,
+    diagnostics: []const Diagnostic,
+) Allocator.Error!ApplyFixesResult {
+    return fixer.apply(allocator, source, diagnostics);
+}
+
+pub const LintAndFixResult = struct {
+    output: []u8,
+    result: Result,
+    fixed: bool,
+    passes: usize,
+    applied_diagnostics: usize,
+
+    pub fn deinit(self: *LintAndFixResult, allocator: Allocator) void {
+        allocator.free(self.output);
+        self.result.deinit(allocator);
+    }
+};
+
+pub fn lintSourceAndFix(
+    allocator: Allocator,
+    source: []const u8,
+    path: []const u8,
+    options: Options,
+) Allocator.Error!LintAndFixResult {
+    return lintSourceAndFixWithIo(allocator, null, source, path, options);
+}
+
+pub fn lintSourceAndFixWithIo(
+    allocator: Allocator,
+    io: ?std.Io,
+    source: []const u8,
+    path: []const u8,
+    options: Options,
+) Allocator.Error!LintAndFixResult {
+    var output = try allocator.dupe(u8, source);
+    errdefer allocator.free(output);
+
+    var passes: usize = 0;
+    var applied_diagnostics: usize = 0;
+
+    while (passes < max_autofix_passes) {
+        var result = try lintSourceWithIo(allocator, io, output, path, options);
+        var applied = applyFixes(allocator, output, result.diagnostics) catch |err| {
+            result.deinit(allocator);
+            return err;
+        };
+
+        if (!applied.fixed) {
+            applied.deinit(allocator);
+            return .{
+                .output = output,
+                .result = result,
+                .fixed = passes > 0,
+                .passes = passes,
+                .applied_diagnostics = applied_diagnostics,
+            };
+        }
+
+        result.deinit(allocator);
+        allocator.free(output);
+        output = applied.output;
+        passes += 1;
+        applied_diagnostics += applied.applied_diagnostics;
+    }
+
+    return .{
+        .output = output,
+        .result = try lintSourceWithIo(allocator, io, output, path, options),
+        .fixed = true,
+        .passes = passes,
+        .applied_diagnostics = applied_diagnostics,
+    };
+}
 
 pub fn lintSource(
     allocator: Allocator,
@@ -215,6 +296,26 @@ pub fn offsetToLineColumn(source: []const u8, offset: u32) SourcePosition {
     }
 
     return .{ .line = line, .column = column };
+}
+
+pub fn offsetToUtf16Offset(source: []const u8, offset: u32) usize {
+    const end = @min(@as(usize, @intCast(offset)), source.len);
+    var byte_index: usize = 0;
+    var utf16_offset: usize = 0;
+
+    while (byte_index < end) {
+        const sequence_len = std.unicode.utf8ByteSequenceLength(source[byte_index]) catch 1;
+        if (byte_index + sequence_len > end or byte_index + sequence_len > source.len) {
+            byte_index += 1;
+            utf16_offset += 1;
+            continue;
+        }
+
+        utf16_offset += if (sequence_len == 4) 2 else 1;
+        byte_index += sequence_len;
+    }
+
+    return utf16_offset;
 }
 
 fn appendParserDiagnostics(

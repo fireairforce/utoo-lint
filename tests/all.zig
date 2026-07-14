@@ -1,4 +1,8 @@
 comptime {
+    _ = @import("autofix.zig");
+}
+
+comptime {
     _ = @import("rules/accessor_pairs.zig");
 }
 

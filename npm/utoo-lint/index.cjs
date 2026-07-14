@@ -417,6 +417,7 @@ const BUILTIN_RULE_IDS = [
   "@typescript-eslint/prefer-namespace-keyword",
   "@typescript-eslint/restrict-plus-operands"
 ];
+const FIXABLE_BUILTIN_RULE_IDS = new Set(["no-extra-semi", "@typescript-eslint/no-extra-semi"]);
 const BUILTIN_RULES = new Map(BUILTIN_RULE_IDS.map((ruleId) => [ruleId, createBuiltinRule(ruleId)]));
 
 class UtooLint {
@@ -882,12 +883,12 @@ function translateFishlintArgs(args = [], options = {}) {
       continue;
     }
     if (arg === "--fix") {
-      warn("utoo-lint: fishlint --fix is ignored because utoo-lint does not apply fixes yet.");
+      translated.push("--fix");
       index += 1;
       continue;
     }
     if (arg === "--fix-dry-run") {
-      warn("utoo-lint: fishlint --fix-dry-run is ignored because utoo-lint does not apply fixes yet.");
+      translated.push("--fix-dry-run");
       index += 1;
       continue;
     }
@@ -1067,6 +1068,7 @@ function lintFiles(paths, options = {}) {
     if (!resolvedOptions.deferDiagnosticConfigFiltering) {
       report.filePaths = normalizeReportFilePaths(report.filePaths, resolvedOptions);
       report.diagnostics = normalizeDiagnosticFilePaths(report.diagnostics, resolvedOptions);
+      report.outputs = normalizeReportOutputs(report.outputs, resolvedOptions);
       report.diagnostics = normalizeReportDiagnostics(report.diagnostics, resolvedOptions);
       report.exitCode = exitCodeForDiagnostics(report.diagnostics);
     }
@@ -1115,6 +1117,10 @@ function lintText(code, options = {}) {
       deferDiagnosticConfigFiltering: true
     });
     report.filePaths = (report.filePaths ?? []).map((filePath) => (filePath === tempFile ? requestedPath : filePath));
+    report.outputs = (report.outputs ?? []).map((fixed) => ({
+      ...fixed,
+      filePath: fixed.filePath === tempFile ? requestedPath : fixed.filePath
+    }));
     report.diagnostics = report.diagnostics.map((diagnostic) => ({
       ...diagnostic,
       filePath: requestedPath
@@ -1163,6 +1169,10 @@ function buildNativeLintArgs(paths, options) {
 
   if (options.format) {
     cliArgs.push(`--format=${options.format}`);
+  }
+
+  if (options.fix) {
+    cliArgs.push("--fix-dry-run");
   }
 
   if (options.extraArgs) {
@@ -1882,7 +1892,9 @@ function appendCustomLintTextMessages(results, code, filePath, config, rules, op
   if (customRules.length === 0) {
     return results;
   }
-  const sourceCode = createLinterSourceCode(code);
+  let result = results.find((item) => item.filePath === filePath);
+  const effectiveCode = typeof result?.output === "string" ? result.output : code;
+  const sourceCode = createLinterSourceCode(effectiveCode);
   const messages = runCustomLinterRules(customRules, sourceCode, {
     cwd: options.cwd,
     filename: filePath,
@@ -1893,14 +1905,13 @@ function appendCustomLintTextMessages(results, code, filePath, config, rules, op
     return results;
   }
 
-  let result = results.find((item) => item.filePath === filePath);
   if (!result) {
-    result = emptyESLintResult(filePath, code);
+    result = emptyESLintResult(filePath, effectiveCode);
     results.push(result);
   }
   result.messages.push(...filtered.messages);
   result.suppressedMessages.push(...filtered.suppressedMessages);
-  applyResultFixes(result, code, options);
+  applyResultFixes(result, effectiveCode, options);
   finalizeESLintResult(result);
   return results;
 }
@@ -1913,11 +1924,13 @@ function appendCustomLintFileMessages(results, config, options) {
     if (customRules.length === 0) {
       continue;
     }
-    let code;
-    try {
-      code = readFileSync(filePath, "utf8");
-    } catch {
-      continue;
+    let code = result.output;
+    if (typeof code !== "string") {
+      try {
+        code = readFileSync(filePath, "utf8");
+      } catch {
+        continue;
+      }
     }
     const sourceCode = createLinterSourceCode(code);
     const messages = runCustomLinterRules(customRules, sourceCode, {
@@ -3471,6 +3484,14 @@ function reportToESLintResults(report, textOptions = {}) {
     byFile.get(filePath).messages.push(diagnosticToESLintMessage(diagnostic, ruleSeverities));
   }
 
+  for (const fixed of report.outputs ?? []) {
+    const filePath = textOptions.filePath ?? normalizeESLintFilePath(fixed.filePath, textOptions.cwd);
+    if (!byFile.has(filePath)) {
+      byFile.set(filePath, emptyESLintResult(filePath, textOptions.source));
+    }
+    byFile.get(filePath).output = fixed.output;
+  }
+
   if (textOptions.filePath && textOptions.includeEmptyTextResult !== false && !byFile.has(textOptions.filePath)) {
     byFile.set(textOptions.filePath, emptyESLintResult(textOptions.filePath, textOptions.source));
   }
@@ -3515,6 +3536,13 @@ function normalizeReportDiagnostics(diagnostics, options = {}) {
 
 function normalizeReportFilePaths(filePaths, options = {}) {
   return (filePaths ?? []).map((filePath) => normalizeESLintFilePath(filePath, options.cwd));
+}
+
+function normalizeReportOutputs(outputs, options = {}) {
+  return (outputs ?? []).map((fixed) => ({
+    ...fixed,
+    filePath: normalizeESLintFilePath(fixed.filePath, options.cwd)
+  }));
 }
 
 function normalizeDiagnosticFilePaths(diagnostics, options = {}) {
@@ -4035,11 +4063,15 @@ function getErrorResults(results) {
 }
 
 function ruleMetaForRuleId(ruleId) {
-  return {
+  const meta = {
     docs: {
       url: ruleDocsUrl(ruleId)
     }
   };
+  if (FIXABLE_BUILTIN_RULE_IDS.has(ruleId)) {
+    meta.fixable = "code";
+  }
+  return meta;
 }
 
 function createBuiltinRule(ruleId) {
@@ -4114,7 +4146,7 @@ function emptyESLintResult(filePath, source) {
 }
 
 function diagnosticToESLintMessage(diagnostic, ruleSeverities) {
-  return {
+  const message = {
     ruleId: diagnostic.ruleId,
     severity: ruleSeverities?.get(diagnostic.ruleId) ?? (diagnostic.severity === "error" ? 2 : 1),
     message: diagnostic.message,
@@ -4122,6 +4154,14 @@ function diagnosticToESLintMessage(diagnostic, ruleSeverities) {
     column: diagnostic.column,
     nodeType: null
   };
+  const fixes = (diagnostic.fixes ?? []).map((fix) => ({
+    range: fix.range,
+    text: fix.text
+  }));
+  if (fixes.length > 0) {
+    message.fix = fixes.length === 1 ? fixes[0] : fixes;
+  }
+  return message;
 }
 
 function finalizeESLintResult(result) {

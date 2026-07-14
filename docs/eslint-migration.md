@@ -132,9 +132,9 @@ npx fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
 
 The wrapper invokes `utoo-lint` after translating common fishlint eslint flags.
 It forwards `--config`, maps `--glob` values to lint targets, accepts `--ext`
-for compatibility, and ignores fishlint-only setup/debug flags. `--fix` is
-accepted with a warning because `utoo-lint` does not apply fixes yet. It
-discovers `utoo.json`, `utoo-lint.json`, and
+for compatibility, and ignores fishlint-only setup/debug flags. `--fix` applies
+fixes from supported native rules, while `--fix-dry-run` computes fixed output
+without writing files. It discovers `utoo.json`, `utoo-lint.json`, and
 `eslint.config.js`/`eslint.config.mjs`/`eslint.config.cjs`; JavaScript flat
 config files are loaded and materialized as temporary JSON before invoking the
 native binary.

@@ -38,6 +38,7 @@ export interface LintReport {
   files: number;
   filePaths: string[];
   diagnostics: LintMessage[];
+  outputs?: Array<{ filePath: string; output: string }>;
   exitCode: number;
   stderr?: string;
 }
