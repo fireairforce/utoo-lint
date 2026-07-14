@@ -19,6 +19,66 @@ test "reports eqeqeq for loose equality operators" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.eqeqeq.id));
 }
 
+test "autofixes loose equality when strict equality preserves semantics" {
+    const source =
+        \\typeof value == "undefined";
+        \\"left" != "right";
+        \\2 == 3;
+        \\`same` == "same";
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\typeof value === "undefined";
+        \\"left" !== "right";
+        \\2 === 3;
+        \\`same` === "same";
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.eqeqeq.id));
+}
+
+test "keeps unsafe loose equality diagnostics unfixed and preserves comments" {
+    const source =
+        \\value == other;
+        \\value != 1;
+        \\value == null;
+        \\typeof value /* marker == */ == "undefined";
+        \\`dynamic ${value}` == `static`;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_eq_null = false,
+        .no_undef = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\value == other;
+        \\value != 1;
+        \\value == null;
+        \\typeof value /* marker == */ === "undefined";
+        \\`dynamic ${value}` == `static`;
+    , result.output);
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result.result, lint.rules.eqeqeq.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.eqeqeq.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
+
 test "supports configured eqeqeq allow-null style" {
     var config = try std.json.parseFromSlice(
         std.json.Value,
