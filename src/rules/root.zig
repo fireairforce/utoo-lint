@@ -2638,7 +2638,7 @@ const BasicVisitor = struct {
             try no_extra_label.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
         }
         if (self.options.no_unused_labels) {
-            try no_unused_labels.check(self.allocator, self.diagnostics, ctx.tree, statement, index);
+            try no_unused_labels.check(self.allocator, self.diagnostics, ctx.tree, statement, index, &ctx.path);
         }
         if (self.options.no_labels) {
             try no_labels.checkLabeledStatementWithOptions(self.allocator, self.diagnostics, ctx.tree, statement, index, self.noLabelsOptions());

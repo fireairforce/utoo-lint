@@ -3,6 +3,7 @@ const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
+const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 pub const id = "no-unused-labels";
@@ -13,18 +14,77 @@ pub fn check(
     tree: *const ast.Tree,
     statement: ast.LabeledStatement,
     index: ast.NodeIndex,
+    path: *const traverser.NodePath,
 ) Allocator.Error!void {
     const label_name = labelName(tree, statement.label) orelse return;
     if (containsLabelReference(tree, statement.body, label_name)) return;
 
-    try core.addDiagnostic(
+    const fix_span = ast.Span{
+        .start = tree.span(statement.label).start,
+        .end = tree.span(statement.body).start,
+    };
+    if (!isFixable(tree, statement, path, fix_span)) {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Unused label.",
+            tree.span(index),
+        );
+        return;
+    }
+
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
         "Unused label.",
         tree.span(index),
+        .{ .span = fix_span, .replacement = "" },
     );
+}
+
+fn isFixable(
+    tree: *const ast.Tree,
+    statement: ast.LabeledStatement,
+    path: *const traverser.NodePath,
+    fix_span: ast.Span,
+) bool {
+    if (hasCommentBetween(tree, fix_span.start, fix_span.end)) return false;
+    if (!isPotentialDirective(tree, statement.body)) return true;
+
+    var depth: usize = 1;
+    while (path.ancestor(depth)) |ancestor| : (depth += 1) {
+        switch (tree.data(ancestor)) {
+            .labeled_statement => continue,
+            .program, .function_body => return false,
+            else => return true,
+        }
+    }
+    return true;
+}
+
+fn isPotentialDirective(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    const expression = switch (tree.data(index)) {
+        .directive => return true,
+        .expression_statement => |statement| statement.expression,
+        else => return false,
+    };
+
+    return switch (tree.data(expression)) {
+        .string_literal => true,
+        .template_literal => |literal| tree.extra(literal.expressions).len == 0,
+        else => false,
+    };
+}
+
+fn hasCommentBetween(tree: *const ast.Tree, start: u32, end: u32) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.start < end and comment.span.end > start) return true;
+    }
+    return false;
 }
 
 fn labelName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
