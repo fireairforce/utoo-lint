@@ -16,12 +16,17 @@ pub fn check(
     const pattern = tree.string(literal.pattern);
     if (pattern.len == 0 or pattern[0] != '=') return;
 
-    try core.addDiagnostic(
+    const span = tree.span(index);
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
         "A regular expression literal can be confused with '/='.",
-        tree.span(index),
+        span,
+        .{
+            .span = .{ .start = span.start + 1, .end = span.start + 2 },
+            .replacement = "[=]",
+        },
     );
 }

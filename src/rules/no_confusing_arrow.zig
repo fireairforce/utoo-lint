@@ -1,8 +1,9 @@
+const std = @import("std");
 const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
-const Allocator = @import("std").mem.Allocator;
+const Allocator = std.mem.Allocator;
 
 pub const id = "no-confusing-arrow";
 
@@ -30,13 +31,34 @@ pub fn checkWithOptions(
 
     if (!isConfusingBody(tree, expression.body, options.allow_parens)) return;
 
-    try core.addDiagnostic(
+    const span = tree.span(expression.body);
+    if (!options.allow_parens) {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Arrow function used ambiguously with a conditional expression.",
+            span,
+        );
+        return;
+    }
+
+    const replacement = try std.fmt.allocPrint(
+        allocator,
+        "({s})",
+        .{tree.source[span.start..span.end]},
+    );
+    defer allocator.free(replacement);
+
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
         "Arrow function used ambiguously with a conditional expression.",
-        tree.span(expression.body),
+        span,
+        .{ .span = span, .replacement = replacement },
     );
 }
 
