@@ -157,3 +157,51 @@ test "can disable no-useless-return" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_useless_return.id));
 }
+
+test "autofixes redundant returns in statement lists" {
+    const source =
+        \\function first() { work(); return; }
+        \\function second(flag) { if (flag) { return; } }
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\function first() { work();  }
+        \\function second(flag) { if (flag) {  } }
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.no_useless_return.id));
+}
+
+test "does not autofix non-list or commented redundant returns" {
+    const source =
+        \\function first(flag) { if (flag) return; }
+        \\function second() { return/**/; }
+        \\function third() { return// keep
+        \\}
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!result.fixed);
+    try std.testing.expectEqualStrings(source, result.output);
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result.result, lint.rules.no_useless_return.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.no_useless_return.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
