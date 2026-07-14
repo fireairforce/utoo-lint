@@ -3457,7 +3457,7 @@ const BasicVisitor = struct {
             try typescript_eslint_no_extra_non_null_assertion.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
         }
         if (self.options.typescript_eslint_no_array_constructor) {
-            try typescript_eslint_no_array_constructor.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index);
+            try typescript_eslint_no_array_constructor.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call, index, ctx);
         }
         if (self.options.complexity) {
             complexity.countCallExpression(&self.complexity_state, call);
@@ -3506,7 +3506,7 @@ const BasicVisitor = struct {
             try new_parens.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.typescript_eslint_no_array_constructor) {
-            try typescript_eslint_no_array_constructor.checkNewExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try typescript_eslint_no_array_constructor.checkNewExpression(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx);
         }
         return .proceed;
     }

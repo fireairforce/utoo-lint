@@ -3,6 +3,7 @@ const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
+const array_constructor_fix = @import("array_constructor_fix.zig");
 const traverser = @import("../semantic_compat.zig").traverser;
 const Allocator = std.mem.Allocator;
 
@@ -34,8 +35,8 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (isDisallowedArrayConstructor(ctx.tree, self.symbol_table, expression.callee, expression.arguments)) {
-            try addDiagnostic(self, ctx.tree, index);
+        if (expression.type_arguments == .null and isDisallowedArrayConstructor(ctx.tree, self.symbol_table, expression.callee, expression.arguments)) {
+            try addDiagnostic(self, ctx.tree, index, expression.callee, expression.arguments, false, &ctx.path);
         }
 
         return .proceed;
@@ -47,21 +48,35 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (isDisallowedArrayConstructor(ctx.tree, self.symbol_table, call.callee, call.arguments)) {
-            try addDiagnostic(self, ctx.tree, index);
+        if (call.type_arguments == .null and isDisallowedArrayConstructor(ctx.tree, self.symbol_table, call.callee, call.arguments)) {
+            try addDiagnostic(self, ctx.tree, index, call.callee, call.arguments, call.optional, &ctx.path);
         }
 
         return .proceed;
     }
 
-    fn addDiagnostic(self: *Visitor, tree: *const ast.Tree, index: ast.NodeIndex) Allocator.Error!void {
-        try core.addDiagnostic(
+    fn addDiagnostic(
+        self: *Visitor,
+        tree: *const ast.Tree,
+        index: ast.NodeIndex,
+        callee: ast.NodeIndex,
+        arguments: ast.IndexRange,
+        optional: bool,
+        path: anytype,
+    ) Allocator.Error!void {
+        try array_constructor_fix.addDiagnostic(
             self.allocator,
             self.diagnostics,
+            tree,
+            index,
+            callee,
+            arguments,
+            optional,
+            array_constructor_fix.needsAsiGuard(tree, index, path),
+            .{},
             .warning,
             id,
             "Use an array literal instead of the Array constructor.",
-            tree.span(index),
         );
     }
 };
