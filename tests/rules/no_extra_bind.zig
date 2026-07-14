@@ -114,3 +114,57 @@ test "can disable no-extra-bind" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_extra_bind.id));
 }
+
+test "autofixes unnecessary bind calls without losing parentheses" {
+    const source =
+        \\const first = function () { return value; }.bind(context);
+        \\const second = (() => value)[`bind`](null);
+        \\const third = (function () { return value; }.bind)(undefined);
+        \\const fourth = (() => value)?.bind?.(this);
+        \\const fifth = function () { return value; }.bind();
+    ;
+    const expected =
+        \\const first = function () { return value; };
+        \\const second = (() => value);
+        \\const third = (function () { return value; });
+        \\const fourth = (() => value);
+        \\const fifth = function () { return value; };
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.no_extra_bind.id));
+}
+
+test "does not autofix bind calls with effects, spreads, or comments" {
+    const source =
+        \\const first = function () { return value; }.bind(getContext());
+        \\const second = (() => value).bind(...contexts);
+        \\const third = function () { return value; }./* keep */bind(context);
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!result.fixed);
+    try std.testing.expectEqualStrings(source, result.output);
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result.result, lint.rules.no_extra_bind.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.no_extra_bind.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
