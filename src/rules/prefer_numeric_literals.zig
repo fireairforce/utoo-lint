@@ -12,11 +12,12 @@ pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
-    _: traverser.semantic.SymbolTable,
+    symbol_table: traverser.semantic.SymbolTable,
 ) Allocator.Error!void {
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
+        .symbol_table = symbol_table,
     };
 
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -25,6 +26,7 @@ pub fn run(
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    symbol_table: traverser.semantic.SymbolTable,
 
     pub fn enter_call_expression(
         self: *Visitor,
@@ -32,14 +34,40 @@ const Visitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (preferredLiteralKind(ctx.tree, call)) |kind| {
-            try core.addDiagnostic(
+        if (preferredLiteral(ctx.tree, self.symbol_table, call)) |literal| {
+            const span = ctx.tree.span(index);
+            if (!isValidLiteralValue(literal.value, literal.kind) or hasCommentInside(ctx.tree, span)) {
+                try core.addDiagnostic(
+                    self.allocator,
+                    self.diagnostics,
+                    .warning,
+                    id,
+                    diagnosticMessage(literal.kind),
+                    span,
+                );
+                return .proceed;
+            }
+
+            const replacement = try std.fmt.allocPrint(
+                self.allocator,
+                "{s}{s}{s}{s}",
+                .{
+                    if (needsSpaceBefore(ctx.tree.source, span)) " " else "",
+                    literalPrefix(literal.kind),
+                    literal.value,
+                    if (needsSpaceAfter(ctx.tree.source, span)) " " else "",
+                },
+            );
+            defer self.allocator.free(replacement);
+
+            try core.addDiagnosticWithFix(
                 self.allocator,
                 self.diagnostics,
                 .warning,
                 id,
-                diagnosticMessage(kind),
-                ctx.tree.span(index),
+                diagnosticMessage(literal.kind),
+                span,
+                .{ .span = span, .replacement = replacement },
             );
         }
 
@@ -53,18 +81,67 @@ const LiteralKind = enum {
     hexadecimal,
 };
 
-fn preferredLiteralKind(
+const PreferredLiteral = struct {
+    kind: LiteralKind,
+    value: []const u8,
+};
+
+fn preferredLiteral(
     tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
     call: ast.CallExpression,
-) ?LiteralKind {
-    if (!isParseIntCall(tree, call.callee)) return null;
+) ?PreferredLiteral {
+    if (!isParseIntCall(tree, symbol_table, call.callee)) return null;
 
     const arguments = tree.extra(call.arguments);
     if (arguments.len != 2) return null;
 
-    _ = staticStringValue(tree, arguments[0]) orelse return null;
+    const value = staticStringValue(tree, arguments[0]) orelse return null;
     const kind = radixLiteralKind(tree, arguments[1]) orelse return null;
-    return kind;
+    return .{ .kind = kind, .value = value };
+}
+
+fn literalPrefix(kind: LiteralKind) []const u8 {
+    return switch (kind) {
+        .binary => "0b",
+        .octal => "0o",
+        .hexadecimal => "0x",
+    };
+}
+
+fn isValidLiteralValue(value: []const u8, kind: LiteralKind) bool {
+    if (value.len == 0) return false;
+
+    for (value) |byte| {
+        const valid = switch (kind) {
+            .binary => byte == '0' or byte == '1',
+            .octal => byte >= '0' and byte <= '7',
+            .hexadecimal => std.ascii.isHex(byte),
+        };
+        if (!valid) return false;
+    }
+    return true;
+}
+
+fn hasCommentInside(tree: *const ast.Tree, span: ast.Span) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.start >= span.start and comment.span.end <= span.end) return true;
+    }
+    return false;
+}
+
+fn needsSpaceBefore(source: []const u8, span: ast.Span) bool {
+    const start: usize = @intCast(span.start);
+    return start > 0 and isIdentifierPart(source[start - 1]);
+}
+
+fn needsSpaceAfter(source: []const u8, span: ast.Span) bool {
+    const end: usize = @intCast(span.end);
+    return end < source.len and isIdentifierPart(source[end]);
+}
+
+fn isIdentifierPart(byte: u8) bool {
+    return std.ascii.isAlphanumeric(byte) or byte == '_' or byte == '$' or byte >= 0x80;
 }
 
 fn diagnosticMessage(kind: LiteralKind) []const u8 {
@@ -112,11 +189,15 @@ fn radixLiteralKind(tree: *const ast.Tree, index: ast.NodeIndex) ?LiteralKind {
     };
 }
 
-fn isParseIntCall(tree: *const ast.Tree, callee: ast.NodeIndex) bool {
+fn isParseIntCall(
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    callee: ast.NodeIndex,
+) bool {
     const unwrapped = unwrapTransparent(tree, callee);
 
     if (identifierReferenceName(tree, unwrapped)) |name| {
-        return std.mem.eql(u8, name, "parseInt");
+        return std.mem.eql(u8, name, "parseInt") and isUnresolvedReference(symbol_table, unwrapped);
     }
 
     const member = switch (tree.data(unwrapped)) {
@@ -130,7 +211,20 @@ fn isParseIntCall(tree: *const ast.Tree, callee: ast.NodeIndex) bool {
 
     const object = unwrapTransparent(tree, member.object);
     const object_name = identifierReferenceName(tree, object) orelse return false;
-    return std.mem.eql(u8, object_name, "Number");
+    return std.mem.eql(u8, object_name, "Number") and isUnresolvedReference(symbol_table, object);
+}
+
+fn isUnresolvedReference(
+    symbol_table: traverser.semantic.SymbolTable,
+    node: ast.NodeIndex,
+) bool {
+    var iter = symbol_table.iterReferences();
+    while (iter.next()) |entry| {
+        if (entry.reference.node == node) {
+            return symbol_table.referenceSymbol(entry.id) == .none;
+        }
+    }
+    return false;
 }
 
 fn propertyName(tree: *const ast.Tree, member: ast.MemberExpression) ?[]const u8 {

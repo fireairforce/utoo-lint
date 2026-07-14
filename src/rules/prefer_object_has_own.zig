@@ -36,13 +36,30 @@ const Visitor = struct {
     ) Allocator.Error!traverser.Action {
         if (!isPreferableHasOwn(ctx.tree, self.symbol_table, call)) return .proceed;
 
-        try core.addDiagnostic(
+        const callee_span = ctx.tree.span(call.callee);
+        if (hasCommentInside(ctx.tree, callee_span) or hasOptionalChainInside(ctx.tree.source, callee_span)) {
+            try core.addDiagnostic(
+                self.allocator,
+                self.diagnostics,
+                .warning,
+                id,
+                "Use 'Object.hasOwn()' instead of 'Object.prototype.hasOwnProperty.call()'.",
+                ctx.tree.span(index),
+            );
+            return .proceed;
+        }
+
+        try core.addDiagnosticWithFix(
             self.allocator,
             self.diagnostics,
             .warning,
             id,
             "Use 'Object.hasOwn()' instead of 'Object.prototype.hasOwnProperty.call()'.",
             ctx.tree.span(index),
+            .{
+                .span = callee_span,
+                .replacement = if (needsSpaceBefore(ctx.tree.source, callee_span)) " Object.hasOwn" else "Object.hasOwn",
+            },
         );
 
         return .proceed;
@@ -96,9 +113,29 @@ fn memberExpression(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.MemberExpr
 
 fn isObjectLiteral(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     return switch (tree.data(index)) {
-        .object_expression => true,
+        .object_expression => |object| tree.extra(object.properties).len == 0,
         else => false,
     };
+}
+
+fn hasCommentInside(tree: *const ast.Tree, span: ast.Span) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.start >= span.start and comment.span.end <= span.end) return true;
+    }
+    return false;
+}
+
+fn hasOptionalChainInside(source: []const u8, span: ast.Span) bool {
+    return std.mem.indexOf(u8, source[span.start..span.end], "?.") != null;
+}
+
+fn needsSpaceBefore(source: []const u8, span: ast.Span) bool {
+    const start: usize = @intCast(span.start);
+    return start > 0 and isIdentifierPart(source[start - 1]);
+}
+
+fn isIdentifierPart(byte: u8) bool {
+    return std.ascii.isAlphanumeric(byte) or byte == '_' or byte == '$' or byte >= 0x80;
 }
 
 fn propertyNamed(tree: *const ast.Tree, member: ast.MemberExpression, expected: []const u8) bool {
