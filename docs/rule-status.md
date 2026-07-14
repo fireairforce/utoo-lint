@@ -199,8 +199,8 @@ Each rule links to the corresponding ESLint rule reference.
 | [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Supports object/array variable declarator and assignment expression configuration plus `enforceForRenamedProperties` |
 | [`prefer-exponentiation-operator`](https://eslint.org/docs/latest/rules/prefer-exponentiation-operator) | Implemented |
 | [`prefer-named-capture-group`](https://eslint.org/docs/latest/rules/prefer-named-capture-group) | Detects unnamed capture groups in regex literals and static `RegExp` constructors |
-| [`prefer-numeric-literals`](https://eslint.org/docs/latest/rules/prefer-numeric-literals) | Implemented for static string and template `parseInt` calls with binary, octal, or hexadecimal radix |
-| [`prefer-object-has-own`](https://eslint.org/docs/latest/rules/prefer-object-has-own) | Implemented |
+| [`prefer-numeric-literals`](https://eslint.org/docs/latest/rules/prefer-numeric-literals) | Implemented with autofix for global static string and template `parseInt` calls with binary, octal, or hexadecimal radix |
+| [`prefer-object-has-own`](https://eslint.org/docs/latest/rules/prefer-object-has-own) | Implemented with autofix |
 | [`prefer-object-spread`](https://eslint.org/docs/latest/rules/prefer-object-spread) | Implemented for `Object.assign` calls with a new object literal target |
 | [`prefer-promise-reject-errors`](https://eslint.org/docs/latest/rules/prefer-promise-reject-errors) | Supports `allowEmptyReject` configuration |
 | [`preserve-caught-error`](https://eslint.org/docs/latest/rules/preserve-caught-error) | Reports rethrown built-in errors in `catch` blocks that omit or replace the caught error `cause`, with `requireCatchParameter` support |
