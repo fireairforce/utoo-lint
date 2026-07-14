@@ -53,7 +53,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-caller`](https://eslint.org/docs/latest/rules/no-caller) | Implemented |
 | [`no-case-declarations`](https://eslint.org/docs/latest/rules/no-case-declarations) | Implemented |
 | [`no-class-assign`](https://eslint.org/docs/latest/rules/no-class-assign) | Implemented |
-| [`no-confusing-arrow`](https://eslint.org/docs/latest/rules/no-confusing-arrow) | Implemented for `allowParens: true` and `allowParens: false` |
+| [`no-confusing-arrow`](https://eslint.org/docs/latest/rules/no-confusing-arrow) | Supports `allowParens` with autofix when parentheses are allowed |
 | [`no-comma-operator`](https://eslint.org/docs/latest/rules/no-comma-operator) | Implemented |
 | [`no-compare-neg-zero`](https://eslint.org/docs/latest/rules/no-compare-neg-zero) | Implemented |
 | [`no-cond-assign`](https://eslint.org/docs/latest/rules/no-cond-assign) | Implemented |
@@ -66,7 +66,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-control-regex`](https://eslint.org/docs/latest/rules/no-control-regex) | Implemented |
 | [`no-debugger`](https://eslint.org/docs/latest/rules/no-debugger) | Implemented |
 | [`no-delete-var`](https://eslint.org/docs/latest/rules/no-delete-var) | Implemented |
-| [`no-div-regex`](https://eslint.org/docs/latest/rules/no-div-regex) | Implemented |
+| [`no-div-regex`](https://eslint.org/docs/latest/rules/no-div-regex) | Implemented with autofix |
 | [`no-dupe-args`](https://eslint.org/docs/latest/rules/no-dupe-args) | Implemented |
 | [`no-dupe-class-members`](https://eslint.org/docs/latest/rules/no-dupe-class-members) | Implemented |
 | [`no-dupe-else-if`](https://eslint.org/docs/latest/rules/no-dupe-else-if) | Implemented |

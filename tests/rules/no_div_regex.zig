@@ -36,6 +36,33 @@ test "does not report no-div-regex for ordinary regex literals" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_div_regex.id));
 }
 
+test "autofixes regex literals that can be confused with division assignment" {
+    const source =
+        \\function value() {
+        \\  return /=foo/;
+        \\}
+        \\const pattern = /=bar/u;
+    ;
+    const expected =
+        \\function value() {
+        \\  return /[=]foo/;
+        \\}
+        \\const pattern = /[=]bar/u;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.no_div_regex.id));
+}
+
 test "can disable no-div-regex" {
     const source =
         \\const pattern = /=foo/;
