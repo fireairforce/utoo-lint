@@ -20,6 +20,58 @@ test "reports capitalized-comments for comments starting with lowercase words" {
     try std.testing.expectEqualStrings("Comments should start with an uppercase character.", result.diagnostics[0].message);
 }
 
+test "autofixes lowercase comment starts in always mode" {
+    const source =
+        \\// lowercase line comment
+        \\/* lowercase block comment */
+        \\/*
+        \\ * (decorated block comment)
+        \\ */
+    ;
+    const expected =
+        \\// Lowercase line comment
+        \\/* Lowercase block comment */
+        \\/*
+        \\ * (Decorated block comment)
+        \\ */
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .spaced_comment = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.capitalized_comments.id));
+}
+
+test "composes with spaced-comment fixes at the same comment boundary" {
+    const source =
+        \\//lowercase line comment
+        \\/*lowercase block comment */
+        \\/**lowercase jsdoc comment */
+    ;
+    const expected =
+        \\// Lowercase line comment
+        \\/* Lowercase block comment */
+        \\/** Lowercase jsdoc comment */
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.capitalized_comments.id));
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.spaced_comment.id));
+}
+
 test "allows uppercase, numeric, symbolic, directives, urls, and empty comments" {
     const source =
         \\// Uppercase line comment
@@ -64,6 +116,52 @@ test "reports capitalized-comments for uppercase starts in never mode" {
 
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.capitalized_comments.id));
     try std.testing.expectEqualStrings("Comments should not start with an uppercase character.", result.diagnostics[0].message);
+}
+
+test "autofixes uppercase comment starts in never mode" {
+    const source =
+        \\// Uppercase line comment
+        \\/* (Uppercase block comment) */
+    ;
+    const expected =
+        \\// uppercase line comment
+        \\/* (uppercase block comment) */
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments_mode = .never,
+        .eol_last = false,
+        .spaced_comment = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.capitalized_comments.id));
+}
+
+test "does not autofix comments excluded by ignore options" {
+    const source =
+        \\const first = call(/* lowercase inline block */ value);
+        \\// First comment starts a group
+        \\// second consecutive line comment
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments_ignore_inline_comments = .yes,
+        .capitalized_comments_ignore_consecutive_comments = .yes,
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .spaced_comment = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!result.fixed);
+    try std.testing.expectEqualStrings(source, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.capitalized_comments.id));
 }
 
 test "ignores only inline comments when ignoreInlineComments is enabled" {

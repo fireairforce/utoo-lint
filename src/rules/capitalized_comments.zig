@@ -44,19 +44,29 @@ pub fn runWithOptions(
         if (options.ignore_inline_comments and isInlineComment(tree, comment)) continue;
         if (options.ignore_consecutive_comments and consecutive) continue;
 
-        const value = trimLeftDecorations(tree.string(comment.value));
+        const raw_value = tree.string(comment.value);
+        const value = trimLeftDecorations(raw_value);
         if (isIgnoredComment(value)) continue;
 
-        const first = firstAsciiLetter(value) orelse continue;
-        if (!violatesMode(first, options.mode)) continue;
+        const first = firstAsciiLetter(raw_value) orelse continue;
+        if (!violatesMode(first.char, options.mode)) continue;
 
-        try core.addDiagnostic(
+        var replacement = [_]u8{switch (options.mode) {
+            .always => std.ascii.toUpper(first.char),
+            .never => std.ascii.toLower(first.char),
+        }};
+        const fix_start = comment.value.start + @as(u32, @intCast(first.offset));
+        try core.addDiagnosticWithFix(
             allocator,
             diagnostics,
             .warning,
             id,
             diagnosticMessage(options.mode),
             .{ .start = comment.span.start, .end = comment.span.end },
+            .{
+                .span = .{ .start = fix_start, .end = fix_start + 1 },
+                .replacement = replacement[0..],
+            },
         );
     }
 }
@@ -146,11 +156,16 @@ fn startsWithAnyIgnoreCase(value: []const u8, prefixes: []const []const u8) bool
     return false;
 }
 
-fn firstAsciiLetter(value: []const u8) ?u8 {
+const AsciiLetter = struct {
+    char: u8,
+    offset: usize,
+};
+
+fn firstAsciiLetter(value: []const u8) ?AsciiLetter {
     var index: usize = 0;
     while (index < value.len) : (index += 1) {
         const char = value[index];
-        if (std.ascii.isAlphabetic(char)) return char;
+        if (std.ascii.isAlphabetic(char)) return .{ .char = char, .offset = index };
         if (std.ascii.isDigit(char)) return null;
         if (char == '_' or char == '$') return null;
     }

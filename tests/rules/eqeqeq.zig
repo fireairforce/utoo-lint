@@ -55,6 +55,7 @@ test "keeps unsafe loose equality diagnostics unfixed and preserves comments" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_eq_null = false,
         .no_undef = false,

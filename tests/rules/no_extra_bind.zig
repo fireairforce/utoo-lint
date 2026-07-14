@@ -152,6 +152,7 @@ test "does not autofix bind calls with effects, spreads, or comments" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_undef = false,
         .no_unused_vars = false,

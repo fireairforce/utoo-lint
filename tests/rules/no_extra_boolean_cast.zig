@@ -214,6 +214,7 @@ test "does not autofix unsafe Boolean calls or commented negations" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,

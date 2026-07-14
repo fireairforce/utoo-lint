@@ -59,6 +59,7 @@ test "does not autofix calls with unsafe arguments or comments" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_undef = false,
         .typescript_eslint_no_unused_expressions = false,
@@ -83,6 +84,7 @@ test "preserves outside comments and removes redundant operand parentheses" {
     const source = "/* before */Math.pow(((base)), ((exponent)))/* after */;";
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_undef = false,
         .typescript_eslint_no_unused_expressions = false,

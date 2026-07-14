@@ -90,6 +90,7 @@ test "autofixes safe computed keys without discarding comments or merging numeri
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
         .eol_last = false,
         .no_floating_decimal = false,
         .no_unused_vars = false,
