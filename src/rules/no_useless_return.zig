@@ -1,9 +1,10 @@
+const std = @import("std");
 const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
 const traverser = parser.traverser;
-const Allocator = @import("std").mem.Allocator;
+const Allocator = std.mem.Allocator;
 
 pub const id = "no-useless-return";
 
@@ -18,14 +19,59 @@ pub fn check(
     if (statement.argument != .null) return;
     if (!isRedundantReturn(tree, index, ctx)) return;
 
-    try core.addDiagnostic(
-        allocator,
-        diagnostics,
-        .warning,
-        id,
-        "Unnecessary return statement.",
-        tree.span(index),
-    );
+    const span = tree.span(index);
+    if (hasStatementListParent(tree, ctx) and !hasReturnComment(tree, span)) {
+        try core.addDiagnosticWithFix(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Unnecessary return statement.",
+            span,
+            .{ .span = span, .replacement = "" },
+        );
+    } else {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Unnecessary return statement.",
+            span,
+        );
+    }
+}
+
+fn hasReturnComment(tree: *const ast.Tree, span: ast.Span) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.start < span.end and comment.span.end > span.start) return true;
+    }
+
+    const start: usize = @intCast(span.start);
+    const end: usize = @intCast(span.end);
+    if (start > end or end > tree.source.len) return true;
+    if (std.mem.indexOfScalar(u8, tree.source[start..end], ';') != null) return false;
+
+    for (tree.comments) |comment| {
+        if (comment.type != .line or comment.span.start < span.end) continue;
+        const comment_start: usize = @intCast(comment.span.start);
+        if (comment_start > tree.source.len) continue;
+        if (std.mem.indexOfScalar(u8, tree.source[end..comment_start], '\n') == null) return true;
+    }
+    return false;
+}
+
+fn hasStatementListParent(tree: *const ast.Tree, ctx: *traverser.basic.Ctx) bool {
+    const parent = ctx.path.ancestor(1) orelse return false;
+    return switch (tree.data(parent)) {
+        .program,
+        .block_statement,
+        .function_body,
+        .static_block,
+        .switch_case,
+        => true,
+        else => false,
+    };
 }
 
 fn isRedundantReturn(tree: *const ast.Tree, index: ast.NodeIndex, ctx: *traverser.basic.Ctx) bool {

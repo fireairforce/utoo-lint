@@ -186,7 +186,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-useless-constructor`](https://eslint.org/docs/latest/rules/no-useless-constructor) | Implemented |
 | [`no-useless-escape`](https://eslint.org/docs/latest/rules/no-useless-escape) | Supports `allowRegexCharacters` configuration and ESLint template escape handling |
 | [`no-useless-rename`](https://eslint.org/docs/latest/rules/no-useless-rename) | Supports autofix plus `ignoreDestructuring`, `ignoreImport`, and `ignoreExport` configuration |
-| [`no-useless-return`](https://eslint.org/docs/latest/rules/no-useless-return) | Implemented |
+| [`no-useless-return`](https://eslint.org/docs/latest/rules/no-useless-return) | Implemented with comment-safe autofix for statement-list returns |
 | [`no-var`](https://eslint.org/docs/latest/rules/no-var) | Implemented |
 | [`no-void`](https://eslint.org/docs/latest/rules/no-void) | Implemented with optional `allowAsStatement` behavior |
 | [`no-warning-comments`](https://eslint.org/docs/latest/rules/no-warning-comments) | Implemented with configurable `terms`, `location`, and common `decoration` behavior |
