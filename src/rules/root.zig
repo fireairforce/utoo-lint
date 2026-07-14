@@ -899,7 +899,7 @@ pub fn runSemantic(
     }
 
     if (options.no_extra_boolean_cast) {
-        try no_extra_boolean_cast.runWithOptions(allocator, diagnostics, tree, .{
+        try no_extra_boolean_cast.runWithOptions(allocator, diagnostics, tree, semantic_result.symbol_table, .{
             .enforce_for_inner_expressions = options.no_extra_boolean_cast_enforce_for_inner_expressions,
         });
     }
