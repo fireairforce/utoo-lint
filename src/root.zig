@@ -251,6 +251,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_regex_spaces or
         options.no_shadow or
         options.no_unassigned_vars or
+        options.no_undef_init or
         options.no_undef or
         options.react_jsx_no_undef or
         options.no_unused_vars or

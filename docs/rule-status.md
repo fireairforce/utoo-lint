@@ -163,7 +163,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-throw-literal`](https://eslint.org/docs/latest/rules/no-throw-literal) | Implemented |
 | [`no-trailing-spaces`](https://eslint.org/docs/latest/rules/no-trailing-spaces) | Supports `skipBlankLines` and `ignoreComments` configuration |
 | [`no-undef`](https://eslint.org/docs/latest/rules/no-undef) | Implemented |
-| [`no-undef-init`](https://eslint.org/docs/latest/rules/no-undef-init) | Implemented |
+| [`no-undef-init`](https://eslint.org/docs/latest/rules/no-undef-init) | Implemented with safe autofix for `let` bindings |
 | [`no-unassigned-vars`](https://eslint.org/docs/latest/rules/no-unassigned-vars) | Reports read `let`/`var` bindings that have no initializer and no assignment |
 | [`no-underscore-dangle`](https://eslint.org/docs/latest/rules/no-underscore-dangle) | Supports `allow`, `allowAfterThis`, `allowAfterSuper`, `allowAfterThisConstructor`, `allowFunctionParams`, `allowInArrayDestructuring`, `allowInObjectDestructuring`, `enforceInMethodNames`, and `enforceInClassFields` configuration |
 | [`no-undefined`](https://eslint.org/docs/latest/rules/no-undefined) | Implemented for identifier references and binding names |
@@ -185,7 +185,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-useless-concat`](https://eslint.org/docs/latest/rules/no-useless-concat) | Implemented for adjacent static string and template literals in concatenation chains |
 | [`no-useless-constructor`](https://eslint.org/docs/latest/rules/no-useless-constructor) | Implemented |
 | [`no-useless-escape`](https://eslint.org/docs/latest/rules/no-useless-escape) | Supports `allowRegexCharacters` configuration and ESLint template escape handling |
-| [`no-useless-rename`](https://eslint.org/docs/latest/rules/no-useless-rename) | Supports `ignoreDestructuring`, `ignoreImport`, and `ignoreExport` configuration |
+| [`no-useless-rename`](https://eslint.org/docs/latest/rules/no-useless-rename) | Supports autofix plus `ignoreDestructuring`, `ignoreImport`, and `ignoreExport` configuration |
 | [`no-useless-return`](https://eslint.org/docs/latest/rules/no-useless-return) | Implemented |
 | [`no-var`](https://eslint.org/docs/latest/rules/no-var) | Implemented |
 | [`no-void`](https://eslint.org/docs/latest/rules/no-void) | Implemented with optional `allowAsStatement` behavior |

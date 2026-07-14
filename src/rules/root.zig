@@ -1215,6 +1215,10 @@ pub fn runSemantic(
         });
     }
 
+    if (options.no_undef_init) {
+        try no_undef_init.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
     if (options.react_jsx_no_undef) {
         try react_jsx_no_undef.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
@@ -2843,9 +2847,6 @@ const BasicVisitor = struct {
         }
         if (self.options.vars_on_top) {
             try vars_on_top.check(self.allocator, self.diagnostics, ctx.tree, declaration, index, ctx);
-        }
-        if (self.options.no_undef_init) {
-            try no_undef_init.check(self.allocator, self.diagnostics, ctx.tree, declaration);
         }
         if (self.options.no_shadow_restricted_names) {
             try no_shadow_restricted_names.checkVariableDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration);
