@@ -35,15 +35,52 @@ pub fn runWithOptions(
     for (tree.comments) |comment| {
         if (hasExpectedSpacing(tree, comment, options)) continue;
 
+        const diagnostic_span: ast.Span = .{ .start = comment.span.start, .end = comment.span.end };
+        if (fixForComment(tree, comment, options)) |fix| {
+            try core.addDiagnosticWithFix(
+                allocator,
+                diagnostics,
+                .warning,
+                id,
+                message(options.style),
+                diagnostic_span,
+                fix,
+            );
+            continue;
+        }
+
         try core.addDiagnostic(
             allocator,
             diagnostics,
             .warning,
             id,
             message(options.style),
-            .{ .start = comment.span.start, .end = comment.span.end },
+            diagnostic_span,
         );
     }
+}
+
+fn fixForComment(tree: *const ast.Tree, comment: ast.Comment, options: Options) ?core.Fix {
+    const value = tree.string(comment.value);
+    const spacing_index = spacingIndex(value, comment.type);
+    const spacing_start = comment.span.start + 2 + @as(u32, @intCast(spacing_index));
+
+    if (options.style == .always) {
+        if (spacing_start > comment.span.end) return null;
+        return .{ .span = .{ .start = spacing_start, .end = spacing_start }, .replacement = " " };
+    }
+    if (spacing_index >= value.len or !isSpaceOrTab(value[spacing_index])) return null;
+
+    var spacing_end = spacing_index + 1;
+    while (spacing_end < value.len and isSpaceOrTab(value[spacing_end])) : (spacing_end += 1) {}
+
+    return .{
+        .span = .{
+            .start = spacing_start,
+            .end = comment.span.start + 2 + @as(u32, @intCast(spacing_end)),
+        },
+        .replacement = "",
+    };
 }
 
 fn hasExpectedSpacing(tree: *const ast.Tree, comment: ast.Comment, options: Options) bool {
@@ -93,4 +130,8 @@ fn matchesRepeatedException(value: []const u8, exception: []const u8) bool {
 
 fn isWhitespace(char: u8) bool {
     return char == ' ' or char == '\t' or char == '\r' or char == '\n';
+}
+
+fn isSpaceOrTab(char: u8) bool {
+    return char == ' ' or char == '\t';
 }

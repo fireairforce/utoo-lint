@@ -141,3 +141,80 @@ test "can disable spaced-comment" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.spaced_comment.id));
 }
+
+test "autofixes missing spaces after comment markers" {
+    const source =
+        \\//line comment
+        \\/*block comment */
+        \\/**jsdoc comment */
+        \\const value = 1; //inline comment
+    ;
+    const expected =
+        \\// line comment
+        \\/* block comment */
+        \\/** jsdoc comment */
+        \\const value = 1; // inline comment
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_inline_comments = false,
+        .no_tabs = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.spaced_comment.id));
+}
+
+test "autofixes spaces and tabs disallowed after comment markers" {
+    const source =
+        "//   line comment\n" ++
+        "/*\tblock comment */\n" ++
+        "/**  jsdoc comment */";
+    const expected =
+        "//line comment\n" ++
+        "/*block comment */\n" ++
+        "/**jsdoc comment */";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .spaced_comment_style = .never,
+        .no_inline_comments = false,
+        .no_tabs = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.spaced_comment.id));
+}
+
+test "does not autofix a disallowed newline after a block comment marker" {
+    const source =
+        \\/*
+        \\line comment */
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .spaced_comment_style = .never,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!result.fixed);
+    try std.testing.expectEqualStrings(source, result.output);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result.result, lint.rules.spaced_comment.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.spaced_comment.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}

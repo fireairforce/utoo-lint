@@ -43,7 +43,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`max-params`](https://eslint.org/docs/latest/rules/max-params) | Supports `max`, deprecated `maximum`, and `countThis` configuration |
 | [`max-statements`](https://eslint.org/docs/latest/rules/max-statements) | Supports `max`, deprecated `maximum`, `ignoreTopLevelFunctions`, and static block isolation |
 | [`new-cap`](https://eslint.org/docs/latest/rules/new-cap) | Supports `newIsCap`, `capIsNew`, `properties`, exception names, and exception patterns |
-| [`new-parens`](https://eslint.org/docs/latest/rules/new-parens) | Implemented |
+| [`new-parens`](https://eslint.org/docs/latest/rules/new-parens) | Implemented with nested-expression-safe autofix |
 | [`no-alert`](https://eslint.org/docs/latest/rules/no-alert) | Implemented with global `this`, `window`, and `globalThis` detection |
 | [`no-array-constructor`](https://eslint.org/docs/latest/rules/no-array-constructor) | Implemented |
 | [`no-async-promise-executor`](https://eslint.org/docs/latest/rules/no-async-promise-executor) | Implemented |
@@ -216,7 +216,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`sort-imports`](https://eslint.org/docs/latest/rules/sort-imports) | Supports declaration/member sorting, `ignoreCase`, `ignoreDeclarationSort`, `ignoreMemberSort`, `allowSeparatedGroups`, and `memberSyntaxSortOrder` |
 | [`sort-keys`](https://eslint.org/docs/latest/rules/sort-keys) | Supports object literal key ordering with `asc`/`desc`, `caseSensitive`, `natural`, `minKeys`, and `allowLineSeparatedGroups` |
 | [`sort-vars`](https://eslint.org/docs/latest/rules/sort-vars) | Supports same-declaration identifier sorting and `ignoreCase` configuration |
-| [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, `markers`, and `exceptions` configuration |
+| [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, `markers`, and `exceptions` configuration with safe autofix |
 | [`strict`](https://eslint.org/docs/latest/rules/strict) | Supports `safe`, `global`, `function`, and `never` modes |
 | [`symbol-description`](https://eslint.org/docs/latest/rules/symbol-description) | Implemented |
 | [`unicode-bom`](https://eslint.org/docs/latest/rules/unicode-bom) | Supports `never` and `always` configuration with autofix |
