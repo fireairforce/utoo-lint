@@ -61,6 +61,7 @@ test "autofixes leading and trailing decimal points" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
         .parser_semantic_errors = false,
@@ -83,6 +84,7 @@ test "autofix separates leading decimals from adjacent keywords" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
         .parser_semantic_errors = false,

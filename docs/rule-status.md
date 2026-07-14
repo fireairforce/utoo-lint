@@ -20,7 +20,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`default-case-last`](https://eslint.org/docs/latest/rules/default-case-last) | Implemented |
 | [`default-param-last`](https://eslint.org/docs/latest/rules/default-param-last) | Implemented |
 | [`dot-notation`](https://eslint.org/docs/latest/rules/dot-notation) | Supports `allowKeywords` and common `allowPattern` configuration |
-| [`eol-last`](https://eslint.org/docs/latest/rules/eol-last) | Supports `always`, `never`, `unix`, and `windows` configuration |
+| [`eol-last`](https://eslint.org/docs/latest/rules/eol-last) | Supports `always`, `never`, `unix`, and `windows` configuration with autofix |
 | [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Supports `always`, `allow-null`, and `smart` configuration |
 | [`for-direction`](https://eslint.org/docs/latest/rules/for-direction) | Implemented |
 | [`func-name-matching`](https://eslint.org/docs/latest/rules/func-name-matching) | Supports `always`, `never`, `includeCommonJSModuleExports`, and `considerPropertyDescriptor` configuration |
@@ -161,7 +161,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-ternary`](https://eslint.org/docs/latest/rules/no-ternary) | Implemented |
 | [`no-this-before-super`](https://eslint.org/docs/latest/rules/no-this-before-super) | Implemented |
 | [`no-throw-literal`](https://eslint.org/docs/latest/rules/no-throw-literal) | Implemented |
-| [`no-trailing-spaces`](https://eslint.org/docs/latest/rules/no-trailing-spaces) | Supports `skipBlankLines` and `ignoreComments` configuration |
+| [`no-trailing-spaces`](https://eslint.org/docs/latest/rules/no-trailing-spaces) | Supports `skipBlankLines` and `ignoreComments` configuration with autofix |
 | [`no-undef`](https://eslint.org/docs/latest/rules/no-undef) | Implemented |
 | [`no-undef-init`](https://eslint.org/docs/latest/rules/no-undef-init) | Implemented with safe autofix for `let` bindings |
 | [`no-unassigned-vars`](https://eslint.org/docs/latest/rules/no-unassigned-vars) | Reports read `let`/`var` bindings that have no initializer and no assignment |

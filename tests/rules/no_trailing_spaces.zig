@@ -76,3 +76,27 @@ test "can disable no-trailing-spaces" {
 
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_trailing_spaces.id));
 }
+
+test "autofixes trailing spaces without changing line endings" {
+    const source =
+        "const first = 1; \n" ++
+        "const second = 2;\t\r\n" ++
+        "  \n" ++
+        "const third = 3;\t";
+    const expected =
+        "const first = 1;\n" ++
+        "const second = 2;\r\n" ++
+        "\n" ++
+        "const third = 3;";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.no_trailing_spaces.id));
+}

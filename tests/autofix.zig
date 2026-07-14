@@ -66,6 +66,7 @@ test "lintSourceAndFix returns final diagnostics after applying fixes" {
     const source = "const value = 1;;;";
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
         .typescript_eslint_no_extra_semi = false,
