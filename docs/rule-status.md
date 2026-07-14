@@ -19,7 +19,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`default-case`](https://eslint.org/docs/latest/rules/default-case) | Implemented with common `commentPattern` behavior |
 | [`default-case-last`](https://eslint.org/docs/latest/rules/default-case-last) | Implemented |
 | [`default-param-last`](https://eslint.org/docs/latest/rules/default-param-last) | Implemented |
-| [`dot-notation`](https://eslint.org/docs/latest/rules/dot-notation) | Supports `allowKeywords` and common `allowPattern` configuration |
+| [`dot-notation`](https://eslint.org/docs/latest/rules/dot-notation) | Supports autofix plus `allowKeywords` and common `allowPattern` configuration |
 | [`eol-last`](https://eslint.org/docs/latest/rules/eol-last) | Supports `always`, `never`, `unix`, and `windows` configuration with autofix |
 | [`eqeqeq`](https://eslint.org/docs/latest/rules/eqeqeq) | Supports `always`, `allow-null`, and `smart` configuration |
 | [`for-direction`](https://eslint.org/docs/latest/rules/for-direction) | Implemented |
@@ -335,7 +335,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/class-literal-property-style`](https://typescript-eslint.io/rules/class-literal-property-style/) | Implemented for `fields` and `getters` configurations |
 | [`@typescript-eslint/consistent-type-assertions`](https://typescript-eslint.io/rules/consistent-type-assertions/) | Supports `assertionStyle` plus object/array literal assertion modes |
 | [`@typescript-eslint/consistent-type-definitions`](https://typescript-eslint.io/rules/consistent-type-definitions/) | Implemented for `interface` and `type` configurations |
-| [`@typescript-eslint/dot-notation`](https://typescript-eslint.io/rules/dot-notation/) | Implemented |
+| [`@typescript-eslint/dot-notation`](https://typescript-eslint.io/rules/dot-notation/) | Implemented with autofix through the core rule |
 | [`@typescript-eslint/explicit-member-accessibility`](https://typescript-eslint.io/rules/explicit-member-accessibility/) | Supports `accessibility: "no-public"`, `"explicit"`, and `"off"` |
 | [`@typescript-eslint/member-ordering`](https://typescript-eslint.io/rules/member-ordering/) | Implemented for fishlint's default class member ordering |
 | [`@typescript-eslint/method-signature-style`](https://typescript-eslint.io/rules/method-signature-style/) | Implemented for fishlint's `property` configuration |

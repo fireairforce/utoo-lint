@@ -39,15 +39,90 @@ pub fn checkWithOptions(
     if (!options.allow_keywords and isKeyword(property_name)) return;
     if (isAllowedByPattern(property_name, options.allow_pattern)) return;
 
-    try core.addDiagnosticFmt(
+    const span = tree.span(index);
+    const message = try std.fmt.allocPrint(allocator, "['{s}'] is better written in dot notation.", .{property_name});
+    defer allocator.free(message);
+
+    if (wouldDiscardComment(tree, member, span)) {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            options.severity,
+            options.rule_id,
+            message,
+            span,
+        );
+        return;
+    }
+
+    const prefix = if (member.optional)
+        "?."
+    else if (isDecimalIntegerObject(tree, member.object))
+        " ."
+    else
+        ".";
+    const trailing_space = span.end < tree.source.len and isIdentifierPart(tree.source[span.end]);
+    const replacement = try std.fmt.allocPrint(
+        allocator,
+        "{s}{s}{s}",
+        .{ prefix, property_name, if (trailing_space) " " else "" },
+    );
+    defer allocator.free(replacement);
+
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         options.severity,
         options.rule_id,
-        tree.span(index),
-        "['{s}'] is better written in dot notation.",
-        .{property_name},
+        message,
+        span,
+        .{
+            .span = .{ .start = tree.span(member.object).end, .end = span.end },
+            .replacement = replacement,
+        },
     );
+}
+
+fn wouldDiscardComment(tree: *const ast.Tree, member: ast.MemberExpression, span: ast.Span) bool {
+    const replaced_start = tree.span(member.object).end;
+    for (tree.comments) |comment| {
+        if (comment.span.start >= replaced_start and comment.span.end <= span.end) return true;
+    }
+    return false;
+}
+
+fn isDecimalIntegerObject(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    const literal = switch (tree.data(index)) {
+        .numeric_literal => |literal| literal,
+        else => return false,
+    };
+    if (literal.kind != .decimal) return false;
+
+    const raw = tree.string(literal.raw);
+    if (std.mem.eql(u8, raw, "0")) return true;
+    if (raw.len == 0 or !std.ascii.isDigit(raw[0])) return false;
+
+    if (raw[0] == '0') {
+        var seen_non_octal_digit = false;
+        for (raw[1..]) |char| {
+            if (!std.ascii.isDigit(char)) return false;
+            if (char == '8' or char == '9') seen_non_octal_digit = true;
+        }
+        return seen_non_octal_digit;
+    }
+
+    if (raw[0] < '1' or raw[0] > '9') return false;
+    var previous_underscore = false;
+    for (raw[1..]) |char| {
+        if (char == '_') {
+            if (previous_underscore) return false;
+            previous_underscore = true;
+            continue;
+        }
+        if (!std.ascii.isDigit(char)) return false;
+        previous_underscore = false;
+    }
+    return !previous_underscore;
 }
 
 fn staticPropertyName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {

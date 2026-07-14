@@ -79,6 +79,24 @@ test "allows keyword properties for @typescript-eslint/dot-notation when allowKe
     );
 }
 
+test "autofixes @typescript-eslint/dot-notation diagnostics" {
+    const source = "object[\"property\"];";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.ts", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_expressions = false,
+        .typescript_eslint_no_unused_expressions = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings("object.property;", result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.typescript_eslint_dot_notation.id));
+}
+
 test "can disable @typescript-eslint/dot-notation and fall back to core rule" {
     const source =
         \\object["property"];
