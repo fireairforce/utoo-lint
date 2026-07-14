@@ -38,7 +38,7 @@ pub fn checkImportSpecifierWithOptions(
     const local = bindingName(tree, specifier.local) orelse return;
     if (!std.mem.eql(u8, imported, local)) return;
 
-    try addDiagnostic(allocator, diagnostics, tree, index);
+    try addDiagnostic(allocator, diagnostics, tree, index, specifier.local);
 }
 
 pub fn checkExportSpecifier(
@@ -66,7 +66,7 @@ pub fn checkExportSpecifierWithOptions(
     const exported = propertyName(tree, specifier.exported) orelse return;
     if (!std.mem.eql(u8, local, exported)) return;
 
-    try addDiagnostic(allocator, diagnostics, tree, index);
+    try addDiagnostic(allocator, diagnostics, tree, index, specifier.local);
 }
 
 pub fn checkObjectPattern(
@@ -97,7 +97,7 @@ pub fn checkObjectPatternWithOptions(
         const value = bindingOrAssignmentName(tree, property.value) orelse continue;
         if (!std.mem.eql(u8, key, value)) continue;
 
-        try addDiagnostic(allocator, diagnostics, tree, property_index);
+        try addDiagnostic(allocator, diagnostics, tree, property_index, property.value);
     }
 }
 
@@ -151,7 +151,7 @@ fn checkAssignmentObjectPattern(
         const value = referenceOrAssignmentName(tree, property.value) orelse continue;
         if (!std.mem.eql(u8, key, value)) continue;
 
-        try addDiagnostic(allocator, diagnostics, tree, property_index);
+        try addDiagnostic(allocator, diagnostics, tree, property_index, property.value);
     }
 }
 
@@ -183,15 +183,46 @@ fn addDiagnostic(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     index: ast.NodeIndex,
+    replacement_index: ast.NodeIndex,
 ) Allocator.Error!void {
-    try core.addDiagnostic(
+    const span = tree.span(index);
+    const replacement_span = tree.span(replacement_index);
+    if (wouldDiscardComment(tree, span, replacement_span)) {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Useless rename to the same name.",
+            span,
+        );
+        return;
+    }
+
+    try core.addDiagnosticWithFix(
         allocator,
         diagnostics,
         .warning,
         id,
         "Useless rename to the same name.",
-        tree.span(index),
+        span,
+        .{
+            .span = span,
+            .replacement = tree.source[@intCast(replacement_span.start)..@intCast(replacement_span.end)],
+        },
     );
+}
+
+fn wouldDiscardComment(tree: *const ast.Tree, span: ast.Span, replacement_span: ast.Span) bool {
+    for (tree.comments) |comment| {
+        const inside_span = comment.span.start >= span.start and comment.span.end <= span.end;
+        if (!inside_span) continue;
+
+        const inside_replacement = comment.span.start >= replacement_span.start and
+            comment.span.end <= replacement_span.end;
+        if (!inside_replacement) return true;
+    }
+    return false;
 }
 
 fn bindingOrAssignmentName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
