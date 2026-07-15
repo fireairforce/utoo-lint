@@ -3,6 +3,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("parser.zig");
+}
+
+comptime {
     _ = @import("rules/accessor_pairs.zig");
 }
 
