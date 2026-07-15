@@ -107,7 +107,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-label-var`](https://eslint.org/docs/latest/rules/no-label-var) | Implemented |
 | [`no-labels`](https://eslint.org/docs/latest/rules/no-labels) | Implemented |
 | [`no-lone-blocks`](https://eslint.org/docs/latest/rules/no-lone-blocks) | Implemented with block-scoped binding exceptions |
-| [`no-lonely-if`](https://eslint.org/docs/latest/rules/no-lonely-if) | Implemented |
+| [`no-lonely-if`](https://eslint.org/docs/latest/rules/no-lonely-if) | Implemented with safe autofix |
 | [`no-loop-func`](https://eslint.org/docs/latest/rules/no-loop-func) | Implemented |
 | [`no-loss-of-precision`](https://eslint.org/docs/latest/rules/no-loss-of-precision) | Implemented |
 | [`no-mixed-spaces-and-tabs`](https://eslint.org/docs/latest/rules/no-mixed-spaces-and-tabs) | Supports `smart-tabs` configuration |
