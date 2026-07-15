@@ -2994,7 +2994,7 @@ const BasicVisitor = struct {
             try max_nested_callbacks.enterArrowFunction(self.allocator, self.diagnostics, ctx.tree, index, &ctx.path, &self.max_nested_callbacks_state, self.maxNestedCallbacksOptions());
         }
         if (self.options.arrow_body_style) {
-            try arrow_body_style.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression, index, arrowBodyStyleOptions(&self.options));
+            try arrow_body_style.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx, arrowBodyStyleOptions(&self.options));
         }
         if (self.options.no_return_assign and expression.expression) {
             try no_return_assign.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression.body, .{
