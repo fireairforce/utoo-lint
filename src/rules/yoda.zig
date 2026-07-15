@@ -56,14 +56,148 @@ pub fn checkWithOptions(
     const right_literal = isLiteralLike(tree, expression.right);
     if (hasExpectedYodaStyle(options.style, left_literal, right_literal)) return;
 
-    try core.addDiagnostic(
-        allocator,
-        diagnostics,
-        .warning,
-        id,
-        message(options.style),
-        tree.span(index),
-    );
+    const fix = try buildFix(allocator, tree, expression, index);
+    defer if (fix) |value| allocator.free(value.replacement);
+
+    if (fix) |value| {
+        try core.addDiagnosticWithFix(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            message(options.style),
+            tree.span(index),
+            value,
+        );
+    } else {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            message(options.style),
+            tree.span(index),
+        );
+    }
+}
+
+fn buildFix(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    expression: ast.BinaryExpression,
+    index: ast.NodeIndex,
+) Allocator.Error!?core.Fix {
+    const operator_span = findOperatorSpan(tree, expression) orelse return null;
+    const expression_span = tree.span(index);
+    const left_span = tree.span(expression.left);
+    const right_span = tree.span(expression.right);
+    const operator = flippedOperator(expression.operator);
+    const left_text = sourceForRange(tree, expression_span.start, left_span.end);
+    const right_text = sourceForRange(tree, right_span.start, expression_span.end);
+    const before_expression = tree.source[0..@intCast(expression_span.start)];
+    const after_expression = tree.source[@intCast(expression_span.end)..];
+    const prefix = if (needsOperandPrefix(tree, expression.right, before_expression, right_text)) " " else "";
+    const suffix = if (needsOperandSuffix(tree, expression.left, left_text, after_expression)) " " else "";
+
+    return .{
+        .span = expression_span,
+        .replacement = try std.fmt.allocPrint(
+            allocator,
+            "{s}{s}{s}{s}{s}{s}{s}",
+            .{
+                prefix,
+                right_text,
+                sourceForRange(tree, left_span.end, operator_span.start),
+                operator,
+                sourceForRange(tree, operator_span.end, right_span.start),
+                left_text,
+                suffix,
+            },
+        ),
+    };
+}
+
+fn needsOperandPrefix(
+    tree: *const ast.Tree,
+    operand: ast.NodeIndex,
+    before: []const u8,
+    operand_text: []const u8,
+) bool {
+    if (needsTokenSeparator(before, operand_text)) return true;
+    return tree.data(operand) == .regexp_literal and
+        before.len > 0 and
+        isIdentifierByte(before[before.len - 1]);
+}
+
+fn needsOperandSuffix(
+    tree: *const ast.Tree,
+    operand: ast.NodeIndex,
+    operand_text: []const u8,
+    after: []const u8,
+) bool {
+    if (needsTokenSeparator(operand_text, after)) return true;
+    return tree.data(operand) == .regexp_literal and
+        after.len > 0 and
+        isIdentifierByte(after[0]);
+}
+
+fn needsTokenSeparator(left: []const u8, right: []const u8) bool {
+    if (left.len == 0 or right.len == 0) return false;
+    const left_byte = left[left.len - 1];
+    const right_byte = right[0];
+    if (std.ascii.isWhitespace(left_byte) or std.ascii.isWhitespace(right_byte)) return false;
+
+    if (isIdentifierByte(left_byte) and isIdentifierByte(right_byte)) return true;
+    if (left_byte == '+' and right_byte == '+') return true;
+    if (left_byte == '-' and right_byte == '-') return true;
+    return left_byte == '/' and (right_byte == '/' or right_byte == '*');
+}
+
+fn isIdentifierByte(byte: u8) bool {
+    return std.ascii.isAlphanumeric(byte) or byte == '_' or byte == '$' or byte >= 0x80;
+}
+
+fn findOperatorSpan(tree: *const ast.Tree, expression: ast.BinaryExpression) ?ast.Span {
+    const left_end = tree.span(expression.left).end;
+    const right_start = tree.span(expression.right).start;
+    const operator = expression.operator.toString();
+    const between = sourceForRange(tree, left_end, right_start);
+
+    var search_start: usize = 0;
+    while (std.mem.indexOfPos(u8, between, search_start, operator)) |relative| {
+        const start = left_end + @as(u32, @intCast(relative));
+        const end = start + @as(u32, @intCast(operator.len));
+        if (!hasCommentAt(tree, start)) return .{ .start = start, .end = end };
+        search_start = relative + operator.len;
+    }
+    return null;
+}
+
+fn hasCommentAt(tree: *const ast.Tree, offset: u32) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.end <= offset) continue;
+        if (comment.span.start > offset) break;
+        return true;
+    }
+    return false;
+}
+
+fn flippedOperator(operator: ast.BinaryOperator) []const u8 {
+    return switch (operator) {
+        .equal => "==",
+        .not_equal => "!=",
+        .strict_equal => "===",
+        .strict_not_equal => "!==",
+        .less_than => ">",
+        .less_than_or_equal => ">=",
+        .greater_than => "<",
+        .greater_than_or_equal => "<=",
+        else => unreachable,
+    };
+}
+
+fn sourceForRange(tree: *const ast.Tree, start: u32, end: u32) []const u8 {
+    return tree.source[@intCast(start)..@intCast(end)];
 }
 
 fn hasExpectedYodaStyle(style: Style, left_literal: bool, right_literal: bool) bool {

@@ -224,7 +224,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`valid-typeof`](https://eslint.org/docs/latest/rules/valid-typeof) | Supports `requireStringLiterals` configuration |
 | [`vars-on-top`](https://eslint.org/docs/latest/rules/vars-on-top) | Implemented |
 | [`wrap-iife`](https://eslint.org/docs/latest/rules/wrap-iife) | Implemented for `outside`, `inside`, and `any` options with autofix |
-| [`yoda`](https://eslint.org/docs/latest/rules/yoda) | Supports `never`, `always`, `onlyEquality`, and `exceptRange` configuration |
+| [`yoda`](https://eslint.org/docs/latest/rules/yoda) | Supports `never`, `always`, `onlyEquality`, and `exceptRange` configuration with comment- and token-safe autofix |
 
 ## ESLint comments rules
 
