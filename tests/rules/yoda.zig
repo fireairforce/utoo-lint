@@ -68,6 +68,7 @@ test "autofix preserves comments, spacing, and parenthesized operands" {
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
         .capitalized_comments = false,
+        .curly = false,
         .eqeqeq = false,
         .eol_last = false,
         .no_empty_block_statements = false,

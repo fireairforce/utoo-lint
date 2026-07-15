@@ -171,6 +171,7 @@ test "does not autofix when removing braces could change ASI semantics" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
         .eol_last = false,
         .no_empty = false,
         .no_empty_block_statements = false,
@@ -212,6 +213,7 @@ test "autofixes ASI-sensitive shapes when consequents have semicolons" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
         .eol_last = false,
         .no_empty = false,
         .no_empty_block_statements = false,

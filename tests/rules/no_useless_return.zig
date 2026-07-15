@@ -191,6 +191,7 @@ test "does not autofix non-list or commented redundant returns" {
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
         .capitalized_comments = false,
+        .curly = false,
         .eol_last = false,
         .no_undef = false,
         .no_unused_vars = false,

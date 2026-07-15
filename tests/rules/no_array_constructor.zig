@@ -121,6 +121,7 @@ test "autofix inserts an ASI guard only in statement lists" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
         .eol_last = false,
         .no_console = false,
         .no_unused_expressions = false,
