@@ -193,7 +193,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-with`](https://eslint.org/docs/latest/rules/no-with) | Implemented |
 | [`object-shorthand`](https://eslint.org/docs/latest/rules/object-shorthand) | Supports `always`, `methods`, `properties`, `never`, `avoidQuotes`, `ignoreConstructors`, and `avoidExplicitReturnArrows` configuration |
 | [`one-var`](https://eslint.org/docs/latest/rules/one-var) | Supports string `never` and per-kind `var`/`let`/`const` `never` configuration |
-| [`operator-assignment`](https://eslint.org/docs/latest/rules/operator-assignment) | Implemented |
+| [`operator-assignment`](https://eslint.org/docs/latest/rules/operator-assignment) | Supports `always` and `never` modes with safe autofix |
 | [`prefer-arrow-callback`](https://eslint.org/docs/latest/rules/prefer-arrow-callback) | Supports callback function expressions plus `allowNamedFunctions` and `allowUnboundThis` configuration |
 | [`prefer-const`](https://eslint.org/docs/latest/rules/prefer-const) | Supports `destructuring` and `ignoreReadBeforeAssign` configuration |
 | [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Supports object/array variable declarator and assignment expression configuration plus `enforceForRenamedProperties` |
