@@ -21,6 +21,97 @@ test "reports function expression callbacks" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.prefer_arrow_callback.id));
 }
 
+test "autofixes anonymous synchronous callback functions" {
+    const source =
+        \\items.map(function (item) {
+        \\  return item.value;
+        \\});
+        \\setTimeout(function () {
+        \\  work();
+        \\}, 0);
+        \\new Promise(function (resolve) {
+        \\  resolve();
+        \\});
+        \\items.map(function () { return function () { return arguments[0]; }; });
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\items.map((item) => {
+        \\  return item.value;
+        \\});
+        \\setTimeout(() => {
+        \\  work();
+        \\}, 0);
+        \\new Promise((resolve) => {
+        \\  resolve();
+        \\});
+        \\items.map(() => { return function () { return arguments[0]; }; });
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.prefer_arrow_callback.id));
+}
+
+test "autofix preserves parameter and body comments" {
+    const source =
+        \\items.map(function /* keyword */ (blocked) { return blocked; });
+        \\items.map(function (/* parameter */ item) { /* body */ return item; });
+    ;
+
+    var options = baseOptions();
+    options.capitalized_comments = false;
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\items.map(function /* keyword */ (blocked) { return blocked; });
+        \\items.map((/* parameter */ item) => { /* body */ return item; });
+    , result.output);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result.result, lint.rules.prefer_arrow_callback.id));
+    try std.testing.expectEqual(@as(usize, 0), result.result.diagnostics[0].fixes.len);
+}
+
+test "autofix refuses callbacks with lexical or syntactic hazards" {
+    const source =
+        \\items.map(function named(item) { return item; });
+        \\items.map(function (item, item) { return item; });
+        \\items.map(function () { return arguments[0]; });
+        \\items.map(function () { return () => arguments[0]; });
+        \\items.map(function () { return this.value; });
+        \\items.map(function () { return new.target; });
+        \\items.map(function () {}.bind(this));
+        \\items.map(async function (item) { return item; });
+        \\items.map(function (safe) { return safe; });
+    ;
+
+    var options = baseOptions();
+    options.prefer_arrow_callback_allow_unbound_this = false;
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\items.map(function named(item) { return item; });
+        \\items.map(function (item, item) { return item; });
+        \\items.map(function () { return arguments[0]; });
+        \\items.map(function () { return () => arguments[0]; });
+        \\items.map(function () { return this.value; });
+        \\items.map(function () { return new.target; });
+        \\items.map(function () {}.bind(this));
+        \\items.map(async function (item) { return item; });
+        \\items.map((safe) => { return safe; });
+    , result.output);
+    try std.testing.expectEqual(@as(usize, 8), helpers.countRule(result.result, lint.rules.prefer_arrow_callback.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.prefer_arrow_callback.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
+
 test "does not report non-callback function expressions or generators" {
     const source =
         \\const handler = function () {

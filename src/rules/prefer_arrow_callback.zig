@@ -26,16 +26,133 @@ pub fn checkFunction(
     if (function.generator) return;
     if (!isCallback(tree, index, &ctx.path)) return;
     if (options.allow_named_functions and function.id != .null) return;
-    if (options.allow_unbound_this and !isBoundCallback(tree, index, &ctx.path) and nodeUsesThisOrSuper(tree, function.body)) return;
+    const bound = isBoundCallback(tree, index, &ctx.path);
+    if (options.allow_unbound_this and !bound and nodeUsesThisOrSuper(tree, function.body)) return;
 
-    try core.addDiagnostic(
+    if (try arrowReplacement(allocator, tree, function, index, bound)) |replacement| {
+        defer allocator.free(replacement);
+        const span = tree.span(index);
+        try core.addDiagnosticWithFix(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Expected an arrow function.",
+            span,
+            .{ .span = span, .replacement = replacement },
+        );
+    } else {
+        try core.addDiagnostic(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            "Expected an arrow function.",
+            tree.span(index),
+        );
+    }
+}
+
+fn arrowReplacement(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    function: ast.Function,
+    index: ast.NodeIndex,
+    bound: bool,
+) Allocator.Error!?[]u8 {
+    if (bound or function.async or function.id != .null or function.body == .null) return null;
+    if (function.type_parameters != .null or function.return_type != .null) return null;
+    if (!hasSimpleUniqueParameters(tree, function.params)) return null;
+    if (containsLexicalReference(tree, function.body)) return null;
+
+    const function_span = tree.span(index);
+    const params_span = tree.span(function.params);
+    const body_span = tree.span(function.body);
+    if (params_span.start < function_span.start or params_span.end > body_span.start or body_span.end > function_span.end) return null;
+    if (hasUnpreservedComment(tree, function_span, params_span, body_span)) return null;
+
+    return try std.fmt.allocPrint(
         allocator,
-        diagnostics,
-        .warning,
-        id,
-        "Expected an arrow function.",
-        tree.span(index),
+        "{s} => {s}",
+        .{
+            tree.source[params_span.start..params_span.end],
+            tree.source[body_span.start..body_span.end],
+        },
     );
+}
+
+fn hasSimpleUniqueParameters(tree: *const ast.Tree, params_index: ast.NodeIndex) bool {
+    const params = switch (tree.data(params_index)) {
+        .formal_parameters => |params| params,
+        else => return false,
+    };
+    if (params.rest != .null) return false;
+
+    const items = tree.extra(params.items);
+    for (items, 0..) |item_index, item_position| {
+        const name = simpleParameterName(tree, item_index) orelse return false;
+        for (items[0..item_position]) |previous_index| {
+            const previous_name = simpleParameterName(tree, previous_index) orelse return false;
+            if (std.mem.eql(u8, name, previous_name)) return false;
+        }
+    }
+    return true;
+}
+
+fn simpleParameterName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    const parameter = switch (tree.data(index)) {
+        .formal_parameter => |parameter| parameter,
+        else => return null,
+    };
+    return switch (tree.data(parameter.pattern)) {
+        .binding_identifier => |identifier| if (identifier.decorators.len == 0)
+            tree.string(identifier.name)
+        else
+            null,
+        else => null,
+    };
+}
+
+fn hasUnpreservedComment(
+    tree: *const ast.Tree,
+    function_span: ast.Span,
+    params_span: ast.Span,
+    body_span: ast.Span,
+) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.end <= function_span.start) continue;
+        if (comment.span.start >= function_span.end) break;
+        const inside_params = comment.span.start >= params_span.start and comment.span.end <= params_span.end;
+        const inside_body = comment.span.start >= body_span.start and comment.span.end <= body_span.end;
+        if (!inside_params and !inside_body) return true;
+    }
+    return false;
+}
+
+fn containsLexicalReference(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    if (index == .null) return false;
+
+    switch (tree.data(index)) {
+        .this_expression, .super, .meta_property => return true,
+        .identifier_reference => |identifier| return std.mem.eql(u8, tree.string(identifier.name), "arguments"),
+        .function => return false,
+        inline else => |node| return childrenContainLexicalReference(tree, @TypeOf(node), node),
+    }
+}
+
+fn childrenContainLexicalReference(tree: *const ast.Tree, comptime T: type, node: T) bool {
+    if (@typeInfo(T) != .@"struct") return false;
+
+    inline for (@typeInfo(T).@"struct".fields) |field| {
+        if (field.type == ast.NodeIndex) {
+            if (containsLexicalReference(tree, @field(node, field.name))) return true;
+        } else if (field.type == ast.IndexRange) {
+            for (tree.extra(@field(node, field.name))) |child| {
+                if (containsLexicalReference(tree, child)) return true;
+            }
+        }
+    }
+    return false;
 }
 
 fn isCallback(tree: *const ast.Tree, index: ast.NodeIndex, path: *const traverser.NodePath) bool {
