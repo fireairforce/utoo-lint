@@ -37,7 +37,7 @@ pub fn check(
         };
 
         if (!options.ignore_member_sort) {
-            try checkMemberSort(allocator, diagnostics, tree, declaration, options);
+            try checkMemberSort(allocator, diagnostics, tree, declaration, statement_index, options);
         }
 
         if (!options.ignore_declaration_sort) {
@@ -70,6 +70,7 @@ fn checkMemberSort(
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     declaration: ast.ImportDeclaration,
+    declaration_index: ast.NodeIndex,
     options: Options,
 ) Allocator.Error!void {
     var previous_name: ?[]const u8 = null;
@@ -79,17 +80,32 @@ fn checkMemberSort(
             .import_specifier => |specifier| specifier,
             else => continue,
         };
-        const name = moduleName(tree, specifier.imported) orelse continue;
+        const name = bindingName(tree, specifier.local) orelse continue;
         if (previous_name) |last_name| {
             if (compareNames(last_name, name, options.ignore_case) > 0) {
-                try core.addDiagnostic(
-                    allocator,
-                    diagnostics,
-                    .warning,
-                    id,
-                    "Member imports should be sorted.",
-                    tree.span(specifier.imported),
-                );
+                const fix = try buildMemberFix(allocator, tree, declaration, declaration_index, options);
+                defer if (fix) |value| allocator.free(value.replacement);
+
+                if (fix) |value| {
+                    try core.addDiagnosticWithFix(
+                        allocator,
+                        diagnostics,
+                        .warning,
+                        id,
+                        "Member imports should be sorted.",
+                        tree.span(specifier.local),
+                        value,
+                    );
+                } else {
+                    try core.addDiagnostic(
+                        allocator,
+                        diagnostics,
+                        .warning,
+                        id,
+                        "Member imports should be sorted.",
+                        tree.span(specifier.local),
+                    );
+                }
                 return;
             }
         }
@@ -97,40 +113,116 @@ fn checkMemberSort(
     }
 }
 
-fn importKey(tree: *const ast.Tree, declaration: ast.ImportDeclaration) ImportKey {
-    var first_name: []const u8 = "";
-    var named_count: usize = 0;
-    var has_default = false;
-    var has_namespace = false;
+fn buildMemberFix(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    declaration: ast.ImportDeclaration,
+    declaration_index: ast.NodeIndex,
+    options: Options,
+) Allocator.Error!?core.Fix {
+    var specifiers: std.ArrayList(ast.NodeIndex) = .empty;
+    defer specifiers.deinit(allocator);
 
-    for (tree.extra(declaration.specifiers)) |specifier_index| {
-        switch (tree.data(specifier_index)) {
-            .import_default_specifier => |specifier| {
-                has_default = true;
-                if (first_name.len == 0) first_name = bindingName(tree, specifier.local) orelse "";
-            },
-            .import_namespace_specifier => |specifier| {
-                has_namespace = true;
-                if (first_name.len == 0) first_name = bindingName(tree, specifier.local) orelse "";
-            },
-            .import_specifier => |specifier| {
-                named_count += 1;
-                if (first_name.len == 0) first_name = moduleName(tree, specifier.imported) orelse "";
-            },
-            else => {},
+    for (tree.extra(declaration.specifiers)) |index| {
+        if (tree.data(index) == .import_specifier) try specifiers.append(allocator, index);
+    }
+    if (specifiers.items.len < 2) return null;
+    if (memberListHasComment(tree, declaration, declaration_index, specifiers.items)) return null;
+
+    const sorted = try allocator.dupe(ast.NodeIndex, specifiers.items);
+    defer allocator.free(sorted);
+    stableSortSpecifiers(tree, sorted, options.ignore_case);
+
+    var replacement: std.ArrayList(u8) = .empty;
+    errdefer replacement.deinit(allocator);
+
+    for (sorted, 0..) |index, sorted_index| {
+        try replacement.appendSlice(allocator, sourceForSpan(tree, tree.span(index)));
+
+        if (sorted_index + 1 < sorted.len) {
+            const original_span = tree.span(specifiers.items[sorted_index]);
+            const next_original_span = tree.span(specifiers.items[sorted_index + 1]);
+            try replacement.appendSlice(
+                allocator,
+                tree.source[@intCast(original_span.end)..@intCast(next_original_span.start)],
+            );
         }
     }
 
-    if (!has_default and !has_namespace and named_count == 0) {
-        return .{ .syntax = .none, .name = "" };
+    return .{
+        .span = .{
+            .start = tree.span(specifiers.items[0]).start,
+            .end = tree.span(specifiers.items[specifiers.items.len - 1]).end,
+        },
+        .replacement = try replacement.toOwnedSlice(allocator),
+    };
+}
+
+fn memberListHasComment(
+    tree: *const ast.Tree,
+    declaration: ast.ImportDeclaration,
+    declaration_index: ast.NodeIndex,
+    specifiers: []const ast.NodeIndex,
+) bool {
+    const declaration_start = tree.span(declaration_index).start;
+    const first_start = tree.span(specifiers[0]).start;
+    const last_end = tree.span(specifiers[specifiers.len - 1]).end;
+    const source_start = tree.span(declaration.source).start;
+
+    const before_first = tree.source[@intCast(declaration_start)..@intCast(first_start)];
+    const opening = std.mem.lastIndexOfScalar(u8, before_first, '{') orelse return true;
+    const after_last = tree.source[@intCast(last_end)..@intCast(source_start)];
+    const closing_offset = std.mem.indexOfScalar(u8, after_last, '}') orelse return true;
+    const closing = last_end + @as(u32, @intCast(closing_offset));
+
+    return hasCommentBetween(tree, declaration_start + @as(u32, @intCast(opening + 1)), closing);
+}
+
+fn hasCommentBetween(tree: *const ast.Tree, start: u32, end: u32) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.end <= start) continue;
+        if (comment.span.start >= end) break;
+        return true;
     }
-    if (!has_default and has_namespace and named_count == 0) {
-        return .{ .syntax = .all, .name = first_name };
+    return false;
+}
+
+fn stableSortSpecifiers(tree: *const ast.Tree, specifiers: []ast.NodeIndex, ignore_case: bool) void {
+    var index: usize = 1;
+    while (index < specifiers.len) : (index += 1) {
+        const current = specifiers[index];
+        const current_name = specifierLocalName(tree, current);
+        var insertion = index;
+        while (insertion > 0 and compareNames(current_name, specifierLocalName(tree, specifiers[insertion - 1]), ignore_case) < 0) {
+            specifiers[insertion] = specifiers[insertion - 1];
+            insertion -= 1;
+        }
+        specifiers[insertion] = current;
     }
-    if (has_default and !has_namespace and named_count == 0) {
-        return .{ .syntax = .single, .name = first_name };
-    }
-    return .{ .syntax = .multiple, .name = first_name };
+}
+
+fn specifierLocalName(tree: *const ast.Tree, index: ast.NodeIndex) []const u8 {
+    const specifier = tree.data(index).import_specifier;
+    return bindingName(tree, specifier.local).?;
+}
+
+fn sourceForSpan(tree: *const ast.Tree, span: ast.Span) []const u8 {
+    return tree.source[@intCast(span.start)..@intCast(span.end)];
+}
+
+fn importKey(tree: *const ast.Tree, declaration: ast.ImportDeclaration) ImportKey {
+    const specifiers = tree.extra(declaration.specifiers);
+    if (specifiers.len == 0) return .{ .syntax = .none, .name = "" };
+
+    const first = tree.data(specifiers[0]);
+    const name = switch (first) {
+        .import_default_specifier => |specifier| bindingName(tree, specifier.local) orelse "",
+        .import_namespace_specifier => |specifier| bindingName(tree, specifier.local) orelse "",
+        .import_specifier => |specifier| bindingName(tree, specifier.local) orelse "",
+        else => "",
+    };
+    if (first == .import_namespace_specifier) return .{ .syntax = .all, .name = name };
+    return .{ .syntax = if (specifiers.len == 1) .single else .multiple, .name = name };
 }
 
 fn compareImportKeys(left: ImportKey, right: ImportKey, options: Options) i8 {
@@ -170,16 +262,6 @@ fn importsAreSeparated(tree: *const ast.Tree, previous: ast.NodeIndex, current: 
         }
     }
     return false;
-}
-
-fn moduleName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
-    if (index == .null) return null;
-    return switch (tree.data(index)) {
-        .identifier_name => |identifier| tree.string(identifier.name),
-        .identifier_reference => |identifier| tree.string(identifier.name),
-        .string_literal => |literal| tree.string(literal.value),
-        else => null,
-    };
 }
 
 fn bindingName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {

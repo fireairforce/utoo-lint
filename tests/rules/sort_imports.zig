@@ -15,6 +15,18 @@ test "reports unsorted import declarations" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.sort_imports.id));
 }
 
+test "sorts import declarations by first local member name" {
+    const source =
+        \\import { alpha as zebra } from "first";
+        \\import { zebra as alpha } from "second";
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsOnly());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.sort_imports.id));
+}
+
 test "reports unsorted named members" {
     const source =
         \\import { zebra, alpha, beta } from "animals";
@@ -24,6 +36,116 @@ test "reports unsorted named members" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.sort_imports.id));
+}
+
+test "autofixes named import members into alphabetical order" {
+    const source =
+        \\import { zebra, alpha, delta, charlie } from "animals";
+    ;
+    const expected =
+        \\import { alpha, charlie, delta, zebra } from "animals";
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", optionsOnly());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.sort_imports.id));
+}
+
+test "autofix sorts aliases by local name and preserves multiline formatting" {
+    const source =
+        \\import {
+        \\  zoo,
+        \\  source as alpha,
+        \\  middle,
+        \\  other as beta,
+        \\} from "values";
+    ;
+    const expected =
+        \\import {
+        \\  source as alpha,
+        \\  other as beta,
+        \\  middle,
+        \\  zoo,
+        \\} from "values";
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", optionsOnly());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.sort_imports.id));
+}
+
+test "does not autofix named members when their list contains comments" {
+    const source =
+        \\import { /* before */ zebra, alpha } from "a";
+        \\import { zebra /* after */, alpha } from "b";
+        \\import { zebra, /* before */ alpha } from "c";
+        \\import { zebra, alpha /* after */ } from "d";
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", optionsOnly());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!result.fixed);
+    try std.testing.expectEqualStrings(source, result.output);
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result.result, lint.rules.sort_imports.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.sort_imports.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
+
+test "autofix leaves import declaration order unchanged" {
+    const source =
+        \\import beta from "b";
+        \\import alpha from "a";
+        \\
+        \\import { zebra, alphaMember } from "members";
+    ;
+    const expected =
+        \\import beta from "b";
+        \\import alpha from "a";
+        \\
+        \\import { alphaMember, zebra } from "members";
+    ;
+
+    var options = optionsOnly();
+    options.sort_imports_allow_separated_groups = true;
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result.result, lint.rules.sort_imports.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.sort_imports.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
+
+test "autofix respects ignoreCase for local member names" {
+    const source =
+        \\import { Beta, alpha } from "letters";
+    ;
+    const expected =
+        \\import { alpha, Beta } from "letters";
+    ;
+
+    var options = optionsOnly();
+    options.sort_imports_ignore_case = true;
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.sort_imports.id));
 }
 
 test "supports ignoreCase" {
@@ -130,6 +252,8 @@ fn optionsOnly() lint.Options {
 
 fn baseOptions() lint.Options {
     return .{
+        .capitalized_comments = false,
+        .eol_last = false,
         .import_no_unresolved = false,
         .no_empty_block_statements = false,
         .no_undef = false,

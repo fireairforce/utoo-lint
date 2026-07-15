@@ -213,7 +213,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`require-atomic-updates`](https://eslint.org/docs/latest/rules/require-atomic-updates) | Supports `allowProperties` configuration |
 | [`require-unicode-regexp`](https://eslint.org/docs/latest/rules/require-unicode-regexp) | Supports regexp literals, static `RegExp` constructors, and `requireFlag` configuration |
 | [`require-yield`](https://eslint.org/docs/latest/rules/require-yield) | Implemented |
-| [`sort-imports`](https://eslint.org/docs/latest/rules/sort-imports) | Supports declaration/member sorting, `ignoreCase`, `ignoreDeclarationSort`, `ignoreMemberSort`, `allowSeparatedGroups`, and `memberSyntaxSortOrder` |
+| [`sort-imports`](https://eslint.org/docs/latest/rules/sort-imports) | Supports declaration/member sorting, `ignoreCase`, `ignoreDeclarationSort`, `ignoreMemberSort`, `allowSeparatedGroups`, `memberSyntaxSortOrder`, and comment-safe named-member autofix |
 | [`sort-keys`](https://eslint.org/docs/latest/rules/sort-keys) | Supports object literal key ordering with `asc`/`desc`, `caseSensitive`, `natural`, `minKeys`, and `allowLineSeparatedGroups` |
 | [`sort-vars`](https://eslint.org/docs/latest/rules/sort-vars) | Supports same-declaration identifier sorting, `ignoreCase`, and formatting-preserving autofix for literal initializers |
 | [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, `markers`, and `exceptions` configuration with safe autofix |
