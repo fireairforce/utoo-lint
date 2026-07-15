@@ -7,7 +7,7 @@ Each rule links to the corresponding ESLint rule reference.
 | --- | --- |
 | [`accessor-pairs`](https://eslint.org/docs/latest/rules/accessor-pairs) | Supports `setWithoutGet`, `getWithoutSet`, and `enforceForClassMembers` configuration |
 | [`array-callback-return`](https://eslint.org/docs/latest/rules/array-callback-return) | Implemented for optional `allowImplicit`, `checkForEach`, and `allowVoid` behavior |
-| [`arrow-body-style`](https://eslint.org/docs/latest/rules/arrow-body-style) | Supports `always`, `as-needed`, `never`, and `requireReturnForObjectLiteral` diagnostics |
+| [`arrow-body-style`](https://eslint.org/docs/latest/rules/arrow-body-style) | Supports `always`, `as-needed`, `never`, and `requireReturnForObjectLiteral` with comment-, precedence-, and ASI-safe autofix |
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
 | [`camelcase`](https://eslint.org/docs/latest/rules/camelcase) | Supports declarations, imports, optional property checks, `ignoreDestructuring`, `ignoreImports`, lightweight `allow` patterns, and parses `ignoreGlobals` for migration compatibility |
 | [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Supports `always`, `never`, `ignoreInlineComments`, and `ignoreConsecutiveComments` configuration with autofix |

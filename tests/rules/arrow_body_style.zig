@@ -32,6 +32,22 @@ test "honors requireReturnForObjectLiteral" {
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.arrow_body_style.id));
 }
 
+test "autofixes concise object bodies when requireReturnForObjectLiteral is enabled" {
+    const source = "const object = () => ({ value: true });";
+
+    var options = baseOptions();
+    options.arrow_body_style_require_return_for_object_literal = true;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualStrings(
+        "const object = () => { return ({ value: true }); };",
+        result.output,
+    );
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.arrow_body_style.id));
+}
+
 test "reports concise bodies in always mode" {
     const source =
         \\const bad = () => value;
@@ -48,6 +64,93 @@ test "reports concise bodies in always mode" {
     try std.testing.expect(hasMessage(result, "Expected block statement surrounding arrow body."));
 }
 
+test "autofixes concise arrow bodies to blocks in always mode" {
+    const source =
+        \\const value = () => source;
+        \\const object = () => ({ value: true });
+    ;
+
+    var options = baseOptions();
+    options.arrow_body_style_style = .always;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\const value = () => { return source; };
+        \\const object = () => { return ({ value: true }); };
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.arrow_body_style.id));
+}
+
+test "autofixes a single return block to a concise body" {
+    const source = "const value = () => { return source; };";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings("const value = () => source;", result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.arrow_body_style.id));
+}
+
+test "autofix parenthesizes object and sequence concise bodies" {
+    const source =
+        \\const object = () => { return { value: true }; };
+        \\const sequence = () => { return first(), second; };
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualStrings(
+        \\const object = () => ({ value: true });
+        \\const sequence = () => (first(), second);
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.arrow_body_style.id));
+}
+
+test "autofix preserves comments around a returned expression" {
+    const source = "const value = /* a */ () /* b */ => /* c */ { /* d */ return /* e */ source /* f */; /* g */ } /* h */;";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualStrings(
+        "const value = /* a */ () /* b */ => /* c */  /* d */  /* e */ source /* f */ /* g */  /* h */;",
+        result.output,
+    );
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.arrow_body_style.id));
+}
+
+test "autofix parenthesizes in expressions used in for initializers" {
+    const source = "for (const predicate = () => { return key in object; }; ; ) use(predicate);";
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualStrings(
+        "for (const predicate = () => (key in object); ; ) use(predicate);",
+        result.output,
+    );
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.arrow_body_style.id));
+}
+
+test "does not autofix a concise body when removing braces creates an ASI hazard" {
+    const source =
+        \\const value = () => { return source }
+        \\(1).toString();
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!result.fixed);
+    try std.testing.expectEqualStrings(source, result.output);
+    try std.testing.expect(helpers.hasRule(result.result, lint.rules.arrow_body_style.id));
+}
+
 test "never mode reports returned object literals too" {
     const source =
         \\const bad = () => { return { value: true }; };
@@ -61,6 +164,20 @@ test "never mode reports returned object literals too" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.arrow_body_style.id));
+}
+
+test "never mode autofixes single-return blocks regardless of the object option" {
+    const source = "const value = () => { return { value: true }; };";
+
+    var options = baseOptions();
+    options.arrow_body_style_style = .never;
+    options.arrow_body_style_require_return_for_object_literal = true;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualStrings("const value = () => ({ value: true });", result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.arrow_body_style.id));
 }
 
 test "parses arrow-body-style config" {
