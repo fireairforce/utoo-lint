@@ -265,6 +265,7 @@ test "does not insert a semicolon before a control-flow body" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
         .eol_last = false,
         .no_extra_label = false,
         .no_undef = false,

@@ -84,6 +84,7 @@ test "autofix separates leading decimals from adjacent keywords" {
     ;
 
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .curly = false,
         .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
