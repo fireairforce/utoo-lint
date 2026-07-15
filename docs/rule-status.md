@@ -215,7 +215,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`require-yield`](https://eslint.org/docs/latest/rules/require-yield) | Implemented |
 | [`sort-imports`](https://eslint.org/docs/latest/rules/sort-imports) | Supports declaration/member sorting, `ignoreCase`, `ignoreDeclarationSort`, `ignoreMemberSort`, `allowSeparatedGroups`, and `memberSyntaxSortOrder` |
 | [`sort-keys`](https://eslint.org/docs/latest/rules/sort-keys) | Supports object literal key ordering with `asc`/`desc`, `caseSensitive`, `natural`, `minKeys`, and `allowLineSeparatedGroups` |
-| [`sort-vars`](https://eslint.org/docs/latest/rules/sort-vars) | Supports same-declaration identifier sorting and `ignoreCase` configuration |
+| [`sort-vars`](https://eslint.org/docs/latest/rules/sort-vars) | Supports same-declaration identifier sorting, `ignoreCase`, and formatting-preserving autofix for literal initializers |
 | [`spaced-comment`](https://eslint.org/docs/latest/rules/spaced-comment) | Supports `always`, `never`, `markers`, and `exceptions` configuration with safe autofix |
 | [`strict`](https://eslint.org/docs/latest/rules/strict) | Supports `safe`, `global`, `function`, and `never` modes with autofix for redundant directives |
 | [`symbol-description`](https://eslint.org/docs/latest/rules/symbol-description) | Implemented |
