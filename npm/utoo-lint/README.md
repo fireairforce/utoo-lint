@@ -41,6 +41,27 @@ Use machine-readable output:
 pnpm exec utoo-lint --format=json src
 ```
 
+## Autofix
+
+Apply safe fixes from all enabled rules that support autofix:
+
+```bash
+pnpm exec utoo-lint --fix src
+```
+
+Preview the result without changing files:
+
+```bash
+pnpm exec utoo-lint --fix-dry-run --format=json src
+```
+
+`--fix` writes fixed source back to disk. `--fix-dry-run` never writes files;
+with JSON output, changed sources are returned in the `outputs` array. Fixes run
+until the source is stable, subject to a safety pass limit. Diagnostics remain
+when a rule or a particular code shape cannot be fixed safely. The current
+[rule status](https://github.com/fireairforce/utoo-lint/blob/main/docs/rule-status.md)
+lists autofix coverage by rule.
+
 ## Configuration
 
 Create a `utoo.json` file:
@@ -96,6 +117,19 @@ as the CLI, so migration scripts usually do not need to expand config `files`
 manually.
 
 CommonJS is supported through `require("@utoo/lint")`.
+
+Set `fix: true` to compute fixed output through the JavaScript API. Raw
+`lintFiles()` and `lintText()` reports expose changed sources in `outputs`
+without writing them. The ESLint-compatible API follows the usual two-step
+flow:
+
+```js
+import { ESLint } from "@utoo/lint";
+
+const eslint = new ESLint({ fix: true });
+const results = await eslint.lintFiles(["src"]);
+await ESLint.outputFixes(results);
+```
 
 ## Binary Resolution
 
