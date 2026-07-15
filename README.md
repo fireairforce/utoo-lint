@@ -71,6 +71,26 @@ Use machine-readable output:
 utoo-lint --format=json src
 ```
 
+### Autofix
+
+Apply safe fixes from all enabled rules that support autofix:
+
+```bash
+pnpm exec utoo-lint --fix src
+```
+
+Preview the result without changing files:
+
+```bash
+pnpm exec utoo-lint --fix-dry-run --format=json src
+```
+
+`--fix` writes fixed source back to disk. `--fix-dry-run` never writes files;
+with JSON output, changed sources are returned in the `outputs` array. Fixes run
+until the source is stable, subject to a safety pass limit. Diagnostics remain
+when a rule or a particular code shape cannot be fixed safely. See
+[Rule status](docs/rule-status.md) for per-rule autofix coverage.
+
 ## Configuration
 
 By default, `utoo-lint` reads `utoo.json` or `utoo-lint.json` from the current
@@ -109,6 +129,14 @@ const report = lintFiles(["src"], {
   config: "utoo.json",
   rules: ["no-debugger"]
 });
+```
+
+Set `fix: true` to compute fixed output without writing files:
+
+```js
+const report = lintFiles(["src"], { fix: true });
+
+console.log(report.outputs);
 ```
 
 ## Architecture

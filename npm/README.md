@@ -176,8 +176,8 @@ file paths emit ESLint-style warnings unless `--no-warn-ignored` or
 `--no-warn-ignored=true` is set.
 `--fix` and `--fix-dry-run` apply fixes from supported native rules. The Node
 API also composes those fixes with fixes reported by custom rules. `--fix-type`
-remains accepted with a warning but is not implemented yet. Initial native
-autofix coverage includes `no-extra-semi` and `@typescript-eslint/no-extra-semi`.
+remains accepted with a warning but is not implemented yet. Native autofix
+coverage is tracked per rule in [the rule status](../docs/rule-status.md).
 Display and reporting controls such as `--color`, `--no-color`, `--stats`,
 `--stats=true`, and `--no-warn-ignored` are accepted for the same reason.
 `--output-file` and `-o` write the native output to the requested report file.

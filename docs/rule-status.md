@@ -2,6 +2,8 @@
 
 This document tracks the ESLint-compatible rules currently implemented by `utoo-lint`.
 Each rule links to the corresponding ESLint rule reference.
+Autofix is called out where it is available; unsafe code shapes remain diagnostics
+instead of being rewritten.
 
 | Rule | Status |
 | --- | --- |
@@ -87,7 +89,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-extra-bind`](https://eslint.org/docs/latest/rules/no-extra-bind) | Implemented with side-effect- and comment-safe autofix |
 | [`no-extra-boolean-cast`](https://eslint.org/docs/latest/rules/no-extra-boolean-cast) | Supports safe autofix, `enforceForInnerExpressions`, and legacy `enforceForLogicalOperands` configuration |
 | [`no-extra-label`](https://eslint.org/docs/latest/rules/no-extra-label) | Implemented with multi-pass autofix for redundant references and label declarations |
-| [`no-extra-semi`](https://eslint.org/docs/latest/rules/no-extra-semi) | Implemented |
+| [`no-extra-semi`](https://eslint.org/docs/latest/rules/no-extra-semi) | Implemented with autofix |
 | [`no-fallthrough`](https://eslint.org/docs/latest/rules/no-fallthrough) | Supports `allowEmptyCase`, common `commentPattern`, and `reportUnusedFallthroughComment` configuration |
 | [`no-floating-decimal`](https://eslint.org/docs/latest/rules/no-floating-decimal) | Implemented with token-safe autofix |
 | [`no-for-in`](https://eslint.org/docs/latest/rules/no-for-in) | Implemented |
@@ -345,7 +347,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`@typescript-eslint/no-empty-function`](https://typescript-eslint.io/rules/no-empty-function/) | Supports base `allow` kinds plus `private-constructors`, `protected-constructors`, `decoratedFunctions`, and `overrideMethods` configuration |
 | [`@typescript-eslint/no-empty-interface`](https://typescript-eslint.io/rules/no-empty-interface/) | Supports `allowSingleExtends` configuration |
 | [`@typescript-eslint/no-duplicate-enum-values`](https://typescript-eslint.io/rules/no-duplicate-enum-values/) | Implemented |
-| [`@typescript-eslint/no-extra-semi`](https://typescript-eslint.io/rules/no-extra-semi/) | Implemented |
+| [`@typescript-eslint/no-extra-semi`](https://typescript-eslint.io/rules/no-extra-semi/) | Implemented with autofix |
 | [`@typescript-eslint/no-extra-non-null-assertion`](https://typescript-eslint.io/rules/no-extra-non-null-assertion/) | Implemented |
 | [`@typescript-eslint/no-inferrable-types`](https://typescript-eslint.io/rules/no-inferrable-types/) | Supports `ignoreParameters` and `ignoreProperties` configuration |
 | [`@typescript-eslint/no-invalid-void-type`](https://typescript-eslint.io/rules/no-invalid-void-type/) | Supports `allowAsThisParameter` and boolean/string-list `allowInGenericTypeArguments` configuration |
