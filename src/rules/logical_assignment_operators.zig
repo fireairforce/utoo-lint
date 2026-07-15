@@ -3,6 +3,7 @@ const parser = @import("parser");
 const core = @import("../core.zig");
 
 const ast = parser.ast;
+const traverser = parser.traverser;
 const Allocator = std.mem.Allocator;
 
 pub const id = "logical-assignment-operators";
@@ -32,7 +33,7 @@ pub fn checkAssignmentExpression(
     expression: ast.AssignmentExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
-    try checkAssignmentExpressionWithOptions(allocator, diagnostics, tree, expression, index, .{});
+    try checkAssignmentExpressionWithContextAndOptions(allocator, diagnostics, tree, expression, index, null, .{});
 }
 
 pub fn checkAssignmentExpressionWithOptions(
@@ -43,8 +44,20 @@ pub fn checkAssignmentExpressionWithOptions(
     index: ast.NodeIndex,
     options: Options,
 ) Allocator.Error!void {
+    try checkAssignmentExpressionWithContextAndOptions(allocator, diagnostics, tree, expression, index, null, options);
+}
+
+pub fn checkAssignmentExpressionWithContextAndOptions(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.AssignmentExpression,
+    index: ast.NodeIndex,
+    ctx: ?*traverser.basic.Ctx,
+    options: Options,
+) Allocator.Error!void {
     if (options.style == .never) {
-        try checkLogicalAssignmentOperator(allocator, diagnostics, tree, expression, index);
+        try checkLogicalAssignmentOperator(allocator, diagnostics, tree, expression, index, ctx);
         return;
     }
 
@@ -63,7 +76,20 @@ pub fn checkAssignmentExpressionWithOptions(
     const right_left = (try referenceFromExpression(arena_allocator, tree, logical.left)) orelse return;
     if (!referencesEqual(left, right_left)) return;
 
-    try addDiagnostic(allocator, diagnostics, tree, index, logical.operator);
+    const replacement = if (isSafeDirectIdentifier(tree, expression.left, ctx) and !hasCommentInSpan(tree, tree.span(index)))
+        try std.fmt.allocPrint(allocator, "{s} {s}= {s}", .{
+            tree.source[tree.span(expression.left).start..tree.span(expression.left).end],
+            logical.operator.toString(),
+            tree.source[tree.span(logical.right).start..tree.span(logical.right).end],
+        })
+    else
+        null;
+    defer if (replacement) |value| allocator.free(value);
+
+    try addDiagnostic(allocator, diagnostics, tree, index, logical.operator, if (replacement) |value| .{
+        .span = tree.span(index),
+        .replacement = value,
+    } else null);
 }
 
 fn checkLogicalAssignmentOperator(
@@ -72,8 +98,38 @@ fn checkLogicalAssignmentOperator(
     tree: *const ast.Tree,
     expression: ast.AssignmentExpression,
     index: ast.NodeIndex,
+    ctx: ?*traverser.basic.Ctx,
 ) Allocator.Error!void {
     const operator = logicalOperatorFromAssignment(expression.operator) orelse return;
+    const parenthesize_right = rightNeedsParentheses(tree, expression.right, operator);
+    const replacement = if (isSafeDirectIdentifier(tree, expression.left, ctx) and !hasCommentInSpan(tree, tree.span(index)))
+        try std.fmt.allocPrint(allocator, "{s} = {s} {s} {s}{s}{s}", .{
+            tree.source[tree.span(expression.left).start..tree.span(expression.left).end],
+            tree.source[tree.span(expression.left).start..tree.span(expression.left).end],
+            operator.toString(),
+            if (parenthesize_right) "(" else "",
+            tree.source[tree.span(expression.right).start..tree.span(expression.right).end],
+            if (parenthesize_right) ")" else "",
+        })
+    else
+        null;
+    defer if (replacement) |value| allocator.free(value);
+
+    if (replacement) |value| {
+        const message = try std.fmt.allocPrint(allocator, "Unexpected logical assignment operator `{s}=`.", .{operator.toString()});
+        defer allocator.free(message);
+        try core.addDiagnosticWithFix(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            message,
+            tree.span(index),
+            .{ .span = tree.span(index), .replacement = value },
+        );
+        return;
+    }
+
     try core.addDiagnosticFmt(
         allocator,
         diagnostics,
@@ -92,6 +148,17 @@ pub fn checkLogicalExpression(
     expression: ast.LogicalExpression,
     index: ast.NodeIndex,
 ) Allocator.Error!void {
+    try checkLogicalExpressionWithContext(allocator, diagnostics, tree, expression, index, null);
+}
+
+pub fn checkLogicalExpressionWithContext(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    expression: ast.LogicalExpression,
+    index: ast.NodeIndex,
+    ctx: ?*traverser.basic.Ctx,
+) Allocator.Error!void {
     const assignment = switch (tree.data(unwrapTransparent(tree, expression.right))) {
         .assignment_expression => |assignment| assignment,
         else => return,
@@ -106,7 +173,23 @@ pub fn checkLogicalExpression(
     const assignment_left = (try referenceFromExpression(arena_allocator, tree, assignment.left)) orelse return;
     if (!referencesEqual(left, assignment_left)) return;
 
-    try addDiagnostic(allocator, diagnostics, tree, index, expression.operator);
+    const parenthesize = logicalReplacementNeedsParentheses(tree, ctx);
+    const replacement = if (isSafeShortCircuitReference(tree, expression.left, ctx) and !hasCommentInSpan(tree, tree.span(index)))
+        try std.fmt.allocPrint(allocator, "{s}{s} {s}= {s}{s}", .{
+            if (parenthesize) "(" else "",
+            tree.source[tree.span(expression.left).start..tree.span(expression.left).end],
+            expression.operator.toString(),
+            tree.source[tree.span(assignment.right).start..tree.span(assignment.right).end],
+            if (parenthesize) ")" else "",
+        })
+    else
+        null;
+    defer if (replacement) |value| allocator.free(value);
+
+    try addDiagnostic(allocator, diagnostics, tree, index, expression.operator, if (replacement) |value| .{
+        .span = tree.span(index),
+        .replacement = value,
+    } else null);
 }
 
 pub fn checkIfStatement(
@@ -115,6 +198,17 @@ pub fn checkIfStatement(
     tree: *const ast.Tree,
     statement: ast.IfStatement,
     index: ast.NodeIndex,
+) Allocator.Error!void {
+    try checkIfStatementWithContext(allocator, diagnostics, tree, statement, index, null);
+}
+
+pub fn checkIfStatementWithContext(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    statement: ast.IfStatement,
+    index: ast.NodeIndex,
+    ctx: ?*traverser.basic.Ctx,
 ) Allocator.Error!void {
     if (statement.alternate != .null) return;
 
@@ -129,7 +223,22 @@ pub fn checkIfStatement(
     const assignment_left = (try referenceFromExpression(arena_allocator, tree, assignment.left)) orelse return;
     if (!referencesEqual(test_reference.reference, assignment_left)) return;
 
-    try addDiagnostic(allocator, diagnostics, tree, index, test_reference.operator);
+    const replacement = if (isSafeShortCircuitReference(tree, assignment.left, ctx) and
+        hasSafeStatementStart(tree, assignment.left) and
+        !hasCommentInSpan(tree, tree.span(index)))
+        try std.fmt.allocPrint(allocator, "{s} {s}= {s};", .{
+            tree.source[tree.span(assignment.left).start..tree.span(assignment.left).end],
+            test_reference.operator.toString(),
+            tree.source[tree.span(assignment.right).start..tree.span(assignment.right).end],
+        })
+    else
+        null;
+    defer if (replacement) |value| allocator.free(value);
+
+    try addDiagnostic(allocator, diagnostics, tree, index, test_reference.operator, if (replacement) |value| .{
+        .span = tree.span(index),
+        .replacement = value,
+    } else null);
 }
 
 const ConditionReference = struct {
@@ -143,7 +252,23 @@ fn addDiagnostic(
     tree: *const ast.Tree,
     index: ast.NodeIndex,
     operator: ast.LogicalOperator,
+    fix: ?core.Fix,
 ) Allocator.Error!void {
+    if (fix) |value| {
+        const message = try std.fmt.allocPrint(allocator, "Assignment can be replaced with `{s}=`.", .{operator.toString()});
+        defer allocator.free(message);
+        try core.addDiagnosticWithFix(
+            allocator,
+            diagnostics,
+            .warning,
+            id,
+            message,
+            tree.span(index),
+            value,
+        );
+        return;
+    }
+
     try core.addDiagnosticFmt(
         allocator,
         diagnostics,
@@ -155,12 +280,127 @@ fn addDiagnostic(
     );
 }
 
+fn isSafeDirectIdentifier(tree: *const ast.Tree, index: ast.NodeIndex, ctx: ?*traverser.basic.Ctx) bool {
+    if (ctx == null or isInsideWithStatement(tree, ctx.?)) return false;
+    return tree.data(unwrapTransparent(tree, index)) == .identifier_reference;
+}
+
+fn isSafeShortCircuitReference(tree: *const ast.Tree, index: ast.NodeIndex, ctx: ?*traverser.basic.Ctx) bool {
+    if (isSafeDirectIdentifier(tree, index, ctx)) return true;
+    if (ctx == null or isInsideWithStatement(tree, ctx.?)) return false;
+
+    const member = switch (tree.data(unwrapTransparent(tree, index))) {
+        .member_expression => |member| member,
+        else => return false,
+    };
+    if (propertyName(tree, member) == null) return false;
+    return switch (tree.data(unwrapTransparent(tree, member.object))) {
+        .identifier_reference, .this_expression => true,
+        else => false,
+    };
+}
+
+fn isInsideWithStatement(tree: *const ast.Tree, ctx: *traverser.basic.Ctx) bool {
+    var depth: usize = 1;
+    while (ctx.path.ancestor(depth)) |ancestor| : (depth += 1) {
+        if (tree.data(ancestor) == .with_statement) return true;
+    }
+    return false;
+}
+
+fn logicalReplacementNeedsParentheses(tree: *const ast.Tree, ctx: ?*traverser.basic.Ctx) bool {
+    const context = ctx orelse return true;
+    const parent = context.path.ancestor(1) orelse return true;
+    return switch (tree.data(parent)) {
+        .expression_statement, .parenthesized_expression => false,
+        else => true,
+    };
+}
+
+fn hasSafeStatementStart(tree: *const ast.Tree, index: ast.NodeIndex) bool {
+    const span = tree.span(index);
+    if (span.start >= span.end) return false;
+    const first = tree.source[span.start];
+    return first == '_' or first == '$' or std.ascii.isAlphabetic(first) or first >= 0x80;
+}
+
+fn hasCommentInSpan(tree: *const ast.Tree, span: ast.Span) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.start < span.end and comment.span.end > span.start) return true;
+    }
+    return false;
+}
+
 fn logicalOperatorFromAssignment(operator: ast.AssignmentOperator) ?ast.LogicalOperator {
     return switch (operator) {
         .logical_or_assign => .@"or",
         .logical_and_assign => .@"and",
         .nullish_assign => .nullish_coalescing,
         else => null,
+    };
+}
+
+fn rightNeedsParentheses(tree: *const ast.Tree, index: ast.NodeIndex, operator: ast.LogicalOperator) bool {
+    if (tree.data(index) == .parenthesized_expression) return false;
+    const precedence = expressionPrecedence(tree, index);
+    const operator_precedence: u8 = switch (operator) {
+        .@"or", .nullish_coalescing => 3,
+        .@"and" => 4,
+    };
+    if (precedence <= operator_precedence) return true;
+
+    return operator == .nullish_coalescing and switch (tree.data(unwrapTransparent(tree, index))) {
+        .logical_expression => true,
+        else => false,
+    };
+}
+
+fn expressionPrecedence(tree: *const ast.Tree, index: ast.NodeIndex) u8 {
+    return switch (tree.data(index)) {
+        .sequence_expression => 1,
+        .assignment_expression,
+        .arrow_function_expression,
+        .yield_expression,
+        .conditional_expression,
+        => 2,
+        .logical_expression => |logical| switch (logical.operator) {
+            .@"or", .nullish_coalescing => 3,
+            .@"and" => 4,
+        },
+        .binary_expression => |binary| binaryOperatorPrecedence(binary.operator),
+        .ts_as_expression, .ts_satisfies_expression => 9,
+        .unary_expression, .await_expression, .ts_type_assertion => 14,
+        .update_expression => 15,
+        .new_expression,
+        .call_expression,
+        .member_expression,
+        .chain_expression,
+        .tagged_template_expression,
+        .import_expression,
+        .ts_non_null_expression,
+        .ts_instantiation_expression,
+        => 17,
+        else => 18,
+    };
+}
+
+fn binaryOperatorPrecedence(operator: ast.BinaryOperator) u8 {
+    return switch (operator) {
+        .bitwise_or => 5,
+        .bitwise_xor => 6,
+        .bitwise_and => 7,
+        .equal, .not_equal, .strict_equal, .strict_not_equal => 8,
+        .less_than,
+        .less_than_or_equal,
+        .greater_than,
+        .greater_than_or_equal,
+        .in,
+        .instanceof,
+        => 9,
+        .left_shift, .right_shift, .unsigned_right_shift => 10,
+        .add, .subtract => 11,
+        .multiply, .divide, .modulo => 12,
+        .exponent => 13,
     };
 }
 

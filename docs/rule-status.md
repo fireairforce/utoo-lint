@@ -34,7 +34,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`id-match`](https://eslint.org/docs/latest/rules/id-match) | Supports lightweight pattern matching for declarations and import aliases, with `properties`, `classFields`, `onlyDeclarations`, and `ignoreDestructuring` configuration |
 | [`init-declarations`](https://eslint.org/docs/latest/rules/init-declarations) | Supports `always`, `never`, and `ignoreForLoopInit` |
 | [`linebreak-style`](https://eslint.org/docs/latest/rules/linebreak-style) | Supports `unix` and `windows` configuration with autofix |
-| [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for `always`, optional `never`, and optional `enforceForIfStatements: true` behavior |
+| [`logical-assignment-operators`](https://eslint.org/docs/latest/rules/logical-assignment-operators) | Implemented for `always`, optional `never`, and optional `enforceForIfStatements: true` behavior with comment-, precedence-, and evaluation-safe autofix |
 | [`max-classes-per-file`](https://eslint.org/docs/latest/rules/max-classes-per-file) | Supports `max` and `ignoreExpressions` configuration |
 | [`max-depth`](https://eslint.org/docs/latest/rules/max-depth) | Supports `max`, deprecated `maximum`, function scopes, static blocks, and `else if` chains |
 | [`max-lines`](https://eslint.org/docs/latest/rules/max-lines) | Supports `max`, `skipBlankLines`, and `skipComments` configuration |

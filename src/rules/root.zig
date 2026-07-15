@@ -1794,7 +1794,7 @@ const BasicVisitor = struct {
             self.options.logical_assignment_operators_style == .always and
             self.options.logical_assignment_operators_enforce_for_if_statements == .yes)
         {
-            try logical_assignment_operators.checkIfStatement(self.allocator, self.diagnostics, ctx.tree, statement, index);
+            try logical_assignment_operators.checkIfStatementWithContext(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
         }
         if (self.options.alipay_ant_prefer_elseif_end_with_else) {
             try alipay_ant_prefer_elseif_end_with_else.check(self.allocator, self.diagnostics, ctx.tree, statement, index, ctx);
@@ -3097,7 +3097,7 @@ const BasicVisitor = struct {
             });
         }
         if (self.options.logical_assignment_operators) {
-            try logical_assignment_operators.checkAssignmentExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+            try logical_assignment_operators.checkAssignmentExpressionWithContextAndOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx, .{
                 .style = switch (self.options.logical_assignment_operators_style) {
                     .always => .always,
                     .never => .never,
@@ -3162,7 +3162,7 @@ const BasicVisitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (self.options.logical_assignment_operators and self.options.logical_assignment_operators_style == .always) {
-            try logical_assignment_operators.checkLogicalExpression(self.allocator, self.diagnostics, ctx.tree, expression, index);
+            try logical_assignment_operators.checkLogicalExpressionWithContext(self.allocator, self.diagnostics, ctx.tree, expression, index, ctx);
         }
         if (self.options.no_constant_binary_expression) {
             try no_constant_binary_expression.checkLogicalExpression(self.allocator, self.diagnostics, ctx.tree, expression);
