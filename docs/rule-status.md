@@ -167,7 +167,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`no-unassigned-vars`](https://eslint.org/docs/latest/rules/no-unassigned-vars) | Reports read `let`/`var` bindings that have no initializer and no assignment |
 | [`no-underscore-dangle`](https://eslint.org/docs/latest/rules/no-underscore-dangle) | Supports `allow`, `allowAfterThis`, `allowAfterSuper`, `allowAfterThisConstructor`, `allowFunctionParams`, `allowInArrayDestructuring`, `allowInObjectDestructuring`, `enforceInMethodNames`, and `enforceInClassFields` configuration |
 | [`no-undefined`](https://eslint.org/docs/latest/rules/no-undefined) | Implemented for identifier references and binding names |
-| [`no-unneeded-ternary`](https://eslint.org/docs/latest/rules/no-unneeded-ternary) | Implemented |
+| [`no-unneeded-ternary`](https://eslint.org/docs/latest/rules/no-unneeded-ternary) | Supports `defaultAssignment` with precedence-, side-effect-, and comment-safe autofix |
 | [`no-unreachable`](https://eslint.org/docs/latest/rules/no-unreachable) | Implemented with hoisted declaration handling |
 | [`no-unreachable-loop`](https://eslint.org/docs/latest/rules/no-unreachable-loop) | Supports loop body exit detection and `ignore` configuration |
 | [`no-unsafe-finally`](https://eslint.org/docs/latest/rules/no-unsafe-finally) | Implemented with local loop, switch, and label exit handling |
