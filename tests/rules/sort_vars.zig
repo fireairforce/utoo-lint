@@ -43,6 +43,84 @@ test "supports ignoreCase" {
     try std.testing.expect(helpers.hasRule(insensitive_result, lint.rules.sort_vars.id));
 }
 
+test "autofixes identifier declarators into alphabetical order" {
+    const source =
+        \\let beta = 2, alpha = 1, charlie = 3;
+        \\let charlie = 3, delta = 4, alpha = 1, beta = 2;
+    ;
+    const expected =
+        \\let alpha = 1, beta = 2, charlie = 3;
+        \\let alpha = 1, beta = 2, charlie = 3, delta = 4;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.sort_vars.id));
+}
+
+test "autofix preserves declaration formatting and destructuring positions" {
+    const source =
+        \\var delta,
+        \\    alpha = 1,
+        \\    [middle] = values,
+        \\    beta = 2;
+    ;
+    const expected =
+        \\var alpha = 1,
+        \\    beta = 2,
+        \\    [middle] = values,
+        \\    delta;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.sort_vars.id));
+}
+
+test "does not autofix declarations with non-literal identifier initializers" {
+    const source =
+        \\let beta = 1, alpha = compute();
+        \\let delta = 4, charlie = delta;
+        \\let zebra = 0, apple = `${zebra}`;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", baseOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!result.fixed);
+    try std.testing.expectEqualStrings(source, result.output);
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result.result, lint.rules.sort_vars.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.sort_vars.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
+
+test "autofix supports ignoreCase and preserves comments around literal declarations" {
+    const source =
+        \\let Bravo = /b/ /* keep */, /* between */ alpha = (1);
+    ;
+    const expected =
+        \\let alpha = (1) /* keep */, /* between */ Bravo = /b/;
+    ;
+
+    var options = baseOptions();
+    options.sort_vars_ignore_case = true;
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.sort_vars.id));
+}
+
 test "ignores destructuring declarators and can disable rule" {
     const source =
         \\let z, { a } = value, y;
@@ -61,6 +139,8 @@ test "ignores destructuring declarators and can disable rule" {
 
 fn baseOptions() lint.Options {
     return .{
+        .capitalized_comments = false,
+        .eol_last = false,
         .no_undef = false,
         .no_unused_vars = false,
         .one_var = false,
