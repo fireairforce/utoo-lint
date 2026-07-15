@@ -20,6 +20,78 @@ test "reports prefer-destructuring for object property variable declarators" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.prefer_destructuring.id));
 }
 
+test "autofixes simple object property variable declarators" {
+    const source =
+        \\const first = object.first;
+        \\let second = source.second, third = other.third;
+        \\const fromThis = this.fromThis;
+        \\const value = (left || right).value;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .one_var = false,
+        .prefer_const = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\const {first} = object;
+        \\let {second} = source, {third} = other;
+        \\const {fromThis} = this;
+        \\const {value} = (left || right);
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.prefer_destructuring.id));
+}
+
+test "autofix preserves object comments and refuses unsupported destructuring forms" {
+    const source =
+        \\const kept = (/* inside */ source).kept;
+        \\const blocked /* binding */ = source.blocked;
+        \\const gap = source /* member */ .gap;
+        \\const computed = source["computed"];
+        \\const alias = source.target;
+        \\const wrapped = (source.wrapped);
+        \\assigned = source.assigned;
+        \\const item = list[0];
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
+        .dot_notation = false,
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .prefer_const = false,
+        .prefer_destructuring_enforce_for_renamed_properties = true,
+        .typescript_eslint_dot_notation = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\const {kept} = (/* inside */ source);
+        \\const blocked /* binding */ = source.blocked;
+        \\const gap = source /* member */ .gap;
+        \\const computed = source["computed"];
+        \\const alias = source.target;
+        \\const wrapped = (source.wrapped);
+        \\assigned = source.assigned;
+        \\const item = list[0];
+    , result.output);
+    try std.testing.expectEqual(@as(usize, 7), helpers.countRule(result.result, lint.rules.prefer_destructuring.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.prefer_destructuring.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
+
 test "reports prefer-destructuring for array index variable declarators" {
     const source =
         \\const first = array[0];

@@ -196,7 +196,7 @@ Each rule links to the corresponding ESLint rule reference.
 | [`operator-assignment`](https://eslint.org/docs/latest/rules/operator-assignment) | Supports `always` and `never` modes with safe autofix |
 | [`prefer-arrow-callback`](https://eslint.org/docs/latest/rules/prefer-arrow-callback) | Supports callback function expressions plus `allowNamedFunctions` and `allowUnboundThis` configuration |
 | [`prefer-const`](https://eslint.org/docs/latest/rules/prefer-const) | Supports `destructuring` and `ignoreReadBeforeAssign` configuration |
-| [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Supports object/array variable declarator and assignment expression configuration plus `enforceForRenamedProperties` |
+| [`prefer-destructuring`](https://eslint.org/docs/latest/rules/prefer-destructuring) | Supports object/array variable declarator and assignment expression configuration plus `enforceForRenamedProperties`; autofixes simple same-name object property declarations when comments can be preserved |
 | [`prefer-exponentiation-operator`](https://eslint.org/docs/latest/rules/prefer-exponentiation-operator) | Implemented with safe autofix |
 | [`prefer-named-capture-group`](https://eslint.org/docs/latest/rules/prefer-named-capture-group) | Detects unnamed capture groups in regex literals and static `RegExp` constructors |
 | [`prefer-numeric-literals`](https://eslint.org/docs/latest/rules/prefer-numeric-literals) | Implemented with autofix for global static string and template `parseInt` calls with binary, octal, or hexadecimal radix |
