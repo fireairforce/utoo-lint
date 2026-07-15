@@ -44,14 +44,23 @@ pub fn checkVariableDeclarationWithOptions(
         const kind = preferredDestructuringKind(tree, declarator, options) orelse continue;
         if (!allowsVariableDeclarator(options, kind)) continue;
 
-        try core.addDiagnostic(
-            allocator,
-            diagnostics,
-            .warning,
-            id,
-            diagnosticMessage(kind),
-            tree.span(declarator.id),
-        );
+        if (kind == .object) {
+            if (try simpleObjectDestructuringReplacement(allocator, tree, declarator_index, declarator)) |replacement| {
+                defer allocator.free(replacement);
+                try core.addDiagnosticWithFix(
+                    allocator,
+                    diagnostics,
+                    .warning,
+                    id,
+                    diagnosticMessage(kind),
+                    tree.span(declarator.id),
+                    .{ .span = tree.span(declarator_index), .replacement = replacement },
+                );
+                continue;
+            }
+        }
+
+        try addDiagnostic(allocator, diagnostics, tree, declarator.id, kind);
     }
 }
 
@@ -76,13 +85,62 @@ pub fn checkAssignmentExpressionWithOptions(
     const kind = preferredAssignmentDestructuringKind(tree, expression, options) orelse return;
     if (!allowsAssignmentExpression(options, kind)) return;
 
+    try addDiagnostic(allocator, diagnostics, tree, expression.left, kind);
+}
+
+fn simpleObjectDestructuringReplacement(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    declarator_index: ast.NodeIndex,
+    declarator: ast.VariableDeclarator,
+) Allocator.Error!?[]u8 {
+    const local_name = bindingIdentifierName(tree, declarator.id) orelse return null;
+    const member = switch (tree.data(declarator.init)) {
+        .member_expression => |member| member,
+        else => return null,
+    };
+    if (member.computed or member.optional or member.property == .null) return null;
+
+    const property_name = switch (tree.data(member.property)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        else => return null,
+    };
+    if (!std.mem.eql(u8, local_name, property_name)) return null;
+    if (tree.data(unwrapTransparent(tree, member.object)) == .super) return null;
+
+    const declarator_span = tree.span(declarator_index);
+    const object_span = tree.span(member.object);
+    if (hasCommentOutsideSpan(tree, declarator_span, object_span)) return null;
+
+    const binding_span = tree.span(declarator.id);
+    const binding_source = tree.source[binding_span.start..binding_span.end];
+    const object_source = tree.source[object_span.start..object_span.end];
+    return try std.fmt.allocPrint(allocator, "{{{s}}} = {s}", .{ binding_source, object_source });
+}
+
+fn hasCommentOutsideSpan(tree: *const ast.Tree, outer: ast.Span, inner: ast.Span) bool {
+    for (tree.comments) |comment| {
+        if (comment.span.end <= outer.start) continue;
+        if (comment.span.start >= outer.end) break;
+        if (comment.span.start < inner.start or comment.span.end > inner.end) return true;
+    }
+    return false;
+}
+
+fn addDiagnostic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    index: ast.NodeIndex,
+    kind: DestructuringKind,
+) Allocator.Error!void {
     try core.addDiagnostic(
         allocator,
         diagnostics,
         .warning,
         id,
         diagnosticMessage(kind),
-        tree.span(expression.left),
+        tree.span(index),
     );
 }
 
