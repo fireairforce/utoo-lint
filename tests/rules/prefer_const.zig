@@ -24,6 +24,115 @@ test "reports prefer-const for initialized let declarations that are never reass
     try std.testing.expectEqual(@as(usize, 5), helpers.countRule(result, lint.rules.prefer_const.id));
 }
 
+test "autofixes fully const-compatible let declarations" {
+    const source =
+        \\let a = 1;
+        \\let b = 2, c = 3;
+        \\let { d, e } = obj;
+        \\for (let key in obj) {
+        \\  console.log(key);
+        \\}
+        \\for (let value of list) {
+        \\  console.log(value);
+        \\}
+        \\let/* keep */ f = 4;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .capitalized_comments = false,
+        .eol_last = false,
+        .no_console = false,
+        .no_for_in = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .one_var = false,
+        .prefer_destructuring = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\const a = 1;
+        \\const b = 2, c = 3;
+        \\const { d, e } = obj;
+        \\for (const key in obj) {
+        \\  console.log(key);
+        \\}
+        \\for (const value of list) {
+        \\  console.log(value);
+        \\}
+        \\const/* keep */ f = 4;
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.prefer_const.id));
+}
+
+test "autofix refuses partially compatible or delayed let declarations" {
+    const source =
+        \\let safe = 1;
+        \\let stable = 1, changed = 2;
+        \\changed++;
+        \\let delayed;
+        \\delayed = 1;
+        \\let { left, right } = obj;
+        \\right = 2;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_plusplus = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .one_var = false,
+        .prefer_destructuring = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\const safe = 1;
+        \\let stable = 1, changed = 2;
+        \\changed++;
+        \\let delayed;
+        \\delayed = 1;
+        \\let { left, right } = obj;
+        \\right = 2;
+    , result.output);
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result.result, lint.rules.prefer_const.id));
+    for (result.result.diagnostics) |diagnostic| {
+        if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.prefer_const.id)) {
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+        }
+    }
+}
+
+test "autofixes destructuring only when all bindings qualify in all mode" {
+    const source =
+        \\let { a, b } = first;
+        \\let { c, d } = second;
+        \\d = 2;
+    ;
+
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .prefer_const_destructuring = .all,
+        .prefer_destructuring = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(
+        \\const { a, b } = first;
+        \\let { c, d } = second;
+        \\d = 2;
+    , result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, lint.rules.prefer_const.id));
+}
+
 test "does not report prefer-const for reassigned let bindings or read-before-assign declarations by default" {
     const source =
         \\let a = 1;

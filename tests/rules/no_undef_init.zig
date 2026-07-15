@@ -65,6 +65,7 @@ test "autofixes undefined initializers for let bindings" {
         .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .prefer_const = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -89,6 +90,7 @@ test "does not report or autofix a shadowed undefined initializer" {
         .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .prefer_const = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -110,6 +112,7 @@ test "does not autofix undefined initializers when syntax must be preserved" {
         .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .prefer_const = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
