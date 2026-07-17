@@ -14,6 +14,10 @@ It currently has some performance advantages compared with other lint tools:
 
 This repo is a working scaffold, not a production linter yet.
 
+- License: [MIT](LICENSE)
+- Security: See the [security policy](SECURITY.md) to report vulnerabilities
+  privately.
+
 Useful docs:
 
 - [Rule status](docs/rule-status.md) lists implemented rules and their ESLint
