@@ -110,7 +110,7 @@ fn isBuiltinGlobalRedeclaration(
     options: Options,
 ) bool {
     return options.builtin_globals and
-        tree.source_type == .script and
+        tree.source_type != .module and
         symbol.scope == .root and
         core.isKnownGlobal(name);
 }
