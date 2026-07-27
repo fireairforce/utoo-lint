@@ -131,11 +131,11 @@ pub fn lintSourceWithIo(
         const semantic_model = try parser.semantic.analyze(&tree);
         var semantic_result = semantic_compat.Result.init(&tree, semantic_model);
         try semantic_result.symbol_table.resolveAll(semantic_result.scope_tree);
-        try appendParserDiagnostics(allocator, &diagnostics, &tree);
+        try appendParserDiagnostics(allocator, &diagnostics, &tree, effective_options);
         try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);
         try rules.runSemantic(allocator, &diagnostics, &tree, io, path, semantic_result, effective_options);
     } else {
-        try appendParserDiagnostics(allocator, &diagnostics, &tree);
+        try appendParserDiagnostics(allocator, &diagnostics, &tree, effective_options);
         try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);
     }
 
@@ -323,8 +323,11 @@ fn appendParserDiagnostics(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    options: Options,
 ) Allocator.Error!void {
     for (tree.diagnostics.items) |diagnostic| {
+        if (reactNoUnescapedEntitiesCoversParserDiagnostic(tree, diagnostic, options)) continue;
+
         try core.addDiagnostic(
             allocator,
             diagnostics,
@@ -334,4 +337,24 @@ fn appendParserDiagnostics(
             diagnostic.span,
         );
     }
+}
+
+fn reactNoUnescapedEntitiesCoversParserDiagnostic(
+    tree: *const ast.Tree,
+    diagnostic: ast.Diagnostic,
+    options: Options,
+) bool {
+    if (!options.react_no_unescaped_entities) return false;
+
+    const offset: usize = @intCast(diagnostic.span.start);
+    if (offset >= tree.source.len) return false;
+
+    const byte = tree.source[offset];
+    return switch (byte) {
+        '>' => options.react_no_unescaped_entities_forbid_gt and
+            std.mem.eql(u8, diagnostic.message, "Unexpected '>' in JSX text"),
+        '}' => options.react_no_unescaped_entities_forbid_closing_brace and
+            std.mem.eql(u8, diagnostic.message, "Unexpected '}' in JSX text"),
+        else => false,
+    };
 }

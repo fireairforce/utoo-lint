@@ -3693,6 +3693,20 @@ const BasicVisitor = struct {
                 .allow_functions = self.options.react_no_children_prop_allow_functions,
             });
         }
+        if (self.options.react_no_unescaped_entities) {
+            try react_no_unescaped_entities.checkElement(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                element,
+                .{
+                    .forbid_gt = self.options.react_no_unescaped_entities_forbid_gt,
+                    .forbid_double_quote = self.options.react_no_unescaped_entities_forbid_double_quote,
+                    .forbid_single_quote = self.options.react_no_unescaped_entities_forbid_single_quote,
+                    .forbid_closing_brace = self.options.react_no_unescaped_entities_forbid_closing_brace,
+                },
+            );
+        }
         if (self.options.react_jsx_filename_extension) {
             try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state, .{
                 .extensions = self.options.react_jsx_filename_extension_extensions,
@@ -3741,10 +3755,24 @@ const BasicVisitor = struct {
 
     pub fn enter_jsx_fragment(
         self: *BasicVisitor,
-        _: ast.JSXFragment,
+        fragment: ast.JSXFragment,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.react_no_unescaped_entities) {
+            try react_no_unescaped_entities.checkFragment(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                fragment,
+                .{
+                    .forbid_gt = self.options.react_no_unescaped_entities_forbid_gt,
+                    .forbid_double_quote = self.options.react_no_unescaped_entities_forbid_double_quote,
+                    .forbid_single_quote = self.options.react_no_unescaped_entities_forbid_single_quote,
+                    .forbid_closing_brace = self.options.react_no_unescaped_entities_forbid_closing_brace,
+                },
+            );
+        }
         if (self.options.react_jsx_filename_extension) {
             try react_jsx_filename_extension.check(self.allocator, self.diagnostics, ctx.tree, self.file_path, index, &self.react_jsx_filename_extension_state, .{
                 .extensions = self.options.react_jsx_filename_extension_extensions,
@@ -3850,14 +3878,6 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.react_jsx_no_comment_textnodes) {
             try react_jsx_no_comment_textnodes.check(self.allocator, self.diagnostics, ctx.tree, text, index);
-        }
-        if (self.options.react_no_unescaped_entities) {
-            try react_no_unescaped_entities.check(self.allocator, self.diagnostics, ctx.tree, index, .{
-                .forbid_gt = self.options.react_no_unescaped_entities_forbid_gt,
-                .forbid_double_quote = self.options.react_no_unescaped_entities_forbid_double_quote,
-                .forbid_single_quote = self.options.react_no_unescaped_entities_forbid_single_quote,
-                .forbid_closing_brace = self.options.react_no_unescaped_entities_forbid_closing_brace,
-            });
         }
         return .proceed;
     }
