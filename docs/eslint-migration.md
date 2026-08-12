@@ -105,7 +105,8 @@ Loading `utlint.config.ts` executes project code. The npm wrapper materializes
 the exported value as JSON for the native binary; the raw binary itself does
 not execute or discover TypeScript. It searches for `utlint.config.json` and
 then the legacy JSON names, so use JSON when invoking it directly. The raw
-binary currently applies only `rules` from that JSON; config-driven `files` and
+binary applies only `rules` from that JSON; omitted rules are disabled, matching
+ESLint's configuration model. Config-driven `files` and
 `ignores` filtering and default target selection are npm/Node wrapper features.
 Pass lint targets explicitly when invoking the raw binary.
 

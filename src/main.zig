@@ -1371,6 +1371,7 @@ fn loadConfigFile(
         },
     };
 
+    options.* = lint.Options.allDisabled();
     const rules_value = root.get("rules") orelse return;
     const rules = switch (rules_value) {
         .object => |object| object,

@@ -475,6 +475,51 @@ test("raw native binary discovers utlint.config.json in an ancestor", (t) => {
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("raw native binary treats configured rules as the complete rule set", (t) => {
+  const project = createProject(t);
+  write(join(project, "utlint.config.json"), '{ "rules": { "no-debugger": "error" } }\n');
+  const sourcePath = write(join(project, "index.js"), "debugger;\nconst unused = 1;\n");
+
+  const result = spawnSync(testBinary(), ["--format=json", sourcePath], {
+    cwd: project,
+    encoding: "utf8"
+  });
+  const report = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.ruleId), ["no-debugger"]);
+});
+
+test("raw native binary enables no rules for an empty config", (t) => {
+  const project = createProject(t);
+  write(join(project, "utlint.config.json"));
+  const sourcePath = write(join(project, "index.js"), "debugger;\nconst unused = 1;\n");
+
+  const result = spawnSync(testBinary(), ["--format=json", sourcePath], {
+    cwd: project,
+    encoding: "utf8"
+  });
+  const report = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(report.diagnostics, []);
+});
+
+test("raw native binary keeps default rules when config discovery is disabled", (t) => {
+  const project = createProject(t);
+  write(join(project, "utlint.config.json"));
+  const sourcePath = write(join(project, "index.js"), "debugger;\n");
+
+  const result = spawnSync(testBinary(), ["--no-config", "--format=json", sourcePath], {
+    cwd: project,
+    encoding: "utf8"
+  });
+  const report = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.ruleId), ["no-debugger"]);
+});
+
 test("ESM API loads an ancestor utlint.config.json", async (t) => {
   const project = createProject(t);
   write(join(project, "utlint.config.json"), '{ "rules": { "no-debugger": "off" } }\n');

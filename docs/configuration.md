@@ -26,6 +26,9 @@ migration, but new projects should use a canonical name.
 Use `--config=path/to/utlint.config.json` to select a config explicitly, or
 `--no-config` to ignore local config. Rule-related CLI options such as
 `--rules` and individual rule toggles are applied after the selected config.
+The resolved `rules` map is the complete enabled rule set, matching ESLint's
+configuration model: omitted rules are disabled. If no config is selected,
+utoo-lint uses its built-in default rules.
 
 Project-config `files` and `ignores` patterns are resolved relative to the
 selected config file's directory, including when that config is discovered in
@@ -68,7 +71,7 @@ does not execute or discover TypeScript. It searches for `utlint.config.json`
 and then the legacy JSON names. Use the npm CLI for `utlint.config.ts`; when
 invoking the raw binary directly, use `utlint.config.json`.
 
-The raw binary currently applies only the JSON config's `rules`. Config-driven
+The raw binary applies only the JSON config's `rules`. Config-driven
 `files` and `ignores` filtering, including choosing default lint targets, is an
 npm/Node wrapper feature. Pass lint targets explicitly when invoking the raw
 binary.

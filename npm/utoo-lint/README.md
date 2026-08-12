@@ -113,10 +113,12 @@ JSON-serializable object or flat config array. The npm wrapper executes it and
 materializes the result as JSON before invoking the native binary. The raw
 binary does not execute or discover TypeScript; it searches for
 `utlint.config.json` and then the legacy JSON names. Direct native use therefore
-requires a JSON config. The raw binary currently applies only its `rules`;
+requires a JSON config. The raw binary applies only its `rules`;
 config-driven `files` and `ignores` filtering and default target selection are
 npm/Node wrapper features. Pass lint targets explicitly when invoking the raw
-binary.
+binary. As in ESLint, selecting a config disables rules not present in its
+resolved `rules` map. When no config is selected, utoo-lint uses its built-in
+default rules.
 
 Start from the packaged frontend template:
 
