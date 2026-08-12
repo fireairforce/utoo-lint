@@ -1,0 +1,74 @@
+---
+fixture: "tests/snapshots/specs/react/no-unescaped-entities/default.jsx"
+rule: "react/no-unescaped-entities"
+---
+
+# Input
+
+```jsx
+const node = <div>Tom's "quote" > brace }</div>;
+```
+
+# Diagnostics
+
+count: 5
+
+## Diagnostic 1
+
+- rule: "react/no-unescaped-entities"
+- severity: "error"
+- message: "`'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`."
+- byte span: 21..22
+- start: 1:22
+- end: 1:23
+- source: "'"
+- fixes: 0
+
+## Diagnostic 2
+
+- rule: "react/no-unescaped-entities"
+- severity: "error"
+- message: "`\"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`."
+- byte span: 24..25
+- start: 1:25
+- end: 1:26
+- source: "\""
+- fixes: 0
+
+## Diagnostic 3
+
+- rule: "react/no-unescaped-entities"
+- severity: "error"
+- message: "`\"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`."
+- byte span: 30..31
+- start: 1:31
+- end: 1:32
+- source: "\""
+- fixes: 0
+
+## Diagnostic 4
+
+- rule: "react/no-unescaped-entities"
+- severity: "error"
+- message: "`>` can be escaped with `&gt;`."
+- byte span: 32..33
+- start: 1:33
+- end: 1:34
+- source: ">"
+- fixes: 0
+
+## Diagnostic 5
+
+- rule: "react/no-unescaped-entities"
+- severity: "error"
+- message: "`}` can be escaped with `&#125;`."
+- byte span: 40..41
+- start: 1:41
+- end: 1:42
+- source: "}"
+- fixes: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0

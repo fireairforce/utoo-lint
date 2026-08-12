@@ -1,0 +1,83 @@
+---
+fixture: "tests/snapshots/specs/core/no-extra-semi/deletions.js"
+rule: "no-extra-semi"
+---
+
+# Input
+
+```js
+const value = 1;;
+class Example { ; method() {} ; field; }
+```
+
+# Diagnostics
+
+count: 3
+
+## Diagnostic 1
+
+- rule: "no-extra-semi"
+- severity: "warning"
+- message: "Unnecessary semicolon."
+- byte span: 16..17
+- start: 1:17
+- end: 1:18
+- source: ";"
+- fixes: 1
+
+### Fix 1.1
+
+- byte span: 16..17
+- start: 1:17
+- end: 1:18
+- source: ";"
+- replacement: ""
+
+## Diagnostic 2
+
+- rule: "no-extra-semi"
+- severity: "warning"
+- message: "Unnecessary semicolon."
+- byte span: 34..35
+- start: 2:17
+- end: 2:18
+- source: ";"
+- fixes: 1
+
+### Fix 2.1
+
+- byte span: 34..35
+- start: 2:17
+- end: 2:18
+- source: ";"
+- replacement: ""
+
+## Diagnostic 3
+
+- rule: "no-extra-semi"
+- severity: "warning"
+- message: "Unnecessary semicolon."
+- byte span: 48..49
+- start: 2:31
+- end: 2:32
+- source: ";"
+- fixes: 1
+
+### Fix 3.1
+
+- byte span: 48..49
+- start: 2:31
+- end: 2:32
+- source: ";"
+- replacement: ""
+
+# First fix pass
+
+- fixed: true
+- applied diagnostics: 3
+- remaining diagnostics: 0
+
+```js
+const value = 1;
+class Example {  method() {}  field; }
+```

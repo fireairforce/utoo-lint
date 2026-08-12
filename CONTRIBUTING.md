@@ -63,6 +63,55 @@ from `runSemantic`.
 Add focused tests under `tests/rules`, then include the test module from
 `tests/all.zig`.
 
+For a rule's externally visible diagnostic contract, add a fixture under
+`tests/snapshots/specs/<category>/<rule>`. The category maps filesystem-safe
+names to rule namespaces, for example:
+
+```text
+tests/snapshots/specs/core/no-debugger/multiple.js
+tests/snapshots/specs/typescript-eslint/no-invalid-void-type/invalid.ts
+tests/snapshots/specs/react/no-unescaped-entities/default.jsx
+```
+
+Every fixture has a `<case>.options.json` sidecar whose expectations are
+independent from its snapshot. Use `"expect": "clean"` with a zero count for a
+valid fixture. `required`, `forbidden`, and `any` make fix availability part of
+the test contract. The sidecar can also set `rule_options` to the same JSON
+value accepted by a lint rule:
+
+```json
+{
+  "expect": "diagnostics",
+  "diagnostic_count": 1,
+  "fixes": "forbidden",
+  "rule_options": ["error", { "allow": ["warn"] }]
+}
+```
+
+Run only the snapshot suite in verification mode:
+
+```bash
+zig build test-snapshots -j1
+```
+
+Snapshots record ordered diagnostics with their rule, severity, message, byte
+span, line and column, covered source, and every original fix span and
+replacement. Fixable cases also record the first fix pass and its remaining
+diagnostics.
+
+After an intentional rule behavior change, update snapshots explicitly:
+
+```bash
+zig build update-snapshots -j1
+git diff -- tests/snapshots
+```
+
+Verification never replaces an accepted `.snap`; a missing or mismatched
+snapshot is written as `.snap.new` and the test fails. Review the candidate,
+then run the update command to accept it. Orphan snapshots and stale
+`.snap.new` files fail verification. The regular `zig build test` step also
+runs this suite, so CI rejects unreviewed changes.
+
 ## Benchmarks
 
 The benchmark workspace compares the local `utoo-lint` binary with Oxlint,

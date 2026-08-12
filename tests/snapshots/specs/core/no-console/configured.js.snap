@@ -1,0 +1,32 @@
+---
+fixture: "tests/snapshots/specs/core/no-console/configured.js"
+rule: "no-console"
+---
+
+# Input
+
+```js
+console.warn("allowed");
+console.todo("reported");
+console.error("allowed");
+```
+
+# Diagnostics
+
+count: 1
+
+## Diagnostic 1
+
+- rule: "no-console"
+- severity: "warning"
+- message: "Unexpected console statement."
+- byte span: 25..37
+- start: 2:1
+- end: 2:13
+- source: "console.todo"
+- fixes: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0

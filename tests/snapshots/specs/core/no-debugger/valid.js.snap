@@ -1,0 +1,21 @@
+---
+fixture: "tests/snapshots/specs/core/no-debugger/valid.js"
+rule: "no-debugger"
+---
+
+# Input
+
+```js
+function run() {
+  return "debugger";
+}
+```
+
+# Diagnostics
+
+count: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0

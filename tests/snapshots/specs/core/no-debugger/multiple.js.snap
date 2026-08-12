@@ -1,0 +1,45 @@
+---
+fixture: "tests/snapshots/specs/core/no-debugger/multiple.js"
+rule: "no-debugger"
+---
+
+# Input
+
+```js
+debugger;
+
+function run() {
+  debugger;
+}
+```
+
+# Diagnostics
+
+count: 2
+
+## Diagnostic 1
+
+- rule: "no-debugger"
+- severity: "warning"
+- message: "Unexpected debugger statement."
+- byte span: 0..9
+- start: 1:1
+- end: 1:10
+- source: "debugger;"
+- fixes: 0
+
+## Diagnostic 2
+
+- rule: "no-debugger"
+- severity: "warning"
+- message: "Unexpected debugger statement."
+- byte span: 30..39
+- start: 4:3
+- end: 4:12
+- source: "debugger;"
+- fixes: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0
