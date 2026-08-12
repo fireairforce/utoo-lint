@@ -52,6 +52,7 @@ const JsonOutput = struct {
 };
 
 const JsonOutputList = std.ArrayList(JsonOutput);
+const RuleSeverityMap = std.StringHashMap(lint.Severity);
 
 const JsonReport = struct {
     files: usize,
@@ -64,6 +65,7 @@ const WorkQueue = struct {
     io: std.Io,
     files: []const []const u8,
     options: lint.Options,
+    rule_severities: *const RuleSeverityMap,
     fix_mode: FixMode,
     next_index: std.atomic.Value(usize) = .init(0),
     print_mutex: std.Io.Mutex = .init,
@@ -85,13 +87,18 @@ pub fn main(init: std.process.Init) !void {
     }
 
     var options = lint.Options{};
+    var rule_severities = RuleSeverityMap.init(allocator);
+    defer {
+        clearRuleSeverities(allocator, &rule_severities);
+        rule_severities.deinit();
+    }
     const config = parseConfigArgs(args[1..]);
     if (config.enabled) {
         if (config.path) |path| {
-            try loadConfigFile(allocator, io, path, true, &options);
+            try loadConfigFile(allocator, io, path, true, &options, &rule_severities);
         } else if (try findDefaultConfig(allocator, io)) |path| {
             defer allocator.free(path);
-            try loadConfigFile(allocator, io, path, false, &options);
+            try loadConfigFile(allocator, io, path, false, &options, &rule_severities);
         }
     }
 
@@ -142,7 +149,8 @@ pub fn main(init: std.process.Init) !void {
             };
         } else if (std.mem.startsWith(u8, arg, "--rules=")) {
             options = lint.Options.allDisabled();
-            parseEnabledRules(arg["--rules=".len..], &options);
+            clearRuleSeverities(allocator, &rule_severities);
+            try parseEnabledRules(allocator, arg["--rules=".len..], &options, &rule_severities);
         } else if (std.mem.eql(u8, arg, "--accessor-pairs=off")) {
             options.accessor_pairs = false;
         } else if (std.mem.eql(u8, arg, "--accessor-pairs-get-without-set=on")) {
@@ -1243,10 +1251,10 @@ pub fn main(init: std.process.Init) !void {
     }
 
     if (output_format == .json) {
-        try lintFilesJson(allocator, io, files.items, options, fix_mode, &stats, &json_diagnostics, &json_outputs);
+        try lintFilesJson(allocator, io, files.items, options, &rule_severities, fix_mode, &stats, &json_diagnostics, &json_outputs);
         try writeJsonReport(io, stats, files.items, json_diagnostics.items, json_outputs.items);
     } else {
-        try lintFiles(allocator, io, files.items, options, fix_mode, thread_count_override, &stats);
+        try lintFiles(allocator, io, files.items, options, &rule_severities, fix_mode, thread_count_override, &stats);
 
         if (fix_mode == .none) {
             std.debug.print("{d} file(s) checked, {d} diagnostic(s)\n", .{ stats.files, stats.diagnostics });
@@ -1259,7 +1267,7 @@ pub fn main(init: std.process.Init) !void {
         }
     }
 
-    if (stats.errors > 0 or stats.diagnostics > 0) {
+    if (stats.errors > 0) {
         std.process.exit(1);
     }
 }
@@ -1347,6 +1355,7 @@ fn loadConfigFile(
     path: []const u8,
     explicit: bool,
     options: *lint.Options,
+    rule_severities: *RuleSeverityMap,
 ) !void {
     const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_config_file_size)) catch |err| {
         if (explicit) {
@@ -1371,6 +1380,7 @@ fn loadConfigFile(
         },
     };
 
+    options.* = lint.Options.allDisabled();
     const rules_value = root.get("rules") orelse return;
     const rules = switch (rules_value) {
         .object => |object| object,
@@ -1389,6 +1399,18 @@ fn loadConfigFile(
             );
             std.process.exit(2);
         };
+        const severity = lint.Options.severityFromRuleConfigValue(entry.value_ptr.*) catch |err| {
+            std.debug.print(
+                "utoo-lint: invalid config {s} rule {s}: {s}\n",
+                .{ path, entry.key_ptr.*, @errorName(err) },
+            );
+            std.process.exit(2);
+        };
+        if (severity) |configured_severity| {
+            const owned_rule = try allocator.dupe(u8, entry.key_ptr.*);
+            errdefer allocator.free(owned_rule);
+            try rule_severities.put(owned_rule, configured_severity);
+        }
     }
 }
 
@@ -1425,7 +1447,12 @@ fn collectLintablePaths(
     }
 }
 
-fn parseEnabledRules(value: []const u8, options: *lint.Options) void {
+fn parseEnabledRules(
+    allocator: std.mem.Allocator,
+    value: []const u8,
+    options: *lint.Options,
+    rule_severities: *RuleSeverityMap,
+) !void {
     if (value.len == 0) {
         std.debug.print("utoo-lint: --rules requires a comma-separated rule list\n", .{});
         std.process.exit(2);
@@ -1442,7 +1469,21 @@ fn parseEnabledRules(value: []const u8, options: *lint.Options) void {
             std.debug.print("utoo-lint: unknown rule in --rules: {s}\n", .{rule});
             std.process.exit(2);
         }
+        const owned_rule = try allocator.dupe(u8, rule);
+        errdefer allocator.free(owned_rule);
+        const entry = try rule_severities.getOrPut(owned_rule);
+        if (entry.found_existing) {
+            allocator.free(owned_rule);
+        } else {
+            entry.value_ptr.* = .warning;
+        }
     }
+}
+
+fn clearRuleSeverities(allocator: std.mem.Allocator, rule_severities: *RuleSeverityMap) void {
+    var iter = rule_severities.keyIterator();
+    while (iter.next()) |rule| allocator.free(rule.*);
+    rule_severities.clearRetainingCapacity();
 }
 
 fn parseNoConsoleAllow(value: []const u8, options: *lint.Options) void {
@@ -1776,6 +1817,7 @@ fn lintFiles(
     io: std.Io,
     files: []const []const u8,
     options: lint.Options,
+    rule_severities: *const RuleSeverityMap,
     fix_mode: FixMode,
     thread_count_override: ?usize,
     stats: *Stats,
@@ -1785,7 +1827,7 @@ fn lintFiles(
     const worker_count = @min(files.len, thread_count_override orelse (std.Thread.getCpuCount() catch 1));
     if (worker_count <= 1) {
         for (files) |file| {
-            try lintFile(std.heap.smp_allocator, io, file, options, fix_mode, stats, null);
+            try lintFile(std.heap.smp_allocator, io, file, options, rule_severities, fix_mode, stats, null);
         }
         return;
     }
@@ -1794,6 +1836,7 @@ fn lintFiles(
         .io = io,
         .files = files,
         .options = options,
+        .rule_severities = rule_severities,
         .fix_mode = fix_mode,
     };
 
@@ -1840,13 +1883,14 @@ fn lintFilesJson(
     io: std.Io,
     files: []const []const u8,
     options: lint.Options,
+    rule_severities: *const RuleSeverityMap,
     fix_mode: FixMode,
     stats: *Stats,
     json_diagnostics: *JsonDiagnosticList,
     json_outputs: *JsonOutputList,
 ) !void {
     for (files) |file| {
-        try lintFileJson(allocator, io, file, options, fix_mode, stats, json_diagnostics, json_outputs);
+        try lintFileJson(allocator, io, file, options, rule_severities, fix_mode, stats, json_diagnostics, json_outputs);
     }
 }
 
@@ -1860,6 +1904,7 @@ fn lintWorker(queue: *WorkQueue, result: *WorkerResult) void {
             queue.io,
             queue.files[index],
             queue.options,
+            queue.rule_severities,
             queue.fix_mode,
             &result.stats,
             &queue.print_mutex,
@@ -1875,6 +1920,7 @@ fn lintFileJson(
     io: std.Io,
     path: []const u8,
     options: lint.Options,
+    rule_severities: *const RuleSeverityMap,
     fix_mode: FixMode,
     stats: *Stats,
     json_diagnostics: *JsonDiagnosticList,
@@ -1895,7 +1941,7 @@ fn lintFileJson(
     if (fix_mode == .none) {
         var result = try lint.lintSourceWithIo(allocator, io, source, path, options);
         defer result.deinit(allocator);
-        return appendJsonResultDiagnostics(allocator, json_diagnostics, path, source, result, stats);
+        return appendJsonResultDiagnostics(allocator, json_diagnostics, path, source, result, rule_severities, stats);
     }
 
     var fixed = try lint.lintSourceAndFixWithIo(allocator, io, source, path, options);
@@ -1909,7 +1955,7 @@ fn lintFileJson(
         try appendJsonOutput(allocator, json_outputs, path, fixed.output);
     }
 
-    try appendJsonResultDiagnostics(allocator, json_diagnostics, path, fixed.output, fixed.result, stats);
+    try appendJsonResultDiagnostics(allocator, json_diagnostics, path, fixed.output, fixed.result, rule_severities, stats);
 }
 
 fn lintFile(
@@ -1917,6 +1963,7 @@ fn lintFile(
     io: std.Io,
     path: []const u8,
     options: lint.Options,
+    rule_severities: *const RuleSeverityMap,
     fix_mode: FixMode,
     stats: *Stats,
     print_mutex: ?*std.Io.Mutex,
@@ -1934,7 +1981,7 @@ fn lintFile(
     if (fix_mode == .none) {
         var result = try lint.lintSourceWithIo(allocator, io, source, path, options);
         defer result.deinit(allocator);
-        return printResultDiagnostics(io, print_mutex, path, source, result, stats);
+        return printResultDiagnostics(io, print_mutex, path, source, result, rule_severities, stats);
     }
 
     var fixed = try lint.lintSourceAndFixWithIo(allocator, io, source, path, options);
@@ -1947,7 +1994,7 @@ fn lintFile(
         }
     }
 
-    printResultDiagnostics(io, print_mutex, path, fixed.output, fixed.result, stats);
+    printResultDiagnostics(io, print_mutex, path, fixed.output, fixed.result, rule_severities, stats);
 }
 
 fn printResultDiagnostics(
@@ -1956,21 +2003,23 @@ fn printResultDiagnostics(
     path: []const u8,
     source: []const u8,
     result: lint.Result,
+    rule_severities: *const RuleSeverityMap,
     stats: *Stats,
 ) void {
     for (result.diagnostics) |diagnostic| {
+        const severity = effectiveDiagnosticSeverity(rule_severities, diagnostic);
         const position = lint.offsetToLineColumn(source, diagnostic.span.start);
         printLocked(io, print_mutex, "{s}:{d}:{d}: {s}: {s} [{s}]\n", .{
             path,
             position.line,
             position.column,
-            diagnostic.severity.toString(),
+            severity.toString(),
             diagnostic.message,
             diagnostic.rule_id,
         });
 
         stats.diagnostics += 1;
-        if (diagnostic.severity == .@"error") {
+        if (severity == .@"error") {
             stats.errors += 1;
         }
     }
@@ -2017,9 +2066,11 @@ fn appendJsonResultDiagnostics(
     path: []const u8,
     source: []const u8,
     result: lint.Result,
+    rule_severities: *const RuleSeverityMap,
     stats: *Stats,
 ) !void {
     for (result.diagnostics) |diagnostic| {
+        const severity = effectiveDiagnosticSeverity(rule_severities, diagnostic);
         const position = lint.offsetToLineColumn(source, diagnostic.span.start);
         try appendJsonDiagnostic(
             allocator,
@@ -2027,7 +2078,7 @@ fn appendJsonResultDiagnostics(
             path,
             position.line,
             position.column,
-            diagnostic.severity.toString(),
+            severity.toString(),
             diagnostic.message,
             diagnostic.rule_id,
             source,
@@ -2035,8 +2086,12 @@ fn appendJsonResultDiagnostics(
         );
 
         stats.diagnostics += 1;
-        if (diagnostic.severity == .@"error") stats.errors += 1;
+        if (severity == .@"error") stats.errors += 1;
     }
+}
+
+fn effectiveDiagnosticSeverity(rule_severities: *const RuleSeverityMap, diagnostic: lint.Diagnostic) lint.Severity {
+    return rule_severities.get(diagnostic.rule_id) orelse diagnostic.severity;
 }
 
 fn dupeJsonFixes(allocator: std.mem.Allocator, source: []const u8, fixes: []const lint.Fix) ![]JsonFix {

@@ -146,6 +146,9 @@ give the binary `utlint.config.json`. Use
 `--config=path/to/utlint.config.json` to select a file explicitly, or
 `--no-config` to disable config discovery. Rule-related CLI options such as
 `--rules` and individual rule toggles are applied after the selected config.
+As in ESLint, a selected config's `rules` map is the complete rule set: rules
+that are not configured are disabled. With no selected config, utoo-lint keeps
+its built-in default rules.
 
 Project-config `files` and `ignores` patterns are relative to the selected
 config file's directory. In a flat config array, those fields determine which
@@ -153,13 +156,15 @@ entries match each file; matching entries are combined in order, with later
 rule values overriding earlier values. The npm CLI, JavaScript API, and
 fishlint compatibility command perform this rule resolution per file.
 
-The raw binary currently applies only `rules` from JSON config. Config-driven
+The raw binary applies only `rules` from JSON config. Config-driven
 `files` and `ignores` filtering and default target selection belong to the
 npm/Node wrapper; pass lint targets explicitly when invoking the raw binary.
 
 Rule values may be `off`, `warn`, `error`, `0`, `1`, `2`, booleans, or an
 ESLint-style array whose first item is the severity and later items are native
-rule options.
+rule options. Matching ESLint's CLI behavior, warnings are reported without
+making the command fail; errors return exit status 1. The fishlint-compatible
+CLI can make warnings fail with `--max-warnings`.
 
 To migrate an existing ESLint config into the native utoo format:
 

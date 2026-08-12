@@ -2903,7 +2903,7 @@ export function lintFiles(paths, options = {}) {
   const ignoredDiagnostics = ignoredLintPathDiagnostics(targets, options);
   const lintPaths = filteredLintPaths(targets, options);
   if (lintPaths.length === 0) {
-    return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, exitCode: ignoredDiagnostics.length > 0 ? 1 : 0 };
+    return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, exitCode: exitCodeForDiagnostics(ignoredDiagnostics) };
   }
 
   const configRuns = nativeConfigRunsForFiles(expandNativeConfigRunPaths(lintPaths, options), options);
@@ -3097,7 +3097,7 @@ export function lintText(code, options = {}) {
         files: 0,
         filePaths: [],
         diagnostics,
-        exitCode: diagnostics.length > 0 ? 1 : 0
+        exitCode: exitCodeForDiagnostics(diagnostics)
       };
     }
 
@@ -3645,7 +3645,7 @@ function normalizeReportDiagnostics(diagnostics, options = {}) {
     if (!diagnostic?.ruleId) {
       return [diagnostic];
     }
-    if (diagnostic.ruleId === "io") {
+    if (diagnostic.ruleId === "io" || diagnostic.ruleId === "parse") {
       return [diagnostic];
     }
 
@@ -3694,7 +3694,7 @@ function hasRuleConfigSource(options = {}, filePath) {
 }
 
 function exitCodeForDiagnostics(diagnostics) {
-  return (diagnostics?.length ?? 0) > 0 ? 1 : 0;
+  return diagnostics?.some((diagnostic) => diagnostic?.severity === "error" || diagnostic?.severity === 2) ? 1 : 0;
 }
 
 function throwOnUnmatchedPatternDiagnostics(report, options = {}) {
