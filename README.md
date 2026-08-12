@@ -22,8 +22,8 @@ Useful docs:
 
 - [Rule status](docs/rule-status.md) lists implemented rules and their ESLint
   documentation links.
-- [Configuration](docs/configuration.md) describes `utoo.json` files for
-  frontend projects.
+- [Configuration](docs/configuration.md) describes `utlint.config.ts` and
+  `utlint.config.json` for frontend projects.
 - [Migrating from ESLint](docs/eslint-migration.md) covers the current migration
   path.
 - [Contributing](CONTRIBUTING.md) covers local development, rule work,
@@ -47,13 +47,14 @@ pnpm exec utoo-lint src
 utoo-lint [options] [file-or-directory ...]
 ```
 
-If no target is provided, `utoo-lint` scans the current directory. It skips
-`.git`, `.zig-cache`, `node_modules`, `vendor`, and `zig-out`.
+If no target is provided, the npm CLI uses `files` from the selected config;
+when there is no `files` entry, it scans the current directory. It skips `.git`,
+`.zig-cache`, `node_modules`, `vendor`, and `zig-out`.
 
 Start a frontend project from the packaged template:
 
 ```bash
-cp node_modules/@utoo/lint/configs/frontend.json utoo.json
+cp node_modules/@utoo/lint/configs/frontend.json utlint.config.json
 pnpm exec utoo-lint src
 ```
 
@@ -97,9 +98,16 @@ when a rule or a particular code shape cannot be fixed safely. See
 
 ## Configuration
 
-By default, `utoo-lint` reads `utoo.json` or `utoo-lint.json` from the current
-directory or its ancestors. Use `--config=path/to/utoo.json` for an explicit file or
-`--no-config` to ignore local config.
+The canonical config names are `utlint.config.ts` and `utlint.config.json`.
+They are two representations of one active config, not layers that are merged.
+For the npm/Node entry point, discovery checks each directory before moving to
+its parent, so the nearest config directory wins. Within one directory,
+`utlint.config.ts` takes precedence over `utlint.config.json`. The old
+`utoo.json` and `utoo-lint.json` names remain temporarily supported after the
+canonical names, but are deprecated.
+
+Use `utlint.config.json` for a static config that both the npm CLI and raw native
+binary can read:
 
 ```json
 {
@@ -114,6 +122,41 @@ directory or its ancestors. Use `--config=path/to/utoo.json` for an explicit fil
 }
 ```
 
+Use `utlint.config.ts` when the npm/Node CLI should execute a typed config:
+
+```ts
+import { defineConfig } from "@utoo/lint/config";
+
+export default defineConfig({
+  files: ["src/**/*.{js,jsx,ts,tsx}"],
+  ignores: ["dist", "node_modules"],
+  rules: {
+    "no-console": "off",
+    "no-debugger": "error"
+  }
+});
+```
+
+A TypeScript config is trusted executable code and must export a
+JSON-serializable object or flat config array. The npm wrapper executes it,
+materializes the result as JSON, and invokes the native binary. The raw binary
+does not execute or discover TypeScript; it searches for `utlint.config.json`
+and then the legacy JSON names. Invoke the npm CLI for `utlint.config.ts`, or
+give the binary `utlint.config.json`. Use
+`--config=path/to/utlint.config.json` to select a file explicitly, or
+`--no-config` to disable config discovery. Rule-related CLI options such as
+`--rules` and individual rule toggles are applied after the selected config.
+
+Project-config `files` and `ignores` patterns are relative to the selected
+config file's directory. In a flat config array, those fields determine which
+entries match each file; matching entries are combined in order, with later
+rule values overriding earlier values. The npm CLI, JavaScript API, and
+fishlint compatibility command perform this rule resolution per file.
+
+The raw binary currently applies only `rules` from JSON config. Config-driven
+`files` and `ignores` filtering and default target selection belong to the
+npm/Node wrapper; pass lint targets explicitly when invoking the raw binary.
+
 Rule values may be `off`, `warn`, `error`, `0`, `1`, `2`, booleans, or an
 ESLint-style array whose first item is the severity and later items are native
 rule options.
@@ -121,7 +164,7 @@ rule options.
 To migrate an existing ESLint config into the native utoo format:
 
 ```bash
-pnpm exec utoo-lint migrate eslint --from eslint.config.js --output utoo.json
+pnpm exec utoo-lint migrate eslint --from eslint.config.js --output utlint.config.json
 ```
 
 ## JavaScript API
@@ -130,7 +173,7 @@ pnpm exec utoo-lint migrate eslint --from eslint.config.js --output utoo.json
 import { lintFiles } from "@utoo/lint";
 
 const report = lintFiles(["src"], {
-  config: "utoo.json",
+  config: "utlint.config.json",
   rules: ["no-debugger"]
 });
 ```
@@ -152,6 +195,7 @@ console.log(report.outputs);
 - `src/main.zig` owns CLI argument parsing, file discovery, and terminal output.
 - `vendor/yuku` is pinned as a git submodule so the parser API is reproducible.
 
-The current rule engine deliberately uses Yuku's native flat AST and semantic
-traverser instead of converting to ESTree. That keeps the first version small
-and avoids a JS runtime dependency.
+The rule engine deliberately uses Yuku's native flat AST and semantic traverser
+instead of converting to ESTree. The native engine has no JavaScript runtime
+dependency; the npm configuration layer uses Node only when it loads an
+executable project config such as `utlint.config.ts`.

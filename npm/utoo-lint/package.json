@@ -12,6 +12,12 @@
   },
   "homepage": "https://github.com/fireairforce/utoo-lint#readme",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 test/*.test.mjs"
+  },
   "types": "./index.d.ts",
   "exports": {
     ".": {
@@ -75,6 +81,9 @@
     "@utoo/lint-linux-arm64": "workspace:*",
     "@utoo/lint-linux-x64": "workspace:*",
     "@utoo/lint-win32-x64": "workspace:*"
+  },
+  "dependencies": {
+    "jiti": "2.7.0"
   },
   "publishConfig": {
     "access": "public",

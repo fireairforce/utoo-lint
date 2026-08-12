@@ -11,13 +11,29 @@ env:
 
 jobs:
   test-darwin-arm64:
-    name: Test macOS arm64
+    name: Test macOS arm64 (Node ${{ matrix.node-version }})
     runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["18", "24"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Setup Zig
         uses: mlugg/setup-zig@v2
@@ -36,3 +52,6 @@ jobs:
 
       - name: Verify npm wrapper
         run: node npm/utoo-lint/bin/utoo-lint.js test/fixtures/bad.ts || test "$?" = "1"
+
+      - name: Test npm package
+        run: pnpm --dir npm/utoo-lint test

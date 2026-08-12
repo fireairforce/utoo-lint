@@ -89,7 +89,8 @@ pub fn main(init: std.process.Init) !void {
     if (config.enabled) {
         if (config.path) |path| {
             try loadConfigFile(allocator, io, path, true, &options);
-        } else if (findDefaultConfig(io)) |path| {
+        } else if (try findDefaultConfig(allocator, io)) |path| {
+            defer allocator.free(path);
             try loadConfigFile(allocator, io, path, false, &options);
         }
     }
@@ -1293,18 +1294,45 @@ fn parseConfigArgs(args: []const []const u8) ConfigArgs {
     return config;
 }
 
-fn findDefaultConfig(io: std.Io) ?[]const u8 {
-    const cwd = std.Io.Dir.cwd();
-    const candidates = [_][]const u8{
-        "utoo.json",
-        "utoo-lint.json",
-    };
+fn findDefaultConfig(allocator: std.mem.Allocator, io: std.Io) !?[]u8 {
+    const start = try std.process.currentPathAlloc(io, allocator);
+    return findDefaultConfigFrom(allocator, io, start);
+}
 
-    for (candidates) |path| {
-        const stat = cwd.statFile(io, path, .{}) catch continue;
-        if (stat.kind == .file) return path;
+fn findDefaultConfigFrom(allocator: std.mem.Allocator, io: std.Io, start: []u8) !?[]u8 {
+    var current = start;
+    defer allocator.free(current);
+
+    while (true) {
+        for (config_filenames) |filename| {
+            const path = try std.fs.path.join(allocator, &.{ current, filename });
+            errdefer allocator.free(path);
+            if (isConfigFile(io, path)) return path;
+            allocator.free(path);
+        }
+
+        const parent = std.fs.path.dirname(current) orelse break;
+        if (std.mem.eql(u8, parent, current)) break;
+        const next = try allocator.dupe(u8, parent);
+        allocator.free(current);
+        current = next;
     }
     return null;
+}
+
+const config_filenames = [_][]const u8{
+    "utlint.config.json",
+    "utoo.json",
+    "utoo-lint.json",
+};
+
+fn isConfigFile(io: std.Io, path: []const u8) bool {
+    const directory_path = std.fs.path.dirname(path) orelse return false;
+    const basename = std.fs.path.basename(path);
+    var directory = std.Io.Dir.openDirAbsolute(io, directory_path, .{}) catch return false;
+    defer directory.close(io);
+    const stat = directory.statFile(io, basename, .{}) catch return false;
+    return stat.kind == .file;
 }
 
 fn parseOutputFormat(value: []const u8) ?OutputFormat {
@@ -2119,7 +2147,7 @@ fn printHelp() void {
         \\
         \\Options:
         \\  --config=PATH            Read configuration from PATH
-        \\  --no-config              Do not read utoo.json or utoo-lint.json
+        \\  --no-config              Do not read utlint.config.json (or legacy config names)
         \\  --format=text|json       Select diagnostic output format
         \\  --json                   Alias for --format=json
         \\  --fix                    Apply autofixes and write files to disk
