@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { createRequire } from "node:module";
 
-import { ESLint, resolveBinary, runCli } from "../index.js";
+import { ESLint, lintFiles, lintText, resolveBinary, runCli } from "../index.js";
 
 const require = createRequire(import.meta.url);
 const { ESLint: CommonJSESLint, runCli: commonJSRunCli } = require("../index.cjs");
@@ -120,6 +120,46 @@ test("fishlint --rules overrides flat-config off severities", (t) => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(report.diagnostics.length, 2);
   assert.ok(report.diagnostics.every((diagnostic) => diagnostic.severity === "warning"));
+});
+
+test("fishlint enforces --max-warnings when the native binary exits successfully", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "index.js"), "debugger;\n");
+  const env = { ...process.env, UTOO_LINT_BIN: testBinary() };
+
+  const rejected = spawnSync(
+    process.execPath,
+    [fishlintPath, "eslint", "--no-config", "--max-warnings=0", sourcePath],
+    { cwd: project, env, encoding: "utf8" }
+  );
+  const accepted = spawnSync(
+    process.execPath,
+    [fishlintPath, "eslint", "--no-config", "--max-warnings=1", sourcePath],
+    { cwd: project, env, encoding: "utf8" }
+  );
+
+  assert.equal(rejected.status, 1, rejected.stderr);
+  assert.match(rejected.stderr, /too many warnings/);
+  assert.equal(accepted.status, 0, accepted.stderr);
+});
+
+test("fishlint counts quiet warnings against --max-warnings", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "index.js"), "debugger;\n");
+
+  const result = spawnSync(
+    process.execPath,
+    [fishlintPath, "eslint", "--no-config", "--quiet", "--max-warnings=0", sourcePath],
+    {
+      cwd: project,
+      env: { ...process.env, UTOO_LINT_BIN: testBinary() },
+      encoding: "utf8"
+    }
+  );
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stderr, /too many warnings/);
+  assert.doesNotMatch(result.stdout, /no-debugger/);
 });
 
 test("fishlint groups flat config files by complete rule options", (t) => {
@@ -345,7 +385,7 @@ test("CLI loads utlint.config.ts and --no-config bypasses it", (t) => {
   assert.equal(configured.error, undefined);
   assert.equal(configured.status, 0, configured.stderr);
   assert.equal(unconfigured.error, undefined);
-  assert.equal(unconfigured.status, 1, unconfigured.stderr);
+  assert.equal(unconfigured.status, 0, unconfigured.stderr);
   assert.match(unconfigured.stderr, /no-debugger/);
 });
 
@@ -393,7 +433,7 @@ test("explicit config and --no-config keep last-argument-wins semantics", (t) =>
   );
 
   assert.equal(configLast.status, 0, configLast.stderr);
-  assert.equal(noConfigLast.status, 1, noConfigLast.stderr);
+  assert.equal(noConfigLast.status, 0, noConfigLast.stderr);
 });
 
 test("split -c loads an explicit TypeScript config", (t) => {
@@ -488,6 +528,76 @@ test("raw native binary treats configured rules as the complete rule set", (t) =
 
   assert.equal(result.status, 1, result.stderr);
   assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.ruleId), ["no-debugger"]);
+  assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.severity), ["error"]);
+});
+
+test("raw native binary reports configured warnings without failing", (t) => {
+  const project = createProject(t);
+  write(join(project, "utlint.config.json"), '{ "rules": { "no-debugger": "warn" } }\n');
+  const sourcePath = write(join(project, "index.js"), "debugger;\n");
+
+  const result = spawnSync(testBinary(), ["--format=json", sourcePath], {
+    cwd: project,
+    encoding: "utf8"
+  });
+  const report = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.ruleId), ["no-debugger"]);
+  assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.severity), ["warning"]);
+});
+
+test("raw native binary applies array and numeric config severities", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "index.js"), "debugger;\n");
+
+  for (const [config, expectedSeverity, expectedStatus] of [
+    ['["warn"]', "warning", 0],
+    ["1", "warning", 0],
+    ['["error"]', "error", 1],
+    ["2", "error", 1]
+  ]) {
+    write(join(project, "utlint.config.json"), `{ "rules": { "no-debugger": ${config} } }\n`);
+    const result = spawnSync(testBinary(), ["--format=json", sourcePath], {
+      cwd: project,
+      encoding: "utf8"
+    });
+    const report = JSON.parse(result.stdout);
+
+    assert.equal(result.status, expectedStatus, result.stderr);
+    assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.severity), [expectedSeverity]);
+  }
+});
+
+test("raw native binary accepts duplicate names in --rules without changing severity", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "index.js"), "debugger;\n");
+
+  const result = spawnSync(
+    testBinary(),
+    ["--no-config", "--rules=no-debugger,no-debugger", "--format=json", sourcePath],
+    { cwd: project, encoding: "utf8" }
+  );
+  const report = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.ruleId), ["no-debugger"]);
+  assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.severity), ["warning"]);
+});
+
+test("raw native binary keeps parse errors fatal with an empty rules config", (t) => {
+  const project = createProject(t);
+  write(join(project, "utlint.config.json"));
+  const sourcePath = write(join(project, "index.js"), "const = ;\n");
+
+  const result = spawnSync(testBinary(), ["--format=json", sourcePath], {
+    cwd: project,
+    encoding: "utf8"
+  });
+  const report = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.ok(report.diagnostics.some((diagnostic) => diagnostic.ruleId === "parse" && diagnostic.severity === "error"));
 });
 
 test("raw native binary enables no rules for an empty config", (t) => {
@@ -516,8 +626,9 @@ test("raw native binary keeps default rules when config discovery is disabled", 
   });
   const report = JSON.parse(result.stdout);
 
-  assert.equal(result.status, 1, result.stderr);
+  assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.ruleId), ["no-debugger"]);
+  assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.severity), ["warning"]);
 });
 
 test("ESM API loads an ancestor utlint.config.json", async (t) => {
@@ -643,7 +754,7 @@ test("--rules overrides the selected project config", (t) => {
     encoding: "utf8"
   });
 
-  assert.equal(result.status, 1, result.stderr);
+  assert.equal(result.status, 0, result.stderr);
   assert.match(result.stderr, /no-debugger/);
 });
 
@@ -871,8 +982,9 @@ test("CLI --rules enables exactly the requested rules after project config", (t)
   );
   const report = JSON.parse(result.stdout);
 
-  assert.equal(result.status, 1, result.stderr);
+  assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.ruleId), ["no-debugger"]);
+  assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.severity), ["warning"]);
   assert.deepEqual(report.outputs, []);
   assert.equal(readFileSync(sourcePath, "utf8"), "debugger;\nconsole.log(1);\nfoo();;\n");
 });
@@ -898,7 +1010,7 @@ test("CLI --rules preserves per-file options for the selected flat-config rule",
     encoding: "utf8"
   });
 
-  assert.equal(result.status, 1, result.stderr);
+  assert.equal(result.status, 0, result.stderr);
   assert.doesNotMatch(result.stderr, /src\/index\.ts/);
   assert.match(result.stderr, /test\/index\.ts/);
 });
@@ -976,7 +1088,7 @@ test("ESM and CommonJS apply flat overrideConfig rules per file with project con
   }
 });
 
-test("runCli preserves JSON output after per-file config filtering", (t) => {
+test("ESM and CommonJS runCli preserve warning JSON output without failing", (t) => {
   const project = createProject(t);
   write(
     join(project, "utlint.config.ts"),
@@ -991,17 +1103,59 @@ test("runCli preserves JSON output after per-file config filtering", (t) => {
   const disabledSource = write(join(project, "src", "index.ts"), "debugger;\n");
   const enabledSource = write(join(project, "test", "index.ts"), "debugger;\n");
 
-  const result = runCli(["--json", disabledSource, enabledSource], {
+  for (const execute of [runCli, commonJSRunCli]) {
+    const result = execute(["--json", disabledSource, enabledSource], {
+      cwd: project,
+      binary: testBinary(),
+      encoding: "utf8"
+    });
+    const report = JSON.parse(result.stdout);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(report.diagnostics.length, 1);
+    assert.equal(report.diagnostics[0].severity, "warning");
+    assert.match(report.diagnostics[0].filePath, /test\/index\.ts$/);
+  }
+});
+
+test("ESM and CommonJS keep parse errors fatal when rules are configured", (t) => {
+  const project = createProject(t);
+  write(join(project, "utlint.config.json"));
+  const sourcePath = write(join(project, "index.js"), "const = ;\n");
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const result = execute(["--json", sourcePath], {
+      cwd: project,
+      binary: testBinary(),
+      encoding: "utf8"
+    });
+    const report = JSON.parse(result.stdout);
+
+    assert.equal(result.status, 1, result.stderr);
+    assert.ok(report.diagnostics.some((diagnostic) => diagnostic.ruleId === "parse" && diagnostic.severity === "error"));
+  }
+});
+
+test("ignored-file warnings do not fail lintFiles or lintText", (t) => {
+  const project = createProject(t);
+  const ignoredSource = write(join(project, "ignored.js"), "debugger;\n");
+  const options = {
     cwd: project,
     binary: testBinary(),
-    encoding: "utf8"
-  });
-  const report = JSON.parse(result.stdout);
+    noConfig: true,
+    ignorePatterns: ["ignored.js"]
+  };
 
-  assert.equal(result.status, 1, result.stderr);
-  assert.equal(report.diagnostics.length, 1);
-  assert.equal(report.diagnostics[0].severity, "warning");
-  assert.match(report.diagnostics[0].filePath, /test\/index\.ts$/);
+  for (const execute of [lintFiles, require("../index.cjs").lintFiles]) {
+    const report = execute([ignoredSource], options);
+    assert.equal(report.exitCode, 0);
+    assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.severity), ["warning"]);
+  }
+  for (const execute of [lintText, require("../index.cjs").lintText]) {
+    const report = execute("debugger;\n", { ...options, filePath: ignoredSource });
+    assert.equal(report.exitCode, 0);
+    assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.severity), ["warning"]);
+  }
 });
 
 test("runCli keeps --fix writes while filtering project config diagnostics", (t) => {

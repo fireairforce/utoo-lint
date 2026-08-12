@@ -3622,6 +3622,37 @@ pub const Options = struct {
         }
     }
 
+    pub fn severityFromRuleConfigValue(value: std.json.Value) RuleConfigError!?Severity {
+        return switch (value) {
+            .bool => |enabled| if (enabled) .@"error" else null,
+            .integer => |severity| switch (severity) {
+                0 => null,
+                1 => .warning,
+                2 => .@"error",
+                else => error.UnsupportedRuleConfigValue,
+            },
+            .string => |severity| {
+                if (std.ascii.eqlIgnoreCase(severity, "off") or std.mem.eql(u8, severity, "0")) return null;
+                if (std.ascii.eqlIgnoreCase(severity, "warn") or
+                    std.ascii.eqlIgnoreCase(severity, "warning") or
+                    std.ascii.eqlIgnoreCase(severity, "on") or
+                    std.mem.eql(u8, severity, "1"))
+                {
+                    return .warning;
+                }
+                if (std.ascii.eqlIgnoreCase(severity, "error") or std.mem.eql(u8, severity, "2")) {
+                    return .@"error";
+                }
+                return error.UnsupportedRuleConfigValue;
+            },
+            .array => |items| {
+                if (items.items.len == 0) return error.EmptyRuleConfigArray;
+                return severityFromRuleConfigValue(items.items[0]);
+            },
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     pub const RuleConfigError = error{
         EmptyRuleConfigArray,
         UnknownRule,
@@ -11271,4 +11302,18 @@ test "Options can apply ESLint-style rule config values" {
         Options.RuleConfigError.UnknownRule,
         options.setByRuleConfigValue("unknown-rule", .{ .string = "off" }),
     );
+}
+
+test "Options parses ESLint-style rule severities" {
+    try std.testing.expectEqual(null, try Options.severityFromRuleConfigValue(.{ .string = "off" }));
+    try std.testing.expectEqual(Severity.warning, try Options.severityFromRuleConfigValue(.{ .string = "warn" }));
+    try std.testing.expectEqual(Severity.@"error", try Options.severityFromRuleConfigValue(.{ .string = "error" }));
+    try std.testing.expectEqual(Severity.warning, try Options.severityFromRuleConfigValue(.{ .integer = 1 }));
+    try std.testing.expectEqual(Severity.@"error", try Options.severityFromRuleConfigValue(.{ .integer = 2 }));
+    try std.testing.expectEqual(Severity.@"error", try Options.severityFromRuleConfigValue(.{ .bool = true }));
+
+    var array = std.json.Array.init(std.testing.allocator);
+    defer array.deinit();
+    try array.append(.{ .string = "warn" });
+    try std.testing.expectEqual(Severity.warning, try Options.severityFromRuleConfigValue(.{ .array = array }));
 }

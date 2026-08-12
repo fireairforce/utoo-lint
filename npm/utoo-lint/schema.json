@@ -49,7 +49,7 @@
       "oneOf": [
         {
           "type": "string",
-          "enum": ["off", "warn", "error", "on", "0", "1", "2"]
+          "enum": ["off", "warn", "warning", "error", "on", "0", "1", "2"]
         },
         {
           "type": "integer",

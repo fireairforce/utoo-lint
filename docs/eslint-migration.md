@@ -116,6 +116,10 @@ Rule values support the common ESLint forms:
 - `"warn"`, `"error"`, `1`, `2`, or `true` enable a rule.
 - Arrays such as `["error", { ...options }]` use the first item as severity and pass supported options to the native rule implementation.
 
+As in ESLint, warning diagnostics do not fail the command; error diagnostics
+return exit status 1. The fishlint-compatible CLI also supports
+`--max-warnings` when a warning budget should fail CI.
+
 Rule-related CLI options are applied after the config, so command-line rule
 toggles override configured rule values:
 

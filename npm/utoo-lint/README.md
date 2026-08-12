@@ -120,6 +120,10 @@ binary. As in ESLint, selecting a config disables rules not present in its
 resolved `rules` map. When no config is selected, utoo-lint uses its built-in
 default rules.
 
+Rule severities use ESLint's exit behavior: warnings are reported with exit
+status 0, while errors return exit status 1. Use fishlint's `--max-warnings`
+option when warnings should fail CI.
+
 Start from the packaged frontend template:
 
 ```bash

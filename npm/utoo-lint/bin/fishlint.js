@@ -164,6 +164,7 @@ if (Array.isArray(selectedConfig.config)) {
 
   const reportWithSeverity = normalizeReportSeverities(grouped.report, ruleResolution, input);
   const reportWithIgnored = appendDiagnostics(reportWithSeverity, ignoredFiltered.diagnostics);
+  const diagnosticCounts = diagnosticCountsFromReport(reportWithIgnored);
   const filteredReport = quiet.enabled ? filterQuietReport(reportWithIgnored) : reportWithIgnored;
   const rewrittenReport = rewriteReportStdinPaths(filteredReport, input);
   if (grouped.stderr) {
@@ -171,12 +172,13 @@ if (Array.isArray(selectedConfig.config)) {
   }
   writeOutput(formatReportOutput(rewrittenReport, nativeValues), output.file);
   cleanupStdinInput(input);
-  process.exit(eslintExitStatusFromCounts(diagnosticCountsFromReport(rewrittenReport), maxWarnings.value));
+  process.exit(eslintExitStatusFromCounts(diagnosticCounts, maxWarnings.value));
 }
 
 const ruleConfig = materializeRuntimeConfig(nativeValues, args, ruleOverrides.rules, selectedConfig);
 const needsReportOutput =
   quiet.enabled ||
+  maxWarnings.value != null ||
   ignoredFiltered.diagnostics.length > 0 ||
   usesJsonWithMetadataFormat(nativeValues) ||
   ruleResolution.configuredRules.size > 0;
@@ -203,10 +205,11 @@ if (needsReportOutput) {
   } else {
     const reportWithSeverity = normalizeReportSeverities(report, ruleResolution, input);
     const reportWithIgnored = appendDiagnostics(reportWithSeverity, ignoredFiltered.diagnostics);
+    const diagnosticCounts = diagnosticCountsFromReport(reportWithIgnored);
     const filteredReport = quiet.enabled ? filterQuietReport(reportWithIgnored) : reportWithIgnored;
     const rewrittenReport = rewriteReportStdinPaths(filteredReport, input);
     writeOutput(formatReportOutput(rewrittenReport, nativeValues), output.file);
-    exitStatus = eslintExitStatusFromCounts(diagnosticCountsFromReport(rewrittenReport), maxWarnings.value);
+    exitStatus = eslintExitStatusFromCounts(diagnosticCounts, maxWarnings.value);
   }
 } else {
   writeOutput(rewriteStdinPath(rawStdout, input), output.file);

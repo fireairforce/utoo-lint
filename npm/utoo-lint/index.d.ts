@@ -11,6 +11,10 @@ export interface LintMessage {
   suggestions?: LintSuggestion[];
 }
 
+export interface LintDiagnostic extends Omit<LintMessage, "severity"> {
+  severity: "warning" | "error";
+}
+
 export interface LintFix {
   range: [number, number];
   text: string;
@@ -37,7 +41,7 @@ export interface LintResult {
 export interface LintReport {
   files: number;
   filePaths: string[];
-  diagnostics: LintMessage[];
+  diagnostics: LintDiagnostic[];
   outputs?: Array<{ filePath: string; output: string }>;
   exitCode: number;
   stderr?: string;

@@ -162,7 +162,9 @@ npm/Node wrapper; pass lint targets explicitly when invoking the raw binary.
 
 Rule values may be `off`, `warn`, `error`, `0`, `1`, `2`, booleans, or an
 ESLint-style array whose first item is the severity and later items are native
-rule options.
+rule options. Matching ESLint's CLI behavior, warnings are reported without
+making the command fail; errors return exit status 1. The fishlint-compatible
+CLI can make warnings fail with `--max-warnings`.
 
 To migrate an existing ESLint config into the native utoo format:
 
