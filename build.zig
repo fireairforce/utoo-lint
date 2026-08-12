@@ -58,6 +58,30 @@ pub fn build(b: *std.Build) void {
     });
     const run_unit_tests = b.addRunArtifact(unit_tests);
 
-    const test_step = b.step("test", "Run unit tests");
+    const snapshot_module = b.createModule(.{
+        .root_source_file = b.path("tests/snapshots/runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    snapshot_module.addImport("utoo_lint", lint_module);
+
+    const snapshot_runner = b.addExecutable(.{
+        .name = "rule-snapshots",
+        .root_module = snapshot_module,
+    });
+
+    const run_snapshot_tests = b.addRunArtifact(snapshot_runner);
+    run_snapshot_tests.setCwd(b.path("."));
+    const snapshot_test_step = b.step("test-snapshots", "Verify rule snapshots");
+    snapshot_test_step.dependOn(&run_snapshot_tests.step);
+
+    const update_snapshot_tests = b.addRunArtifact(snapshot_runner);
+    update_snapshot_tests.setCwd(b.path("."));
+    update_snapshot_tests.addArg("--update");
+    const snapshot_update_step = b.step("update-snapshots", "Update rule snapshots");
+    snapshot_update_step.dependOn(&update_snapshot_tests.step);
+
+    const test_step = b.step("test", "Run unit tests and rule snapshots");
     test_step.dependOn(&run_unit_tests.step);
+    test_step.dependOn(&run_snapshot_tests.step);
 }

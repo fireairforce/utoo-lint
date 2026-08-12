@@ -1,0 +1,80 @@
+---
+fixture: "tests/snapshots/specs/typescript-eslint/no-invalid-void-type/invalid.ts"
+rule: "@typescript-eslint/no-invalid-void-type"
+---
+
+# Input
+
+```ts
+type Alias = void;
+type ArrayVoid = void[];
+type UnionVoid = string | void;
+interface Shape {
+  value: void;
+}
+function takesVoid(value: void) {}
+```
+
+# Diagnostics
+
+count: 5
+
+## Diagnostic 1
+
+- rule: "@typescript-eslint/no-invalid-void-type"
+- severity: "error"
+- message: "void is only valid as a return type or generic type argument."
+- byte span: 13..17
+- start: 1:14
+- end: 1:18
+- source: "void"
+- fixes: 0
+
+## Diagnostic 2
+
+- rule: "@typescript-eslint/no-invalid-void-type"
+- severity: "error"
+- message: "void is only valid as a return type or generic type argument."
+- byte span: 36..40
+- start: 2:18
+- end: 2:22
+- source: "void"
+- fixes: 0
+
+## Diagnostic 3
+
+- rule: "@typescript-eslint/no-invalid-void-type"
+- severity: "error"
+- message: "void is not valid as a constituent in a union type"
+- byte span: 70..74
+- start: 3:27
+- end: 3:31
+- source: "void"
+- fixes: 0
+
+## Diagnostic 4
+
+- rule: "@typescript-eslint/no-invalid-void-type"
+- severity: "error"
+- message: "void is only valid as a return type or generic type argument."
+- byte span: 103..107
+- start: 5:10
+- end: 5:14
+- source: "void"
+- fixes: 0
+
+## Diagnostic 5
+
+- rule: "@typescript-eslint/no-invalid-void-type"
+- severity: "error"
+- message: "void is only valid as a return type or generic type argument."
+- byte span: 137..141
+- start: 7:27
+- end: 7:31
+- source: "void"
+- fixes: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0

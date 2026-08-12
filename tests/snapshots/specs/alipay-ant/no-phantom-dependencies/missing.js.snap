@@ -1,0 +1,45 @@
+---
+fixture: "tests/snapshots/specs/alipay-ant/no-phantom-dependencies/missing.js"
+rule: "@alipay/ant/no-phantom-dependencies"
+---
+
+# Input
+
+```js
+import declared from "declared-package";
+import missing from "utoo-snapshot-missing-package";
+
+const scoped = require("@utoo-snapshot/missing/subpath");
+console.log(declared, missing, scoped);
+```
+
+# Diagnostics
+
+count: 2
+
+## Diagnostic 1
+
+- rule: "@alipay/ant/no-phantom-dependencies"
+- severity: "warning"
+- message: "检测到未在 package.json 中声明的依赖: utoo-snapshot-missing-package"
+- byte span: 41..93
+- start: 2:1
+- end: 2:53
+- source: "import missing from \"utoo-snapshot-missing-package\";"
+- fixes: 0
+
+## Diagnostic 2
+
+- rule: "@alipay/ant/no-phantom-dependencies"
+- severity: "warning"
+- message: "检测到未在 package.json 中声明的依赖: @utoo-snapshot/missing"
+- byte span: 110..151
+- start: 4:16
+- end: 4:57
+- source: "require(\"@utoo-snapshot/missing/subpath\")"
+- fixes: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0
