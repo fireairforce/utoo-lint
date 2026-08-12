@@ -9,13 +9,50 @@ This directory contains the npm CLI wrapper for `@utoo/lint` and the native plat
 - `@utoo/lint-linux-x64` contains the native Zig binary for Linux x64.
 - `@utoo/lint-win32-x64` contains the native Zig binary for Windows x64.
 
+## Configuration Files
+
+The canonical project config names are `utlint.config.ts` and
+`utlint.config.json`. They are two representations of one active config, not
+files that are implicitly merged. The npm/Node entry point searches the nearest
+directory first; within one directory, TypeScript wins over JSON. Deprecated
+`utoo.json` and `utoo-lint.json` names are checked afterward for temporary
+compatibility. Rule-related CLI options such as `--rules`, individual rule
+toggles, and fishlint's `--rule` are applied after the selected file.
+
+Project-config `files` and `ignores` patterns are relative to the selected
+config file's directory. Flat config entries are matched separately for each
+file and combined in array order, with later rule values overriding earlier
+ones. The npm CLI, JavaScript API, and fishlint compatibility command use this
+per-file rule resolution.
+
+TypeScript config is trusted executable code and its default export must be a
+JSON-serializable object or flat config array. For example:
+
+```ts
+import { defineConfig } from "@utoo/lint/config";
+
+export default defineConfig({
+  files: ["src/**/*.{js,jsx,ts,tsx}"],
+  rules: {
+    "no-debugger": "error"
+  }
+});
+```
+
+The npm wrapper executes `utlint.config.ts`, materializes its result as JSON,
+and invokes the native binary. The raw binary does not execute or discover
+TypeScript; it reads `utlint.config.json` (or a deprecated JSON name) directly.
+It currently applies only the JSON config's `rules`; config-driven `files` and
+`ignores` filtering and default target selection are npm/Node wrapper features.
+Pass lint targets explicitly when invoking the raw binary.
+
 The CLI package also exposes a small ESM API:
 
 ```js
 import { CLIEngine, ESLint, lintFiles, lintText, resolveBinary, run, runFishlint } from "@utoo/lint";
 
 const report = lintFiles(["src", "test"], {
-  config: "utoo.json",
+  config: "utlint.config.json",
   rules: ["no-debugger", "@typescript-eslint/no-unused-vars"]
 });
 
@@ -96,11 +133,19 @@ same config discovery as file linting unless `noConfig` is set. Raw
 diagnostics.
 `isPathIgnored()` reads default `.eslintignore` entries plus `ignorePath`,
 `ignorePatterns`, `noIgnore`, and `baseConfig`/`overrideConfig` ignore entries.
-`calculateConfigForFile()` and `CLIEngine#getConfigForFile()` merge
-`baseConfig`, default `utoo.json` or `utoo-lint.json` files, explicit
-`overrideConfigFile`, and `overrideConfig` rules. `baseConfig` and
+`calculateConfigForFile()` and `CLIEngine#getConfigForFile()` combine
+`baseConfig`, the selected canonical project config, explicit
+`overrideConfigFile`, and `overrideConfig` rules. Project config discovery is
+nearest-directory-first. Within a directory, `utlint.config.ts` wins over
+`utlint.config.json`; the deprecated `utoo.json` and `utoo-lint.json` names are
+checked afterward for temporary compatibility. The project files are
+alternative representations of one selected config and are never implicitly
+merged with one another. `baseConfig` and
 `overrideConfig` may be objects or flat config arrays; when a file path is
 provided, flat config `files` and `ignores` entries are applied before merging.
+Patterns from the selected project config are resolved relative to that config
+file's directory. Matching flat entries are combined in array order, so later
+rule values override earlier values.
 ESLint-compatible results use those calculated rule severities for `messages`,
 `errorCount`, and `warningCount`, including per-file flat config matches. The
 JS API filters diagnostics for rules disabled by the matched file config. The
@@ -124,12 +169,14 @@ The CLI includes a native migration path for projects replacing ESLint config
 files:
 
 ```bash
-utoo-lint migrate eslint --from eslint.config.js --output utoo.json
+utoo-lint migrate eslint --from eslint.config.js --output utlint.config.json
 ```
 
 The migrator writes a utoo config, reports unsupported rules, skips
 formatter-only rules such as `prettier/prettier`, and keeps supported rule
-configs without treating ESLint as the long-term runtime API.
+configs without treating ESLint as the long-term runtime API. It currently
+flattens ESLint flat-config entries into one object; later duplicate rule values
+win, so per-file conflicts need manual review.
 The package ships TypeScript declarations for the main entrypoint and
 compatibility subpaths, so typed ESLint integrations do not need a separate
 `@types` package.
@@ -191,8 +238,8 @@ through the same wrapper, so package scripts such as `eslint src -f json` can be
 tested without adding the `fishlint eslint` prefix.
 
 ```bash
-pnpm exec fishlint eslint --disable-setup --config utoo.json --ext .js,.ts --glob src
-pnpm exec eslint --config utoo.json --ext .js,.ts src
+pnpm exec fishlint eslint --disable-setup --config utlint.config.json --ext .js,.ts --glob src
+pnpm exec eslint --config utlint.config.json --ext .js,.ts src
 ```
 
 For programmatic replacements, `runFishlint()` invokes the same compatibility
@@ -226,7 +273,7 @@ the same `fishlint eslint` compatibility wrapper, preserving flags such as
 Use the packaged frontend config in an app:
 
 ```bash
-cp node_modules/@utoo/lint/configs/frontend.json utoo.json
+cp node_modules/@utoo/lint/configs/frontend.json utlint.config.json
 pnpm exec utoo-lint src
 ```
 

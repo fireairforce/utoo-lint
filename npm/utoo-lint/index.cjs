@@ -2,9 +2,13 @@ const { spawnSync } = require("node:child_process");
 const { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } = require("node:fs");
 const { writeFile: writeFileAsync } = require("node:fs/promises");
 const { tmpdir } = require("node:os");
-const { dirname, extname, isAbsolute, join, resolve: resolvePath } = require("node:path");
+const { dirname, extname, isAbsolute, join, relative, resolve: resolvePath } = require("node:path");
 
 const { platformPackageName, resolveBinary } = require("./lib/binary.cjs");
+const {
+  findConfigPath: findConfigPathFromDirectory,
+  readConfig
+} = require("./lib/config-loader.cjs");
 
 const version = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf8")).version;
 
@@ -66,20 +70,6 @@ const FISHLINT_DROP_VALUE_FLAGS = new Set([
   "-E",
   "-o"
 ]);
-const CONFIG_FILENAMES = ["utoo.json", "utoo-lint.json"];
-const JAVASCRIPT_CONFIG_EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
-const JAVASCRIPT_CONFIG_LOADER_SCRIPT = `
-import { pathToFileURL } from "node:url";
-
-const configPath = process.argv[1];
-const loaded = await import(pathToFileURL(configPath).href);
-const value = loaded.default ?? loaded;
-const json = JSON.stringify(value);
-if (json === undefined) {
-  throw new TypeError("config did not export a JSON-serializable value");
-}
-process.stdout.write(json);
-`;
 const BUILTIN_RULE_IDS = [
   "accessor-pairs",
   "array-callback-return",
@@ -417,6 +407,33 @@ const BUILTIN_RULE_IDS = [
   "@typescript-eslint/prefer-namespace-keyword",
   "@typescript-eslint/restrict-plus-operands"
 ];
+const NATIVE_ONLY_RULE_IDS = [
+  "@alipay/ant/disallow-typos",
+  "@alipay/ant/exhaustive-deps",
+  "@alipay/ant/jsx-handler-names",
+  "@alipay/ant/no-deprecated-dependence",
+  "@alipay/ant/no-deprecated-variable",
+  "@alipay/ant/no-import-files-from-pages-in-common",
+  "@alipay/ant/no-negative-conditionals",
+  "@alipay/ant/no-import-src",
+  "@alipay/ant/no-phantom-dependencies",
+  "@alipay/ant/no-too-large-file",
+  "@alipay/ant/prefer-elseif-end-with-else",
+  "@alipay/ant/prefer-catch-unsafe-func-call",
+  "@alipay/ant/prefer-click-with-debounce",
+  "@alipay/ant/prefer-import-as-required",
+  "@alipay/ant/no-spread-params",
+  "@alipay/ant/prefer-managed-resource",
+  "@alipay/ant/prefer-safe-image-renderer",
+  "@alipay/ant/prefer-import-from-stdlib",
+  "@alipay/spmLint/use-labeled-spm",
+  "@alipay/spmLint/valid-manual-click",
+  "@alipay/spmLint/valid-manual-expo",
+  "@alipay/spmLint/valid-manual-param",
+  "@alipay/spmLint/valid-manual-pv",
+  "semantic-errors"
+];
+const NATIVE_RULE_IDS = [...BUILTIN_RULE_IDS, ...NATIVE_ONLY_RULE_IDS];
 const FIXABLE_BUILTIN_RULE_IDS = new Set(["no-extra-semi", "@typescript-eslint/no-extra-semi"]);
 const BUILTIN_RULES = new Map(BUILTIN_RULE_IDS.map((ruleId) => [ruleId, createBuiltinRule(ruleId)]));
 
@@ -797,24 +814,40 @@ function runCli(args = [], options = {}) {
 
   const cliOptions = {
     ...options,
-    ...parsed.options
+    ...parsed.options,
+    extraArgs: parsed.passthroughArgs,
+    preserveNativeDefaults: Boolean(parsed.options.noConfig)
   };
   const targets = parsed.targets.length > 0 ? parsed.targets : defaultLintTargets(cliOptions);
-  const ignoredDiagnostics = ignoredLintPathDiagnostics(targets, cliOptions);
-  const lintPaths = filteredLintPaths(targets, cliOptions);
-  if (lintPaths.length === 0) {
-    return completedRunResult(ignoredDiagnostics.length > 0 ? 1 : 0, "", "", options);
+  const report = lintFiles(targets, cliOptions);
+  report.diagnostics = normalizeReportDiagnostics(report.diagnostics, cliOptions);
+  report.exitCode = exitCodeForDiagnostics(report.diagnostics);
+  const status = report.exitCode ?? exitCodeForDiagnostics(report.diagnostics);
+  if (cliOptions.format === "json" || parsed.passthroughArgs.includes("--json")) {
+    return completedRunResult(status, `${JSON.stringify(publicCliReport(report))}\n`, report.stderr ?? "", options);
   }
+  return completedRunResult(status, "", `${report.stderr ?? ""}${formatNativeTextReport(report)}`, options);
+}
 
-  return withTemporaryConfig(cliOptions, (resolvedOptions) => {
-    const cliArgs = buildRunCliArgs(lintPaths, resolvedOptions, parsed.passthroughArgs);
-    return run(cliArgs, {
-      ...resolvedOptions,
-      stdio: options.stdio,
-      encoding: options.encoding,
-      input: options.input
-    });
-  });
+function publicCliReport(report) {
+  return {
+    files: report.files ?? 0,
+    filePaths: report.filePaths ?? [],
+    diagnostics: report.diagnostics ?? [],
+    outputs: report.outputs ?? []
+  };
+}
+
+function formatNativeTextReport(report) {
+  const lines = [];
+  for (const diagnostic of report.diagnostics ?? []) {
+    const rule = diagnostic.ruleId ? ` [${diagnostic.ruleId}]` : "";
+    lines.push(
+      `${diagnostic.filePath}:${diagnostic.line ?? 0}:${diagnostic.column ?? 0}: ${diagnostic.severity ?? "error"}: ${diagnostic.message}${rule}`
+    );
+  }
+  lines.push(`${report.files ?? 0} file(s) checked, ${(report.diagnostics ?? []).length} diagnostic(s)`);
+  return `${lines.join("\n")}\n`;
 }
 
 function runFishlint(args = [], options = {}) {
@@ -1037,8 +1070,27 @@ function lintFiles(paths, options = {}) {
     return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, exitCode: ignoredDiagnostics.length > 0 ? 1 : 0 };
   }
 
+  const configRuns = nativeConfigRunsForFiles(expandNativeConfigRunPaths(lintPaths, options), options);
+  if (configRuns) {
+    const report = mergeNativeReports(
+      configRuns.map(({ paths: runPaths, options: runOptions }) => runNativeLintReport(runPaths, runOptions))
+    );
+    return finalizeLintReport(report, ignoredDiagnostics, options);
+  }
+
+  const report = runNativeLintReport(lintPaths, options);
+  return finalizeLintReport(report, ignoredDiagnostics, options);
+}
+
+function expandNativeConfigRunPaths(paths, options) {
+  const cwd = options.cwd ?? process.cwd();
+  const patterns = ignoreDisabled(options) ? [] : ignorePatternsForOptions(options, cwd);
+  return paths.flatMap((path) => expandLintTarget(path, cwd, patterns) ?? [path]);
+}
+
+function runNativeLintReport(paths, options) {
   return withTemporaryConfig(options, (resolvedOptions) => {
-    const cliArgs = buildLintArgs(lintPaths, resolvedOptions);
+    const cliArgs = buildLintArgs(paths, resolvedOptions);
     const result = run(cliArgs, { ...resolvedOptions, stdio: undefined, encoding: "utf8" });
 
     if (result.error) {
@@ -1061,17 +1113,6 @@ function lintFiles(paths, options = {}) {
     }
 
     report.exitCode = status;
-    report.diagnostics = [
-      ...(report.diagnostics ?? []),
-      ...ignoredDiagnostics
-    ];
-    if (!resolvedOptions.deferDiagnosticConfigFiltering) {
-      report.filePaths = normalizeReportFilePaths(report.filePaths, resolvedOptions);
-      report.diagnostics = normalizeDiagnosticFilePaths(report.diagnostics, resolvedOptions);
-      report.outputs = normalizeReportOutputs(report.outputs, resolvedOptions);
-      report.diagnostics = normalizeReportDiagnostics(report.diagnostics, resolvedOptions);
-      report.exitCode = exitCodeForDiagnostics(report.diagnostics);
-    }
     if (stderr) {
       Object.defineProperty(report, "stderr", {
         value: stderr,
@@ -1081,6 +1122,122 @@ function lintFiles(paths, options = {}) {
 
     return report;
   });
+}
+
+function finalizeLintReport(report, ignoredDiagnostics, options) {
+  report.diagnostics = [
+    ...(report.diagnostics ?? []),
+    ...ignoredDiagnostics
+  ];
+  if (!options.deferDiagnosticConfigFiltering) {
+    report.filePaths = normalizeReportFilePaths(report.filePaths, options);
+    report.diagnostics = normalizeDiagnosticFilePaths(report.diagnostics, options);
+    report.outputs = normalizeReportOutputs(report.outputs, options);
+    report.diagnostics = normalizeReportDiagnostics(report.diagnostics, options);
+    report.exitCode = exitCodeForDiagnostics(report.diagnostics);
+  }
+  return report;
+}
+
+function nativeConfigRunsForFiles(paths, options) {
+  if (options.noConfig && !options.baseConfig && !options.overrideConfig) {
+    return undefined;
+  }
+
+  const groups = new Map();
+  let hasConfigSource = Boolean(options.baseConfig || options.overrideConfig);
+  for (const filePath of paths) {
+    const matchPath = paths.length === 1
+      ? options.filePath ?? options.filename ?? filePath
+      : filePath;
+    const fileConfigPath = options.noConfig ? undefined : configPathForFile(options, matchPath);
+    const configured = Boolean(options.baseConfig || options.overrideConfig || fileConfigPath);
+    hasConfigSource ||= configured;
+    let rules = configured ? calculatedConfig({ ...options, rules: undefined }, matchPath).rules : undefined;
+    if (configured && options.rules) {
+      rules = selectedRulesWithConfigOptions(rules, options.rules);
+    }
+    const signature = configured ? stableConfigSignature(rules) : "<native-defaults>";
+    if (!groups.has(signature)) {
+      groups.set(signature, { paths: [], rules, configured });
+    }
+    groups.get(signature).paths.push(filePath);
+  }
+
+  if (!hasConfigSource) {
+    return undefined;
+  }
+
+  return [...groups.values()].map((group) => {
+    if (!group.configured) {
+      return {
+        paths: group.paths,
+        options: {
+          ...options,
+          config: undefined,
+          noConfig: true,
+          baseConfig: undefined,
+          overrideConfig: undefined
+        }
+      };
+    }
+
+    return {
+      paths: group.paths,
+      options: {
+        ...options,
+        config: undefined,
+        noConfig: true,
+        baseConfig: undefined,
+        overrideConfig: { rules: allDisabledNativeRules(group.rules) },
+        forceMaterializedConfig: true
+      }
+    };
+  });
+}
+
+function allDisabledNativeRules(rules) {
+  return {
+    ...Object.fromEntries(NATIVE_RULE_IDS.map((rule) => [rule, "off"])),
+    ...rules
+  };
+}
+
+function selectedRulesWithConfigOptions(configRules, selectedRules) {
+  const selected = rulesFromNativeRuleList(selectedRules);
+  return Object.fromEntries(
+    Object.keys(selected).map((rule) => [
+      rule,
+      configRules?.[rule] != null && ruleConfigSeverity(configRules[rule]) > 0
+        ? configRules[rule]
+        : selected[rule]
+    ])
+  );
+}
+
+function stableConfigSignature(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableConfigSignature(item)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableConfigSignature(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function mergeNativeReports(reports) {
+  const report = {
+    files: reports.reduce((count, item) => count + (item.files ?? 0), 0),
+    filePaths: reports.flatMap((item) => item.filePaths ?? []),
+    diagnostics: reports.flatMap((item) => item.diagnostics ?? []),
+    outputs: reports.flatMap((item) => item.outputs ?? []),
+    exitCode: reports.some((item) => item.exitCode) ? 1 : 0
+  };
+  const stderr = reports.map((item) => item.stderr ?? "").join("");
+  if (stderr) {
+    Object.defineProperty(report, "stderr", { value: stderr, enumerable: false });
+  }
+  return report;
 }
 
 function lintText(code, options = {}) {
@@ -1141,21 +1298,27 @@ function buildLintArgs(paths, options) {
   });
 }
 
-function buildRunCliArgs(paths, options, passthroughArgs) {
-  return buildNativeLintArgs(paths, {
-    ...options,
-    extraArgs: passthroughArgs
-  });
-}
-
 function buildNativeLintArgs(paths, options) {
   const cliArgs = [];
 
-  if (options.config) {
-    cliArgs.push(`--config=${options.config}`);
-  }
   if (options.noConfig) {
     cliArgs.push("--no-config");
+  }
+  if (!options.rules && !options.forceMaterializedConfig && (options.config || options.baseConfig || options.overrideConfig)) {
+    const configForRuleSelection = options.noConfig
+      ? undefined
+      : options.config ? readConfig(options.config, options.cwd) : undefined;
+    const enabledRules = enabledRuleNamesFromConfigs(
+      configForRuleSelection,
+      options.baseConfig,
+      options.overrideConfig
+    );
+    if (enabledRules.length > 0) {
+      cliArgs.push(`--rules=${enabledRules.join(",")}`);
+    }
+  }
+  if (options.config) {
+    cliArgs.push(`--config=${options.config}`);
   }
   if (options.rules) {
     const rules = Array.isArray(options.rules) ? options.rules.join(",") : options.rules;
@@ -1242,10 +1405,10 @@ function calculatedConfig(options = {}, filePath) {
   return {
     ...configData,
     rules: {
-      ...rulesFromNativeRuleList(options.rules),
       ...rulesFromConfig(options.baseConfig, filePath, options.cwd),
       ...rulesFromFileConfig(options, filePath),
-      ...rulesFromConfig(options.overrideConfig, filePath, options.cwd)
+      ...rulesFromConfig(options.overrideConfig, filePath, options.cwd),
+      ...rulesFromNativeRuleList(options.rules)
     }
   };
 }
@@ -1363,7 +1526,7 @@ function rulesFromFileConfig(options, filePath) {
   }
 
   const config = readConfig(configPath, options.cwd);
-  return rulesFromConfig(config, filePath, options.cwd);
+  return rulesFromConfig(config, filePath, dirname(configPath));
 }
 
 function configDataFromFileConfig(options, filePath) {
@@ -1377,7 +1540,7 @@ function configDataFromFileConfig(options, filePath) {
   }
 
   const config = readConfig(configPath, options.cwd);
-  return configDataFromConfig(config, filePath, options.cwd);
+  return configDataFromConfig(config, filePath, dirname(configPath));
 }
 
 function lintTargetsForInput(paths, options = {}) {
@@ -1398,7 +1561,16 @@ function defaultLintTargets(options = {}) {
   }
 
   const targets = filePatternsFromConfig(readConfig(configPath, options.cwd));
-  return targets.length > 0 ? targets : ["."];
+  return targets.length > 0
+    ? targets.map((target) => resolveConfigPattern(target, dirname(configPath)))
+    : ["."];
+}
+
+function resolveConfigPattern(pattern, configDirectory) {
+  if (isAbsolute(pattern)) {
+    return pattern;
+  }
+  return resolvePath(configDirectory, pattern.replace(/^[/\\]/, ""));
 }
 
 function filePatternsFromConfig(config) {
@@ -1452,6 +1624,9 @@ function configPathForOptions(options) {
 }
 
 function configPathForFile(options, filePath) {
+  if (options.noConfig) {
+    return undefined;
+  }
   if (options.config) {
     return resolvePath(options.cwd ?? process.cwd(), options.config);
   }
@@ -1471,66 +1646,18 @@ function configSearchDirectoryForFile(filePath, cwd) {
 }
 
 function configPathFromDirectory(directory) {
-  let current = resolvePath(directory);
-  while (true) {
-    for (const candidate of CONFIG_FILENAMES) {
-      const path = resolvePath(current, candidate);
-      if (existsSync(path)) {
-        return path;
-      }
-    }
-    const parent = dirname(current);
-    if (parent === current) {
-      return undefined;
-    }
-    current = parent;
-  }
-}
-
-function readConfig(path, cwd) {
-  if (isJavaScriptConfigPath(path)) {
-    return readJavaScriptConfig(path, cwd);
-  }
-
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch (error) {
-    throw new Error(`utoo-lint unable to read config ${path}: ${error.message}`);
-  }
-}
-
-function readJavaScriptConfig(path, cwd) {
-  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", JAVASCRIPT_CONFIG_LOADER_SCRIPT, path], {
-    cwd: cwd ?? process.cwd(),
-    encoding: "utf8"
-  });
-  if (result.error) {
-    throw result.error;
-  }
-  if (result.status !== 0) {
-    throw new Error(`utoo-lint unable to read config ${path}: ${(result.stderr ?? "").trim() || "JavaScript config loader failed"}`);
-  }
-  try {
-    return JSON.parse(result.stdout);
-  } catch (error) {
-    throw new Error(`utoo-lint unable to read config ${path}: ${error.message}`);
-  }
-}
-
-function isJavaScriptConfigPath(path) {
-  return JAVASCRIPT_CONFIG_EXTENSIONS.has(extname(path));
+  return findConfigPathFromDirectory(directory);
 }
 
 function withTemporaryConfig(options, callback) {
   const fileConfigPath = !options.noConfig ? configPathForOptions(options) : undefined;
-  const shouldMaterializeFileConfig = fileConfigPath && isJavaScriptConfigPath(fileConfigPath);
+  const shouldMaterializeFileConfig = Boolean(fileConfigPath);
   const fileConfig = shouldMaterializeFileConfig ? readConfig(fileConfigPath, options.cwd) : undefined;
-  const inlineRules = {
-    ...rulesFromConfig(fileConfig),
-    ...rulesFromConfig(options.baseConfig),
-    ...rulesFromConfig(options.overrideConfig)
-  };
-  if (Object.keys(inlineRules).length === 0) {
+  const configs = [options.baseConfig, fileConfig, options.overrideConfig];
+  const rules = shouldMaterializeFileConfig
+    ? materializedRulesFromConfigs(...configs)
+    : runtimeRulesFromConfigs(...configs);
+  if (Object.keys(rules).length === 0) {
     if (shouldMaterializeFileConfig) {
       return callback({
         ...options,
@@ -1540,10 +1667,9 @@ function withTemporaryConfig(options, callback) {
     }
     return callback(options);
   }
-
-  const rules = runtimeRulesFromConfigs(fileConfig, options.baseConfig, options.overrideConfig);
-  const enabledRules = enabledRuleNamesFromConfigs(fileConfig, options.baseConfig, options.overrideConfig);
-  if (!hasRuleOptions(rules)) {
+  const enabledRules = enabledRuleNamesFromConfigs(...configs);
+  const hasExplicitOffRules = Object.values(rules).some((value) => ruleConfigSeverity(value) === 0);
+  if (!shouldMaterializeFileConfig && !hasRuleOptions(rules) && !hasExplicitOffRules && !options.forceMaterializedConfig) {
     return callback({
       ...options,
       config: shouldMaterializeFileConfig ? undefined : options.config,
@@ -1553,13 +1679,14 @@ function withTemporaryConfig(options, callback) {
   }
 
   const tmp = mkdtempSync(join(tmpdir(), "utoo-lint-config-"));
-  const configPath = join(tmp, "utoo.json");
+  const configPath = join(tmp, "utlint.config.json");
   try {
     writeFileSync(configPath, JSON.stringify({ rules }));
     return callback({
       ...options,
       config: shouldMaterializeFileConfig ? configPath : options.config ?? configPath,
-      noConfig: false
+      noConfig: false,
+      rules: options.forceMaterializedConfig ? undefined : options.rules
     });
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -1580,6 +1707,10 @@ function runtimeRulesFromConfigs(...configs) {
   return rules;
 }
 
+function materializedRulesFromConfigs(...configs) {
+  return runtimeRulesFromConfigs(...configs);
+}
+
 function runtimeRulesFromConfig(config) {
   if (!config) {
     return {};
@@ -1593,9 +1724,7 @@ function runtimeRulesFromConfig(config) {
 
   const rules = {};
   for (const [rule, value] of Object.entries(rulesFromConfig(config))) {
-    if (ruleConfigSeverity(value) > 0) {
-      rules[rule] = value;
-    }
+    rules[rule] = value;
   }
   return rules;
 }
@@ -3509,7 +3638,6 @@ function reportToESLintResults(report, textOptions = {}) {
 }
 
 function normalizeReportDiagnostics(diagnostics, options = {}) {
-  const filterUnconfiguredRules = hasRuleConfigSource(options);
   return (diagnostics ?? []).flatMap((diagnostic) => {
     if (!diagnostic?.ruleId) {
       return [diagnostic];
@@ -3519,9 +3647,10 @@ function normalizeReportDiagnostics(diagnostics, options = {}) {
     }
 
     const filePath = normalizeESLintFilePath(diagnostic.filePath, options.cwd);
+    const filterUnconfiguredRules = hasRuleConfigSource(options, filePath);
     const ruleSeverities = ruleSeverityMapForOptions(options, filePath);
     const severity = ruleSeverities?.get(diagnostic.ruleId);
-    if (filterUnconfiguredRules && !ruleSeverities?.has(diagnostic.ruleId)) {
+    if (!options.preserveNativeDefaults && filterUnconfiguredRules && !ruleSeverities?.has(diagnostic.ruleId)) {
       return [];
     }
     if (severity === 0) {
@@ -3552,11 +3681,13 @@ function normalizeDiagnosticFilePaths(diagnostics, options = {}) {
   }));
 }
 
-function hasRuleConfigSource(options = {}) {
-  if (options.noConfig || options.baseConfig || options.overrideConfig || options.rules) {
+function hasRuleConfigSource(options = {}, filePath) {
+  if (options.baseConfig || options.overrideConfig || options.rules) {
     return true;
   }
-  return !options.noConfig && Boolean(configPathForOptions(options));
+  return !options.noConfig && Boolean(
+    filePath ? configPathForFile(options, filePath) : configPathForOptions(options)
+  );
 }
 
 function exitCodeForDiagnostics(diagnostics) {
@@ -3880,7 +4011,21 @@ function ignorePatternsFromFileConfig(options, filePath) {
     return [];
   }
 
-  return ignorePatternsFromConfig(readConfig(configPath, options.cwd));
+  const cwd = options.cwd ?? process.cwd();
+  return ignorePatternsFromConfig(readConfig(configPath, options.cwd)).map((pattern) =>
+    rebaseConfigPattern(pattern, dirname(configPath), cwd)
+  );
+}
+
+function rebaseConfigPattern(pattern, configDirectory, cwd) {
+  const negated = pattern.startsWith("!");
+  const value = negated ? pattern.slice(1) : pattern;
+  const absolute = resolveConfigPattern(value, configDirectory);
+  const relativePattern = normalizePath(relative(resolvePath(cwd), absolute));
+  const rebased = relativePattern === ".." || relativePattern.startsWith("../")
+    ? normalizePath(absolute)
+    : relativePattern;
+  return negated ? `!${rebased}` : rebased;
 }
 
 function ignorePatternsFromConfig(config) {

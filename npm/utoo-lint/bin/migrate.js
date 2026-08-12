@@ -18,6 +18,7 @@ const IGNORED_RULES = new Map([
 ]);
 const SCHEMA_URL = "https://raw.githubusercontent.com/fireairforce/utoo-lint/main/npm/utoo-lint/schema.json";
 const JAVASCRIPT_CONFIG_LOADER_SCRIPT = `
+import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const loaded = await import(pathToFileURL(process.argv[1]).href);
@@ -57,7 +58,7 @@ const json = JSON.stringify(strip(loaded.default ?? loaded));
 if (json === undefined) {
   throw new TypeError("config did not export a migratable value");
 }
-process.stdout.write(json);
+writeFileSync(3, json);
 `;
 
 export async function runMigrate(args) {
@@ -115,7 +116,7 @@ function parseEslintMigrateArgs(args) {
     force: false,
     from: undefined,
     help: false,
-    output: "utoo.json",
+    output: "utlint.config.json",
     print: false,
     report: "text"
   };
@@ -249,7 +250,8 @@ function loadEslintConfig(path, cwd) {
   if (JAVASCRIPT_CONFIG_EXTENSIONS.has(extname(path))) {
     const result = spawnSync(process.execPath, ["--input-type=module", "--eval", JAVASCRIPT_CONFIG_LOADER_SCRIPT, path], {
       cwd,
-      encoding: "utf8"
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe", "pipe"]
     });
     if (result.error) {
       throw result.error;
@@ -257,7 +259,7 @@ function loadEslintConfig(path, cwd) {
     if (result.status !== 0) {
       throw new Error(`utoo-lint migrate eslint: unable to load ${path}: ${(result.stderr ?? "").trim() || "JavaScript config loader failed"}`);
     }
-    return parseJson(result.stdout, path);
+    return parseJson(result.output?.[3] ?? "", path);
   }
   return parseJson(readFileSync(path, "utf8"), path);
 }
@@ -335,7 +337,7 @@ function printMigrateHelp() {
   utoo-lint migrate eslint [options]
 
 Sources:
-  eslint                  Convert an ESLint config into utoo.json
+  eslint                  Convert an ESLint config into utlint.config.json
 
 Run "utoo-lint migrate eslint --help" for source-specific options.`);
 }
@@ -346,7 +348,7 @@ function printEslintMigrateHelp() {
 
 Options:
   --from=PATH             Read ESLint config from PATH
-  --output=PATH, -o PATH  Write utoo config to PATH (default: utoo.json)
+  --output=PATH, -o PATH  Write utoo config to PATH (default: utlint.config.json)
   --force                 Overwrite the output file when it exists
   --print                 Print the generated config instead of writing it
   --report=text|json      Select migration report format

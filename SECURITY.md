@@ -28,7 +28,11 @@ the reporter.
 
 The project treats the following as security-relevant controls:
 
-- JavaScript, TypeScript, and configuration files are treated as untrusted input
+- lint targets and static JSON configs are treated as untrusted data and do not
+  execute code
+- executable project configs such as `utlint.config.ts` and explicitly selected
+  JavaScript configs are trusted code: loading them runs with the permissions of
+  the Node process, so only load them from trusted repositories
 - the Yuku parser dependency is pinned as a Git submodule
 - autofix file writes require explicit opt-in and provide a dry-run mode
 - release artifacts include checksums, and npm releases use provenance

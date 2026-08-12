@@ -1,0 +1,81 @@
+import { spawnSync } from "node:child_process";
+import { readFileSync, statSync } from "node:fs";
+import { dirname, extname, resolve as resolvePath } from "node:path";
+import { fileURLToPath } from "node:url";
+
+export const CONFIG_FILENAMES = [
+  "utlint.config.ts",
+  "utlint.config.json",
+  "utoo.json",
+  "utoo-lint.json"
+];
+
+const TYPESCRIPT_CONFIG_EXTENSIONS = new Set([".ts", ".mts", ".cts"]);
+const JAVASCRIPT_CONFIG_EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
+const loaderPath = fileURLToPath(new URL("./load-config.js", import.meta.url));
+
+export function findConfigPath(directory) {
+  let current = resolvePath(directory);
+  while (true) {
+    for (const filename of CONFIG_FILENAMES) {
+      const candidate = resolvePath(current, filename);
+      if (isFile(candidate)) {
+        return candidate;
+      }
+    }
+    const parent = dirname(current);
+    if (parent === current) {
+      return undefined;
+    }
+    current = parent;
+  }
+}
+
+function isFile(path) {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+export function readConfig(path, cwd) {
+  const configPath = resolvePath(cwd ?? process.cwd(), path);
+  if (isExecutableConfigPath(configPath)) {
+    return readExecutableConfig(configPath, cwd);
+  }
+
+  try {
+    return JSON.parse(readFileSync(configPath, "utf8"));
+  } catch (error) {
+    throw configReadError(configPath, error.message);
+  }
+}
+
+export function isExecutableConfigPath(path) {
+  const extension = extname(path);
+  return TYPESCRIPT_CONFIG_EXTENSIONS.has(extension) || JAVASCRIPT_CONFIG_EXTENSIONS.has(extension);
+}
+
+function readExecutableConfig(path, cwd) {
+  const result = spawnSync(process.execPath, [loaderPath, path], {
+    cwd: cwd ?? process.cwd(),
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe", "pipe"]
+  });
+  if (result.error) {
+    throw configReadError(path, result.error.message);
+  }
+  if (result.status !== 0) {
+    throw configReadError(path, (result.stderr ?? "").trim() || "config loader failed");
+  }
+  try {
+    return JSON.parse(result.output?.[3] ?? "");
+  } catch (error) {
+    throw configReadError(path, error.message);
+  }
+}
+
+function configReadError(path, message) {
+  return new Error(`utoo-lint unable to read config ${path}: ${message}`);
+}

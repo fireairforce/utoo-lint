@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, realpathSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { extname, join } from "node:path";
+import { basename, dirname, extname, join, relative, resolve as resolvePath } from "node:path";
 
 import { resolveBinary } from "../lib/binary.js";
-import { translateFishlintArgs, version } from "../index.js";
+import {
+  findConfigPath as findConfigPathFromDirectory,
+  isExecutableConfigPath,
+  readConfig as readSharedConfig
+} from "../lib/config-loader.js";
+import { Linter, translateFishlintArgs, version } from "../index.js";
 
 const values = process.argv.slice(2);
 const command = values[0];
@@ -44,20 +49,7 @@ const FISHLINT_PASSTHROUGH_DROP_FLAGS = new Set([
   "-v"
 ]);
 const FORMAT_VALUE_FLAGS = new Set(["--config", "--ignore-path", "--parser", "--plugin"]);
-const CONFIG_FILENAMES = ["utoo.json", "utoo-lint.json", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"];
-const JAVASCRIPT_CONFIG_EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
-const JAVASCRIPT_CONFIG_LOADER_SCRIPT = `
-import { pathToFileURL } from "node:url";
-
-const configPath = process.argv[1];
-const loaded = await import(pathToFileURL(configPath).href);
-const value = loaded.default ?? loaded;
-const json = JSON.stringify(value);
-if (json === undefined) {
-  throw new TypeError("config did not export a JSON-serializable value");
-}
-process.stdout.write(json);
-`;
+const ESLINT_CONFIG_FILENAMES = ["eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"];
 const STYLELINT_VALUE_FLAGS = new Set([
   "--cache-location",
   "--config",
@@ -80,7 +72,7 @@ if (isHelpRequest(values)) {
 }
 
 if (command === "setup" || command === "setuplint") {
-  console.warn(`utoo-lint: fishlint ${command} is treated as a no-op; configure utoo-lint with utoo.json.`);
+  console.warn(`utoo-lint: fishlint ${command} is treated as a no-op; configure utoo-lint with utlint.config.json.`);
   process.exit(0);
 }
 
@@ -143,14 +135,51 @@ try {
   process.exit(1);
 }
 
-const printableConfig = loadPrintableConfig(nativeValues, ruleOverrides.rules);
-const ruleSeverities = ruleSeverityMap(printableConfig.rules);
-const ruleConfig = materializeRuntimeConfig(nativeValues, args, ruleOverrides.rules);
+const selectedConfig = loadSelectedConfig(nativeValues);
+const ruleResolution = createRuleResolution(selectedConfig, ruleOverrides.rules, selectedRulesFromArgs(args));
+if (Array.isArray(selectedConfig.config)) {
+  const grouped = runFlatConfigGroups(
+    binary,
+    args,
+    selectedConfig,
+    ruleOverrides.rules,
+    ruleResolution.selectedRules,
+    input
+  );
+  if (grouped.error) {
+    console.error(`utoo-lint: failed to run native binary: ${grouped.error.message}`);
+    cleanupStdinInput(input);
+    process.exit(1);
+  }
+  if (!grouped.report) {
+    if (grouped.stderr) {
+      process.stderr.write(rewriteStdinPath(grouped.stderr, input));
+    }
+    if (grouped.stdout) {
+      writeOutput(rewriteStdinPath(grouped.stdout, input), output.file);
+    }
+    cleanupStdinInput(input);
+    process.exit(grouped.status ?? 1);
+  }
+
+  const reportWithSeverity = normalizeReportSeverities(grouped.report, ruleResolution, input);
+  const reportWithIgnored = appendDiagnostics(reportWithSeverity, ignoredFiltered.diagnostics);
+  const filteredReport = quiet.enabled ? filterQuietReport(reportWithIgnored) : reportWithIgnored;
+  const rewrittenReport = rewriteReportStdinPaths(filteredReport, input);
+  if (grouped.stderr) {
+    process.stderr.write(rewriteStdinPath(grouped.stderr, input));
+  }
+  writeOutput(formatReportOutput(rewrittenReport, nativeValues), output.file);
+  cleanupStdinInput(input);
+  process.exit(eslintExitStatusFromCounts(diagnosticCountsFromReport(rewrittenReport), maxWarnings.value));
+}
+
+const ruleConfig = materializeRuntimeConfig(nativeValues, args, ruleOverrides.rules, selectedConfig);
 const needsReportOutput =
   quiet.enabled ||
   ignoredFiltered.diagnostics.length > 0 ||
   usesJsonWithMetadataFormat(nativeValues) ||
-  ruleSeverities.size > 0;
+  ruleResolution.configuredRules.size > 0;
 const result = spawnSync(binary, needsReportOutput ? withJsonFormat(ruleConfig.args) : ruleConfig.args, { encoding: "utf8" });
 
 if (result.error) {
@@ -172,7 +201,7 @@ if (needsReportOutput) {
     writeOutput(rewriteStdinPath(rawStdout, input), output.file);
     exitStatus = result.status ?? 1;
   } else {
-    const reportWithSeverity = normalizeReportSeverities(report, ruleSeverities);
+    const reportWithSeverity = normalizeReportSeverities(report, ruleResolution, input);
     const reportWithIgnored = appendDiagnostics(reportWithSeverity, ignoredFiltered.diagnostics);
     const filteredReport = quiet.enabled ? filterQuietReport(reportWithIgnored) : reportWithIgnored;
     const rewrittenReport = rewriteReportStdinPaths(filteredReport, input);
@@ -951,16 +980,29 @@ function loadPrintableConfig(args, ruleOverrides = {}) {
   };
 }
 
-function materializeRuntimeConfig(args, translatedArgs, ruleOverrides) {
-  const configPath = findConfigPath(args);
-  const shouldMaterialize = isJavaScriptConfigPath(configPath) || Object.keys(ruleOverrides).length > 0;
+function materializeRuntimeConfig(args, translatedArgs, ruleOverrides, selectedConfig = loadSelectedConfig(args)) {
+  const { configPath, config } = selectedConfig;
+  const shouldMaterialize =
+    (config && typeof config === "object" && Object.keys(config.rules ?? {}).length > 0) ||
+    (typeof configPath === "string" && isExecutableConfigPath(configPath)) ||
+    Array.isArray(config) ||
+    Object.keys(ruleOverrides).length > 0;
   if (!shouldMaterialize) {
-    return { args: translatedArgs };
+    return {
+      args: configPath ? withConfigArg(translatedArgs, resolvePath(configPath)) : translatedArgs
+    };
   }
 
   const directory = mkdtempSync(join(tmpdir(), "utoo-fishlint-rule-"));
-  const file = join(directory, "utoo.json");
-  writeFileSync(file, JSON.stringify(loadRuntimeConfig(configPath, ruleOverrides)));
+  const file = join(directory, "utlint.config.json");
+  const runtimeConfig = loadRuntimeConfig(config, ruleOverrides);
+  writeFileSync(file, JSON.stringify({
+    ...runtimeConfig,
+    rules: {
+      ...disabledNativeRules(),
+      ...(runtimeConfig.rules ?? {})
+    }
+  }));
 
   return {
     args: withConfigArg(translatedArgs, file),
@@ -968,12 +1010,11 @@ function materializeRuntimeConfig(args, translatedArgs, ruleOverrides) {
   };
 }
 
-function loadRuntimeConfig(configPath, ruleOverrides = {}) {
-  const config = configPath ? readConfig(configPath) : {};
+function loadRuntimeConfig(config, ruleOverrides = {}) {
   if (Array.isArray(config)) {
     return {
       rules: {
-        ...rulesFromConfig(config),
+        ...runtimeRulesFromConfig(config),
         ...ruleOverrides
       }
     };
@@ -987,41 +1028,268 @@ function loadRuntimeConfig(configPath, ruleOverrides = {}) {
   };
 }
 
+function loadSelectedConfig(args) {
+  const configPath = findConfigPath(args);
+  return {
+    configPath,
+    config: configPath ? readConfig(configPath) : {}
+  };
+}
+
+function runtimeRulesFromConfig(config) {
+  if (!config) {
+    return {};
+  }
+  if (Array.isArray(config)) {
+    return config.reduce((rules, entry) => ({
+      ...rules,
+      ...runtimeRulesFromConfig(entry)
+    }), {});
+  }
+
+  return Object.fromEntries(
+    Object.entries(rulesFromConfig(config)).filter(([, value]) => ruleConfigSeverity(value) > 0)
+  );
+}
+
+function createRuleResolution(selectedConfig, ruleOverrides, selectedRules = new Set()) {
+  const configuredRules = new Set(Object.keys(rulesFromConfig(selectedConfig.config)));
+  for (const rule of selectedRules) {
+    configuredRules.add(rule);
+  }
+  for (const rule of Object.keys(ruleOverrides)) {
+    configuredRules.add(rule);
+  }
+  return {
+    config: selectedConfig.config,
+    configDirectory: selectedConfig.configPath
+      ? dirname(canonicalFilePath(selectedConfig.configPath))
+      : process.cwd(),
+    configuredRules,
+    ruleOverrides,
+    selectedRules
+  };
+}
+
+function selectedRulesFromArgs(args) {
+  const rules = new Set();
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    const value = arg === "--rules" ? args[++index] : arg.startsWith("--rules=") ? arg.slice("--rules=".length) : undefined;
+    if (!value) {
+      continue;
+    }
+    for (const rule of value.split(",")) {
+      if (rule.trim()) {
+        rules.add(rule.trim());
+      }
+    }
+  }
+  return rules;
+}
+
+function runFlatConfigGroups(binary, translatedArgs, selectedConfig, ruleOverrides, selectedRules, input) {
+  const plan = flatConfigExecutionPlan(translatedArgs, selectedConfig, ruleOverrides, selectedRules, input);
+  const report = { files: 0, filePaths: [], diagnostics: [], outputs: [] };
+  const stderr = [];
+
+  for (const group of plan.groups) {
+    const runtimeConfig = createRuntimeConfig(group.rules);
+    const result = spawnSync(binary, withJsonFormat([
+      ...withoutConfigAndTargets(translatedArgs),
+      `--config=${runtimeConfig.file}`,
+      ...group.files
+    ]), { encoding: "utf8" });
+    cleanupRuleConfig(runtimeConfig);
+    if (result.error) {
+      return { error: result.error };
+    }
+    if (result.stderr) {
+      stderr.push(result.stderr);
+    }
+    const groupReport = parseJsonReport(result.stdout ?? "");
+    if (!groupReport) {
+      return {
+        status: result.status,
+        stdout: result.stdout ?? "",
+        stderr: stderr.join("")
+      };
+    }
+    mergeFlatConfigReport(report, groupReport);
+  }
+
+  report.filePaths = report.filePaths.filter((file) => !plan.globallyIgnored.has(canonicalFilePath(file)));
+  report.diagnostics = report.diagnostics.filter((diagnostic) =>
+    !plan.globallyIgnored.has(canonicalFilePath(diagnostic.filePath))
+  );
+  report.outputs = report.outputs.filter((output) =>
+    !plan.globallyIgnored.has(canonicalFilePath(output.filePath))
+  );
+  report.files = report.filePaths.length;
+  return { report, stderr: stderr.join("") };
+}
+
+function flatConfigExecutionPlan(translatedArgs, selectedConfig, ruleOverrides, selectedRules, input) {
+  const configDirectory = dirname(canonicalFilePath(selectedConfig.configPath));
+  const targetFiles = explicitTargetFiles(translatedArgs);
+  const globallyIgnored = new Set();
+  const groups = new Map();
+
+  for (const file of targetFiles) {
+    const canonical = canonicalFilePath(file);
+    const configFilePath = file === input.file && input.displayPath
+      ? canonicalFilePath(input.displayPath)
+      : canonical;
+    const relativePath = normalizePath(relative(configDirectory, configFilePath));
+    if (isGloballyIgnoredByFlatConfig(selectedConfig.config, relativePath)) {
+      globallyIgnored.add(canonical);
+      continue;
+    }
+    const rules = {
+      ...rulesForFile(selectedConfig.config, relativePath),
+      ...ruleOverrides
+    };
+    for (const rule of selectedRules) {
+      if (!Object.hasOwn(ruleOverrides, rule) && ruleConfigSeverity(rules[rule]) === 0) {
+        rules[rule] = "warn";
+      }
+    }
+    const signature = stableStringify(rules);
+    const group = groups.get(signature) ?? { rules, files: [] };
+    group.files.push(file);
+    groups.set(signature, group);
+  }
+  return { globallyIgnored, groups: [...groups.values()] };
+}
+
+function explicitTargetFiles(args) {
+  const files = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--config" || arg === "-c") {
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("-")) {
+      continue;
+    }
+    collectExecutionFiles(arg, files);
+  }
+  return files;
+}
+
+function collectExecutionFiles(target, files) {
+  let stat;
+  try {
+    stat = statSync(target);
+  } catch {
+    files.push(target);
+    return;
+  }
+  if (stat.isFile()) {
+    files.push(target);
+    return;
+  }
+  if (stat.isDirectory()) {
+    collectExecutionDirectoryFiles(target, files);
+  }
+}
+
+function collectExecutionDirectoryFiles(directory, files) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    if (entry.isDirectory() && [".git", ".zig-cache", "node_modules", "vendor", "zig-out"].includes(entry.name)) {
+      continue;
+    }
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      collectExecutionDirectoryFiles(path, files);
+    } else if (entry.isFile() && isExistingLintFile(path)) {
+      files.push(path);
+    }
+  }
+}
+
+function withoutConfigAndTargets(args) {
+  const values = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--config" || arg === "-c") {
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--config=")) {
+      continue;
+    }
+    if (!arg.startsWith("-")) {
+      continue;
+    }
+    values.push(arg);
+  }
+  return values;
+}
+
+function createRuntimeConfig(rules) {
+  const directory = mkdtempSync(join(tmpdir(), "utoo-fishlint-flat-"));
+  const file = join(directory, "utlint.config.json");
+  writeFileSync(file, JSON.stringify({ rules: { ...disabledNativeRules(), ...rules } }));
+  return { directory, file };
+}
+
+function disabledNativeRules() {
+  return Object.fromEntries([...new Linter().getRules().keys()].map((rule) => [rule, "off"]));
+}
+
+function mergeFlatConfigReport(report, groupReport) {
+  for (const file of groupReport.filePaths ?? []) {
+    if (!report.filePaths.includes(file)) {
+      report.filePaths.push(file);
+    }
+  }
+  report.diagnostics.push(...(groupReport.diagnostics ?? []));
+  report.outputs.push(...(groupReport.outputs ?? []));
+  report.files = report.filePaths.length;
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function isGloballyIgnoredByFlatConfig(config, filePath) {
+  let ignored = false;
+  for (const entry of config) {
+    if (!isGlobalIgnoreEntry(entry)) {
+      continue;
+    }
+    for (const pattern of normalizeConfigPatterns(entry.ignores)) {
+      const negated = pattern.startsWith("!");
+      if (matchesIgnorePattern(filePath, normalizeIgnoredPattern(pattern))) {
+        ignored = !negated;
+      }
+    }
+  }
+  return ignored;
+}
+
+function isGlobalIgnoreEntry(entry) {
+  if (!entry || typeof entry !== "object" || !entry.ignores) {
+    return false;
+  }
+  return Object.keys(entry).every((key) => key === "name" || key === "ignores");
+}
+
 function readConfig(path) {
-  if (isJavaScriptConfigPath(path)) {
-    return readJavaScriptConfig(path);
-  }
-
   try {
-    return JSON.parse(readFileSync(path, "utf8"));
+    return readSharedConfig(resolvePath(path), process.cwd());
   } catch (error) {
-    console.error(`utoo-lint: unable to read config ${path}: ${error.message}`);
+    console.error(error.message);
     process.exit(2);
   }
-}
-
-function readJavaScriptConfig(path) {
-  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", JAVASCRIPT_CONFIG_LOADER_SCRIPT, path], {
-    encoding: "utf8"
-  });
-  if (result.error) {
-    console.error(`utoo-lint: unable to read config ${path}: ${result.error.message}`);
-    process.exit(2);
-  }
-  if (result.status !== 0) {
-    console.error(`utoo-lint: unable to read config ${path}: ${(result.stderr ?? "").trim() || "JavaScript config loader failed"}`);
-    process.exit(2);
-  }
-  try {
-    return JSON.parse(result.stdout);
-  } catch (error) {
-    console.error(`utoo-lint: unable to read config ${path}: ${error.message}`);
-    process.exit(2);
-  }
-}
-
-function isJavaScriptConfigPath(path) {
-  return typeof path === "string" && JAVASCRIPT_CONFIG_EXTENSIONS.has(extname(path));
 }
 
 function rulesFromConfig(config) {
@@ -1041,7 +1309,7 @@ function withConfigArg(args, file) {
   const values = [];
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    if (arg === "-c") {
+    if (arg === "-c" || arg === "--config") {
       index += 1;
       continue;
     }
@@ -1071,11 +1339,13 @@ function findConfigPath(args) {
         console.error(`utoo-lint: fishlint ${arg} requires a path`);
         process.exit(2);
       }
+      configEnabled = true;
       index += 1;
       continue;
     }
     if (arg.startsWith("--config=")) {
       configPath = arg.slice("--config=".length);
+      configEnabled = true;
     }
   }
 
@@ -1085,12 +1355,26 @@ function findConfigPath(args) {
   if (configPath) {
     return configPath;
   }
-  for (const candidate of CONFIG_FILENAMES) {
-    if (existsSync(candidate)) {
-      return candidate;
-    }
+
+  const config = findConfigPathFromDirectory(process.cwd());
+  if (config) {
+    return config;
   }
-  return undefined;
+
+  let directory = process.cwd();
+  while (true) {
+    for (const filename of ESLINT_CONFIG_FILENAMES) {
+      const candidate = resolvePath(directory, filename);
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    const parent = dirname(directory);
+    if (parent === directory) {
+      return undefined;
+    }
+    directory = parent;
+  }
 }
 
 function writeOutput(text, file) {
@@ -1251,8 +1535,8 @@ function filterQuietReport(report) {
   };
 }
 
-function normalizeReportSeverities(report, ruleSeverities) {
-  if (ruleSeverities.size === 0) {
+function normalizeReportSeverities(report, ruleResolution, input) {
+  if (ruleResolution.configuredRules.size === 0) {
     return report;
   }
 
@@ -1263,7 +1547,10 @@ function normalizeReportSeverities(report, ruleSeverities) {
         return [diagnostic];
       }
 
-      const severity = ruleSeverities.get(diagnostic.ruleId);
+      const severity = severityForDiagnostic(ruleResolution, diagnostic, input);
+      if (severity === undefined && ruleResolution.configuredRules.has(diagnostic.ruleId)) {
+        return [];
+      }
       if (severity === 0) {
         return [];
       }
@@ -1273,6 +1560,81 @@ function normalizeReportSeverities(report, ruleSeverities) {
       return [diagnostic];
     })
   };
+}
+
+function severityForDiagnostic(ruleResolution, diagnostic, input) {
+  if (Object.hasOwn(ruleResolution.ruleOverrides, diagnostic.ruleId)) {
+    return ruleConfigSeverity(ruleResolution.ruleOverrides[diagnostic.ruleId]);
+  }
+  if (ruleResolution.selectedRules.has(diagnostic.ruleId)) {
+    return 1;
+  }
+
+  const filePath = diagnostic.filePath === input.file && input.displayPath
+    ? input.displayPath
+    : diagnostic.filePath;
+  const relativePath = normalizePath(relative(ruleResolution.configDirectory, canonicalFilePath(filePath)));
+  const rules = rulesForFile(ruleResolution.config, relativePath);
+  return Object.hasOwn(rules, diagnostic.ruleId)
+    ? ruleConfigSeverity(rules[diagnostic.ruleId])
+    : undefined;
+}
+
+function rulesForFile(config, filePath) {
+  if (!config) {
+    return {};
+  }
+  if (Array.isArray(config)) {
+    return config.reduce((rules, entry) => ({
+      ...rules,
+      ...rulesForFile(entry, filePath)
+    }), {});
+  }
+  if (!configAppliesToFile(config, filePath)) {
+    return {};
+  }
+  return rulesFromConfig(config);
+}
+
+function configAppliesToFile(config, filePath) {
+  const files = normalizeConfigPatterns(config.files);
+  if (files.length > 0 && !files.some((pattern) => matchesConfigFilePattern(filePath, normalizeIgnoredPattern(pattern)))) {
+    return false;
+  }
+  return !isIgnoredTarget(filePath, normalizeConfigPatterns(config.ignores));
+}
+
+function normalizeConfigPatterns(patterns) {
+  if (!patterns) {
+    return [];
+  }
+  const values = Array.isArray(patterns) ? patterns : [patterns];
+  return values.flatMap((value) => {
+    if (typeof value === "string") {
+      return [value];
+    }
+    return Array.isArray(value) ? normalizeConfigPatterns(value) : [];
+  });
+}
+
+function matchesConfigFilePattern(target, pattern) {
+  if (!hasGlobSyntax(pattern)) {
+    return target === pattern || target.startsWith(`${pattern}/`) || target.endsWith(`/${pattern}`);
+  }
+  return new RegExp(`^${globPatternRegExpSource(pattern)}$`).test(target);
+}
+
+function canonicalFilePath(path) {
+  const absolute = resolvePath(path);
+  try {
+    return realpathSync.native(absolute);
+  } catch {
+    try {
+      return join(realpathSync.native(dirname(absolute)), basename(absolute));
+    } catch {
+      return absolute;
+    }
+  }
 }
 
 function rewriteReportStdinPaths(report, input) {
