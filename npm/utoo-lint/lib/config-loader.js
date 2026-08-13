@@ -39,17 +39,25 @@ function isFile(path) {
   }
 }
 
-export function readConfig(path, cwd) {
+export function readConfig(path, cwd, cache) {
   const configPath = resolvePath(cwd ?? process.cwd(), path);
-  if (isExecutableConfigPath(configPath)) {
-    return readExecutableConfig(configPath, cwd);
+  if (cache?.has(configPath)) {
+    return cache.get(configPath);
   }
 
-  try {
-    return JSON.parse(readFileSync(configPath, "utf8"));
-  } catch (error) {
-    throw configReadError(configPath, error.message);
+  let config;
+  if (isExecutableConfigPath(configPath)) {
+    config = readExecutableConfig(configPath, cwd);
+  } else {
+    try {
+      config = JSON.parse(readFileSync(configPath, "utf8"));
+    } catch (error) {
+      throw configReadError(configPath, error.message);
+    }
   }
+
+  cache?.set(configPath, config);
+  return config;
 }
 
 export function isExecutableConfigPath(path) {

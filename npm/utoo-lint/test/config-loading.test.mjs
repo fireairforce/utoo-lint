@@ -389,6 +389,34 @@ test("CLI loads utlint.config.ts and --no-config bypasses it", (t) => {
   assert.match(unconfigured.stderr, /no-debugger/);
 });
 
+test("ESM and CommonJS CLI evaluate a TypeScript config once per lint invocation", (t) => {
+  const project = createProject(t);
+  const counterPath = write(join(project, "config-load-count.txt"), "0");
+  write(
+    join(project, "utlint.config.ts"),
+    [
+      'import { readFileSync, writeFileSync } from "node:fs";',
+      `const counterPath = ${JSON.stringify(counterPath)};`,
+      'writeFileSync(counterPath, String(Number(readFileSync(counterPath, "utf8")) + 1));',
+      'export default { rules: { "no-debugger": "off" } };',
+      ""
+    ].join("\n")
+  );
+  const firstSource = write(join(project, "src", "first.ts"), "debugger;\n");
+  const secondSource = write(join(project, "src", "second.ts"), "debugger;\n");
+
+  const options = {
+    cwd: project,
+    binary: testBinary()
+  };
+  const firstResult = runCli([firstSource, secondSource], options);
+  const secondResult = commonJSRunCli([firstSource, secondSource], options);
+
+  assert.equal(firstResult.status, 0, firstResult.stderr);
+  assert.equal(secondResult.status, 0, secondResult.stderr);
+  assert.equal(readFileSync(counterPath, "utf8"), "2");
+});
+
 test("CommonJS API discovers and loads utlint.config.ts", async (t) => {
   const project = createProject(t);
   const configPath = write(
