@@ -64,6 +64,21 @@ lists autofix coverage by rule.
 
 ## Configuration
 
+`utoo-lint` supports two canonical project config formats:
+
+| Config | Use it when | Raw native binary |
+| --- | --- | --- |
+| `utlint.config.ts` | You want typed authoring, imports, or computed values. | No |
+| `utlint.config.json` | You want a static, runtime-independent config. | Yes |
+
+The npm CLI discovers either format automatically. It can also select one
+explicitly:
+
+```bash
+pnpm exec utoo-lint --config=utlint.config.ts src
+pnpm exec utoo-lint --config=utlint.config.json src
+```
+
 For a static config readable by both the npm CLI and raw native binary, create
 `utlint.config.json`:
 

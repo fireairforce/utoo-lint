@@ -100,11 +100,25 @@ when a rule or a particular code shape cannot be fixed safely. See
 
 The canonical config names are `utlint.config.ts` and `utlint.config.json`.
 They are two representations of one active config, not layers that are merged.
+
+| Config | Use it when | Supported entry points |
+| --- | --- | --- |
+| `utlint.config.ts` | You want typed authoring, imports, or computed values. | npm CLI, JavaScript API, and fishlint compatibility command |
+| `utlint.config.json` | You want a static, runtime-independent config. | npm CLI, JavaScript API, fishlint compatibility command, and raw native binary |
+
 For the npm/Node entry point, discovery checks each directory before moving to
 its parent, so the nearest config directory wins. Within one directory,
 `utlint.config.ts` takes precedence over `utlint.config.json`. The old
 `utoo.json` and `utoo-lint.json` names remain temporarily supported after the
 canonical names, but are deprecated.
+
+The npm CLI discovers either canonical file automatically. You can also select
+one explicitly:
+
+```bash
+pnpm exec utoo-lint --config=utlint.config.ts src
+pnpm exec utoo-lint --config=utlint.config.json src
+```
 
 Use `utlint.config.json` for a static config that both the npm CLI and raw native
 binary can read:
@@ -142,10 +156,9 @@ JSON-serializable object or flat config array. The npm wrapper executes it,
 materializes the result as JSON, and invokes the native binary. The raw binary
 does not execute or discover TypeScript; it searches for `utlint.config.json`
 and then the legacy JSON names. Invoke the npm CLI for `utlint.config.ts`, or
-give the binary `utlint.config.json`. Use
-`--config=path/to/utlint.config.json` to select a file explicitly, or
-`--no-config` to disable config discovery. Rule-related CLI options such as
-`--rules` and individual rule toggles are applied after the selected config.
+give the binary `utlint.config.json`. Use `--no-config` to disable config
+discovery. Rule-related CLI options such as `--rules` and individual rule
+toggles are applied after the selected config.
 As in ESLint, a selected config's `rules` map is the complete rule set: rules
 that are not configured are disabled. With no selected config, utoo-lint keeps
 its built-in default rules.

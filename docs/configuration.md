@@ -9,6 +9,13 @@ The canonical config names are:
 - `utlint.config.json`: a static JSON config readable by both the npm CLI and
   the raw native binary.
 
+Choose the format based on how the config will be used:
+
+| Config | Best for | npm/Node CLI | Raw native binary |
+| --- | --- | --- | --- |
+| `utlint.config.ts` | Type checking while authoring, imports, shared presets, and computed values | Yes | No |
+| `utlint.config.json` | Static configuration, schema validation, and direct native use | Yes | Yes |
+
 These are alternative representations of the same active config. They are not
 implicitly merged. For the npm/Node entry point, discovery is nearest-first:
 all supported names are checked in one directory before the parent directory is
@@ -23,8 +30,20 @@ This means a nearer `utlint.config.json` wins over a more distant
 `utlint.config.ts`. The two legacy JSON names remain temporarily supported for
 migration, but new projects should use a canonical name.
 
-Use `--config=path/to/utlint.config.json` to select a config explicitly, or
-`--no-config` to ignore local config. Rule-related CLI options such as
+The npm CLI discovers either canonical format automatically:
+
+```bash
+npx utoo-lint src
+```
+
+To select a file explicitly, pass either format to `--config`:
+
+```bash
+npx utoo-lint --config=utlint.config.ts src
+npx utoo-lint --config=utlint.config.json src
+```
+
+Use `--no-config` to ignore local config. Rule-related CLI options such as
 `--rules` and individual rule toggles are applied after the selected config.
 The resolved `rules` map is the complete enabled rule set, matching ESLint's
 configuration model: omitted rules are disabled. If no config is selected,
@@ -53,11 +72,12 @@ export default defineConfig({
 ```
 
 `defineConfig()` accepts config objects and flat config arrays and returns a
-flat array. A TypeScript config is trusted executable code: loading it can run
-arbitrary code with the permissions of the Node process. Its default export
-must be a JSON-serializable config object or flat config array. The loader
-transpiles and executes TypeScript syntax; it does not run `tsc` or perform type
-checking.
+flat array. It also provides editor completion and compile-time checking from
+the exported configuration types. A TypeScript config is trusted executable
+code: loading it can run arbitrary code with the permissions of the Node
+process. Its default export must be a JSON-serializable config object or flat
+config array. The loader transpiles and executes TypeScript syntax; it does not
+run `tsc` or perform type checking when linting starts.
 
 For a flat config array, each entry's `files` and `ignores` select the files to
 which that entry applies. Matching entries are combined in array order, so a
@@ -91,6 +111,10 @@ Use `utlint.config.json` for a static, runtime-independent config:
   }
 }
 ```
+
+The optional `$schema` property enables completion and validation in editors
+that support JSON Schema. JSON config cannot contain imports or computed
+values; use `utlint.config.ts` when those are required.
 
 ESLint config files are a migration input, not the recommended long-term
 configuration format. Generate a native config with:
