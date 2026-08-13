@@ -487,7 +487,7 @@ export class UtooLint {
   }
 
   async lintFiles(patterns, options = {}) {
-    const mergedOptions = mergeLintOptions(this.options, options);
+    const mergedOptions = withConfigCache(mergeLintOptions(this.options, options));
     const customRuleConfig = [mergedOptions.baseConfig, mergedOptions.overrideConfig].filter(Boolean);
     const customRuleFilterMap = customRuleMapForConfig(customRuleConfig, new Map());
     const nativeOptions = lintOptionsWithoutCustomRules(mergedOptions, customRuleFilterMap);
@@ -507,7 +507,7 @@ export class UtooLint {
       throw new TypeError("code must be a string");
     }
 
-    const mergedOptions = mergeLintOptions(this.options, options);
+    const mergedOptions = withConfigCache(mergeLintOptions(this.options, options));
     const filePath = normalizeESLintFilePath(textFilePathForOptions(options, "<text>"), mergedOptions.cwd);
     const customRuleConfig = [mergedOptions.baseConfig, mergedOptions.overrideConfig].filter(Boolean);
     const customRuleMap = customRuleMapForConfig(customRuleConfig, new Map(), filePath, mergedOptions.cwd);
@@ -531,7 +531,7 @@ export class UtooLint {
   }
 
   async calculateConfigForFile(filePath) {
-    return publicCalculatedConfig(eslintConstructorOptions(this.options), filePath);
+    return publicCalculatedConfig(withConfigCache(eslintConstructorOptions(this.options)), filePath);
   }
 
   async findConfigFile(filePath) {
@@ -2446,7 +2446,7 @@ export class CLIEngine {
   }
 
   executeOnFiles(patterns) {
-    const mergedOptions = eslintConstructorOptions(this.options);
+    const mergedOptions = withConfigCache(eslintConstructorOptions(this.options));
     const report = lintFiles(patterns, mergedOptions);
     throwOnUnmatchedPatternDiagnostics(report, mergedOptions);
     const results = maybeFilterQuietResults(reportToESLintResults(report, {
@@ -2466,10 +2466,10 @@ export class CLIEngine {
       typeof filePathOrOptions === "object" && filePathOrOptions !== null
         ? filePathOrOptions.filePath ?? filePathOrOptions.filename ?? "input.js"
         : filePathOrOptions;
-    const mergedOptions = {
+    const mergedOptions = withConfigCache({
       ...eslintConstructorOptions(this.options),
       ...textOptions
-    };
+    });
     const report = lintText(code, {
       ...mergedOptions,
       filePath
@@ -2506,7 +2506,7 @@ export class CLIEngine {
   }
 
   getConfigForFile(filePath) {
-    return publicCalculatedConfig(eslintConstructorOptions(this.options), filePath);
+    return publicCalculatedConfig(withConfigCache(eslintConstructorOptions(this.options)), filePath);
   }
 }
 
@@ -2648,12 +2648,12 @@ export function runCli(args = [], options = {}) {
     return run(parsed.passthroughArgs, options);
   }
 
-  const cliOptions = {
+  const cliOptions = withConfigCache({
     ...options,
     ...parsed.options,
     extraArgs: parsed.passthroughArgs,
     preserveNativeDefaults: Boolean(parsed.options.noConfig)
-  };
+  });
   const targets = parsed.targets.length > 0 ? parsed.targets : defaultLintTargets(cliOptions);
   const report = lintFiles(targets, cliOptions);
   report.diagnostics = normalizeReportDiagnostics(report.diagnostics, cliOptions);
@@ -2899,6 +2899,7 @@ function booleanFlagValue(arg) {
 }
 
 export function lintFiles(paths, options = {}) {
+  options = withConfigCache(options);
   const targets = lintTargetsForInput(paths, options);
   const ignoredDiagnostics = ignoredLintPathDiagnostics(targets, options);
   const lintPaths = filteredLintPaths(targets, options);
@@ -3077,6 +3078,7 @@ function mergeNativeReports(reports) {
 }
 
 export function lintText(code, options = {}) {
+  options = withConfigCache(options);
   if (typeof code !== "string") {
     throw new TypeError("code must be a string");
   }
@@ -3143,7 +3145,7 @@ function buildNativeLintArgs(paths, options) {
   if (!options.rules && !options.forceMaterializedConfig && (options.config || options.baseConfig || options.overrideConfig)) {
     const configForRuleSelection = options.noConfig
       ? undefined
-      : options.config ? readConfig(options.config, options.cwd) : undefined;
+      : options.config ? readConfig(options.config, options.cwd, options.configCache) : undefined;
     const enabledRules = enabledRuleNamesFromConfigs(
       configForRuleSelection,
       options.baseConfig,
@@ -3187,6 +3189,12 @@ function mergeLintOptions(base, override) {
     ...eslintConstructorOptions(base),
     ...override
   };
+}
+
+function withConfigCache(options) {
+  // Executable configs are otherwise re-evaluated at every per-file lookup.
+  // Keep the cache on the options object so one public invocation shares it.
+  return options.configCache ? options : { ...options, configCache: new Map() };
 }
 
 function eslintConstructorOptions(options) {
@@ -3361,7 +3369,7 @@ function rulesFromFileConfig(options, filePath) {
     return {};
   }
 
-  const config = readConfig(configPath, options.cwd);
+  const config = readConfig(configPath, options.cwd, options.configCache);
   return rulesFromConfig(config, filePath, dirname(configPath));
 }
 
@@ -3375,7 +3383,7 @@ function configDataFromFileConfig(options, filePath) {
     return {};
   }
 
-  const config = readConfig(configPath, options.cwd);
+  const config = readConfig(configPath, options.cwd, options.configCache);
   return configDataFromConfig(config, filePath, dirname(configPath));
 }
 
@@ -3396,7 +3404,7 @@ function defaultLintTargets(options = {}) {
     return ["."];
   }
 
-  const targets = filePatternsFromConfig(readConfig(configPath, options.cwd));
+  const targets = filePatternsFromConfig(readConfig(configPath, options.cwd, options.configCache));
   return targets.length > 0
     ? targets.map((target) => resolveConfigPattern(target, dirname(configPath)))
     : ["."];
@@ -3488,7 +3496,9 @@ function configPathFromDirectory(directory) {
 function withTemporaryConfig(options, callback) {
   const fileConfigPath = !options.noConfig ? configPathForOptions(options) : undefined;
   const shouldMaterializeFileConfig = Boolean(fileConfigPath);
-  const fileConfig = shouldMaterializeFileConfig ? readConfig(fileConfigPath, options.cwd) : undefined;
+  const fileConfig = shouldMaterializeFileConfig
+    ? readConfig(fileConfigPath, options.cwd, options.configCache)
+    : undefined;
   const configs = [options.baseConfig, fileConfig, options.overrideConfig];
   const rules = shouldMaterializeFileConfig
     ? materializedRulesFromConfigs(...configs)
@@ -4015,7 +4025,7 @@ function ignorePatternsFromFileConfig(options, filePath) {
   }
 
   const cwd = options.cwd ?? process.cwd();
-  return ignorePatternsFromConfig(readConfig(configPath, options.cwd)).map((pattern) =>
+  return ignorePatternsFromConfig(readConfig(configPath, options.cwd, options.configCache)).map((pattern) =>
     rebaseConfigPattern(pattern, dirname(configPath), cwd)
   );
 }
