@@ -2583,6 +2583,14 @@ function parseUtooLintCliArgs(args = []) {
       passthroughArgs.push(arg);
       continue;
     }
+    if (arg === "--color") {
+      options.color = true;
+      continue;
+    }
+    if (arg === "--no-color") {
+      options.color = false;
+      continue;
+    }
     if (arg.startsWith("-")) {
       passthroughArgs.push(arg);
       continue;
@@ -2662,7 +2670,7 @@ export function runCli(args = [], options = {}) {
   if (cliOptions.format === "json" || parsed.passthroughArgs.includes("--json")) {
     return completedRunResult(status, `${JSON.stringify(publicCliReport(report))}\n`, report.stderr ?? "", options);
   }
-  return completedRunResult(status, "", `${report.stderr ?? ""}${formatNativeTextReport(report)}`, options);
+  return completedRunResult(status, "", `${report.stderr ?? ""}${formatNativeTextReport(report, cliOptions)}`, options);
 }
 
 function publicCliReport(report) {
@@ -2674,16 +2682,80 @@ function publicCliReport(report) {
   };
 }
 
-function formatNativeTextReport(report) {
+function formatNativeTextReport(report, options = {}) {
+  const diagnostics = report.diagnostics ?? [];
+  const files = report.files ?? 0;
+  const color = shouldUseColor(options);
+
+  if (diagnostics.length === 0) {
+    return `${paint(color, "\u001b[32m", "✓")} ${pluralize(files, "file")} checked, no problems found\n`;
+  }
+
   const lines = [];
-  for (const diagnostic of report.diagnostics ?? []) {
-    const rule = diagnostic.ruleId ? ` [${diagnostic.ruleId}]` : "";
+  const locationWidth = diagnostics.reduce(
+    (width, diagnostic) => Math.max(width, diagnosticLocation(diagnostic).length),
+    0
+  );
+  let currentFile;
+
+  for (const diagnostic of diagnostics) {
+    const filePath = diagnostic.filePath ?? "<unknown>";
+    if (filePath !== currentFile) {
+      if (lines.length > 0) lines.push("");
+      lines.push(paint(color, "\u001b[1m", filePath));
+      currentFile = filePath;
+    }
+
+    const location = diagnosticLocation(diagnostic).padStart(locationWidth);
+    const severity = diagnostic.severity === "warning" || diagnostic.severity === 1 ? "warning" : "error";
+    const severityColor = severity === "error" ? "\u001b[31m" : "\u001b[33m";
+    const message = String(diagnostic.message ?? "").replace(/\s*[\r\n]+\s*/g, " ");
+    const rule = diagnostic.ruleId ? `  ${paint(color, "\u001b[2m", diagnostic.ruleId)}` : "";
     lines.push(
-      `${diagnostic.filePath}:${diagnostic.line ?? 0}:${diagnostic.column ?? 0}: ${diagnostic.severity ?? "error"}: ${diagnostic.message}${rule}`
+      `  ${paint(color, "\u001b[2m", location)}  ${paint(color, severityColor, severity.padEnd(7))}  ${message}${rule}`
     );
   }
-  lines.push(`${report.files ?? 0} file(s) checked, ${(report.diagnostics ?? []).length} diagnostic(s)`);
+
+  const errors = diagnostics.filter((diagnostic) => diagnostic.severity === "error" || diagnostic.severity === 2).length;
+  const warnings = diagnostics.length - errors;
+  const markerColor = errors > 0 ? "\u001b[31m" : "\u001b[33m";
+  lines.push("");
+  lines.push(
+    `${paint(color, markerColor, "✖")} ${pluralize(diagnostics.length, "problem")} (${pluralize(errors, "error")}, ${pluralize(warnings, "warning")})`
+  );
+
+  const fixable = diagnostics.filter(diagnosticIsFixable).length;
+  const fixRequested = options.fix || options.extraArgs?.includes("--fix") || options.extraArgs?.includes("--fix-dry-run");
+  if (fixable > 0 && !fixRequested) {
+    lines.push(`  ${pluralize(fixable, "problem")} potentially fixable with the \`--fix\` option.`);
+  }
+  lines.push(`  ${pluralize(files, "file")} checked`);
   return `${lines.join("\n")}\n`;
+}
+
+function diagnosticLocation(diagnostic) {
+  return `${diagnostic.line ?? 0}:${diagnostic.column ?? 0}`;
+}
+
+function diagnosticIsFixable(diagnostic) {
+  return Boolean(diagnostic.fix) || (Array.isArray(diagnostic.fixes) && diagnostic.fixes.length > 0);
+}
+
+function pluralize(count, noun) {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function paint(enabled, code, text) {
+  return enabled ? `${code}${text}\u001b[0m` : text;
+}
+
+function shouldUseColor(options = {}) {
+  if (options.color === true) return true;
+  if (options.color === false) return false;
+  const env = options.env ? { ...process.env, ...options.env } : process.env;
+  if (env.NO_COLOR !== undefined || env.NODE_DISABLE_COLORS !== undefined) return false;
+  if ((env.FORCE_COLOR && env.FORCE_COLOR !== "0") || (env.CLICOLOR_FORCE && env.CLICOLOR_FORCE !== "0")) return true;
+  return Boolean(process.stderr.isTTY);
 }
 
 export function runFishlint(args = [], options = {}) {
