@@ -2717,7 +2717,7 @@ fn printHelp() void {
         \\  --react-jsx-no-undef=off Disable react/jsx-no-undef
         \\  --react-jsx-pascal-case=off Disable react/jsx-pascal-case
         \\  --react-jsx-uses-react=off Disable react/jsx-uses-react
-        \\  --react-jsx-uses-vars=off Disable react/jsx-uses-vars
+        \\  --react-jsx-uses-vars=off Accept legacy react/jsx-uses-vars configuration
         \\  --react-no-danger=off     Disable react/no-danger
         \\  --react-no-danger-with-children=off Disable react/no-danger-with-children
         \\  --react-no-access-state-in-setstate=off Disable react/no-access-state-in-setstate

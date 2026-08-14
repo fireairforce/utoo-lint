@@ -23,7 +23,6 @@ pub const Options = struct {
     ignore_using_declarations: bool = false,
     check_type_parameters: bool = false,
     react_jsx_uses_react: bool = false,
-    react_jsx_uses_vars: bool = true,
     args_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
     caught_errors_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
     destructured_array_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
@@ -96,7 +95,7 @@ pub fn runWithOptions(
     defer parameters.deinit(allocator);
 
     if (options.check_parameters and options.args_after_used) {
-        try collectParameters(allocator, tree, symbol_table, options, &parameters);
+        try collectParameters(allocator, tree, symbol_table, &parameters);
         std.mem.sort(Parameter, parameters.items, {}, lessThanParameter);
     }
 
@@ -151,7 +150,7 @@ pub fn runWithOptions(
         const decls = symbol_table.symbolDecls(entry.id);
         if (decls.len == 0) continue;
 
-        if (isReferenced(tree, symbol_table, entry.id, options)) {
+        if (symbol_table.isReferenced(entry.id)) {
             if (options.report_used_ignore_pattern and isReportedUsedIgnoredName(name, flags, decls, &destructured_array_ignored_decls, options)) {
                 try core.addDiagnosticFmt(
                     allocator,
@@ -301,26 +300,10 @@ fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bo
         (options.check_type_parameters and flags.type_parameter);
 }
 
-fn isReferenced(
-    tree: *const ast.Tree,
-    symbol_table: traverser.semantic.SymbolTable,
-    symbol_id: SymbolId,
-    options: Options,
-) bool {
-    if (options.react_jsx_uses_vars) return symbol_table.isReferenced(symbol_id);
-
-    var iter = symbol_table.symbolUses(symbol_id);
-    while (iter.next()) |use_node| {
-        if (tree.data(use_node) != .jsx_identifier) return true;
-    }
-    return false;
-}
-
 fn collectParameters(
     allocator: Allocator,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
-    options: Options,
     parameters: *std.ArrayList(Parameter),
 ) Allocator.Error!void {
     var iter = symbol_table.iterSymbols();
@@ -335,7 +318,7 @@ fn collectParameters(
             .symbol_id = entry.id,
             .scope = symbol.scope,
             .start = tree.span(decls[0]).start,
-            .used = isReferenced(tree, symbol_table, entry.id, options),
+            .used = symbol_table.isReferenced(entry.id),
         });
     }
 }
