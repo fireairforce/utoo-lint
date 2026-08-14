@@ -88,6 +88,7 @@ export interface LintOptions {
   threads?: number;
   rules?: string[] | string;
   format?: "text" | "json" | string;
+  color?: boolean;
   config?: string;
   configFile?: string;
   noConfig?: boolean;

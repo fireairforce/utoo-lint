@@ -8,12 +8,14 @@ const Stats = struct {
     files: usize = 0,
     diagnostics: usize = 0,
     errors: usize = 0,
+    fixable: usize = 0,
     fixed: usize = 0,
 
     fn add(self: *Stats, other: Stats) void {
         self.files += other.files;
         self.diagnostics += other.diagnostics;
         self.errors += other.errors;
+        self.fixable += other.fixable;
         self.fixed += other.fixed;
     }
 };
@@ -67,6 +69,7 @@ const WorkQueue = struct {
     options: lint.Options,
     rule_severities: *const RuleSeverityMap,
     fix_mode: FixMode,
+    use_color: bool,
     next_index: std.atomic.Value(usize) = .init(0),
     print_mutex: std.Io.Mutex = .init,
 };
@@ -105,6 +108,7 @@ pub fn main(init: std.process.Init) !void {
     var thread_count_override: ?usize = null;
     var output_format: OutputFormat = .text;
     var fix_mode: FixMode = .none;
+    var color_override: ?bool = null;
     var targets: std.ArrayList([]const u8) = .empty;
     defer targets.deinit(allocator);
 
@@ -129,6 +133,10 @@ pub fn main(init: std.process.Init) !void {
             thread_count_override = parsed;
         } else if (std.mem.eql(u8, arg, "--json")) {
             output_format = .json;
+        } else if (std.mem.eql(u8, arg, "--color")) {
+            color_override = true;
+        } else if (std.mem.eql(u8, arg, "--no-color")) {
+            color_override = false;
         } else if (std.mem.eql(u8, arg, "--fix")) {
             if (fix_mode == .dry_run) {
                 std.debug.print("utoo-lint: --fix and --fix-dry-run cannot be used together\n", .{});
@@ -1254,17 +1262,9 @@ pub fn main(init: std.process.Init) !void {
         try lintFilesJson(allocator, io, files.items, options, &rule_severities, fix_mode, &stats, &json_diagnostics, &json_outputs);
         try writeJsonReport(io, stats, files.items, json_diagnostics.items, json_outputs.items);
     } else {
-        try lintFiles(allocator, io, files.items, options, &rule_severities, fix_mode, thread_count_override, &stats);
-
-        if (fix_mode == .none) {
-            std.debug.print("{d} file(s) checked, {d} diagnostic(s)\n", .{ stats.files, stats.diagnostics });
-        } else {
-            std.debug.print("{d} file(s) checked, {d} diagnostic(s), {d} fixed\n", .{
-                stats.files,
-                stats.diagnostics,
-                stats.fixed,
-            });
-        }
+        const use_color = color_override orelse detectColorSupport(io, init.environ_map.*);
+        try lintFiles(allocator, io, files.items, options, &rule_severities, fix_mode, thread_count_override, use_color, &stats);
+        printTextSummary(stats, fix_mode, use_color);
     }
 
     if (stats.errors > 0) {
@@ -1820,6 +1820,7 @@ fn lintFiles(
     rule_severities: *const RuleSeverityMap,
     fix_mode: FixMode,
     thread_count_override: ?usize,
+    use_color: bool,
     stats: *Stats,
 ) !void {
     if (files.len == 0) return;
@@ -1827,7 +1828,7 @@ fn lintFiles(
     const worker_count = @min(files.len, thread_count_override orelse (std.Thread.getCpuCount() catch 1));
     if (worker_count <= 1) {
         for (files) |file| {
-            try lintFile(std.heap.smp_allocator, io, file, options, rule_severities, fix_mode, stats, null);
+            try lintFile(std.heap.smp_allocator, io, file, options, rule_severities, fix_mode, use_color, stats, null);
         }
         return;
     }
@@ -1838,6 +1839,7 @@ fn lintFiles(
         .options = options,
         .rule_severities = rule_severities,
         .fix_mode = fix_mode,
+        .use_color = use_color,
     };
 
     const threads = try allocator.alloc(std.Thread, worker_count);
@@ -1906,6 +1908,7 @@ fn lintWorker(queue: *WorkQueue, result: *WorkerResult) void {
             queue.options,
             queue.rule_severities,
             queue.fix_mode,
+            queue.use_color,
             &result.stats,
             &queue.print_mutex,
         ) catch |err| {
@@ -1965,6 +1968,7 @@ fn lintFile(
     options: lint.Options,
     rule_severities: *const RuleSeverityMap,
     fix_mode: FixMode,
+    use_color: bool,
     stats: *Stats,
     print_mutex: ?*std.Io.Mutex,
 ) !void {
@@ -1981,7 +1985,7 @@ fn lintFile(
     if (fix_mode == .none) {
         var result = try lint.lintSourceWithIo(allocator, io, source, path, options);
         defer result.deinit(allocator);
-        return printResultDiagnostics(io, print_mutex, path, source, result, rule_severities, stats);
+        return printResultDiagnostics(allocator, io, print_mutex, path, source, result, rule_severities, use_color, stats);
     }
 
     var fixed = try lint.lintSourceAndFixWithIo(allocator, io, source, path, options);
@@ -1994,35 +1998,62 @@ fn lintFile(
         }
     }
 
-    printResultDiagnostics(io, print_mutex, path, fixed.output, fixed.result, rule_severities, stats);
+    try printResultDiagnostics(allocator, io, print_mutex, path, fixed.output, fixed.result, rule_severities, use_color, stats);
 }
 
 fn printResultDiagnostics(
+    allocator: std.mem.Allocator,
     io: std.Io,
     print_mutex: ?*std.Io.Mutex,
     path: []const u8,
     source: []const u8,
     result: lint.Result,
     rule_severities: *const RuleSeverityMap,
+    use_color: bool,
     stats: *Stats,
-) void {
+) !void {
+    if (result.diagnostics.len == 0) return;
+
+    var output: std.Io.Writer.Allocating = .init(allocator);
+    defer output.deinit();
+    const writer = &output.writer;
+    try writeStyled(writer, use_color, "\x1b[1m", path);
+    try writer.writeByte('\n');
+
+    var location_width: usize = 0;
+    for (result.diagnostics) |diagnostic| {
+        const position = lint.offsetToLineColumn(source, diagnostic.span.start);
+        location_width = @max(location_width, decimalDigits(position.line) + 1 + decimalDigits(position.column));
+    }
+
     for (result.diagnostics) |diagnostic| {
         const severity = effectiveDiagnosticSeverity(rule_severities, diagnostic);
         const position = lint.offsetToLineColumn(source, diagnostic.span.start);
-        printLocked(io, print_mutex, "{s}:{d}:{d}: {s}: {s} [{s}]\n", .{
-            path,
-            position.line,
-            position.column,
-            severity.toString(),
-            diagnostic.message,
-            diagnostic.rule_id,
-        });
+        const current_width = decimalDigits(position.line) + 1 + decimalDigits(position.column);
+        try writer.writeAll("  ");
+        try writer.splatByteAll(' ', location_width - current_width);
+        if (use_color) try writer.writeAll("\x1b[2m");
+        try writer.print("{d}:{d}", .{ position.line, position.column });
+        if (use_color) try writer.writeAll("\x1b[0m");
+        try writer.writeAll("  ");
+        if (use_color) try writer.writeAll(if (severity == .@"error") "\x1b[31m" else "\x1b[33m");
+        try writer.writeAll(severity.toString());
+        if (use_color) try writer.writeAll("\x1b[0m");
+        try writer.splatByteAll(' ', 9 - severity.toString().len);
+        try writeSingleLine(writer, diagnostic.message);
+        try writer.writeAll("  ");
+        try writeStyled(writer, use_color, "\x1b[2m", diagnostic.rule_id);
+        try writer.writeByte('\n');
 
         stats.diagnostics += 1;
+        if (diagnostic.fixes.len > 0) stats.fixable += 1;
         if (severity == .@"error") {
             stats.errors += 1;
         }
     }
+    try writer.writeByte('\n');
+
+    printLocked(io, print_mutex, "{s}", .{output.writer.buffered()});
 }
 
 fn appendJsonDiagnostic(
@@ -2174,6 +2205,85 @@ fn writeJsonReport(
     try stdout.flush();
 }
 
+fn detectColorSupport(io: std.Io, environ: std.process.Environ.Map) bool {
+    if (environ.get("NO_COLOR") != null or environ.get("NODE_DISABLE_COLORS") != null) return false;
+    if (nonZeroEnv(environ.get("FORCE_COLOR")) or nonZeroEnv(environ.get("CLICOLOR_FORCE"))) return true;
+    std.Io.File.stderr().enableAnsiEscapeCodes(io) catch return false;
+    return true;
+}
+
+fn nonZeroEnv(value: ?[]const u8) bool {
+    const present = value orelse return false;
+    return present.len > 0 and !std.mem.eql(u8, present, "0");
+}
+
+fn printTextSummary(stats: Stats, fix_mode: FixMode, use_color: bool) void {
+    if (stats.diagnostics == 0) {
+        if (use_color) std.debug.print("\x1b[32m", .{});
+        std.debug.print("✓", .{});
+        if (use_color) std.debug.print("\x1b[0m", .{});
+        std.debug.print(" {d} file{s} checked, no problems found\n", .{ stats.files, pluralSuffix(stats.files) });
+        if (stats.fixed > 0) {
+            std.debug.print("  {d} problem{s} fixed.\n", .{ stats.fixed, pluralSuffix(stats.fixed) });
+        }
+        return;
+    }
+
+    if (use_color) std.debug.print("{s}", .{if (stats.errors > 0) "\x1b[31m" else "\x1b[33m"});
+    std.debug.print("✖", .{});
+    if (use_color) std.debug.print("\x1b[0m", .{});
+    const warnings = stats.diagnostics - stats.errors;
+    std.debug.print(" {d} problem{s} ({d} error{s}, {d} warning{s})\n", .{
+        stats.diagnostics,
+        pluralSuffix(stats.diagnostics),
+        stats.errors,
+        pluralSuffix(stats.errors),
+        warnings,
+        pluralSuffix(warnings),
+    });
+    if (stats.fixable > 0 and fix_mode == .none) {
+        std.debug.print("  {d} problem{s} potentially fixable with the `--fix` option.\n", .{
+            stats.fixable,
+            pluralSuffix(stats.fixable),
+        });
+    }
+    if (stats.fixed > 0) {
+        std.debug.print("  {d} problem{s} fixed.\n", .{ stats.fixed, pluralSuffix(stats.fixed) });
+    }
+    std.debug.print("  {d} file{s} checked\n", .{ stats.files, pluralSuffix(stats.files) });
+}
+
+fn pluralSuffix(count: usize) []const u8 {
+    return if (count == 1) "" else "s";
+}
+
+fn decimalDigits(value: usize) usize {
+    var number = value;
+    var digits: usize = 1;
+    while (number >= 10) : (number /= 10) digits += 1;
+    return digits;
+}
+
+fn writeStyled(writer: *std.Io.Writer, use_color: bool, style: []const u8, text_value: []const u8) !void {
+    if (use_color) try writer.writeAll(style);
+    try writer.writeAll(text_value);
+    if (use_color) try writer.writeAll("\x1b[0m");
+}
+
+fn writeSingleLine(writer: *std.Io.Writer, message: []const u8) !void {
+    var index: usize = 0;
+    while (index < message.len) {
+        const line_end = std.mem.indexOfAnyPos(u8, message, index, "\r\n") orelse {
+            try writer.writeAll(message[index..]);
+            return;
+        };
+        try writer.writeAll(message[index..line_end]);
+        index = line_end;
+        while (index < message.len and (message[index] == '\r' or message[index] == '\n' or message[index] == ' ' or message[index] == '\t')) : (index += 1) {}
+        if (index < message.len and line_end > 0 and message[line_end - 1] != ' ') try writer.writeByte(' ');
+    }
+}
+
 fn printLocked(
     io: std.Io,
     mutex: ?*std.Io.Mutex,
@@ -2205,6 +2315,8 @@ fn printHelp() void {
         \\  --no-config              Do not read utlint.config.json (or legacy config names)
         \\  --format=text|json       Select diagnostic output format
         \\  --json                   Alias for --format=json
+        \\  --color                  Force colors in text output
+        \\  --no-color               Disable colors in text output
         \\  --fix                    Apply autofixes and write files to disk
         \\  --fix-dry-run            Apply autofixes without writing files
         \\  --threads=N              Number of worker threads to use

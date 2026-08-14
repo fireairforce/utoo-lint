@@ -41,6 +41,11 @@ Use machine-readable output:
 pnpm exec utoo-lint --format=json src
 ```
 
+The default terminal output groups diagnostics by file, aligns their location
+and severity, and summarizes errors and warnings separately. Color is detected
+automatically; pass `--color` to force it or `--no-color` to disable it. JSON
+output remains stable for editor and CI integrations.
+
 ## Autofix
 
 Apply safe fixes from all enabled rules that support autofix:

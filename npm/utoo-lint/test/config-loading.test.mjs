@@ -575,6 +575,60 @@ test("raw native binary reports configured warnings without failing", (t) => {
   assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.severity), ["warning"]);
 });
 
+test("raw native binary groups text diagnostics and supports color overrides", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "index.js"), 'debugger;\nconsole.log("x");\n');
+
+  const plain = spawnSync(
+    testBinary(),
+    ["--no-color", "--no-config", "--rules=no-debugger,no-console", sourcePath],
+    { cwd: project, encoding: "utf8" }
+  );
+  assert.equal(plain.status, 0, plain.stderr);
+  assert.doesNotMatch(plain.stderr, /\u001b\[/);
+  assert.equal(plain.stderr.match(new RegExp(sourcePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))?.length, 1);
+  assert.match(plain.stderr, /^\s+1:1\s+warning\s+Unexpected debugger statement\.\s+no-debugger$/m);
+  assert.match(plain.stderr, /^\s+2:1\s+warning\s+Unexpected console statement\.\s+no-console$/m);
+  assert.match(plain.stderr, /✖ 2 problems \(0 errors, 2 warnings\)/);
+
+  const colored = spawnSync(
+    testBinary(),
+    ["--color", "--no-config", "--rules=no-debugger", sourcePath],
+    { cwd: project, encoding: "utf8", env: { ...process.env, NO_COLOR: "1" } }
+  );
+  assert.equal(colored.status, 0, colored.stderr);
+  assert.match(colored.stderr, /\u001b\[1m/);
+  assert.match(colored.stderr, /\u001b\[33mwarning/);
+
+  write(join(project, "utlint.config.json"), '{ "rules": { "no-debugger": "error", "no-console": "warn" } }\n');
+  const mixed = spawnSync(testBinary(), ["--no-color", sourcePath], {
+    cwd: project,
+    encoding: "utf8"
+  });
+  assert.equal(mixed.status, 1, mixed.stderr);
+  assert.match(mixed.stderr, /✖ 2 problems \(1 error, 1 warning\)/);
+});
+
+test("raw native binary gives clean and fixable text summaries", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "index.js"), "const value = 1;\n");
+
+  const clean = spawnSync(testBinary(), ["--no-color", "--no-config", "--rules=no-debugger", sourcePath], {
+    cwd: project,
+    encoding: "utf8"
+  });
+  assert.equal(clean.status, 0, clean.stderr);
+  assert.equal(clean.stderr, "✓ 1 file checked, no problems found\n");
+
+  writeFileSync(sourcePath, "const value = 1;;\n");
+  const fixable = spawnSync(testBinary(), ["--no-color", "--no-config", "--rules=no-extra-semi", sourcePath], {
+    cwd: project,
+    encoding: "utf8"
+  });
+  assert.equal(fixable.status, 0, fixable.stderr);
+  assert.match(fixable.stderr, /1 problem potentially fixable with the `--fix` option\./);
+});
+
 test("raw native binary applies array and numeric config severities", (t) => {
   const project = createProject(t);
   const sourcePath = write(join(project, "index.js"), "debugger;\n");
@@ -784,6 +838,72 @@ test("--rules overrides the selected project config", (t) => {
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stderr, /no-debugger/);
+});
+
+test("utoo-lint text output groups diagnostics by file and summarizes severities", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "src", "index.js"), 'debugger;\nconsole.log("x");\n');
+
+  const result = runCli(
+    ["--no-color", "--no-config", "--rules=no-debugger,no-console", sourcePath],
+    { cwd: project, binary: testBinary(), encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "");
+  assert.doesNotMatch(result.stderr, /\u001b\[/);
+  assert.equal(result.stderr.match(new RegExp(sourcePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))?.length, 1);
+  assert.match(result.stderr, /^\s+1:1\s+warning\s+Unexpected debugger statement\.\s+no-debugger$/m);
+  assert.match(result.stderr, /^\s+2:1\s+warning\s+Unexpected console statement\.\s+no-console$/m);
+  assert.match(result.stderr, /✖ 2 problems \(0 errors, 2 warnings\)/);
+  assert.match(result.stderr, /1 file checked/);
+
+  write(join(project, "utlint.config.json"), '{ "rules": { "no-debugger": "error", "no-console": "warn" } }\n');
+  const mixed = runCli(["--no-color", sourcePath], {
+    cwd: project,
+    binary: testBinary(),
+    encoding: "utf8"
+  });
+  assert.equal(mixed.status, 1, mixed.stderr);
+  assert.match(mixed.stderr, /✖ 2 problems \(1 error, 1 warning\)/);
+});
+
+test("utoo-lint text output reports clean runs and supports forced color", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "index.js"), "const value = 1;\n");
+
+  const clean = runCli(["--no-color", "--no-config", "--rules=no-debugger", sourcePath], {
+    cwd: project,
+    binary: testBinary(),
+    encoding: "utf8"
+  });
+  assert.equal(clean.status, 0, clean.stderr);
+  assert.equal(clean.stderr, "✓ 1 file checked, no problems found\n");
+
+  writeFileSync(sourcePath, "debugger;\n");
+  const colored = runCli(["--color", "--no-config", "--rules=no-debugger", sourcePath], {
+    cwd: project,
+    binary: testBinary(),
+    encoding: "utf8",
+    env: { NO_COLOR: "1" }
+  });
+  assert.equal(colored.status, 0, colored.stderr);
+  assert.match(colored.stderr, /\u001b\[1m/);
+  assert.match(colored.stderr, /\u001b\[33mwarning/);
+});
+
+test("utoo-lint text output points out autofixable problems", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "index.js"), "const value = 1;;\n");
+
+  const result = runCli(["--no-color", "--no-config", "--rules=no-extra-semi", sourcePath], {
+    cwd: project,
+    binary: testBinary(),
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stderr, /1 problem potentially fixable with the `--fix` option\./);
 });
 
 test("later flat config entries can turn a rule back on", async (t) => {

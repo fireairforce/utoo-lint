@@ -76,6 +76,12 @@ Use machine-readable output:
 utoo-lint --format=json src
 ```
 
+The default text output groups diagnostics by file, aligns locations and
+severity, and ends with separate error and warning totals. Colors are enabled
+for interactive terminals; use `--color` to force them or `--no-color` to
+disable them (for example, in snapshot tests). JSON output remains stable for
+editor and CI integrations.
+
 ### Autofix
 
 Apply safe fixes from all enabled rules that support autofix:
