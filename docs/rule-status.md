@@ -290,7 +290,7 @@ instead of being rewritten.
 | [`react/jsx-no-duplicate-props`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-duplicate-props.md) | Implemented with configurable `ignoreCase` behavior |
 | [`react/jsx-no-undef`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-undef.md) | Implemented |
 | [`react/jsx-uses-react`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-uses-react.md) | Implemented |
-| [`react/jsx-uses-vars`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-uses-vars.md) | Implemented |
+| [`react/jsx-uses-vars`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-uses-vars.md) | Accepted for legacy config compatibility; JSX tags are always semantic variable references, matching ESLint 10 |
 | [`react/jsx-no-target-blank`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-target-blank.md) | Supports `allowReferrer`, `enforceDynamicLinks`, `warnOnSpreadAttributes`, `links`, and `forms` configuration |
 | [`react/jsx-pascal-case`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-pascal-case.md) | Supports `allowAllCaps`, `allowLeadingUnderscore`, `allowNamespace`, and `ignore` configuration |
 | [`react/no-access-state-in-setstate`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-access-state-in-setstate.md) | Implemented |
