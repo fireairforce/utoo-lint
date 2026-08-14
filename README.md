@@ -1,6 +1,6 @@
 # utoo-lint
 
-![utoo-lint logo](assets/utoo-lint-logo.svg)
+![utoo-lint banner](assets/utoo-lint-banner.png)
 
 `@utoo/lint` is a High performance linter for JavaScript and TypeScript written by Zig.
 It uses [`yuku`](https://github.com/yuku-toolchain/yuku) for parsing, AST
