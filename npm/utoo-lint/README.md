@@ -114,6 +114,21 @@ export default defineConfig({
 });
 ```
 
+The packaged frontend preset is also available as a typed config import:
+
+```ts
+import { defineConfig } from "@utoo/lint/config";
+import frontend from "@utoo/lint/configs/frontend";
+
+export default defineConfig({
+  ...frontend,
+  rules: {
+    ...frontend.rules,
+    "no-console": "off",
+  },
+});
+```
+
 The two canonical names represent one active config and are not implicitly
 merged. For the npm/Node entry point, discovery is nearest-directory-first.
 Within the same directory, `utlint.config.ts` takes precedence over

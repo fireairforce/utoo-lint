@@ -16,7 +16,8 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "test": "node --test --test-concurrency=1 test/*.test.mjs"
+    "test": "node --test --test-concurrency=1 test/*.test.mjs && pnpm test:types",
+    "test:types": "tsc -p test/types/tsconfig.json"
   },
   "types": "./index.d.ts",
   "exports": {
@@ -45,7 +46,10 @@
       "import": "./universal.js",
       "require": "./universal.cjs"
     },
-    "./configs/frontend": "./configs/frontend.json",
+    "./configs/frontend": {
+      "types": "./configs/frontend.d.ts",
+      "default": "./configs/frontend.json"
+    },
     "./schema": "./schema.json",
     "./package.json": "./package.json"
   },
@@ -88,5 +92,8 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
   }
 }
