@@ -696,6 +696,33 @@ test("raw native binary counts JSX tags as uses for isolated unused-variable rul
   }
 });
 
+test("raw native binary counts JSX member roots as uses for isolated unused-variable rules", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(
+    join(project, "fixture.tsx"),
+    [
+      'import { motion } from "framer-motion";',
+      "",
+      "export function App() {",
+      "  return <motion.div>Utoo</motion.div>;",
+      "}",
+      ""
+    ].join("\n")
+  );
+
+  for (const rule of ["no-unused-vars", "@typescript-eslint/no-unused-vars"]) {
+    const result = spawnSync(
+      testBinary(),
+      ["--no-config", `--rules=${rule}`, "--format=json", sourcePath],
+      { cwd: project, encoding: "utf8" }
+    );
+    const report = JSON.parse(result.stdout);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(report.diagnostics, [], rule);
+  }
+});
+
 test("raw native binary keeps parse errors fatal with an empty rules config", (t) => {
   const project = createProject(t);
   write(join(project, "utlint.config.json"));

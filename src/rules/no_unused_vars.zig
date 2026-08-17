@@ -10,6 +10,7 @@ pub const id = "no-unused-vars";
 
 const SymbolId = traverser.semantic.SymbolId;
 const IgnoredDecls = std.AutoHashMap(ast.NodeIndex, void);
+const UsedSymbols = std.AutoHashMap(SymbolId, void);
 
 pub const Options = struct {
     rule_id: []const u8 = id,
@@ -91,11 +92,19 @@ pub fn runWithOptions(
     symbol_table: traverser.semantic.SymbolTable,
     options: Options,
 ) Allocator.Error!void {
+    var jsx_member_uses = UsedSymbols.init(allocator);
+    defer jsx_member_uses.deinit();
+    var jsx_member_visitor = JSXMemberUseVisitor{
+        .symbol_table = symbol_table,
+        .used_symbols = &jsx_member_uses,
+    };
+    try traverser.basic.traverse(JSXMemberUseVisitor, tree, &jsx_member_visitor);
+
     var parameters: std.ArrayList(Parameter) = .empty;
     defer parameters.deinit(allocator);
 
     if (options.check_parameters and options.args_after_used) {
-        try collectParameters(allocator, tree, symbol_table, &parameters);
+        try collectParameters(allocator, tree, symbol_table, &jsx_member_uses, &parameters);
         std.mem.sort(Parameter, parameters.items, {}, lessThanParameter);
     }
 
@@ -150,7 +159,7 @@ pub fn runWithOptions(
         const decls = symbol_table.symbolDecls(entry.id);
         if (decls.len == 0) continue;
 
-        if (symbol_table.isReferenced(entry.id)) {
+        if (symbol_table.isReferenced(entry.id) or jsx_member_uses.contains(entry.id)) {
             if (options.report_used_ignore_pattern and isReportedUsedIgnoredName(name, flags, decls, &destructured_array_ignored_decls, options)) {
                 try core.addDiagnosticFmt(
                     allocator,
@@ -304,6 +313,7 @@ fn collectParameters(
     allocator: Allocator,
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
+    jsx_member_uses: *const UsedSymbols,
     parameters: *std.ArrayList(Parameter),
 ) Allocator.Error!void {
     var iter = symbol_table.iterSymbols();
@@ -318,9 +328,45 @@ fn collectParameters(
             .symbol_id = entry.id,
             .scope = symbol.scope,
             .start = tree.span(decls[0]).start,
-            .used = symbol_table.isReferenced(entry.id),
+            .used = symbol_table.isReferenced(entry.id) or jsx_member_uses.contains(entry.id),
         });
     }
+}
+
+const JSXMemberUseVisitor = struct {
+    symbol_table: traverser.semantic.SymbolTable,
+    used_symbols: *UsedSymbols,
+
+    pub fn enter_jsx_opening_element(
+        self: *JSXMemberUseVisitor,
+        opening: ast.JSXOpeningElement,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        const member = switch (ctx.tree.data(opening.name)) {
+            .jsx_member_expression => |member| member,
+            else => return .proceed,
+        };
+        const root = jsxMemberRoot(ctx.tree, member.object) orelse return .proceed;
+        const identifier = ctx.tree.data(root).jsx_identifier;
+        const name = ctx.tree.string(identifier.name);
+        const scope = self.symbol_table.scopeOf(root);
+        const symbol_id = self.symbol_table.resolveValue(scope, name) orelse return .proceed;
+        try self.used_symbols.put(symbol_id, {});
+        return .proceed;
+    }
+};
+
+fn jsxMemberRoot(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.NodeIndex {
+    var current = index;
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .jsx_identifier => return current,
+            .jsx_member_expression => |member| current = member.object,
+            else => return null,
+        }
+    }
+    return null;
 }
 
 fn lessThanParameter(_: void, a: Parameter, b: Parameter) bool {

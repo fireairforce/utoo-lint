@@ -91,6 +91,18 @@ pub const SymbolTable = struct {
         return self.model.lookup(scope, name, .any);
     }
 
+    pub inline fn scopeOf(self: SymbolTable, node: ast.NodeIndex) yuku_semantic.ScopeId {
+        return self.model.scopeOf(node);
+    }
+
+    pub fn resolveValue(
+        self: SymbolTable,
+        scope: yuku_semantic.ScopeId,
+        name: []const u8,
+    ) ?yuku_semantic.SymbolId {
+        return self.model.lookup(scope, name, .value);
+    }
+
     pub inline fn referenceSymbol(self: SymbolTable, id: yuku_semantic.ReferenceId) yuku_semantic.SymbolId {
         return self.model.reference(id).symbol;
     }

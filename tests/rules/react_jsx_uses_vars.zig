@@ -72,6 +72,49 @@ test "component imports used only as JSX tags are not unused" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
 }
 
+test "lowercase JSX member roots are variable references" {
+    const source =
+        \\import { motion } from "framer-motion";
+        \\
+        \\export function App() {
+        \\  return <motion.div>Utoo</motion.div>;
+        \\}
+    ;
+
+    var eslint_options = lint.Options.allDisabled();
+    eslint_options.no_unused_vars = true;
+    var eslint_result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", eslint_options);
+    defer eslint_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(eslint_result, lint.rules.no_unused_vars.id));
+
+    var typescript_options = lint.Options.allDisabled();
+    typescript_options.typescript_eslint_no_unused_vars = true;
+    var typescript_result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", typescript_options);
+    defer typescript_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(typescript_result, lint.rules.typescript_eslint_no_unused_vars.id));
+}
+
+test "JSX member roots use the nearest lexical binding" {
+    const source =
+        \\import { motion } from "framer-motion";
+        \\
+        \\export function App() {
+        \\  const motion = { div: () => null };
+        \\  return <motion.div>Utoo</motion.div>;
+        \\}
+    ;
+
+    var options = lint.Options.allDisabled();
+    options.typescript_eslint_no_unused_vars = true;
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.tsx", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(
+        @as(usize, 1),
+        helpers.countRule(result, lint.rules.typescript_eslint_no_unused_vars.id),
+    );
+}
+
 test "does not treat lowercase DOM JSX as variable usage" {
     const source =
         \\const div = 1;
