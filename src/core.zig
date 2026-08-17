@@ -8934,6 +8934,11 @@ pub const Diagnostic = struct {
     span: ast.Span,
     severity: Severity,
     fixes: []Fix,
+    suppression: ?Suppression = null,
+};
+
+pub const Suppression = struct {
+    justification: []const u8,
 };
 
 pub const Fix = struct {
@@ -8943,12 +8948,11 @@ pub const Fix = struct {
 
 pub const Result = struct {
     diagnostics: []Diagnostic,
+    suppressed_diagnostics: []Diagnostic = &.{},
 
     pub fn deinit(self: *Result, allocator: Allocator) void {
-        for (self.diagnostics) |diagnostic| {
-            freeDiagnostic(allocator, diagnostic);
-        }
-        allocator.free(self.diagnostics);
+        freeDiagnosticSlice(allocator, self.diagnostics);
+        freeDiagnosticSlice(allocator, self.suppressed_diagnostics);
     }
 
     pub fn hasDiagnostics(self: Result) bool {
@@ -9081,9 +9085,15 @@ fn dupeFixes(allocator: Allocator, fixes: []const Fix) Allocator.Error![]Fix {
     return owned;
 }
 
-fn freeDiagnostic(allocator: Allocator, diagnostic: Diagnostic) void {
+pub fn freeDiagnostic(allocator: Allocator, diagnostic: Diagnostic) void {
     allocator.free(diagnostic.message);
     freeFixes(allocator, diagnostic.fixes);
+    if (diagnostic.suppression) |suppression| allocator.free(suppression.justification);
+}
+
+pub fn freeDiagnosticSlice(allocator: Allocator, diagnostics: []Diagnostic) void {
+    for (diagnostics) |diagnostic| freeDiagnostic(allocator, diagnostic);
+    if (diagnostics.len > 0) allocator.free(diagnostics);
 }
 
 fn freeFixes(allocator: Allocator, fixes: []Fix) void {

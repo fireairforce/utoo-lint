@@ -67,6 +67,24 @@ when a rule or a particular code shape cannot be fixed safely. The current
 [rule status](https://github.com/fireairforce/utoo-lint/blob/main/docs/rule-status.md)
 lists autofix coverage by rule.
 
+## Suppression comments
+
+Suppress a rule for the next line of code with `utlint-ignore`:
+
+```js
+// utlint-ignore no-debugger: generated breakpoint
+debugger;
+```
+
+Omit the rule ID to suppress all lint rules for the next line of code. Use
+`utlint-ignore-all` before any code for a file-level suppression, or matching
+`utlint-ignore-start` and `utlint-ignore-end` comments for a range. Line and
+block comments are supported. Parse errors remain visible, and fixes from
+suppressed diagnostics are not applied.
+
+Native reports expose suppressed items in `suppressedDiagnostics`; the ESLint
+compatibility API exposes them in `suppressedMessages`.
+
 ## Configuration
 
 `utoo-lint` supports two canonical project config formats:

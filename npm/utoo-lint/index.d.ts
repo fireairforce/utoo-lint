@@ -9,10 +9,17 @@ export interface LintMessage {
   nodeType?: string | null;
   fix?: LintFix | LintFix[];
   suggestions?: LintSuggestion[];
+  suppressions?: LintSuppression[];
 }
 
-export interface LintDiagnostic extends Omit<LintMessage, "severity"> {
+export interface LintSuppression {
+  kind: "directive";
+  justification: string;
+}
+
+export interface LintDiagnostic extends Omit<LintMessage, "severity" | "suppressions"> {
   severity: "warning" | "error";
+  suppression?: LintSuppression;
 }
 
 export interface LintFix {
@@ -42,6 +49,7 @@ export interface LintReport {
   files: number;
   filePaths: string[];
   diagnostics: LintDiagnostic[];
+  suppressedDiagnostics: LintDiagnostic[];
   outputs?: Array<{ filePath: string; output: string }>;
   exitCode: number;
   stderr?: string;

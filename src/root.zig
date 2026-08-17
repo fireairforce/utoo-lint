@@ -3,6 +3,7 @@ const parser = @import("parser");
 const core = @import("core.zig");
 const fixer = @import("fixer.zig");
 const semantic_compat = @import("semantic_compat.zig");
+const suppressions = @import("suppressions.zig");
 
 const ast = parser.ast;
 const Allocator = std.mem.Allocator;
@@ -10,6 +11,7 @@ const Allocator = std.mem.Allocator;
 pub const Severity = core.Severity;
 pub const Options = core.Options;
 pub const Diagnostic = core.Diagnostic;
+pub const Suppression = core.Suppression;
 pub const Fix = core.Fix;
 pub const Result = core.Result;
 pub const ApplyFixesResult = fixer.ApplyResult;
@@ -116,6 +118,8 @@ pub fn lintSourceWithIo(
 ) Allocator.Error!Result {
     var diagnostics: core.DiagnosticList = .empty;
     errdefer core.freeDiagnostics(allocator, &diagnostics);
+    var suppressed_diagnostics: core.DiagnosticList = .empty;
+    errdefer core.freeDiagnostics(allocator, &suppressed_diagnostics);
 
     var effective_options = options;
     if (isDefinitionFile(path) and effective_options.typescript_eslint_no_namespace_allow_definition_files) {
@@ -139,8 +143,15 @@ pub fn lintSourceWithIo(
         try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);
     }
 
+    try suppressions.apply(allocator, &diagnostics, &suppressed_diagnostics, &tree);
+
+    const owned_diagnostics = try diagnostics.toOwnedSlice(allocator);
+    errdefer core.freeDiagnosticSlice(allocator, owned_diagnostics);
+    const owned_suppressed_diagnostics = try suppressed_diagnostics.toOwnedSlice(allocator);
+
     return .{
-        .diagnostics = try diagnostics.toOwnedSlice(allocator),
+        .diagnostics = owned_diagnostics,
+        .suppressed_diagnostics = owned_suppressed_diagnostics,
     };
 }
 
