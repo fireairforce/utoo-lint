@@ -157,6 +157,33 @@ export default defineConfig({
 });
 ```
 
+Use `globalIgnores()` as a separate config entry to exclude files or
+directories from the whole flat config:
+
+```ts
+import { defineConfig, globalIgnores } from "@utoo/lint/config";
+
+export default defineConfig(
+  globalIgnores(["dist/", ".next/", "**/generated/"]),
+  {
+    files: ["**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      "no-debugger": "error"
+    }
+  }
+);
+```
+
+The helper returns an ignore-only entry containing `ignores` and an optional
+`name`. Only global entries prune directories during target discovery.
+`ignores` beside `files`, `rules`, or another config key is entry-scoped: it
+stops that entry from applying to matching files, but does not exclude them
+from other entries. With no CLI targets, global ignores filter the config's
+`files` patterns, or the current-directory scan when no `files` are configured.
+Use `dist/` or `.next/` for config-relative directories and `**/generated/`
+for matches at any depth. This intentionally follows
+[ESLint flat config ignore semantics](https://eslint.org/docs/latest/use/configure/ignore).
+
 A TypeScript config is trusted executable code and must export a
 JSON-serializable object or flat config array. The npm wrapper executes it,
 materializes the result as JSON, and invokes the native binary. The raw binary
