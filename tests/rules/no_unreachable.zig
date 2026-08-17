@@ -61,7 +61,7 @@ test "reports no-unreachable after if statements where both branches exit" {
 test "reports no-unreachable after try statements that exit" {
     const source =
         \\function first() {
-        \\  try { return value; } catch (error) { recover(error); }
+        \\  try { return value; } catch (error) { throw error; }
         \\  call();
         \\}
         \\function second() {
@@ -83,6 +83,32 @@ test "reports no-unreachable after try statements that exit" {
     defer result.deinit(std.testing.allocator);
 
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_unreachable.id));
+}
+
+test "does not report after try when catch can complete normally" {
+    const source =
+        \\async function render(ignoreError) {
+        \\  try {
+        \\    return await Promise.reject(new Error("render failed"));
+        \\  } catch (error) {
+        \\    if (!ignoreError) {
+        \\      throw error;
+        \\    }
+        \\  }
+        \\
+        \\  return "fallback";
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .eol_last = false,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unreachable.id));
 }
 
 test "does not report no-unreachable for reachable statements or hoisted declarations" {
