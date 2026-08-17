@@ -50,6 +50,10 @@ importers:
       jiti:
         specifier: 2.7.0
         version: 2.7.0
+    devDependencies:
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
     optionalDependencies:
       '@utoo/lint-darwin-arm64':
         specifier: workspace:*
