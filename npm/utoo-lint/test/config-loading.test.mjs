@@ -245,13 +245,13 @@ test("fishlint applies a flat global ignore entry before per-file rule grouping"
     join(project, "utlint.config.ts"),
     [
       "export default [",
-      '  { name: "generated", ignores: ["src/ignored.ts"] },',
+      '  { name: "generated", ignores: ["dist/"] },',
       '  { rules: { "no-debugger": "error" } }',
       "];",
       ""
     ].join("\n")
   );
-  const ignoredSource = write(join(project, "src", "ignored.ts"), "debugger;\n");
+  const ignoredSource = write(join(project, "dist", "ignored.ts"), "debugger;\n");
   const reportedSource = write(join(project, "src", "reported.ts"), "debugger;\n");
 
   const result = spawnSync(
@@ -852,6 +852,43 @@ test("utlint.config.ts can import defineConfig and provide default files", (t) =
   });
 
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("globalIgnores prunes default targets while config-entry ignores stay scoped", (t) => {
+  const project = createProject(t);
+  const packageLinkDirectory = join(project, "node_modules", "@utoo");
+  mkdirSync(packageLinkDirectory, { recursive: true });
+  symlinkSync(packageDirectory, join(packageLinkDirectory, "lint"), "dir");
+  write(join(project, "dist", "index.ts"), "debugger;\n");
+  write(join(project, ".next", "index.ts"), "debugger;\n");
+  write(join(project, "packages", "app", "generated", "index.ts"), "debugger;\n");
+  write(join(project, "src", "scoped", "index.ts"), "debugger;\n");
+  write(
+    join(project, "utlint.config.ts"),
+    [
+      'import { defineConfig, globalIgnores } from "@utoo/lint/config";',
+      "export default defineConfig(",
+      '  globalIgnores(["dist/", ".next/", "**/generated/"]),',
+      '  { ignores: ["src/scoped/"], rules: { "no-debugger": "off" } },',
+      '  { files: ["**/*.ts"], rules: { "no-debugger": "error" } },',
+      ");",
+      ""
+    ].join("\n")
+  );
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const result = execute([], {
+      cwd: project,
+      binary: testBinary(),
+      encoding: "utf8"
+    });
+
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /src\/scoped\/index\.ts/);
+    assert.doesNotMatch(result.stderr, /dist\/index\.ts/);
+    assert.doesNotMatch(result.stderr, /\.next\/index\.ts/);
+    assert.doesNotMatch(result.stderr, /generated\/index\.ts/);
+  }
 });
 
 test("--rules overrides the selected project config", (t) => {
