@@ -114,6 +114,48 @@ export default defineConfig({
 });
 ```
 
+The packaged frontend preset is also available as a typed config import:
+
+```ts
+import { defineConfig } from "@utoo/lint/config";
+import frontend from "@utoo/lint/configs/frontend";
+
+export default defineConfig({
+  ...frontend,
+  rules: {
+    ...frontend.rules,
+    "no-console": "off",
+  },
+});
+```
+
+Use `globalIgnores()` as a separate config entry when files or directories
+must be excluded from every entry:
+
+```ts
+import { defineConfig, globalIgnores } from "@utoo/lint/config";
+
+export default defineConfig(
+  globalIgnores(["dist/", ".next/", "**/generated/"]),
+  {
+    files: ["**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      "no-debugger": "error"
+    }
+  }
+);
+```
+
+`globalIgnores()` returns an ignore-only object containing `ignores` and a
+generated `name`. Only such global entries prune directories during target
+discovery. By contrast, `ignores` beside `files`, `rules`, or another config
+key is entry-scoped: it prevents that entry from applying to matching files,
+but does not exclude them from other entries. With no CLI targets, global
+ignores filter the config's `files` patterns, or the current-directory scan
+when no `files` are configured. Directory patterns such as `dist/` and
+`.next/` are relative to the config; use `**/generated/` to match at any depth.
+This intentionally follows [ESLint flat config ignore semantics](https://eslint.org/docs/latest/use/configure/ignore).
+
 The two canonical names represent one active config and are not implicitly
 merged. For the npm/Node entry point, discovery is nearest-directory-first.
 Within the same directory, `utlint.config.ts` takes precedence over

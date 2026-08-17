@@ -4118,11 +4118,18 @@ function ignorePatternsFromConfig(config) {
     return config.flatMap((entry) => ignorePatternsFromConfig(entry));
   }
 
-  const flatConfigIgnores = config.files ? [] : normalizeIgnorePatterns(config.ignores);
+  const flatConfigIgnores = isGlobalIgnoreEntry(config) ? normalizeIgnorePatterns(config.ignores) : [];
   return [
     ...normalizeIgnorePatterns(config.ignorePatterns),
     ...flatConfigIgnores
   ];
+}
+
+function isGlobalIgnoreEntry(config) {
+  if (!config || typeof config !== "object" || !config.ignores) {
+    return false;
+  }
+  return Object.keys(config).every((key) => key === "name" || key === "ignores");
 }
 
 function normalizeIgnorePatterns(patterns) {
@@ -4160,7 +4167,7 @@ function normalizeIgnoredPath(filePath, cwd) {
 }
 
 function normalizeIgnoredPattern(pattern) {
-  return normalizePath(pattern.replace(/^!/, "").replace(/^\//, ""));
+  return normalizePath(pattern.replace(/^!/, "").replace(/^\//, "")).replace(/\/+$/, "");
 }
 
 function pathIgnoredByPatterns(target, patterns) {

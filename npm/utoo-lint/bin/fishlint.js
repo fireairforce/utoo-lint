@@ -796,7 +796,7 @@ function isIgnoredTarget(target, patterns) {
 }
 
 function normalizeIgnoredPattern(pattern) {
-  return normalizePath(pattern.replace(/^!/, "").replace(/^\//, ""));
+  return normalizePath(pattern.replace(/^!/, "").replace(/^\//, "")).replace(/\/+$/, "");
 }
 
 function matchesIgnorePattern(target, pattern) {
