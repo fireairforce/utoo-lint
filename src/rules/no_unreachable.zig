@@ -45,10 +45,22 @@ fn alwaysExits(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .if_statement => |statement| statement.alternate != .null and
             alwaysExits(tree, statement.consequent) and
             alwaysExits(tree, statement.alternate),
-        .try_statement => |statement| alwaysExits(tree, statement.block) or
-            alwaysExits(tree, statement.finalizer),
+        .try_statement => |statement| tryAlwaysExits(tree, statement),
         else => false,
     };
+}
+
+fn tryAlwaysExits(tree: *const ast.Tree, statement: ast.TryStatement) bool {
+    if (alwaysExits(tree, statement.finalizer)) return true;
+
+    const block_exits = alwaysExits(tree, statement.block);
+    if (statement.handler == .null) return block_exits;
+
+    const handler_body = switch (tree.data(statement.handler)) {
+        .catch_clause => |handler| handler.body,
+        else => return false,
+    };
+    return block_exits and alwaysExits(tree, handler_body);
 }
 
 fn rangeAlwaysExits(tree: *const ast.Tree, range: ast.IndexRange) bool {
