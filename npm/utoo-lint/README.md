@@ -114,6 +114,21 @@ export default defineConfig({
 });
 ```
 
+The packaged frontend preset is also available as a typed config import:
+
+```ts
+import { defineConfig } from "@utoo/lint/config";
+import frontend from "@utoo/lint/configs/frontend";
+
+export default defineConfig({
+  ...frontend,
+  rules: {
+    ...frontend.rules,
+    "no-console": "off",
+  },
+});
+```
+
 Use `globalIgnores()` as a separate config entry when files or directories
 must be excluded from every entry:
 

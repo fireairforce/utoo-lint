@@ -71,6 +71,22 @@ export default defineConfig({
 });
 ```
 
+The packaged frontend preset has a typed export and can be extended directly
+without copying its JSON file or asserting its rule types:
+
+```ts
+import { defineConfig } from "@utoo/lint/config";
+import frontend from "@utoo/lint/configs/frontend";
+
+export default defineConfig({
+  ...frontend,
+  rules: {
+    ...frontend.rules,
+    "no-console": "off",
+  },
+});
+```
+
 ### Global and Entry-Scoped Ignores
 
 Use `globalIgnores()` to exclude files or whole directories from every config
