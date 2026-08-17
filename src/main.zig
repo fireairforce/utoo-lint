@@ -36,6 +36,11 @@ const JsonFix = struct {
     text: []const u8,
 };
 
+const JsonSuppression = struct {
+    kind: []const u8,
+    justification: []const u8,
+};
+
 const JsonDiagnostic = struct {
     filePath: []const u8,
     line: usize,
@@ -44,6 +49,7 @@ const JsonDiagnostic = struct {
     message: []const u8,
     ruleId: []const u8,
     fixes: []const JsonFix,
+    suppression: ?JsonSuppression = null,
 };
 
 const JsonDiagnosticList = std.ArrayList(JsonDiagnostic);
@@ -60,6 +66,7 @@ const JsonReport = struct {
     files: usize,
     filePaths: []const []const u8,
     diagnostics: []const JsonDiagnostic,
+    suppressedDiagnostics: []const JsonDiagnostic,
     outputs: []const JsonOutput,
 };
 
@@ -1249,6 +1256,8 @@ pub fn main(init: std.process.Init) !void {
 
     var json_diagnostics: JsonDiagnosticList = .empty;
     defer freeJsonDiagnostics(allocator, &json_diagnostics);
+    var json_suppressed_diagnostics: JsonDiagnosticList = .empty;
+    defer freeJsonDiagnostics(allocator, &json_suppressed_diagnostics);
     var json_outputs: JsonOutputList = .empty;
     defer freeJsonOutputs(allocator, &json_outputs);
     const json_diagnostics_ptr: ?*JsonDiagnosticList = if (output_format == .json) &json_diagnostics else null;
@@ -1259,8 +1268,8 @@ pub fn main(init: std.process.Init) !void {
     }
 
     if (output_format == .json) {
-        try lintFilesJson(allocator, io, files.items, options, &rule_severities, fix_mode, &stats, &json_diagnostics, &json_outputs);
-        try writeJsonReport(io, stats, files.items, json_diagnostics.items, json_outputs.items);
+        try lintFilesJson(allocator, io, files.items, options, &rule_severities, fix_mode, &stats, &json_diagnostics, &json_suppressed_diagnostics, &json_outputs);
+        try writeJsonReport(io, stats, files.items, json_diagnostics.items, json_suppressed_diagnostics.items, json_outputs.items);
     } else {
         const use_color = color_override orelse detectColorSupport(io, init.environ_map.*);
         try lintFiles(allocator, io, files.items, options, &rule_severities, fix_mode, thread_count_override, use_color, &stats);
@@ -1427,7 +1436,7 @@ fn collectLintablePaths(
         if (json_diagnostics) |diagnostics| {
             const message = try std.fmt.allocPrint(allocator, "unable to stat path: {s}", .{@errorName(err)});
             defer allocator.free(message);
-            try appendJsonDiagnostic(allocator, diagnostics, path, 0, 0, "error", message, "io", "", &.{});
+            try appendJsonDiagnostic(allocator, diagnostics, path, 0, 0, "error", message, "io", "", &.{}, null);
         } else {
             std.debug.print("{s}: unable to stat path: {s}\n", .{ path, @errorName(err) });
         }
@@ -1889,10 +1898,11 @@ fn lintFilesJson(
     fix_mode: FixMode,
     stats: *Stats,
     json_diagnostics: *JsonDiagnosticList,
+    json_suppressed_diagnostics: *JsonDiagnosticList,
     json_outputs: *JsonOutputList,
 ) !void {
     for (files) |file| {
-        try lintFileJson(allocator, io, file, options, rule_severities, fix_mode, stats, json_diagnostics, json_outputs);
+        try lintFileJson(allocator, io, file, options, rule_severities, fix_mode, stats, json_diagnostics, json_suppressed_diagnostics, json_outputs);
     }
 }
 
@@ -1927,12 +1937,13 @@ fn lintFileJson(
     fix_mode: FixMode,
     stats: *Stats,
     json_diagnostics: *JsonDiagnosticList,
+    json_suppressed_diagnostics: *JsonDiagnosticList,
     json_outputs: *JsonOutputList,
 ) !void {
     const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_file_size)) catch |err| {
         const message = try std.fmt.allocPrint(allocator, "unable to read file: {s}", .{@errorName(err)});
         defer allocator.free(message);
-        try appendJsonDiagnostic(allocator, json_diagnostics, path, 0, 0, "error", message, "io", "", &.{});
+        try appendJsonDiagnostic(allocator, json_diagnostics, path, 0, 0, "error", message, "io", "", &.{}, null);
         stats.errors += 1;
         stats.diagnostics += 1;
         return;
@@ -1944,7 +1955,8 @@ fn lintFileJson(
     if (fix_mode == .none) {
         var result = try lint.lintSourceWithIo(allocator, io, source, path, options);
         defer result.deinit(allocator);
-        return appendJsonResultDiagnostics(allocator, json_diagnostics, path, source, result, rule_severities, stats);
+        try appendJsonResultDiagnostics(allocator, json_diagnostics, path, source, result, rule_severities, stats);
+        return appendJsonResultSuppressedDiagnostics(allocator, json_suppressed_diagnostics, path, source, result, rule_severities);
     }
 
     var fixed = try lint.lintSourceAndFixWithIo(allocator, io, source, path, options);
@@ -1959,6 +1971,7 @@ fn lintFileJson(
     }
 
     try appendJsonResultDiagnostics(allocator, json_diagnostics, path, fixed.output, fixed.result, rule_severities, stats);
+    try appendJsonResultSuppressedDiagnostics(allocator, json_suppressed_diagnostics, path, fixed.output, fixed.result, rule_severities);
 }
 
 fn lintFile(
@@ -2067,6 +2080,7 @@ fn appendJsonDiagnostic(
     rule_id: []const u8,
     source: []const u8,
     fixes: []const lint.Fix,
+    suppression: ?JsonSuppression,
 ) !void {
     const owned_path = try allocator.dupe(u8, path);
     errdefer allocator.free(owned_path);
@@ -2080,6 +2094,17 @@ fn appendJsonDiagnostic(
     const owned_fixes = try dupeJsonFixes(allocator, source, fixes);
     errdefer freeOwnedJsonFixes(allocator, owned_fixes);
 
+    const owned_suppression: ?JsonSuppression = if (suppression) |item| suppression: {
+        const kind = try allocator.dupe(u8, item.kind);
+        errdefer allocator.free(kind);
+        const justification = try allocator.dupe(u8, item.justification);
+        break :suppression .{ .kind = kind, .justification = justification };
+    } else null;
+    errdefer if (owned_suppression) |item| {
+        allocator.free(item.kind);
+        allocator.free(item.justification);
+    };
+
     try diagnostics.append(allocator, .{
         .filePath = owned_path,
         .line = line,
@@ -2088,6 +2113,7 @@ fn appendJsonDiagnostic(
         .message = owned_message,
         .ruleId = owned_rule_id,
         .fixes = owned_fixes,
+        .suppression = owned_suppression,
     });
 }
 
@@ -2114,10 +2140,41 @@ fn appendJsonResultDiagnostics(
             diagnostic.rule_id,
             source,
             diagnostic.fixes,
+            null,
         );
 
         stats.diagnostics += 1;
         if (severity == .@"error") stats.errors += 1;
+    }
+}
+
+fn appendJsonResultSuppressedDiagnostics(
+    allocator: std.mem.Allocator,
+    json_diagnostics: *JsonDiagnosticList,
+    path: []const u8,
+    source: []const u8,
+    result: lint.Result,
+    rule_severities: *const RuleSeverityMap,
+) !void {
+    for (result.suppressed_diagnostics) |diagnostic| {
+        const severity = effectiveDiagnosticSeverity(rule_severities, diagnostic);
+        const position = lint.offsetToLineColumn(source, diagnostic.span.start);
+        try appendJsonDiagnostic(
+            allocator,
+            json_diagnostics,
+            path,
+            position.line,
+            position.column,
+            severity.toString(),
+            diagnostic.message,
+            diagnostic.rule_id,
+            source,
+            diagnostic.fixes,
+            if (diagnostic.suppression) |suppression| .{
+                .kind = "directive",
+                .justification = suppression.justification,
+            } else null,
+        );
     }
 }
 
@@ -2172,6 +2229,10 @@ fn freeJsonDiagnostics(allocator: std.mem.Allocator, diagnostics: *JsonDiagnosti
         allocator.free(diagnostic.message);
         allocator.free(diagnostic.ruleId);
         freeOwnedJsonFixes(allocator, diagnostic.fixes);
+        if (diagnostic.suppression) |suppression| {
+            allocator.free(suppression.kind);
+            allocator.free(suppression.justification);
+        }
     }
     diagnostics.deinit(allocator);
 }
@@ -2189,6 +2250,7 @@ fn writeJsonReport(
     stats: Stats,
     file_paths: []const []const u8,
     diagnostics: []const JsonDiagnostic,
+    suppressed_diagnostics: []const JsonDiagnostic,
     outputs: []const JsonOutput,
 ) !void {
     var stdout_buffer: [4096]u8 = undefined;
@@ -2199,8 +2261,9 @@ fn writeJsonReport(
         .files = stats.files,
         .filePaths = file_paths,
         .diagnostics = diagnostics,
+        .suppressedDiagnostics = suppressed_diagnostics,
         .outputs = outputs,
-    }, .{}, stdout);
+    }, .{ .emit_null_optional_fields = false }, stdout);
     try stdout.writeByte('\n');
     try stdout.flush();
 }

@@ -101,10 +101,13 @@ The CommonJS entry is kept behaviorally aligned with the ESM API, including
 the fishlint wrapper and per-file flat config handling.
 
 `lintFiles()` and `lintText()` return an object with `files`, `filePaths`,
-`diagnostics`, and `exitCode`. Each diagnostic includes `filePath`, `line`,
+`diagnostics`, `suppressedDiagnostics`, and `exitCode`. Each diagnostic includes `filePath`, `line`,
 `column`, `severity`, `message`, and `ruleId`, with disabled per-file rules
 filtered from the diagnostics. `exitCode` is recalculated from the filtered
-diagnostics: warnings return 0 and errors return 1. The `ESLint` export is an
+diagnostics: warnings return 0 and errors return 1. Diagnostics matched by
+`utlint-ignore`, `utlint-ignore-all`, or a start/end suppression range appear
+in `suppressedDiagnostics`; ESLint-compatible results map them to
+`suppressedMessages`. The `ESLint` export is an
 alias for `UtooLint`
 and supports the common `lintFiles()`, `lintText()`,
 `loadFormatter()`, `isPathIgnored()`, and `calculateConfigForFile()` methods for

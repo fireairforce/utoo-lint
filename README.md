@@ -24,6 +24,8 @@ Useful docs:
   documentation links.
 - [Configuration](docs/configuration.md) describes `utlint.config.ts` and
   `utlint.config.json` for frontend projects.
+- [Suppression comments](docs/suppressions.md) documents `utlint-ignore`,
+  file-level, and range suppressions.
 - [Migrating from ESLint](docs/eslint-migration.md) covers the current migration
   path.
 - [Contributing](CONTRIBUTING.md) covers local development, rule work,
@@ -101,6 +103,20 @@ with JSON output, changed sources are returned in the `outputs` array. Fixes run
 until the source is stable, subject to a safety pass limit. Diagnostics remain
 when a rule or a particular code shape cannot be fixed safely. See
 [Rule status](docs/rule-status.md) for per-rule autofix coverage.
+
+### Suppression comments
+
+Suppress a rule for the next line of code with `utlint-ignore`:
+
+```js
+// utlint-ignore no-debugger: generated breakpoint
+debugger;
+```
+
+Use `utlint-ignore-all` at the top of a file or matching
+`utlint-ignore-start` / `utlint-ignore-end` comments for a range. See
+[Suppression comments](docs/suppressions.md) for the complete syntax and API
+behavior.
 
 ## Configuration
 

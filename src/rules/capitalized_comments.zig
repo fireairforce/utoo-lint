@@ -138,6 +138,7 @@ fn isIgnoredComment(value: []const u8) bool {
         "globals",
         "jshint",
         "jslint",
+        "utlint-",
     })) return true;
 
     return startsWithAnyIgnoreCase(value, &.{

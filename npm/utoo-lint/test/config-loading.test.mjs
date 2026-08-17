@@ -8,10 +8,10 @@ import { fileURLToPath } from "node:url";
 
 import { createRequire } from "node:module";
 
-import { ESLint, lintFiles, lintText, resolveBinary, runCli } from "../index.js";
+import { ESLint, Linter, lintFiles, lintText, resolveBinary, runCli } from "../index.js";
 
 const require = createRequire(import.meta.url);
-const { ESLint: CommonJSESLint, runCli: commonJSRunCli } = require("../index.cjs");
+const { ESLint: CommonJSESLint, Linter: CommonJSLinter, runCli: commonJSRunCli } = require("../index.cjs");
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const cliPath = join(packageDirectory, "bin", "utoo-lint.js");
@@ -43,6 +43,150 @@ function write(path, source = "{}\n") {
   writeFileSync(path, source);
   return path;
 }
+
+test("ESLint exposes diagnostics suppressed by utlint-ignore", async () => {
+  const eslint = new ESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: { rules: { "no-debugger": "error" } }
+  });
+
+  const [result] = await eslint.lintText(
+    "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",
+    { filePath: "suppressed.js" }
+  );
+
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.equal(result.suppressedMessages[0].ruleId, "no-debugger");
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "generated breakpoint" }
+  ]);
+});
+
+test("CommonJS ESLint exposes diagnostics suppressed by utlint-ignore", async () => {
+  const eslint = new CommonJSESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: { rules: { "no-debugger": "error" } }
+  });
+
+  const [result] = await eslint.lintText(
+    "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",
+    { filePath: "suppressed.js" }
+  );
+
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.equal(result.suppressedMessages[0].ruleId, "no-debugger");
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "generated breakpoint" }
+  ]);
+});
+
+test("ESM and CommonJS Linter expose suppressed messages", (t) => {
+  const previousBinary = process.env.UTOO_LINT_BIN;
+  process.env.UTOO_LINT_BIN = testBinary();
+  t.after(() => {
+    if (previousBinary === undefined) {
+      delete process.env.UTOO_LINT_BIN;
+    } else {
+      process.env.UTOO_LINT_BIN = previousBinary;
+    }
+  });
+
+  for (const LinterImplementation of [Linter, CommonJSLinter]) {
+    const linter = new LinterImplementation();
+    const messages = linter.verify(
+      "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",
+      { rules: { "no-debugger": "error" } },
+      { filename: "suppressed.js" }
+    );
+
+    assert.deepEqual(messages, []);
+    assert.equal(linter.getSuppressedMessages().length, 1);
+    assert.deepEqual(linter.getSuppressedMessages()[0].suppressions, [
+      { kind: "directive", justification: "generated breakpoint" }
+    ]);
+  }
+});
+
+test("lintText returns suppressed native diagnostics with the requested file path", () => {
+  const report = lintText(
+    "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",
+    {
+      binary: testBinary(),
+      noConfig: true,
+      filePath: "suppressed.js",
+      overrideConfig: { rules: { "no-debugger": "error" } }
+    }
+  );
+
+  assert.deepEqual(report.diagnostics, []);
+  assert.equal(report.suppressedDiagnostics.length, 1);
+  assert.equal(report.suppressedDiagnostics[0].filePath, "suppressed.js");
+  assert.equal(report.suppressedDiagnostics[0].suppression.justification, "generated breakpoint");
+});
+
+test("raw native CLI reports utlint-ignore suppressions without failing", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(
+    join(project, "suppressed.js"),
+    "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n"
+  );
+
+  const result = spawnSync(
+    testBinary(),
+    ["--no-config", "--rules=no-debugger", "--format=json", sourcePath],
+    { cwd: project, encoding: "utf8" }
+  );
+  const report = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(report.diagnostics, []);
+  assert.equal(report.suppressedDiagnostics.length, 1);
+  assert.equal(report.suppressedDiagnostics[0].ruleId, "no-debugger");
+});
+
+test("utlint-ignore suppresses ESLint-compatible custom rules", async () => {
+  const eslint = new ESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: {
+      plugins: {
+        custom: {
+          rules: {
+            report: {
+              create(context) {
+                return {
+                  Program(node) {
+                    context.report({
+                      node,
+                      loc: { start: { line: 2, column: 0 }, end: { line: 2, column: 5 } },
+                      message: "custom report"
+                    });
+                  }
+                };
+              }
+            }
+          }
+        }
+      },
+      rules: { "custom/report": "error" }
+    }
+  });
+
+  const [result] = await eslint.lintText(
+    "// utlint-ignore custom/report: generated declaration\nvalue;\n",
+    { filePath: "suppressed.js" }
+  );
+
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "generated declaration" }
+  ]);
+});
 
 for (const filename of ["utlint.config.ts", "utlint.config.json"]) {
   test(`ESLint.findConfigFile discovers ${filename}`, async (t) => {

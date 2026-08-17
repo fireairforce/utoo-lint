@@ -517,7 +517,7 @@ export class UtooLint {
     const results = reportToESLintResults(report, {
       source: code,
       filePath,
-      includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0,
+      includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0 || (report.suppressedDiagnostics?.length ?? 0) > 0,
       ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(nativeOptions, filePath)
     });
     if (report.files !== 0) {
@@ -635,7 +635,10 @@ export class Linter {
       config: calculatedConfig({ cwd: verifyOptions.cwd, noConfig: true, overrideConfig: config }, normalizedFilePath)
     });
     const customRuleFilter = applyDisableDirectives(customRuleMessages, sourceCode);
-    this.suppressedMessages = customRuleFilter.suppressedMessages;
+    this.suppressedMessages = [
+      ...(report.suppressedDiagnostics ?? []).map((diagnostic) => suppressedDiagnosticToESLintMessage(diagnostic, ruleSeverities)),
+      ...customRuleFilter.suppressedMessages
+    ];
     this.times = { passes: [] };
     this.fixPassCount = 0;
     return [
@@ -944,14 +947,18 @@ function applyDisableDirectives(messages, sourceCode) {
   const directives = sourceCode.getDisableDirectives()
     .filter((directive) => directive.node?.loc?.start?.line)
     .sort((left, right) => left.node.loc.start.line - right.node.loc.start.line);
-  if (directives.length === 0) {
+  const utlintDirectives = sourceCode.getAllComments()
+    .map((comment) => utlintDirectiveFromComment(comment, sourceCode))
+    .filter(Boolean)
+    .sort((left, right) => left.node.range[0] - right.node.range[0]);
+  if (directives.length === 0 && utlintDirectives.length === 0) {
     return { messages, suppressedMessages: [] };
   }
 
   const kept = [];
   const suppressed = [];
   for (const message of messages) {
-    const directive = disableDirectiveForMessage(message, directives);
+    const directive = utlintDirectiveForMessage(message, utlintDirectives) ?? disableDirectiveForMessage(message, directives);
     if (directive) {
       suppressed.push({
         ...message,
@@ -965,6 +972,68 @@ function applyDisableDirectives(messages, sourceCode) {
     }
   }
   return { messages: kept, suppressedMessages: suppressed };
+}
+
+function utlintDirectiveFromComment(comment, sourceCode) {
+  const match = String(comment?.value ?? "").trim().match(/^(utlint-ignore(?:-all|-start|-end)?)\b\s*(.*)$/u);
+  if (!match) {
+    return null;
+  }
+
+  const [, type, tail] = match;
+  const colon = tail.indexOf(":");
+  const rawRuleId = (colon === -1 ? tail : tail.slice(0, colon)).trim();
+  const justification = colon === -1 ? "" : tail.slice(colon + 1).trim();
+  const nextToken = sourceCode.getAllTokens().find((token) => token.range?.[0] >= comment.range?.[1]);
+  return {
+    type,
+    node: comment,
+    ruleId: rawRuleId || null,
+    justification,
+    nextCodeLine: nextToken?.loc?.start?.line ?? null,
+    topLevel: sourceCode.getAllTokens().every((token) => token.range?.[0] >= comment.range?.[0])
+  };
+}
+
+function utlintDirectiveForMessage(message, directives) {
+  let allRulesRangeDepth = 0;
+  let namedRuleRangeDepth = 0;
+  let allRulesRangeDirective = null;
+  let namedRuleRangeDirective = null;
+
+  for (const directive of directives) {
+    if (directive.node.loc.start.line > message.line) {
+      break;
+    }
+    if (directive.type === "utlint-ignore-start") {
+      if (directive.ruleId == null) {
+        allRulesRangeDirective ??= directive;
+        allRulesRangeDepth += 1;
+      } else if (directive.ruleId === message.ruleId) {
+        namedRuleRangeDirective ??= directive;
+        namedRuleRangeDepth += 1;
+      }
+      continue;
+    }
+    if (directive.type === "utlint-ignore-end") {
+      if (directive.ruleId == null && allRulesRangeDepth > 0) {
+        allRulesRangeDepth -= 1;
+        if (allRulesRangeDepth === 0) allRulesRangeDirective = null;
+      } else if (directive.ruleId === message.ruleId && namedRuleRangeDepth > 0) {
+        namedRuleRangeDepth -= 1;
+        if (namedRuleRangeDepth === 0) namedRuleRangeDirective = null;
+      }
+      continue;
+    }
+    if (directive.type === "utlint-ignore-all" && directive.topLevel && disableDirectiveMatchesRule(directive, message.ruleId)) {
+      return directive;
+    }
+    if (directive.type === "utlint-ignore" && directive.nextCodeLine === message.line && disableDirectiveMatchesRule(directive, message.ruleId)) {
+      return directive;
+    }
+  }
+
+  return namedRuleRangeDirective ?? allRulesRangeDirective;
 }
 
 function disableDirectiveForMessage(message, directives) {
@@ -2477,7 +2546,7 @@ export class CLIEngine {
     const results = maybeFilterQuietResults(reportToESLintResults(report, {
       source: code,
       filePath: normalizeESLintFilePath(filePath, mergedOptions.cwd),
-      includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0,
+      includeEmptyTextResult: report.files !== 0 || (report.diagnostics?.length ?? 0) > 0 || (report.suppressedDiagnostics?.length ?? 0) > 0,
       ruleSeverityForFile: (filePath) => ruleSeverityMapForOptions(mergedOptions, filePath)
     }), mergedOptions);
     return resultsToCLIEngineReport(results);
@@ -2678,6 +2747,7 @@ function publicCliReport(report) {
     files: report.files ?? 0,
     filePaths: report.filePaths ?? [],
     diagnostics: report.diagnostics ?? [],
+    suppressedDiagnostics: report.suppressedDiagnostics ?? [],
     outputs: report.outputs ?? []
   };
 }
@@ -2976,7 +3046,7 @@ export function lintFiles(paths, options = {}) {
   const ignoredDiagnostics = ignoredLintPathDiagnostics(targets, options);
   const lintPaths = filteredLintPaths(targets, options);
   if (lintPaths.length === 0) {
-    return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, exitCode: exitCodeForDiagnostics(ignoredDiagnostics) };
+    return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, suppressedDiagnostics: [], exitCode: exitCodeForDiagnostics(ignoredDiagnostics) };
   }
 
   const configRuns = nativeConfigRunsForFiles(expandNativeConfigRunPaths(lintPaths, options), options);
@@ -3041,8 +3111,10 @@ function finalizeLintReport(report, ignoredDiagnostics, options) {
   if (!options.deferDiagnosticConfigFiltering) {
     report.filePaths = normalizeReportFilePaths(report.filePaths, options);
     report.diagnostics = normalizeDiagnosticFilePaths(report.diagnostics, options);
+    report.suppressedDiagnostics = normalizeDiagnosticFilePaths(report.suppressedDiagnostics, options);
     report.outputs = normalizeReportOutputs(report.outputs, options);
     report.diagnostics = normalizeReportDiagnostics(report.diagnostics, options);
+    report.suppressedDiagnostics = normalizeReportDiagnostics(report.suppressedDiagnostics, options);
     report.exitCode = exitCodeForDiagnostics(report.diagnostics);
   }
   return report;
@@ -3139,6 +3211,7 @@ function mergeNativeReports(reports) {
     files: reports.reduce((count, item) => count + (item.files ?? 0), 0),
     filePaths: reports.flatMap((item) => item.filePaths ?? []),
     diagnostics: reports.flatMap((item) => item.diagnostics ?? []),
+    suppressedDiagnostics: reports.flatMap((item) => item.suppressedDiagnostics ?? []),
     outputs: reports.flatMap((item) => item.outputs ?? []),
     exitCode: reports.some((item) => item.exitCode) ? 1 : 0
   };
@@ -3171,6 +3244,7 @@ export function lintText(code, options = {}) {
         files: 0,
         filePaths: [],
         diagnostics,
+        suppressedDiagnostics: [],
         exitCode: exitCodeForDiagnostics(diagnostics)
       };
     }
@@ -3192,7 +3266,12 @@ export function lintText(code, options = {}) {
       ...diagnostic,
       filePath: requestedPath
     }));
+    report.suppressedDiagnostics = (report.suppressedDiagnostics ?? []).map((diagnostic) => ({
+      ...diagnostic,
+      filePath: requestedPath
+    }));
     report.diagnostics = normalizeReportDiagnostics(report.diagnostics, options);
+    report.suppressedDiagnostics = normalizeReportDiagnostics(report.suppressedDiagnostics, options);
     report.exitCode = exitCodeForDiagnostics(report.diagnostics);
     return report;
   } finally {
@@ -3696,6 +3775,18 @@ function reportToESLintResults(report, textOptions = {}) {
       continue;
     }
     byFile.get(filePath).messages.push(diagnosticToESLintMessage(diagnostic, ruleSeverities));
+  }
+
+  for (const diagnostic of report.suppressedDiagnostics ?? []) {
+    const filePath = textOptions.filePath ?? normalizeESLintFilePath(diagnostic.filePath, textOptions.cwd);
+    if (!byFile.has(filePath)) {
+      byFile.set(filePath, emptyESLintResult(filePath, textOptions.source));
+    }
+    const ruleSeverities = textOptions.ruleSeverityForFile?.(filePath) ?? textOptions.ruleSeverities;
+    if (diagnostic.ruleId && ruleSeverities?.get(diagnostic.ruleId) === 0) {
+      continue;
+    }
+    byFile.get(filePath).suppressedMessages.push(suppressedDiagnosticToESLintMessage(diagnostic, ruleSeverities));
   }
 
   for (const fixed of report.outputs ?? []) {
@@ -4399,6 +4490,16 @@ function diagnosticToESLintMessage(diagnostic, ruleSeverities) {
     message.fix = fixes.length === 1 ? fixes[0] : fixes;
   }
   return message;
+}
+
+function suppressedDiagnosticToESLintMessage(diagnostic, ruleSeverities) {
+  return {
+    ...diagnosticToESLintMessage(diagnostic, ruleSeverities),
+    suppressions: [{
+      kind: diagnostic.suppression?.kind ?? "directive",
+      justification: diagnostic.suppression?.justification ?? ""
+    }]
+  };
 }
 
 function finalizeESLintResult(result) {
