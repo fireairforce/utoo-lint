@@ -1,7 +1,7 @@
 {
   "name": "@utoo/lint",
   "version": "0.1.0",
-  "description": "Experimental JavaScript and TypeScript linter powered by Yuku",
+  "description": "High-performance JavaScript and TypeScript linter powered by Yuku",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -13,7 +13,7 @@
   "homepage": "https://github.com/fireairforce/utoo-lint#readme",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.mjs && pnpm test:types",

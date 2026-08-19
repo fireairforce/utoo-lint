@@ -2,267 +2,265 @@
 
 ![utoo-lint banner](assets/utoo-lint-banner.png)
 
-`@utoo/lint` is a High performance linter for JavaScript and TypeScript written by Zig.
-It uses [`yuku`](https://github.com/yuku-toolchain/yuku) for parsing, AST
-traversal, scope tracking, and symbol resolution.
+[![npm version](https://img.shields.io/npm/v/%40utoo%2Flint?logo=npm)](https://www.npmjs.com/package/@utoo/lint)
+[![Node.js 20+](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![CI](https://github.com/fireairforce/utoo-lint/actions/workflows/ci.yml/badge.svg)](https://github.com/fireairforce/utoo-lint/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/fireairforce/utoo-lint)](LICENSE)
 
-It currently has some performance advantages compared with other lint tools:
+A high-performance linter for JavaScript and TypeScript, written in Zig and
+powered by [Yuku](https://github.com/yuku-toolchain/yuku).
 
-![utoo-lint benchmark](assets/utoo-lint-benchmark.png)
+`utoo-lint` is published on npm as
+[`@utoo/lint`](https://www.npmjs.com/package/@utoo/lint). It combines a native
+lint engine with familiar configuration, CLI, and JavaScript APIs.
 
-## Status
+[Installation](#installation) · [Quick start](#quick-start) ·
+[Rules](docs/rule-status.md) · [Configuration](docs/configuration.md) ·
+[ESLint migration](docs/eslint-migration.md)
 
-This repo is a working scaffold, not a production linter yet.
+## Why utoo-lint?
 
-- License: [MIT](LICENSE)
-- Security: See the [security policy](SECURITY.md) to report vulnerabilities
-  privately.
+- **Native performance** — Zig and Yuku power parsing, semantic analysis, and
+  parallel file linting.
+- **Broad rule coverage** — More than 300 rules cover JavaScript, TypeScript,
+  React, JSX accessibility, and imports.
+- **Familiar configuration** — Use typed `utlint.config.ts` or static
+  `utlint.config.json`, with ESLint-style rule names and severities.
+- **Practical workflows** — Safe autofix, suppression comments, JSON output,
+  and ESM/CommonJS APIs are included.
+- **Portable installation** — Prebuilt binaries are available for macOS,
+  Linux, and Windows on supported architectures.
 
-Useful docs:
+## Installation
 
-- [Rule status](docs/rule-status.md) lists implemented rules and their ESLint
-  documentation links.
-- [Configuration](docs/configuration.md) describes `utlint.config.ts` and
-  `utlint.config.json` for frontend projects.
-- [Suppression comments](docs/suppressions.md) documents `utlint-ignore`,
-  file-level, and range suppressions.
-- [Migrating from ESLint](docs/eslint-migration.md) covers the current migration
-  path.
-- [Contributing](CONTRIBUTING.md) covers local development, rule work,
-  packaging, and publishing.
+`@utoo/lint` requires Node.js 20 or later.
 
-## Install
+### utoo
+
+[utoo](https://utoo.land/en/docs/utoo) is a fast, npm-compatible package
+manager written in Rust. Install it once if it is not already available:
+
+```bash
+npm install -g utoo
+```
+
+Add `@utoo/lint` as a development dependency:
+
+```bash
+ut install @utoo/lint -D
+```
+
+In an existing project, run `ut install` without a package name to install all
+dependencies declared in `package.json`.
+
+### Other package managers
 
 ```bash
 pnpm add -D @utoo/lint
+npm install --save-dev @utoo/lint
 ```
 
-Run it with:
+The npm package selects the native binary for the current platform. No Zig
+toolchain is required when using the published package.
+
+## Quick start
+
+### Run with the default rules
+
+Point `utoo-lint` at a file or directory:
 
 ```bash
-pnpm exec utoo-lint src
+utx @utoo/lint src
 ```
 
-## CLI
+Without a config file, `utoo-lint` uses its built-in default rules. It supports
+`.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, and `.cts` files.
+
+### Add a typed config
+
+Create `utlint.config.ts`:
+
+```ts
+import { defineConfig, globalIgnores } from "@utoo/lint/config";
+import frontend from "@utoo/lint/configs/frontend";
+
+export default defineConfig(
+  globalIgnores(["dist/", "coverage/"]),
+  {
+    ...frontend,
+    files: ["src/**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      ...frontend.rules,
+      "no-console": "warn"
+    }
+  }
+);
+```
+
+Run the linter again without repeating the target:
 
 ```bash
-utoo-lint [options] [file-or-directory ...]
+utx @utoo/lint
 ```
 
-If no target is provided, the npm CLI uses `files` from the selected config;
-when there is no `files` entry, it scans the current directory. It skips `.git`,
-`.zig-cache`, `node_modules`, `vendor`, and `zig-out`.
+The CLI discovers the nearest `utlint.config.ts` or `utlint.config.json` and
+uses its `files` patterns. See the [configuration guide](docs/configuration.md)
+for flat config arrays, global ignores, rule options, and config precedence.
 
-Start a frontend project from the packaged template:
+### Add package scripts
+
+```json
+{
+  "scripts": {
+    "lint": "utoo-lint src",
+    "lint:fix": "utoo-lint --fix src"
+  }
+}
+```
+
+With utoo, run these scripts as `ut lint` and `ut lint:fix`.
+
+## Common commands
+
+| Task | Command |
+| --- | --- |
+| Lint files | `utx @utoo/lint src` |
+| Apply safe fixes | `utx @utoo/lint --fix src` |
+| Preview fixes as JSON | `utx @utoo/lint --fix-dry-run --format=json src` |
+| Select rules for one run | `utx @utoo/lint --rules=no-debugger,no-unused-vars src` |
+| Use an explicit config | `utx @utoo/lint --config=utlint.config.json src` |
+
+Run `utx @utoo/lint --help` for all CLI options.
+
+## Configuration
+
+`utoo-lint` supports two canonical config formats. They are alternative
+representations of one active config and are not merged together.
+
+| Config | Best for | Raw native binary |
+| --- | --- | --- |
+| `utlint.config.ts` | Typed authoring, imports, presets, and computed values | No |
+| `utlint.config.json` | Static configuration and JSON Schema validation | Yes |
+
+Rule severities follow ESLint conventions: `off`, `warn`, `error`, `0`, `1`,
+and `2`. A selected config enables only the rules present in its resolved
+`rules` map.
+
+The npm CLI and JavaScript API load both config formats. The raw native binary
+loads JSON only. See the [configuration guide](docs/configuration.md) for the
+complete behavior.
+
+## Autofix
+
+Apply safe fixes in place:
 
 ```bash
-cp node_modules/@utoo/lint/configs/frontend.json utlint.config.json
-pnpm exec utoo-lint src
+utx @utoo/lint --fix src
 ```
 
-Run only a focused rule set:
+Preview fixes without writing files:
 
 ```bash
-utoo-lint --rules=no-debugger,no-unused-vars,@typescript-eslint/no-unused-vars src
+utx @utoo/lint --fix-dry-run --format=json src
 ```
 
-Disable a rule from the command line:
+Fixes run until the source is stable, subject to a safety pass limit. The
+[rule status](docs/rule-status.md) documents autofix support for each rule.
 
-```bash
-utoo-lint --no-console=off src
-```
+## Suppression comments
 
-Use machine-readable output:
-
-```bash
-utoo-lint --format=json src
-```
-
-The default text output groups diagnostics by file, aligns locations and
-severity, and ends with separate error and warning totals. Colors are enabled
-for interactive terminals; use `--color` to force them or `--no-color` to
-disable them (for example, in snapshot tests). JSON output remains stable for
-editor and CI integrations.
-
-### Autofix
-
-Apply safe fixes from all enabled rules that support autofix:
-
-```bash
-pnpm exec utoo-lint --fix src
-```
-
-Preview the result without changing files:
-
-```bash
-pnpm exec utoo-lint --fix-dry-run --format=json src
-```
-
-`--fix` writes fixed source back to disk. `--fix-dry-run` never writes files;
-with JSON output, changed sources are returned in the `outputs` array. Fixes run
-until the source is stable, subject to a safety pass limit. Diagnostics remain
-when a rule or a particular code shape cannot be fixed safely. See
-[Rule status](docs/rule-status.md) for per-rule autofix coverage.
-
-### Suppression comments
-
-Suppress a rule for the next line of code with `utlint-ignore`:
+Use suppression comments for intentional exceptions without disabling a rule
+in project configuration:
 
 ```js
 // utlint-ignore no-debugger: generated breakpoint
 debugger;
 ```
 
-Use `utlint-ignore-all` at the top of a file or matching
-`utlint-ignore-start` / `utlint-ignore-end` comments for a range. See
-[Suppression comments](docs/suppressions.md) for the complete syntax and API
-behavior.
+| Directive | Scope |
+| --- | --- |
+| `utlint-ignore [rule]` | The next line of code |
+| `utlint-ignore-all [rule]` | The entire file when placed before any code |
+| `utlint-ignore-start [rule]` | The start of a suppressed range |
+| `utlint-ignore-end [rule]` | The end of a suppressed range |
 
-## Configuration
+A directive may target one rule ID. Omitting it creates or closes an all-rules
+suppression. Parse errors are never suppressed, and suppressed fixes are not
+applied.
 
-The canonical config names are `utlint.config.ts` and `utlint.config.json`.
-They are two representations of one active config, not layers that are merged.
+See the [suppression comments guide](docs/suppressions.md) for range examples
+and API behavior.
 
-| Config | Use it when | Supported entry points |
-| --- | --- | --- |
-| `utlint.config.ts` | You want typed authoring, imports, or computed values. | npm CLI, JavaScript API, and fishlint compatibility command |
-| `utlint.config.json` | You want a static, runtime-independent config. | npm CLI, JavaScript API, fishlint compatibility command, and raw native binary |
+## Migrating from ESLint
 
-For the npm/Node entry point, discovery checks each directory before moving to
-its parent, so the nearest config directory wins. Within one directory,
-`utlint.config.ts` takes precedence over `utlint.config.json`. The old
-`utoo.json` and `utoo-lint.json` names remain temporarily supported after the
-canonical names, but are deprecated.
-
-The npm CLI discovers either canonical file automatically. You can also select
-one explicitly:
+Convert an existing ESLint config into a native utoo-lint config:
 
 ```bash
-pnpm exec utoo-lint --config=utlint.config.ts src
-pnpm exec utoo-lint --config=utlint.config.json src
+utx @utoo/lint migrate eslint \
+  --from eslint.config.js \
+  --output utlint.config.json
 ```
 
-Use `utlint.config.json` for a static config that both the npm CLI and raw native
-binary can read:
-
-```json
-{
-  "$schema": "https://raw.githubusercontent.com/fireairforce/utoo-lint/main/npm/utoo-lint/schema.json",
-  "files": ["src/**/*.{js,jsx,ts,tsx}"],
-  "ignores": ["dist", "node_modules"],
-  "rules": {
-    "no-console": "off",
-    "no-debugger": "error",
-    "@typescript-eslint/no-unused-vars": ["warn"]
-  }
-}
-```
-
-Use `utlint.config.ts` when the npm/Node CLI should execute a typed config:
-
-```ts
-import { defineConfig } from "@utoo/lint/config";
-
-export default defineConfig({
-  files: ["src/**/*.{js,jsx,ts,tsx}"],
-  ignores: ["dist", "node_modules"],
-  rules: {
-    "no-console": "off",
-    "no-debugger": "error"
-  }
-});
-```
-
-Use `globalIgnores()` as a separate config entry to exclude files or
-directories from the whole flat config:
-
-```ts
-import { defineConfig, globalIgnores } from "@utoo/lint/config";
-
-export default defineConfig(
-  globalIgnores(["dist/", ".next/", "**/generated/"]),
-  {
-    files: ["**/*.{js,jsx,ts,tsx}"],
-    rules: {
-      "no-debugger": "error"
-    }
-  }
-);
-```
-
-The helper returns an ignore-only entry containing `ignores` and an optional
-`name`. Only global entries prune directories during target discovery.
-`ignores` beside `files`, `rules`, or another config key is entry-scoped: it
-stops that entry from applying to matching files, but does not exclude them
-from other entries. With no CLI targets, global ignores filter the config's
-`files` patterns, or the current-directory scan when no `files` are configured.
-Use `dist/` or `.next/` for config-relative directories and `**/generated/`
-for matches at any depth. This intentionally follows
-[ESLint flat config ignore semantics](https://eslint.org/docs/latest/use/configure/ignore).
-
-A TypeScript config is trusted executable code and must export a
-JSON-serializable object or flat config array. The npm wrapper executes it,
-materializes the result as JSON, and invokes the native binary. The raw binary
-does not execute or discover TypeScript; it searches for `utlint.config.json`
-and then the legacy JSON names. Invoke the npm CLI for `utlint.config.ts`, or
-give the binary `utlint.config.json`. Use `--no-config` to disable config
-discovery. Rule-related CLI options such as `--rules` and individual rule
-toggles are applied after the selected config.
-As in ESLint, a selected config's `rules` map is the complete rule set: rules
-that are not configured are disabled. With no selected config, utoo-lint keeps
-its built-in default rules.
-
-Project-config `files` and `ignores` patterns are relative to the selected
-config file's directory. In a flat config array, those fields determine which
-entries match each file; matching entries are combined in order, with later
-rule values overriding earlier values. The npm CLI, JavaScript API, and
-fishlint compatibility command perform this rule resolution per file.
-
-The raw binary applies only `rules` from JSON config. Config-driven
-`files` and `ignores` filtering and default target selection belong to the
-npm/Node wrapper; pass lint targets explicitly when invoking the raw binary.
-
-Rule values may be `off`, `warn`, `error`, `0`, `1`, `2`, booleans, or an
-ESLint-style array whose first item is the severity and later items are native
-rule options. Matching ESLint's CLI behavior, warnings are reported without
-making the command fail; errors return exit status 1. The fishlint-compatible
-CLI can make warnings fail with `--max-warnings`.
-
-To migrate an existing ESLint config into the native utoo format:
-
-```bash
-pnpm exec utoo-lint migrate eslint --from eslint.config.js --output utlint.config.json
-```
+The package also exposes `eslint` and `fishlint` compatibility commands for
+incremental replacement workflows. See [Migrating from ESLint](docs/eslint-migration.md)
+for supported mappings and known differences.
 
 ## JavaScript API
+
+The package provides ESM and CommonJS entry points:
 
 ```js
 import { lintFiles } from "@utoo/lint";
 
 const report = lintFiles(["src"], {
-  config: "utlint.config.json",
-  rules: ["no-debugger"]
+  config: "utlint.config.ts"
 });
+
+console.log(report.diagnostics);
 ```
 
-Set `fix: true` to compute fixed output without writing files:
+An ESLint-style API is also available:
 
 ```js
-const report = lintFiles(["src"], { fix: true });
+import { ESLint } from "@utoo/lint";
 
-console.log(report.outputs);
+const eslint = new ESLint({ fix: true });
+const results = await eslint.lintFiles(["src"]);
+await ESLint.outputFixes(results);
 ```
 
-## Architecture
+Raw reports include active diagnostics, suppressed diagnostics, fixed outputs,
+and an exit code. The compatibility layer also exports `Linter`, `CLIEngine`,
+`RuleTester`, and `SourceCode` APIs.
 
-- `src/root.zig` owns parsing, rule execution, and public API exports.
-- `src/core.zig` owns shared lint types, diagnostics, and common helpers.
-- `src/rules/root.zig` registers rules and dispatches AST visitor hooks.
-- `src/rules/*.zig` contains one lint rule per file.
-- `src/main.zig` owns CLI argument parsing, file discovery, and terminal output.
-- `vendor/yuku` is pinned as a git submodule so the parser API is reproducible.
+## Performance
 
-The rule engine deliberately uses Yuku's native flat AST and semantic traverser
-instead of converting to ESTree. The native engine has no JavaScript runtime
-dependency; the npm configuration layer uses Node only when it loads an
-executable project config such as `utlint.config.ts`.
+The benchmark suite compares fresh CLI runs of utoo-lint, Oxlint, Biome, and
+ESLint on the same generated TypeScript corpus and shared rule set.
+
+![utoo-lint benchmark](assets/utoo-lint-benchmark.png)
+
+See the [benchmark methodology](benchmarks/README.md) to reproduce the results
+and understand what is included in the comparison.
+
+## Documentation
+
+- [Rule status](docs/rule-status.md) — implemented rules and autofix coverage
+- [Configuration](docs/configuration.md) — config discovery, matching, and rule
+  values
+- [Suppression comments](docs/suppressions.md) — line, file, and range
+  suppressions
+- [Migrating from ESLint](docs/eslint-migration.md) — migration workflow and
+  compatibility notes
+- [Contributing](CONTRIBUTING.md) — local development, rule work, and releases
+- [Security policy](SECURITY.md) — privately report a vulnerability
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
+opening a pull request. The native engine is built with Zig, and Yuku is pinned
+as a git submodule for reproducible parser behavior.
+
+## License
+
+[MIT](LICENSE)
