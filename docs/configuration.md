@@ -153,7 +153,7 @@ Use `utlint.config.json` for a static, runtime-independent config:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/fireairforce/utoo-lint/main/npm/utoo-lint/schema.json",
+  "$schema": "https://raw.githubusercontent.com/utooland/utoo-lint/main/npm/utoo-lint/schema.json",
   "files": ["src/**/*.{js,jsx,ts,tsx}"],
   "ignores": ["dist", "node_modules"],
   "rules": {
@@ -187,7 +187,7 @@ The template includes a `$schema` entry for editor validation and a focused set 
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/fireairforce/utoo-lint/main/npm/utoo-lint/schema.json",
+  "$schema": "https://raw.githubusercontent.com/utooland/utoo-lint/main/npm/utoo-lint/schema.json",
   "files": ["src/**/*.{js,jsx,ts,tsx}"],
   "ignores": ["dist", "node_modules"],
   "rules": {

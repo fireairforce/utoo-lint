@@ -53,7 +53,11 @@ jobs:
       - name: Verify npm wrapper
         run: |
           node npm/utoo-lint/bin/utoo-lint.js --no-config test/fixtures/bad.ts
-          node npm/utoo-lint/bin/utoo-lint.js --config=npm/utoo-lint/configs/frontend.json test/fixtures/bad.ts && exit 1 || test "$?" = "1"
+          set +e
+          node npm/utoo-lint/bin/utoo-lint.js --config=npm/utoo-lint/configs/frontend.json test/fixtures/bad.ts
+          status=$?
+          set -e
+          test "$status" -eq 1
 
       - name: Test npm package
         run: pnpm --dir npm/utoo-lint test

@@ -28,12 +28,9 @@ jobs:
   codspeed:
     name: CodSpeed
     runs-on: ubuntu-latest
-    env:
-      CODSPEED_TOKEN: ${{ secrets.CODSPEED_TOKEN }}
     permissions:
       contents: read
       id-token: write
-      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -62,19 +59,9 @@ jobs:
       - name: Generate benchmark corpus
         run: pnpm --dir benchmarks generate -- --files=1000 --statements=30 --out=fixtures/codspeed
 
-      - name: Run benchmark smoke
-        if: env.CODSPEED_TOKEN == ''
-        run: pnpm --dir benchmarks codspeed -- --target=fixtures/codspeed --time=100 --warmup-time=0
-
-      - name: Skip CodSpeed upload
-        if: env.CODSPEED_TOKEN == ''
-        run: echo "CODSPEED_TOKEN is not configured; ran benchmark smoke only."
-
       - name: Run CodSpeed benchmarks
-        if: env.CODSPEED_TOKEN != ''
         uses: CodSpeedHQ/action@v4
         with:
           mode: walltime
           working-directory: benchmarks
           run: pnpm codspeed -- --target=fixtures/codspeed
-          token: ${{ env.CODSPEED_TOKEN }}

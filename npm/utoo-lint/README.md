@@ -4,8 +4,8 @@
 
 [![npm version](https://img.shields.io/npm/v/%40utoo%2Flint?logo=npm)](https://www.npmjs.com/package/@utoo/lint)
 [![Node.js 20+](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![CI](https://github.com/fireairforce/utoo-lint/actions/workflows/ci.yml/badge.svg)](https://github.com/fireairforce/utoo-lint/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/fireairforce/utoo-lint)](https://github.com/fireairforce/utoo-lint/blob/main/LICENSE)
+[![CI](https://github.com/utooland/utoo-lint/actions/workflows/ci.yml/badge.svg)](https://github.com/utooland/utoo-lint/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/utooland/utoo-lint)](https://github.com/utooland/utoo-lint/blob/main/LICENSE)
 
 A high-performance linter for JavaScript and TypeScript, written in Zig and
 powered by [Yuku](https://github.com/yuku-toolchain/yuku).
@@ -14,9 +14,9 @@ powered by [Yuku](https://github.com/yuku-toolchain/yuku).
 and JavaScript APIs.
 
 [Installation](#installation) · [Quick start](#quick-start) ·
-[Rules](https://github.com/fireairforce/utoo-lint/blob/main/docs/rule-status.md) ·
-[Configuration](https://github.com/fireairforce/utoo-lint/blob/main/docs/configuration.md) ·
-[GitHub](https://github.com/fireairforce/utoo-lint)
+[Rules](https://github.com/utooland/utoo-lint/blob/main/docs/rule-status.md) ·
+[Configuration](https://github.com/utooland/utoo-lint/blob/main/docs/configuration.md) ·
+[GitHub](https://github.com/utooland/utoo-lint)
 
 ## Why utoo-lint?
 
@@ -102,7 +102,7 @@ utx @utoo/lint
 ```
 
 See the
-[configuration guide](https://github.com/fireairforce/utoo-lint/blob/main/docs/configuration.md)
+[configuration guide](https://github.com/utooland/utoo-lint/blob/main/docs/configuration.md)
 for flat config arrays, global ignores, rule options, and config precedence.
 
 ### Add package scripts
@@ -146,7 +146,7 @@ and `2`. A selected config enables only the rules present in its resolved
 
 The npm CLI and JavaScript API load both formats. The raw native binary loads
 JSON only. See the
-[configuration guide](https://github.com/fireairforce/utoo-lint/blob/main/docs/configuration.md)
+[configuration guide](https://github.com/utooland/utoo-lint/blob/main/docs/configuration.md)
 for the complete behavior.
 
 ## Autofix
@@ -164,7 +164,7 @@ utx @utoo/lint --fix-dry-run --format=json src
 ```
 
 Fixes run until the source is stable, subject to a safety pass limit. The
-[rule status](https://github.com/fireairforce/utoo-lint/blob/main/docs/rule-status.md)
+[rule status](https://github.com/utooland/utoo-lint/blob/main/docs/rule-status.md)
 documents autofix support for each rule.
 
 ## Suppression comments
@@ -189,7 +189,7 @@ suppression. Parse errors are never suppressed, and suppressed fixes are not
 applied.
 
 See the
-[suppression comments guide](https://github.com/fireairforce/utoo-lint/blob/main/docs/suppressions.md)
+[suppression comments guide](https://github.com/utooland/utoo-lint/blob/main/docs/suppressions.md)
 for range examples and API behavior.
 
 ## Migrating from ESLint
@@ -204,7 +204,7 @@ utx @utoo/lint migrate eslint \
 
 The package also exposes `eslint` and `fishlint` compatibility commands for
 incremental replacement workflows. See the
-[migration guide](https://github.com/fireairforce/utoo-lint/blob/main/docs/eslint-migration.md)
+[migration guide](https://github.com/utooland/utoo-lint/blob/main/docs/eslint-migration.md)
 for supported mappings and known differences.
 
 ## JavaScript API
@@ -251,13 +251,13 @@ development.
 
 ## Documentation
 
-- [Rule status](https://github.com/fireairforce/utoo-lint/blob/main/docs/rule-status.md)
-- [Configuration](https://github.com/fireairforce/utoo-lint/blob/main/docs/configuration.md)
-- [Suppression comments](https://github.com/fireairforce/utoo-lint/blob/main/docs/suppressions.md)
-- [Migrating from ESLint](https://github.com/fireairforce/utoo-lint/blob/main/docs/eslint-migration.md)
-- [Benchmarks](https://github.com/fireairforce/utoo-lint/tree/main/benchmarks)
-- [Security policy](https://github.com/fireairforce/utoo-lint/blob/main/SECURITY.md)
+- [Rule status](https://github.com/utooland/utoo-lint/blob/main/docs/rule-status.md)
+- [Configuration](https://github.com/utooland/utoo-lint/blob/main/docs/configuration.md)
+- [Suppression comments](https://github.com/utooland/utoo-lint/blob/main/docs/suppressions.md)
+- [Migrating from ESLint](https://github.com/utooland/utoo-lint/blob/main/docs/eslint-migration.md)
+- [Benchmarks](https://github.com/utooland/utoo-lint/tree/main/benchmarks)
+- [Security policy](https://github.com/utooland/utoo-lint/blob/main/SECURITY.md)
 
 ## License
 
-[MIT](https://github.com/fireairforce/utoo-lint/blob/main/LICENSE)
+[MIT](https://github.com/utooland/utoo-lint/blob/main/LICENSE)

@@ -16,7 +16,7 @@ const JAVASCRIPT_CONFIG_EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
 const IGNORED_RULES = new Map([
   ["prettier/prettier", "formatting is outside utoo-lint"]
 ]);
-const SCHEMA_URL = "https://raw.githubusercontent.com/fireairforce/utoo-lint/main/npm/utoo-lint/schema.json";
+const SCHEMA_URL = "https://raw.githubusercontent.com/utooland/utoo-lint/main/npm/utoo-lint/schema.json";
 const JAVASCRIPT_CONFIG_LOADER_SCRIPT = `
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";

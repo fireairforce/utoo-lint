@@ -5,12 +5,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fireairforce/utoo-lint.git"
+    "url": "git+https://github.com/utooland/utoo-lint.git"
   },
   "bugs": {
-    "url": "https://github.com/fireairforce/utoo-lint/issues"
+    "url": "https://github.com/utooland/utoo-lint/issues"
   },
-  "homepage": "https://github.com/fireairforce/utoo-lint#readme",
+  "homepage": "https://github.com/utooland/utoo-lint#readme",
   "os": [
     "darwin"
   ],
