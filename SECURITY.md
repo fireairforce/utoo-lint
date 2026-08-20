@@ -10,7 +10,7 @@ security fixes.
 
 Please report suspected vulnerabilities privately before public disclosure.
 
-- Prefer a [private GitHub security advisory](https://github.com/fireairforce/utoo-lint/security/advisories/new).
+- Prefer a [private GitHub security advisory](https://github.com/utooland/utoo-lint/security/advisories/new).
 - If private reporting is unavailable, contact a maintainer through a
   non-public channel instead of opening a public issue with exploit details.
 

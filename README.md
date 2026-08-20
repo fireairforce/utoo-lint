@@ -4,8 +4,8 @@
 
 [![npm version](https://img.shields.io/npm/v/%40utoo%2Flint?logo=npm)](https://www.npmjs.com/package/@utoo/lint)
 [![Node.js 20+](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![CI](https://github.com/fireairforce/utoo-lint/actions/workflows/ci.yml/badge.svg)](https://github.com/fireairforce/utoo-lint/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/fireairforce/utoo-lint)](LICENSE)
+[![CI](https://github.com/utooland/utoo-lint/actions/workflows/ci.yml/badge.svg)](https://github.com/utooland/utoo-lint/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/utooland/utoo-lint)](LICENSE)
 
 A high-performance linter for JavaScript and TypeScript, written in Zig and
 powered by [Yuku](https://github.com/yuku-toolchain/yuku).

@@ -58,7 +58,7 @@ Minimal config:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/fireairforce/utoo-lint/main/npm/utoo-lint/schema.json",
+  "$schema": "https://raw.githubusercontent.com/utooland/utoo-lint/main/npm/utoo-lint/schema.json",
   "rules": {
     "no-debugger": "error",
     "no-console": "off",
