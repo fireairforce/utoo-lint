@@ -31,6 +31,16 @@ lint engine with familiar configuration, CLI, and JavaScript APIs.
 - **Portable installation** — Prebuilt binaries are available for macOS,
   Linux, and Windows on supported architectures.
 
+## Performance
+
+The benchmark suite compares fresh CLI runs of utoo-lint, Oxlint, Biome, and
+ESLint on the same generated TypeScript corpus and shared rule set.
+
+![utoo-lint benchmark](assets/utoo-lint-benchmark.png)
+
+See the [benchmark methodology](benchmarks/README.md) to reproduce the results
+and understand what is included in the comparison.
+
 ## Installation
 
 `@utoo/lint` requires Node.js 20 or later.
@@ -232,16 +242,6 @@ await ESLint.outputFixes(results);
 Raw reports include active diagnostics, suppressed diagnostics, fixed outputs,
 and an exit code. The compatibility layer also exports `Linter`, `CLIEngine`,
 `RuleTester`, and `SourceCode` APIs.
-
-## Performance
-
-The benchmark suite compares fresh CLI runs of utoo-lint, Oxlint, Biome, and
-ESLint on the same generated TypeScript corpus and shared rule set.
-
-![utoo-lint benchmark](assets/utoo-lint-benchmark.png)
-
-See the [benchmark methodology](benchmarks/README.md) to reproduce the results
-and understand what is included in the comparison.
 
 ## Documentation
 
