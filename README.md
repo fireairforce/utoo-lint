@@ -1,6 +1,6 @@
-# utoo-lint
-
 ![utoo-lint banner](assets/utoo-lint-banner.png)
+
+# utoo-lint
 
 [![npm version](https://img.shields.io/npm/v/%40utoo%2Flint?logo=npm)](https://www.npmjs.com/package/@utoo/lint)
 [![Node.js 20+](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
