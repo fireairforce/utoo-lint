@@ -262,6 +262,7 @@ pub const prefer_object_has_own = @import("prefer_object_has_own.zig");
 pub const prefer_object_spread = @import("prefer_object_spread.zig");
 pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
 pub const preserve_caught_error = @import("preserve_caught_error.zig");
+pub const promise_valid_params = @import("promise_valid_params.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
@@ -3319,6 +3320,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.promise_valid_params) {
+            try promise_valid_params.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, self.options.promise_valid_params_exclude);
+        }
         if (self.options.array_callback_return) {
             try array_callback_return.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, .{
                 .allow_implicit = self.options.array_callback_return_allow_implicit == .yes,
