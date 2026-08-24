@@ -1330,6 +1330,30 @@ pub const NoUnusedVarsIgnorePattern = struct {
     }
 };
 
+pub const max_react_hooks_additional_hooks_pattern_len = 256;
+
+pub const ReactHooksAdditionalHooksPatternError = error{
+    ReactHooksAdditionalHooksPatternTooLong,
+};
+
+pub const ReactHooksAdditionalHooksPattern = struct {
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_react_hooks_additional_hooks_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const ReactHooksAdditionalHooksPattern) ?[]const u8 {
+        if (!self.custom) return null;
+        return self.storage[0..self.length];
+    }
+
+    pub fn set(self: *ReactHooksAdditionalHooksPattern, pattern_value: []const u8) ReactHooksAdditionalHooksPatternError!void {
+        if (pattern_value.len > max_react_hooks_additional_hooks_pattern_len) return error.ReactHooksAdditionalHooksPatternTooLong;
+        @memcpy(self.storage[0..pattern_value.len], pattern_value);
+        self.custom = true;
+        self.length = pattern_value.len;
+    }
+};
+
 pub const max_no_useless_escape_allow_regex_characters = 32;
 
 pub const NoUselessEscapeAllowRegexCharactersError = error{
@@ -2676,7 +2700,10 @@ pub const Options = struct {
     react_self_closing_comp_html: bool = true,
     react_style_prop_object: bool = true,
     react_void_dom_elements_no_children: bool = true,
+    react_hooks_exhaustive_deps: bool = true,
+    react_hooks_exhaustive_deps_additional_hooks: ReactHooksAdditionalHooksPattern = .{},
     react_hooks_rules_of_hooks: bool = true,
+    unused_imports_no_unused_imports: bool = false,
     radix: bool = true,
     radix_style: RadixStyle = .always,
     require_await: bool = true,
@@ -2893,6 +2920,10 @@ pub const Options = struct {
 
         if (std.mem.startsWith(u8, cli_name, "react-hooks/")) {
             return self.setByPrefixedRuleName("react_hooks_", cli_name["react-hooks/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "unused-imports/")) {
+            return self.setByPrefixedRuleName("unused_imports_", cli_name["unused-imports/".len..], value);
         }
 
         inline for (@typeInfo(Options).@"struct".fields) |field| {
@@ -3496,6 +3527,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "react/self-closing-comp")) {
             self.react_self_closing_comp_component = try reactSelfClosingCompBoolOptionFromConfig(value, "component", true);
             self.react_self_closing_comp_html = try reactSelfClosingCompBoolOptionFromConfig(value, "html", true);
+        }
+        if (std.mem.eql(u8, cli_name, "react-hooks/exhaustive-deps")) {
+            self.react_hooks_exhaustive_deps_additional_hooks = try reactHooksAdditionalHooksFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/array-type")) {
             self.typescript_eslint_array_type_style = try typescriptEslintArrayTypeStyleFromConfig(value);
@@ -8400,6 +8434,28 @@ pub const Options = struct {
         };
     }
 
+    fn reactHooksAdditionalHooksFromConfig(value: std.json.Value) RuleConfigError!ReactHooksAdditionalHooksPattern {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const pattern_value = switch (config.get("additionalHooks") orelse return .{}) {
+            .string => |pattern_value| pattern_value,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (pattern_value.len == 0) return .{};
+
+        var pattern = ReactHooksAdditionalHooksPattern{};
+        pattern.set(pattern_value) catch return error.UnsupportedRuleConfigValue;
+        return pattern;
+    }
+
     fn reactJsxPascalCaseAllowAllCapsFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -9451,6 +9507,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.react_hooks_rules_of_hooks);
     try std.testing.expect(options.setByCliName("react-hooks/rules-of-hooks", true));
     try std.testing.expect(options.react_hooks_rules_of_hooks);
+
+    try std.testing.expect(!options.unused_imports_no_unused_imports);
+    try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));
+    try std.testing.expect(options.unused_imports_no_unused_imports);
 
     try std.testing.expect(!options.setByCliName("unknown-rule", true));
 }

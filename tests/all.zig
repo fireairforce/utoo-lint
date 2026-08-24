@@ -1195,6 +1195,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_hooks_exhaustive_deps.zig");
+}
+
+comptime {
     _ = @import("rules/react_hooks_rules_of_hooks.zig");
 }
 
@@ -1412,6 +1416,10 @@ comptime {
 
 comptime {
     _ = @import("rules/typescript_eslint_restrict_plus_operands.zig");
+}
+
+comptime {
+    _ = @import("rules/unused_imports_no_unused_imports.zig");
 }
 
 comptime {
