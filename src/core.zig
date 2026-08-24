@@ -1991,6 +1991,39 @@ pub const NoInlineCommentsIgnorePattern = struct {
     }
 };
 
+pub const max_promise_always_return_ignore_assignment_variables = 32;
+pub const max_promise_always_return_ignore_assignment_variable_len = 128;
+
+pub const PromiseAlwaysReturnIgnoreAssignmentVariables = struct {
+    custom: bool = false,
+    count: usize = 0,
+    lengths: [max_promise_always_return_ignore_assignment_variables]usize = undefined,
+    storage: [max_promise_always_return_ignore_assignment_variables][max_promise_always_return_ignore_assignment_variable_len]u8 = undefined,
+
+    pub fn contains(self: *const PromiseAlwaysReturnIgnoreAssignmentVariables, name: []const u8) bool {
+        if (!self.custom) return std.mem.eql(u8, name, "globalThis");
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const PromiseAlwaysReturnIgnoreAssignmentVariables, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *PromiseAlwaysReturnIgnoreAssignmentVariables, name: []const u8) bool {
+        if (name.len == 0) return false;
+        if (self.count >= max_promise_always_return_ignore_assignment_variables) return false;
+        if (name.len > max_promise_always_return_ignore_assignment_variable_len) return false;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
+    }
+};
+
 pub const max_dot_notation_allow_pattern_len = 256;
 
 pub const DotNotationAllowPatternError = error{
@@ -2802,6 +2835,9 @@ pub const Options = struct {
     typescript_eslint_prefer_namespace_keyword: bool = true,
     typescript_eslint_restrict_plus_operands: bool = true,
     typescript_eslint_restrict_plus_operands_allow_number_and_string: bool = false,
+    promise_always_return: bool = true,
+    promise_always_return_ignore_last_callback: bool = false,
+    promise_always_return_ignore_assignment_variables: PromiseAlwaysReturnIgnoreAssignmentVariables = .{},
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
     valid_typeof_require_string_literals: bool = false,
@@ -2876,6 +2912,10 @@ pub const Options = struct {
 
         if (std.mem.startsWith(u8, cli_name, "react-hooks/")) {
             return self.setByPrefixedRuleName("react_hooks_", cli_name["react-hooks/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "promise/")) {
+            return self.setByPrefixedRuleName("promise_", cli_name["promise/".len..], value);
         }
 
         inline for (@typeInfo(Options).@"struct".fields) |field| {
@@ -3479,6 +3519,10 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "react/self-closing-comp")) {
             self.react_self_closing_comp_component = try reactSelfClosingCompBoolOptionFromConfig(value, "component", true);
             self.react_self_closing_comp_html = try reactSelfClosingCompBoolOptionFromConfig(value, "html", true);
+        }
+        if (std.mem.eql(u8, cli_name, "promise/always-return")) {
+            self.promise_always_return_ignore_last_callback = try promiseAlwaysReturnBoolOptionFromConfig(value, "ignoreLastCallback", false);
+            self.promise_always_return_ignore_assignment_variables = try promiseAlwaysReturnIgnoreAssignmentVariablesFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/array-type")) {
             self.typescript_eslint_array_type_style = try typescriptEslintArrayTypeStyleFromConfig(value);
@@ -8885,6 +8929,50 @@ pub const Options = struct {
         };
     }
 
+    fn promiseAlwaysReturnBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn promiseAlwaysReturnIgnoreAssignmentVariablesFromConfig(value: std.json.Value) RuleConfigError!PromiseAlwaysReturnIgnoreAssignmentVariables {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const name_items = switch (config.get("ignoreAssignmentVariable") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var names = PromiseAlwaysReturnIgnoreAssignmentVariables{ .custom = true };
+        for (name_items) |item| {
+            const name = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!names.append(name)) return error.UnsupportedRuleConfigValue;
+        }
+        return names;
+    }
+
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
         inline for (@typeInfo(Options).@"struct".fields) |field| {
             if (field.type == bool) {
@@ -9214,6 +9302,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
     try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
+
+    try std.testing.expect(!options.promise_always_return);
+    try std.testing.expect(options.setByCliName("promise/always-return", true));
+    try std.testing.expect(options.promise_always_return);
 
     try std.testing.expect(!options.jsx_a11y_aria_props);
     try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));
@@ -10753,6 +10845,20 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-promise-executor-return", no_promise_executor_return_config.value);
     try std.testing.expect(options.no_promise_executor_return);
     try std.testing.expect(options.no_promise_executor_return_allow_void);
+
+    var promise_always_return_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreLastCallback\":true,\"ignoreAssignmentVariable\":[\"window\"]}]",
+        .{},
+    );
+    defer promise_always_return_config.deinit();
+    try options.setByRuleConfigValue("promise/always-return", promise_always_return_config.value);
+    try std.testing.expect(options.promise_always_return);
+    try std.testing.expect(options.promise_always_return_ignore_last_callback);
+    try std.testing.expect(options.promise_always_return_ignore_assignment_variables.custom);
+    try std.testing.expect(options.promise_always_return_ignore_assignment_variables.contains("window"));
+    try std.testing.expect(!options.promise_always_return_ignore_assignment_variables.contains("globalThis"));
 
     var prefer_regex_literals_config = try std.json.parseFromSlice(
         std.json.Value,
