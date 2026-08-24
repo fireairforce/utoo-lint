@@ -467,6 +467,74 @@ test("migrator config stdout does not corrupt its serialized input", (t) => {
   assert.equal(JSON.parse(result.stdout).rules["no-debugger"], "error");
 });
 
+test("migrator translates reviewed @eslint-react aliases", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      rules: {
+        "@eslint-react/no-array-index-key": ["warn"],
+        "@eslint-react/dom-no-find-dom-node": 2,
+        "@eslint-react/dom-no-render-return-value": false,
+        "@eslint-react/dom-no-void-elements-with-children": ["error"],
+        "@eslint-react/rules-of-hooks": "error"
+      }
+    })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).rules, {
+    "react-hooks/rules-of-hooks": "error",
+    "react/no-array-index-key": ["warn"],
+    "react/no-find-dom-node": 2,
+    "react/no-render-return-value": false,
+    "react/void-dom-elements-no-children": ["error"]
+  });
+  const report = JSON.parse(result.stderr);
+  assert.deepEqual(report.unsupportedRules, []);
+  assert.deepEqual(report.translatedRules, [
+    { sourceRuleId: "@eslint-react/dom-no-find-dom-node", targetRuleId: "react/no-find-dom-node" },
+    { sourceRuleId: "@eslint-react/dom-no-render-return-value", targetRuleId: "react/no-render-return-value" },
+    { sourceRuleId: "@eslint-react/dom-no-void-elements-with-children", targetRuleId: "react/void-dom-elements-no-children" },
+    { sourceRuleId: "@eslint-react/no-array-index-key", targetRuleId: "react/no-array-index-key" },
+    { sourceRuleId: "@eslint-react/rules-of-hooks", targetRuleId: "react-hooks/rules-of-hooks" }
+  ]);
+});
+
+test("migrator does not infer @eslint-react aliases without equivalent rules", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      rules: {
+        "@eslint-react/no-missing-key": "error",
+        "@eslint-react/dom-no-render": "warn"
+      }
+    })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).rules, {});
+  const report = JSON.parse(result.stderr);
+  assert.deepEqual(report.translatedRules, []);
+  assert.deepEqual(report.unsupportedRules, [
+    "@eslint-react/dom-no-render",
+    "@eslint-react/no-missing-key"
+  ]);
+});
+
 test("ESLint.findConfigFile prefers utlint.config.ts over utlint.config.json in the same directory", async (t) => {
   const project = createProject(t);
   const typescriptConfig = write(join(project, "utlint.config.ts"));
