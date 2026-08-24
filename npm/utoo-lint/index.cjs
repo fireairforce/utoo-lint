@@ -358,6 +358,7 @@ const BUILTIN_RULE_IDS = [
   "react/self-closing-comp",
   "react/style-prop-object",
   "react/void-dom-elements-no-children",
+  "react-hooks/exhaustive-deps",
   "react-hooks/rules-of-hooks",
   "unused-imports/no-unused-imports",
   "@typescript-eslint/adjacent-overload-signatures",

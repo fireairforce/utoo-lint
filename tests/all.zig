@@ -1195,6 +1195,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_hooks_exhaustive_deps.zig");
+}
+
+comptime {
     _ = @import("rules/react_hooks_rules_of_hooks.zig");
 }
 

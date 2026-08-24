@@ -323,6 +323,7 @@ instead of being rewritten.
 
 | Rule | Status |
 | --- | --- |
+| [`react-hooks/exhaustive-deps`](https://react.dev/reference/eslint-plugin-react-hooks/lints/exhaustive-deps) | Implements dependency-array validation for built-in hooks and `additionalHooks` literal, alternation, anchor, and wildcard patterns; reports missing, duplicate, unnecessary, complex, and unstable dependencies without type information |
 | [`react-hooks/rules-of-hooks`](https://legacy.reactjs.org/docs/hooks-rules.html) | Implemented for top-level, ordinary function, class method, callback, conditional branch, and loop checks |
 
 ## Unused Imports rules
