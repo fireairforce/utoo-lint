@@ -16,6 +16,13 @@ const JAVASCRIPT_CONFIG_EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
 const IGNORED_RULES = new Map([
   ["prettier/prettier", "formatting is outside utoo-lint"]
 ]);
+const RULE_ALIASES = new Map([
+  ["@eslint-react/no-array-index-key", "react/no-array-index-key"],
+  ["@eslint-react/dom-no-find-dom-node", "react/no-find-dom-node"],
+  ["@eslint-react/dom-no-render-return-value", "react/no-render-return-value"],
+  ["@eslint-react/dom-no-void-elements-with-children", "react/void-dom-elements-no-children"],
+  ["@eslint-react/rules-of-hooks", "react-hooks/rules-of-hooks"]
+]);
 const SCHEMA_URL = "https://raw.githubusercontent.com/utooland/utoo-lint/main/npm/utoo-lint/schema.json";
 const JAVASCRIPT_CONFIG_LOADER_SCRIPT = `
 import { writeFileSync } from "node:fs";
@@ -182,24 +189,29 @@ function migrateEslintConfig(options) {
   const supportedRules = [];
   const unsupportedRules = [];
   const ignoredRules = [];
+  const translatedRules = [];
 
   for (const entry of entries) {
     const rules = {};
     if (entry.rules && typeof entry.rules === "object") {
       for (const [ruleId, ruleConfig] of Object.entries(entry.rules)) {
+        const migratedRuleId = RULE_ALIASES.get(ruleId) ?? ruleId;
         if (IGNORED_RULES.has(ruleId)) {
           ignoredRules.push({ ruleId, reason: IGNORED_RULES.get(ruleId) });
           continue;
         }
-        if (!supportedRuleIds.has(ruleId)) {
+        if (!supportedRuleIds.has(migratedRuleId)) {
           if (isRuleDisabled(ruleConfig)) {
             continue;
           }
           unsupportedRules.push(ruleId);
           continue;
         }
-        rules[ruleId] = migratableRuleConfig(ruleConfig);
-        supportedRules.push(ruleId);
+        rules[migratedRuleId] = migratableRuleConfig(ruleConfig);
+        supportedRules.push(migratedRuleId);
+        if (migratedRuleId !== ruleId) {
+          translatedRules.push({ sourceRuleId: ruleId, targetRuleId: migratedRuleId });
+        }
       }
     }
     migratedEntries.push(migratableConfigEntry(entry, rules));
@@ -217,6 +229,7 @@ function migrateEslintConfig(options) {
       supportedRules: uniqueSorted(supportedRules),
       unsupportedRules: uniqueSorted(unsupportedRules),
       ignoredRules: uniqueByRuleId(ignoredRules),
+      translatedRules: uniqueTranslatedRules(translatedRules),
       optionDroppedRules: []
     }
   };
@@ -339,6 +352,14 @@ function uniqueByRuleId(values) {
   return [...result.values()].sort((left, right) => left.ruleId.localeCompare(right.ruleId));
 }
 
+function uniqueTranslatedRules(values) {
+  const result = new Map();
+  for (const value of values) {
+    result.set(value.sourceRuleId, value);
+  }
+  return [...result.values()].sort((left, right) => left.sourceRuleId.localeCompare(right.sourceRuleId));
+}
+
 function writeReport(report, options, stream) {
   if (options.report === "json") {
     stream.write(JSON.stringify(report, null, 2) + "\n");
@@ -350,6 +371,9 @@ function writeReport(report, options, stream) {
     stream.write(`utoo-lint migrate eslint: wrote ${report.output}\n`);
   }
   stream.write(`utoo-lint migrate eslint: migrated ${report.supportedRules.length} supported rule(s)\n`);
+  if (report.translatedRules.length > 0) {
+    stream.write(`utoo-lint migrate eslint: translated ${report.translatedRules.length} rule alias(es): ${report.translatedRules.map((rule) => `${rule.sourceRuleId} -> ${rule.targetRuleId}`).join(", ")}\n`);
+  }
   if (report.ignoredRules.length > 0) {
     stream.write(`utoo-lint migrate eslint: ignored ${report.ignoredRules.length} rule(s): ${report.ignoredRules.map((rule) => rule.ruleId).join(", ")}\n`);
   }

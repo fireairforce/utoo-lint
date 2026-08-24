@@ -51,6 +51,21 @@ Flat-config output starts with a schema metadata entry, followed by the
 migrated entries. Matching entries are applied in array order, so a later value
 for the same rule retains ESLint's override behavior.
 
+The migrator translates the following `@eslint-react` aliases when their
+behavior has a native equivalent:
+
+| ESLint rule | utoo-lint rule |
+| --- | --- |
+| `@eslint-react/no-array-index-key` | `react/no-array-index-key` |
+| `@eslint-react/dom-no-find-dom-node` | `react/no-find-dom-node` |
+| `@eslint-react/dom-no-render-return-value` | `react/no-render-return-value` |
+| `@eslint-react/dom-no-void-elements-with-children` | `react/void-dom-elements-no-children` |
+| `@eslint-react/rules-of-hooks` | `react-hooks/rules-of-hooks` |
+
+Translated aliases are listed separately in the migration report. Other
+`@eslint-react` rules remain unsupported unless an explicit equivalent is added;
+the migrator does not infer mappings from similar names.
+
 ## Add a Config File
 
 Create `utlint.config.json` in the project root, or copy the packaged frontend
