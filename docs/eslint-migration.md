@@ -31,9 +31,10 @@ executed through a compatibility layer. The current migrator flattens ESLint
 flat-config entries into one JSON object: it unions `files` and `ignores`, and
 later entries win when the same supported rule appears more than once. Review
 the result manually when entries give one rule different per-file values. It
-also skips formatter-only rules such as `prettier/prettier` and reports
+also skips formatter-only rules such as `prettier/prettier` and reports enabled
 unsupported rules that still need a native utoo rule or a deliberate
-replacement.
+replacement. Disabled unsupported rules are omitted because they have no
+runtime behavior to migrate.
 
 For a preview without writing a file:
 
@@ -43,7 +44,9 @@ npx utoo-lint migrate eslint --print --report=json
 
 The selected value for each rule is preserved, including arrays such as
 `["error", { ...options }]`. Native utoo rules consume the options they support;
-unsupported rules are reported instead of being copied.
+enabled unsupported rules are reported instead of being copied. Unsupported
+rules configured as `"off"`, `0`, `false`, or an array with one of those
+severities do not block migration.
 
 ## Add a Config File
 
