@@ -394,6 +394,7 @@ const BUILTIN_RULE_IDS = [
   "@typescript-eslint/no-shadow",
   "@typescript-eslint/no-this-alias",
   "@typescript-eslint/no-unsafe-declaration-merging",
+  "@typescript-eslint/no-unsafe-function-type",
   "@typescript-eslint/triple-slash-reference",
   "@typescript-eslint/typedef",
   "@typescript-eslint/unified-signatures",

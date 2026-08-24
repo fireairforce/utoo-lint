@@ -361,6 +361,7 @@ instead of being rewritten.
 | [`@typescript-eslint/no-shadow`](https://typescript-eslint.io/rules/no-shadow/) | Supports `allow`, `builtinGlobals`, `hoist`, `ignoreOnInitialization`, `ignoreTypeValueShadow`, and `ignoreFunctionTypeParameterNameValueShadow` configuration |
 | [`@typescript-eslint/no-this-alias`](https://typescript-eslint.io/rules/no-this-alias/) | Supports `allowedNames` and `allowDestructuring` configuration |
 | [`@typescript-eslint/no-unsafe-declaration-merging`](https://typescript-eslint.io/rules/no-unsafe-declaration-merging/) | Implemented |
+| [`@typescript-eslint/no-unsafe-function-type`](https://typescript-eslint.io/rules/no-unsafe-function-type/) | Reports unshadowed global `Function` references in type annotations, interface heritage, and class implements clauses |
 | [`@typescript-eslint/triple-slash-reference`](https://typescript-eslint.io/rules/triple-slash-reference/) | Implemented for `path`, `types`, and `lib` `always`/`never` configurations |
 | [`@typescript-eslint/typedef`](https://typescript-eslint.io/rules/typedef/) | Supports `propertyDeclaration`, `memberVariableDeclaration`, `parameter`, `arrowParameter`, `arrayDestructuring`, `objectDestructuring`, `variableDeclaration`, and `variableDeclarationIgnoreFunction` configuration |
 | [`@typescript-eslint/unified-signatures`](https://typescript-eslint.io/rules/unified-signatures/) | Implemented |
