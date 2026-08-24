@@ -715,6 +715,115 @@ pub const max_id_length_exception_len = 128;
 pub const max_id_length_exception_patterns = 64;
 pub const max_id_length_exception_pattern_len = 256;
 pub const max_id_match_pattern_len = 256;
+
+pub const max_promise_param_name_pattern_len = 128;
+
+pub const PromiseParamNamePattern = struct {
+    const Default = enum { resolve, reject };
+
+    default: Default = .resolve,
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_promise_param_name_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const PromiseParamNamePattern) []const u8 {
+        if (self.custom) return self.storage[0..self.length];
+        return switch (self.default) {
+            .resolve => "^_?resolve$",
+            .reject => "^_?reject$",
+        };
+    }
+
+    pub fn set(self: *PromiseParamNamePattern, value: []const u8) bool {
+        if (value.len > max_promise_param_name_pattern_len) return false;
+        @memcpy(self.storage[0..value.len], value);
+        self.length = value.len;
+        self.custom = true;
+        return true;
+    }
+
+    pub fn matches(self: *const PromiseParamNamePattern, name: []const u8) bool {
+        return simpleRegexMatches(self.pattern(), name);
+    }
+
+    fn simpleRegexMatches(pattern_text: []const u8, name: []const u8) bool {
+        const anchored_start = pattern_text.len > 0 and pattern_text[0] == '^';
+        const start = if (anchored_start) @as(usize, 1) else 0;
+        const anchored_end = pattern_text.len > start and pattern_text[pattern_text.len - 1] == '$' and
+            (pattern_text.len < 2 or pattern_text[pattern_text.len - 2] != '\\');
+        const end = if (anchored_end) pattern_text.len - 1 else pattern_text.len;
+        const regex_pattern = pattern_text[start..end];
+
+        if (anchored_start) return matchHere(regex_pattern, 0, name, 0, anchored_end);
+        for (0..name.len + 1) |offset| {
+            if (matchHere(regex_pattern, 0, name, offset, anchored_end)) return true;
+        }
+        return false;
+    }
+
+    fn matchHere(regex_pattern: []const u8, pattern_index: usize, name: []const u8, name_index: usize, anchored_end: bool) bool {
+        if (pattern_index >= regex_pattern.len) return !anchored_end or name_index == name.len;
+
+        const atom_end = atomEnd(regex_pattern, pattern_index);
+        const quantifier = if (atom_end < regex_pattern.len) regex_pattern[atom_end] else 0;
+        const next_pattern = if (quantifier == '?' or quantifier == '*' or quantifier == '+') atom_end + 1 else atom_end;
+
+        if (quantifier == '?') {
+            if (name_index < name.len and atomMatches(regex_pattern[pattern_index..atom_end], name[name_index]) and
+                matchHere(regex_pattern, next_pattern, name, name_index + 1, anchored_end)) return true;
+            return matchHere(regex_pattern, next_pattern, name, name_index, anchored_end);
+        }
+        if (quantifier == '*' or quantifier == '+') {
+            var consumed: usize = 0;
+            while (name_index + consumed < name.len and atomMatches(regex_pattern[pattern_index..atom_end], name[name_index + consumed])) {
+                consumed += 1;
+            }
+            const minimum: usize = if (quantifier == '+') 1 else 0;
+            if (consumed < minimum) return false;
+            var count = consumed + 1;
+            while (count > minimum) {
+                count -= 1;
+                if (matchHere(regex_pattern, next_pattern, name, name_index + count, anchored_end)) return true;
+            }
+            return false;
+        }
+
+        return name_index < name.len and atomMatches(regex_pattern[pattern_index..atom_end], name[name_index]) and
+            matchHere(regex_pattern, next_pattern, name, name_index + 1, anchored_end);
+    }
+
+    fn atomEnd(regex_pattern: []const u8, start: usize) usize {
+        if (regex_pattern[start] == '\\' and start + 1 < regex_pattern.len) return start + 2;
+        if (regex_pattern[start] == '[') {
+            var index = start + 1;
+            while (index < regex_pattern.len) : (index += 1) {
+                if (regex_pattern[index] == ']' and index > start + 1) return index + 1;
+            }
+        }
+        return start + 1;
+    }
+
+    fn atomMatches(atom: []const u8, character: u8) bool {
+        if (atom.len == 1) return atom[0] == '.' or atom[0] == character;
+        if (atom[0] == '\\') return atom.len == 2 and atom[1] == character;
+        if (atom[0] != '[' or atom[atom.len - 1] != ']') return false;
+
+        var index: usize = 1;
+        const negated = index < atom.len - 1 and atom[index] == '^';
+        if (negated) index += 1;
+        var found = false;
+        while (index < atom.len - 1) {
+            if (index + 2 < atom.len - 1 and atom[index + 1] == '-') {
+                found = found or (character >= atom[index] and character <= atom[index + 2]);
+                index += 3;
+            } else {
+                found = found or character == atom[index];
+                index += 1;
+            }
+        }
+        return if (negated) !found else found;
+    }
+};
 pub const max_camelcase_allow_patterns = 64;
 pub const max_camelcase_allow_pattern_len = 256;
 
@@ -2561,6 +2670,9 @@ pub const Options = struct {
     prefer_promise_reject_errors_allow_empty_reject: bool = false,
     preserve_caught_error: bool = true,
     preserve_caught_error_require_catch_parameter: bool = false,
+    promise_param_names: bool = true,
+    promise_param_names_resolve_pattern: PromiseParamNamePattern = .{},
+    promise_param_names_reject_pattern: PromiseParamNamePattern = .{ .default = .reject },
     prefer_destructuring: bool = true,
     prefer_destructuring_variable_declarator_array: bool = true,
     prefer_destructuring_variable_declarator_object: bool = true,
@@ -2854,6 +2966,10 @@ pub const Options = struct {
             return self.setByPrefixedRuleName("import_", cli_name["import/".len..], value);
         }
 
+        if (std.mem.startsWith(u8, cli_name, "promise/")) {
+            return self.setByPrefixedRuleName("promise_", cli_name["promise/".len..], value);
+        }
+
         if (std.mem.startsWith(u8, cli_name, "eslint-comments/")) {
             return self.setByPrefixedRuleName("eslint_comments_", cli_name["eslint-comments/".len..], value);
         }
@@ -3042,6 +3158,10 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "max-statements")) {
             self.max_statements_max = try maxStatementsMaxFromConfig(value);
             self.max_statements_ignore_top_level_functions = try maxStatementsIgnoreTopLevelFunctionsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "promise/param-names")) {
+            self.promise_param_names_resolve_pattern = try promiseParamNamePatternFromConfig(value, "resolvePattern", .resolve);
+            self.promise_param_names_reject_pattern = try promiseParamNamePatternFromConfig(value, "rejectPattern", .reject);
         }
         if (std.mem.eql(u8, cli_name, "import/no-cycle")) {
             self.import_no_cycle_amd = try importNoCycleBoolOptionFromConfig(value, "amd", false);
@@ -6921,6 +7041,29 @@ pub const Options = struct {
         };
     }
 
+    fn promiseParamNamePatternFromConfig(
+        value: std.json.Value,
+        key: []const u8,
+        default: PromiseParamNamePattern.Default,
+    ) RuleConfigError!PromiseParamNamePattern {
+        var result = PromiseParamNamePattern{ .default = default };
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return result,
+        };
+        if (items.len < 2) return result;
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const pattern = switch (config.get(key) orelse return result) {
+            .string => |pattern| pattern,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (!result.set(pattern)) return error.UnsupportedRuleConfigValue;
+        return result;
+    }
+
     fn preserveCaughtErrorRequireCatchParameterFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -9214,6 +9357,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
     try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
+
+    try std.testing.expect(!options.promise_param_names);
+    try std.testing.expect(options.setByCliName("promise/param-names", true));
+    try std.testing.expect(options.promise_param_names);
 
     try std.testing.expect(!options.jsx_a11y_aria_props);
     try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));
