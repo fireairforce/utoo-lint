@@ -368,6 +368,7 @@ pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_
 pub const typescript_eslint_prefer_namespace_keyword = @import("typescript_eslint_prefer_namespace_keyword.zig");
 pub const typescript_eslint_restrict_plus_operands = @import("typescript_eslint_restrict_plus_operands.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
+pub const unused_imports_no_unused_imports = @import("unused_imports_no_unused_imports.zig");
 pub const use_isnan = @import("use_isnan.zig");
 pub const valid_typeof = @import("valid_typeof.zig");
 pub const vars_on_top = @import("vars_on_top.zig");
@@ -1157,6 +1158,10 @@ pub fn runSemantic(
         });
     }
 
+    if (options.unused_imports_no_unused_imports) {
+        try unused_imports_no_unused_imports.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
     if (options.no_unused_vars and !options.typescript_eslint_no_unused_vars) {
         try no_unused_vars.runWithOptions(allocator, diagnostics, tree, semantic_result.scope_tree, semantic_result.symbol_table, .{
             .vars = options.no_unused_vars_vars,
@@ -1167,6 +1172,7 @@ pub fn runSemantic(
             .ignore_class_with_static_init_block = options.no_unused_vars_ignore_class_with_static_init_block,
             .ignore_using_declarations = options.no_unused_vars_ignore_using_declarations,
             .react_jsx_uses_react = options.react_jsx_uses_react,
+            .check_imports = !options.unused_imports_no_unused_imports,
             .args_ignore_pattern = options.no_unused_vars_args_ignore_pattern,
             .caught_errors_ignore_pattern = options.no_unused_vars_caught_errors_ignore_pattern,
             .destructured_array_ignore_pattern = options.no_unused_vars_destructured_array_ignore_pattern,
@@ -1183,6 +1189,7 @@ pub fn runSemantic(
             semantic_result.scope_tree,
             semantic_result.symbol_table,
             options.react_jsx_uses_react,
+            !options.unused_imports_no_unused_imports,
             options.typescript_eslint_no_unused_vars_vars,
             options.typescript_eslint_no_unused_vars_args,
             options.typescript_eslint_no_unused_vars_caught_errors,
