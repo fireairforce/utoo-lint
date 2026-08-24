@@ -275,6 +275,7 @@ fn hasSemanticRules(options: Options) bool {
         options.prefer_object_has_own or
         options.prefer_object_spread or
         options.prefer_promise_reject_errors or
+        options.promise_no_nesting or
         options.preserve_caught_error or
         options.prefer_regex_literals or
         options.radix or

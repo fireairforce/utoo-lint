@@ -252,6 +252,12 @@ instead of being rewritten.
 | [`import/no-unresolved`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-unresolved.md) | Implemented for fishlint's node resolver extensions, `smallfish:`/`minifish:` ignores, `commonjs`, `amd`, and common `ignore` pattern behavior |
 | [`import/no-self-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-self-import.md) | Implemented for relative imports resolved with fishlint's configured extensions |
 
+## Promise plugin rules
+
+| Rule | Status |
+| --- | --- |
+| [`promise/no-nesting`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-nesting.md) | Implements nested `then`/`catch` detection with closest-handler closure exceptions |
+
 ## JSX a11y rules
 
 | Rule | Status |

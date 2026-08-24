@@ -2802,6 +2802,7 @@ pub const Options = struct {
     typescript_eslint_prefer_namespace_keyword: bool = true,
     typescript_eslint_restrict_plus_operands: bool = true,
     typescript_eslint_restrict_plus_operands_allow_number_and_string: bool = false,
+    promise_no_nesting: bool = true,
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
     valid_typeof_require_string_literals: bool = false,
@@ -2876,6 +2877,10 @@ pub const Options = struct {
 
         if (std.mem.startsWith(u8, cli_name, "react-hooks/")) {
             return self.setByPrefixedRuleName("react_hooks_", cli_name["react-hooks/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "promise/")) {
+            return self.setByPrefixedRuleName("promise_", cli_name["promise/".len..], value);
         }
 
         inline for (@typeInfo(Options).@"struct".fields) |field| {
@@ -9214,6 +9219,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
     try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
+
+    try std.testing.expect(!options.promise_no_nesting);
+    try std.testing.expect(options.setByCliName("promise/no-nesting", true));
+    try std.testing.expect(options.promise_no_nesting);
 
     try std.testing.expect(!options.jsx_a11y_aria_props);
     try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));

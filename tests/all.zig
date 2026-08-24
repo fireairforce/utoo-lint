@@ -1007,6 +1007,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/promise_no_nesting.zig");
+}
+
+comptime {
     _ = @import("rules/preserve_caught_error.zig");
 }
 
