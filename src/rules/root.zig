@@ -261,6 +261,7 @@ pub const prefer_numeric_literals = @import("prefer_numeric_literals.zig");
 pub const prefer_object_has_own = @import("prefer_object_has_own.zig");
 pub const prefer_object_spread = @import("prefer_object_spread.zig");
 pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
+pub const promise_no_new_statics = @import("promise_no_new_statics.zig");
 pub const preserve_caught_error = @import("preserve_caught_error.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
@@ -3488,6 +3489,9 @@ const BasicVisitor = struct {
         }
         if (self.options.no_new_require) {
             try no_new_require.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
+        }
+        if (self.options.promise_no_new_statics) {
+            try promise_no_new_statics.check(self.allocator, self.diagnostics, ctx.tree, expression, index);
         }
         if (self.options.new_cap) {
             try new_cap.checkNewExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
