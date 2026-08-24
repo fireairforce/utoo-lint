@@ -336,6 +336,7 @@ pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescrip
 pub const typescript_eslint_no_dupe_class_members = @import("typescript_eslint_no_dupe_class_members.zig");
 pub const typescript_eslint_no_empty_function = @import("typescript_eslint_no_empty_function.zig");
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
+pub const typescript_eslint_no_empty_object_type = @import("typescript_eslint_no_empty_object_type.zig");
 pub const typescript_eslint_no_extra_semi = @import("typescript_eslint_no_extra_semi.zig");
 pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_eslint_no_extra_non_null_assertion.zig");
 pub const typescript_eslint_no_duplicate_enum_values = @import("typescript_eslint_no_duplicate_enum_values.zig");
@@ -2187,7 +2188,13 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.options.typescript_eslint_no_empty_interface) {
+        if (self.options.typescript_eslint_no_empty_object_type) {
+            try typescript_eslint_no_empty_object_type.checkInterfaceDeclaration(self.allocator, self.diagnostics, ctx.tree, interface_declaration, .{
+                .allow_interfaces = self.options.typescript_eslint_no_empty_object_type_allow_interfaces,
+                .allow_object_types = self.options.typescript_eslint_no_empty_object_type_allow_object_types,
+                .allow_with_name = self.options.typescript_eslint_no_empty_object_type_allow_with_name,
+            });
+        } else if (self.options.typescript_eslint_no_empty_interface) {
             try typescript_eslint_no_empty_interface.check(self.allocator, self.diagnostics, ctx.tree, interface_declaration, .{
                 .allow_single_extends = self.options.typescript_eslint_no_empty_interface_allow_single_extends,
             });
@@ -2286,6 +2293,21 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_misused_new) {
             try typescript_eslint_no_misused_new.checkTypeLiteral(self.allocator, self.diagnostics, ctx.tree, type_literal);
+        }
+        if (self.options.typescript_eslint_no_empty_object_type) {
+            try typescript_eslint_no_empty_object_type.checkTypeLiteral(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                type_literal,
+                index,
+                ctx,
+                .{
+                    .allow_interfaces = self.options.typescript_eslint_no_empty_object_type_allow_interfaces,
+                    .allow_object_types = self.options.typescript_eslint_no_empty_object_type_allow_object_types,
+                    .allow_with_name = self.options.typescript_eslint_no_empty_object_type_allow_with_name,
+                },
+            );
         }
         if (self.options.typescript_eslint_ban_types) {
             try typescript_eslint_ban_types.checkTypeLiteral(

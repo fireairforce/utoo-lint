@@ -1899,6 +1899,19 @@ pub const TypescriptEslintConsistentTypeDefinitionsStyle = enum {
     type,
 };
 
+pub const TypescriptEslintNoEmptyObjectTypeAllowInterfaces = enum {
+    always,
+    never,
+    with_single_extends,
+};
+
+pub const TypescriptEslintNoEmptyObjectTypeAllowObjectTypes = enum {
+    always,
+    never,
+};
+
+pub const TypescriptEslintNoEmptyObjectTypeAllowWithName = NoUnusedVarsIgnorePattern;
+
 pub const TypescriptEslintClassLiteralPropertyStyle = enum {
     fields,
     getters,
@@ -2722,6 +2735,10 @@ pub const Options = struct {
     typescript_eslint_no_confusing_non_null_assertion: bool = true,
     typescript_eslint_no_empty_function: bool = true,
     typescript_eslint_no_empty_function_allow: NoEmptyFunctionAllow = .{},
+    typescript_eslint_no_empty_object_type: bool = false,
+    typescript_eslint_no_empty_object_type_allow_interfaces: TypescriptEslintNoEmptyObjectTypeAllowInterfaces = .never,
+    typescript_eslint_no_empty_object_type_allow_object_types: TypescriptEslintNoEmptyObjectTypeAllowObjectTypes = .never,
+    typescript_eslint_no_empty_object_type_allow_with_name: TypescriptEslintNoEmptyObjectTypeAllowWithName = .{},
     typescript_eslint_no_empty_interface: bool = true,
     typescript_eslint_no_empty_interface_allow_single_extends: bool = false,
     typescript_eslint_no_extra_semi: bool = true,
@@ -3509,6 +3526,11 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-empty-interface")) {
             self.typescript_eslint_no_empty_interface_allow_single_extends = try typescriptEslintNoEmptyInterfaceAllowSingleExtendsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-empty-object-type")) {
+            self.typescript_eslint_no_empty_object_type_allow_interfaces = try typescriptEslintNoEmptyObjectTypeAllowInterfacesFromConfig(value);
+            self.typescript_eslint_no_empty_object_type_allow_object_types = try typescriptEslintNoEmptyObjectTypeAllowObjectTypesFromConfig(value);
+            self.typescript_eslint_no_empty_object_type_allow_with_name = try typescriptEslintNoEmptyObjectTypeAllowWithNameFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-inferrable-types")) {
             self.typescript_eslint_no_inferrable_types_ignore_parameters = try typescriptEslintNoInferrableTypesBoolOptionFromConfig(value, "ignoreParameters", false);
@@ -8851,6 +8873,45 @@ pub const Options = struct {
         };
     }
 
+    fn typescriptEslintNoEmptyObjectTypeAllowInterfacesFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintNoEmptyObjectTypeAllowInterfaces {
+        const option = try typescriptEslintNoEmptyObjectTypeStringOption(value, "allowInterfaces") orelse return .never;
+        if (std.mem.eql(u8, option, "always")) return .always;
+        if (std.mem.eql(u8, option, "never")) return .never;
+        if (std.mem.eql(u8, option, "with-single-extends")) return .with_single_extends;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintNoEmptyObjectTypeAllowObjectTypesFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintNoEmptyObjectTypeAllowObjectTypes {
+        const option = try typescriptEslintNoEmptyObjectTypeStringOption(value, "allowObjectTypes") orelse return .never;
+        if (std.mem.eql(u8, option, "always")) return .always;
+        if (std.mem.eql(u8, option, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintNoEmptyObjectTypeAllowWithNameFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintNoEmptyObjectTypeAllowWithName {
+        const option = try typescriptEslintNoEmptyObjectTypeStringOption(value, "allowWithName") orelse return .{};
+        var pattern: TypescriptEslintNoEmptyObjectTypeAllowWithName = .{};
+        pattern.set(option) catch return error.UnsupportedRuleConfigValue;
+        return pattern;
+    }
+
+    fn typescriptEslintNoEmptyObjectTypeStringOption(value: std.json.Value, key: []const u8) RuleConfigError!?[]const u8 {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return null,
+        };
+        if (items.len < 2) return null;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return null) {
+            .string => |option| option,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn typescriptEslintTypedefBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -9183,6 +9244,12 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-empty-interface", true));
     try std.testing.expect(options.typescript_eslint_no_empty_interface);
     try std.testing.expect(!options.typescript_eslint_no_empty_interface_allow_single_extends);
+
+    try std.testing.expect(!options.typescript_eslint_no_empty_object_type);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-empty-object-type", true));
+    try std.testing.expect(options.typescript_eslint_no_empty_object_type);
+    try std.testing.expectEqual(TypescriptEslintNoEmptyObjectTypeAllowInterfaces.never, options.typescript_eslint_no_empty_object_type_allow_interfaces);
+    try std.testing.expectEqual(TypescriptEslintNoEmptyObjectTypeAllowObjectTypes.never, options.typescript_eslint_no_empty_object_type_allow_object_types);
 
     try std.testing.expect(!options.typescript_eslint_restrict_plus_operands);
     try std.testing.expect(options.setByCliName("@typescript-eslint/restrict-plus-operands", true));
@@ -10275,6 +10342,19 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("@typescript-eslint/no-empty-interface", typescript_no_empty_interface_config.value);
     try std.testing.expect(options.typescript_eslint_no_empty_interface);
     try std.testing.expect(options.typescript_eslint_no_empty_interface_allow_single_extends);
+
+    var typescript_no_empty_object_type_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowInterfaces\":\"with-single-extends\",\"allowObjectTypes\":\"always\",\"allowWithName\":\"Props$\"}]",
+        .{},
+    );
+    defer typescript_no_empty_object_type_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-empty-object-type", typescript_no_empty_object_type_config.value);
+    try std.testing.expect(options.typescript_eslint_no_empty_object_type);
+    try std.testing.expectEqual(TypescriptEslintNoEmptyObjectTypeAllowInterfaces.with_single_extends, options.typescript_eslint_no_empty_object_type_allow_interfaces);
+    try std.testing.expectEqual(TypescriptEslintNoEmptyObjectTypeAllowObjectTypes.always, options.typescript_eslint_no_empty_object_type_allow_object_types);
+    try std.testing.expectEqualStrings("Props$", options.typescript_eslint_no_empty_object_type_allow_with_name.pattern().?);
 
     var no_else_return_config = try std.json.parseFromSlice(
         std.json.Value,
