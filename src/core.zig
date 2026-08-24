@@ -2063,6 +2063,38 @@ pub const NoFallthroughCommentPattern = struct {
     }
 };
 
+pub const max_promise_catch_or_return_termination_methods = 32;
+pub const max_promise_catch_or_return_termination_method_len = 128;
+
+pub const PromiseCatchOrReturnTerminationMethods = struct {
+    custom: bool = false,
+    count: usize = 0,
+    lengths: [max_promise_catch_or_return_termination_methods]usize = undefined,
+    storage: [max_promise_catch_or_return_termination_methods][max_promise_catch_or_return_termination_method_len]u8 = undefined,
+
+    pub fn contains(self: *const PromiseCatchOrReturnTerminationMethods, name: []const u8) bool {
+        if (!self.custom) return std.mem.eql(u8, name, "catch");
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const PromiseCatchOrReturnTerminationMethods, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *PromiseCatchOrReturnTerminationMethods, name: []const u8) bool {
+        if (name.len > max_promise_catch_or_return_termination_method_len) return false;
+        if (self.count >= max_promise_catch_or_return_termination_methods) return false;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
+    }
+};
+
 pub const Options = struct {
     accessor_pairs: bool = true,
     accessor_pairs_get_without_set: AccessorPairsGetWithoutSet = .no,
@@ -2802,6 +2834,11 @@ pub const Options = struct {
     typescript_eslint_prefer_namespace_keyword: bool = true,
     typescript_eslint_restrict_plus_operands: bool = true,
     typescript_eslint_restrict_plus_operands_allow_number_and_string: bool = false,
+    promise_catch_or_return: bool = true,
+    promise_catch_or_return_allow_finally: bool = false,
+    promise_catch_or_return_allow_then: bool = false,
+    promise_catch_or_return_allow_then_strict: bool = false,
+    promise_catch_or_return_termination_methods: PromiseCatchOrReturnTerminationMethods = .{},
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
     valid_typeof_require_string_literals: bool = false,
@@ -2876,6 +2913,10 @@ pub const Options = struct {
 
         if (std.mem.startsWith(u8, cli_name, "react-hooks/")) {
             return self.setByPrefixedRuleName("react_hooks_", cli_name["react-hooks/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "promise/")) {
+            return self.setByPrefixedRuleName("promise_", cli_name["promise/".len..], value);
         }
 
         inline for (@typeInfo(Options).@"struct".fields) |field| {
@@ -3479,6 +3520,12 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "react/self-closing-comp")) {
             self.react_self_closing_comp_component = try reactSelfClosingCompBoolOptionFromConfig(value, "component", true);
             self.react_self_closing_comp_html = try reactSelfClosingCompBoolOptionFromConfig(value, "html", true);
+        }
+        if (std.mem.eql(u8, cli_name, "promise/catch-or-return")) {
+            self.promise_catch_or_return_allow_finally = try promiseCatchOrReturnBoolOptionFromConfig(value, "allowFinally");
+            self.promise_catch_or_return_allow_then = try promiseCatchOrReturnBoolOptionFromConfig(value, "allowThen");
+            self.promise_catch_or_return_allow_then_strict = try promiseCatchOrReturnBoolOptionFromConfig(value, "allowThenStrict");
+            self.promise_catch_or_return_termination_methods = try promiseCatchOrReturnTerminationMethodsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/array-type")) {
             self.typescript_eslint_array_type_style = try typescriptEslintArrayTypeStyleFromConfig(value);
@@ -8885,6 +8932,51 @@ pub const Options = struct {
         };
     }
 
+    fn promiseCatchOrReturnBoolOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn promiseCatchOrReturnTerminationMethodsFromConfig(value: std.json.Value) RuleConfigError!PromiseCatchOrReturnTerminationMethods {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const method_value = config.get("terminationMethod") orelse return .{};
+
+        var methods = PromiseCatchOrReturnTerminationMethods{ .custom = true };
+        switch (method_value) {
+            .string => |method| if (!methods.append(method)) return error.UnsupportedRuleConfigValue,
+            .array => |array| for (array.items) |item| {
+                const method = switch (item) {
+                    .string => |method| method,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                if (!methods.append(method)) return error.UnsupportedRuleConfigValue;
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+        return methods;
+    }
+
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
         inline for (@typeInfo(Options).@"struct".fields) |field| {
             if (field.type == bool) {
@@ -9214,6 +9306,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
     try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
+
+    try std.testing.expect(!options.promise_catch_or_return);
+    try std.testing.expect(options.setByCliName("promise/catch-or-return", true));
+    try std.testing.expect(options.promise_catch_or_return);
 
     try std.testing.expect(!options.jsx_a11y_aria_props);
     try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));
@@ -10753,6 +10849,21 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-promise-executor-return", no_promise_executor_return_config.value);
     try std.testing.expect(options.no_promise_executor_return);
     try std.testing.expect(options.no_promise_executor_return_allow_void);
+
+    var promise_catch_or_return_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowFinally\":true,\"allowThen\":true,\"allowThenStrict\":true,\"terminationMethod\":[\"catch\",\"done\"]}]",
+        .{},
+    );
+    defer promise_catch_or_return_config.deinit();
+    try options.setByRuleConfigValue("promise/catch-or-return", promise_catch_or_return_config.value);
+    try std.testing.expect(options.promise_catch_or_return);
+    try std.testing.expect(options.promise_catch_or_return_allow_finally);
+    try std.testing.expect(options.promise_catch_or_return_allow_then);
+    try std.testing.expect(options.promise_catch_or_return_allow_then_strict);
+    try std.testing.expect(options.promise_catch_or_return_termination_methods.contains("catch"));
+    try std.testing.expect(options.promise_catch_or_return_termination_methods.contains("done"));
 
     var prefer_regex_literals_config = try std.json.parseFromSlice(
         std.json.Value,

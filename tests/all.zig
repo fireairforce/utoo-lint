@@ -1007,6 +1007,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/promise_catch_or_return.zig");
+}
+
+comptime {
     _ = @import("rules/preserve_caught_error.zig");
 }
 
