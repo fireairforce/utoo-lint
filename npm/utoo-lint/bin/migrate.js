@@ -185,48 +185,41 @@ function migrateEslintConfig(options) {
   const eslintConfig = loadEslintConfig(sourcePath, options.cwd);
   const supportedRuleIds = new Set(new Linter().getRules().keys());
   const entries = normalizeConfigEntries(eslintConfig);
-  const rules = {};
-  const files = new Set();
-  const ignores = new Set();
+  const migratedEntries = [];
   const supportedRules = [];
   const unsupportedRules = [];
   const ignoredRules = [];
   const translatedRules = [];
 
   for (const entry of entries) {
-    addPatterns(files, entry.files);
-    addPatterns(ignores, entry.ignores);
-    if (!entry.rules || typeof entry.rules !== "object") {
-      continue;
+    const rules = {};
+    if (entry.rules && typeof entry.rules === "object") {
+      for (const [ruleId, ruleConfig] of Object.entries(entry.rules)) {
+        const migratedRuleId = RULE_ALIASES.get(ruleId) ?? ruleId;
+        if (IGNORED_RULES.has(ruleId)) {
+          ignoredRules.push({ ruleId, reason: IGNORED_RULES.get(ruleId) });
+          continue;
+        }
+        if (!supportedRuleIds.has(migratedRuleId)) {
+          if (isRuleDisabled(ruleConfig)) {
+            continue;
+          }
+          unsupportedRules.push(ruleId);
+          continue;
+        }
+        rules[migratedRuleId] = migratableRuleConfig(ruleConfig);
+        supportedRules.push(migratedRuleId);
+        if (migratedRuleId !== ruleId) {
+          translatedRules.push({ sourceRuleId: ruleId, targetRuleId: migratedRuleId });
+        }
+      }
     }
-    for (const [ruleId, ruleConfig] of Object.entries(entry.rules)) {
-      const migratedRuleId = RULE_ALIASES.get(ruleId) ?? ruleId;
-      if (IGNORED_RULES.has(ruleId)) {
-        ignoredRules.push({ ruleId, reason: IGNORED_RULES.get(ruleId) });
-        continue;
-      }
-      if (!supportedRuleIds.has(migratedRuleId)) {
-        unsupportedRules.push(ruleId);
-        continue;
-      }
-      rules[migratedRuleId] = migratableRuleConfig(ruleConfig);
-      supportedRules.push(migratedRuleId);
-      if (migratedRuleId !== ruleId) {
-        translatedRules.push({ sourceRuleId: ruleId, targetRuleId: migratedRuleId });
-      }
-    }
+    migratedEntries.push(migratableConfigEntry(entry, rules));
   }
 
-  const config = {
-    $schema: SCHEMA_URL
-  };
-  if (files.size > 0) {
-    config.files = [...files];
-  }
-  if (ignores.size > 0) {
-    config.ignores = [...ignores];
-  }
-  config.rules = sortObjectByKey(rules);
+  const config = Array.isArray(eslintConfig)
+    ? [{ $schema: SCHEMA_URL }, ...migratedEntries]
+    : { $schema: SCHEMA_URL, ...(migratedEntries[0] ?? { rules: {} }) };
 
   return {
     config,
@@ -295,19 +288,52 @@ function normalizeConfigEntries(config) {
   return [];
 }
 
-function addPatterns(target, value) {
-  if (!value) {
-    return;
+function migratableConfigEntry(entry, rules) {
+  const migrated = {};
+  if (typeof entry.name === "string") {
+    migrated.name = entry.name;
   }
+  const files = migratablePatterns(entry.files);
+  if (files.length > 0) {
+    migrated.files = files;
+  }
+  const ignores = migratablePatterns(entry.ignores);
+  if (ignores.length > 0) {
+    migrated.ignores = ignores;
+  }
+  if (!isGlobalIgnoreEntry(entry)) {
+    migrated.rules = sortObjectByKey(rules);
+  }
+  return migrated;
+}
+
+function migratablePatterns(value) {
+  const patterns = [];
+  collectMigratablePatterns(value, patterns);
+  return [...new Set(patterns)];
+}
+
+function collectMigratablePatterns(value, patterns) {
   for (const pattern of Array.isArray(value) ? value : [value]) {
-    if (typeof pattern === "string") {
-      target.add(pattern);
+    if (Array.isArray(pattern)) {
+      collectMigratablePatterns(pattern, patterns);
+    } else if (typeof pattern === "string") {
+      patterns.push(pattern);
     }
   }
 }
 
+function isGlobalIgnoreEntry(entry) {
+  return Boolean(entry.ignores) && Object.keys(entry).every((key) => key === "name" || key === "ignores");
+}
+
 function migratableRuleConfig(ruleConfig) {
   return Array.isArray(ruleConfig) ? [...ruleConfig] : ruleConfig;
+}
+
+function isRuleDisabled(ruleConfig) {
+  const severity = Array.isArray(ruleConfig) ? ruleConfig[0] : ruleConfig;
+  return severity === "off" || severity === 0 || severity === false;
 }
 
 function sortObjectByKey(object) {
