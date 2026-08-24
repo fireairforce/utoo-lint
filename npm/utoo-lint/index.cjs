@@ -318,6 +318,7 @@ const BUILTIN_RULE_IDS = [
   "jsx-a11y/role-has-required-aria-props",
   "jsx-a11y/role-supports-aria-props",
   "jsx-a11y/scope",
+  "promise/no-callback-in-promise",
   "react/button-has-type",
   "react/default-props-match-prop-types",
   "react/display-name",
