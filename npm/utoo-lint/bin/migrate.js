@@ -197,6 +197,9 @@ function migrateEslintConfig(options) {
         continue;
       }
       if (!supportedRuleIds.has(ruleId)) {
+        if (isRuleDisabled(ruleConfig)) {
+          continue;
+        }
         unsupportedRules.push(ruleId);
         continue;
       }
@@ -295,6 +298,11 @@ function addPatterns(target, value) {
 
 function migratableRuleConfig(ruleConfig) {
   return Array.isArray(ruleConfig) ? [...ruleConfig] : ruleConfig;
+}
+
+function isRuleDisabled(ruleConfig) {
+  const severity = Array.isArray(ruleConfig) ? ruleConfig[0] : ruleConfig;
+  return severity === "off" || severity === 0 || severity === false;
 }
 
 function sortObjectByKey(object) {
