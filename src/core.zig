@@ -2664,6 +2664,7 @@ pub const Options = struct {
     react_style_prop_object: bool = true,
     react_void_dom_elements_no_children: bool = true,
     react_hooks_rules_of_hooks: bool = true,
+    unused_imports_no_unused_imports: bool = false,
     radix: bool = true,
     radix_style: RadixStyle = .always,
     require_await: bool = true,
@@ -2876,6 +2877,10 @@ pub const Options = struct {
 
         if (std.mem.startsWith(u8, cli_name, "react-hooks/")) {
             return self.setByPrefixedRuleName("react_hooks_", cli_name["react-hooks/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "unused-imports/")) {
+            return self.setByPrefixedRuleName("unused_imports_", cli_name["unused-imports/".len..], value);
         }
 
         inline for (@typeInfo(Options).@"struct".fields) |field| {
@@ -9384,6 +9389,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.react_hooks_rules_of_hooks);
     try std.testing.expect(options.setByCliName("react-hooks/rules-of-hooks", true));
     try std.testing.expect(options.react_hooks_rules_of_hooks);
+
+    try std.testing.expect(!options.unused_imports_no_unused_imports);
+    try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));
+    try std.testing.expect(options.unused_imports_no_unused_imports);
 
     try std.testing.expect(!options.setByCliName("unknown-rule", true));
 }

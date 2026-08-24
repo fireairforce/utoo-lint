@@ -1411,6 +1411,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/unused_imports_no_unused_imports.zig");
+}
+
+comptime {
     _ = @import("rules/unicode_bom.zig");
 }
 

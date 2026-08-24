@@ -362,6 +362,7 @@ const BUILTIN_RULE_IDS = [
   "react/style-prop-object",
   "react/void-dom-elements-no-children",
   "react-hooks/rules-of-hooks",
+  "unused-imports/no-unused-imports",
   "@typescript-eslint/adjacent-overload-signatures",
   "@typescript-eslint/array-type",
   "@typescript-eslint/ban-ts-comment",
@@ -437,7 +438,11 @@ const NATIVE_ONLY_RULE_IDS = [
   "semantic-errors"
 ];
 const NATIVE_RULE_IDS = [...BUILTIN_RULE_IDS, ...NATIVE_ONLY_RULE_IDS];
-const FIXABLE_BUILTIN_RULE_IDS = new Set(["no-extra-semi", "@typescript-eslint/no-extra-semi"]);
+const FIXABLE_BUILTIN_RULE_IDS = new Set([
+  "no-extra-semi",
+  "@typescript-eslint/no-extra-semi",
+  "unused-imports/no-unused-imports"
+]);
 const BUILTIN_RULES = new Map(BUILTIN_RULE_IDS.map((ruleId) => [ruleId, createBuiltinRule(ruleId)]));
 
 export class UtooLint {

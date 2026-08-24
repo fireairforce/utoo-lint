@@ -325,6 +325,12 @@ instead of being rewritten.
 | --- | --- |
 | [`react-hooks/rules-of-hooks`](https://legacy.reactjs.org/docs/hooks-rules.html) | Implemented for top-level, ordinary function, class method, callback, conditional branch, and loop checks |
 
+## Unused Imports rules
+
+| Rule | Status |
+| --- | --- |
+| [`unused-imports/no-unused-imports`](https://github.com/sweepline/eslint-plugin-unused-imports) | Detects unused default, named, namespace, and type-only bindings in JavaScript, TypeScript, and TSX; autofix preserves used bindings, comments, multiline syntax, and side-effect imports |
+
 ## TypeScript ESLint rules
 
 | Rule | Status |
