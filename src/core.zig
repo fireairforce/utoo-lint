@@ -2561,6 +2561,7 @@ pub const Options = struct {
     prefer_promise_reject_errors_allow_empty_reject: bool = false,
     preserve_caught_error: bool = true,
     preserve_caught_error_require_catch_parameter: bool = false,
+    promise_no_return_in_finally: bool = true,
     prefer_destructuring: bool = true,
     prefer_destructuring_variable_declarator_array: bool = true,
     prefer_destructuring_variable_declarator_object: bool = true,
@@ -2852,6 +2853,10 @@ pub const Options = struct {
 
         if (std.mem.startsWith(u8, cli_name, "import/")) {
             return self.setByPrefixedRuleName("import_", cli_name["import/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "promise/")) {
+            return self.setByPrefixedRuleName("promise_", cli_name["promise/".len..], value);
         }
 
         if (std.mem.startsWith(u8, cli_name, "eslint-comments/")) {
@@ -9214,6 +9219,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
     try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
+
+    try std.testing.expect(!options.promise_no_return_in_finally);
+    try std.testing.expect(options.setByCliName("promise/no-return-in-finally", true));
+    try std.testing.expect(options.promise_no_return_in_finally);
 
     try std.testing.expect(!options.jsx_a11y_aria_props);
     try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));
