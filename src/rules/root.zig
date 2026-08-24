@@ -306,6 +306,7 @@ pub const react_prefer_es6_class = @import("react_prefer_es6_class.zig");
 pub const react_style_prop_object = @import("react_style_prop_object.zig");
 pub const react_self_closing_comp = @import("react_self_closing_comp.zig");
 pub const react_void_dom_elements_no_children = @import("react_void_dom_elements_no_children.zig");
+pub const react_hooks_exhaustive_deps = @import("react_hooks_exhaustive_deps.zig");
 pub const react_hooks_rules_of_hooks = @import("react_hooks_rules_of_hooks.zig");
 pub const radix = @import("radix.zig");
 pub const require_await = @import("require_await.zig");
@@ -751,8 +752,18 @@ pub fn runSemantic(
         }
     }
 
-    if (options.alipay_ant_exhaustive_deps) {
+    if (options.alipay_ant_exhaustive_deps and !options.react_hooks_exhaustive_deps) {
         try alipay_ant_exhaustive_deps.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.react_hooks_exhaustive_deps) {
+        try react_hooks_exhaustive_deps.runWithOptions(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.react_hooks_exhaustive_deps_additional_hooks,
+        );
     }
 
     if (options.alipay_ant_no_spread_params) {
