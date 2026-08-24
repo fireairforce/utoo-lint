@@ -541,6 +541,56 @@ test("migrator config stdout does not corrupt its serialized input", (t) => {
   assert.equal(JSON.parse(result.stdout)[1].rules["no-debugger"], "error");
 });
 
+test("migrator omits disabled unsupported rules from the blocking report", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, "eslint.config.json"),
+    JSON.stringify({
+      rules: {
+        "example/off-string": "off",
+        "example/off-number": 0,
+        "example/off-boolean": false,
+        "example/off-string-array": ["off", { reason: "disabled" }],
+        "example/off-number-array": [0, { reason: "disabled" }],
+        "example/off-boolean-array": [false, { reason: "disabled" }],
+        "no-debugger": "error"
+      }
+    })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).rules, { "no-debugger": "error" });
+  assert.deepEqual(JSON.parse(result.stderr).unsupportedRules, []);
+});
+
+test("migrator still blocks on enabled unsupported rules", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, "eslint.config.json"),
+    JSON.stringify({
+      rules: {
+        "example/disabled": "off",
+        "example/enabled": ["warn", { reason: "still active" }]
+      }
+    })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.deepEqual(JSON.parse(result.stderr).unsupportedRules, ["example/enabled"]);
+});
+
 test("ESLint.findConfigFile prefers utlint.config.ts over utlint.config.json in the same directory", async (t) => {
   const project = createProject(t);
   const typescriptConfig = write(join(project, "utlint.config.ts"));

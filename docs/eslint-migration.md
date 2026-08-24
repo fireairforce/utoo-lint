@@ -31,8 +31,9 @@ executed through a compatibility layer. ESLint flat-config entries remain
 separate and in their original order, including their `files`, `ignores`, and
 supported rule values. This preserves per-file overrides and keeps ignore-only
 entries global while other ignores remain entry-scoped. The migrator also skips
-formatter-only rules such as `prettier/prettier` and reports unsupported rules
-that still need a native utoo rule or a deliberate replacement.
+formatter-only rules such as `prettier/prettier` and reports enabled unsupported
+rules that still need a native utoo rule or a deliberate replacement. Disabled
+unsupported rules are omitted because they have no runtime behavior to migrate.
 
 For a preview without writing a file:
 
@@ -42,7 +43,9 @@ npx utoo-lint migrate eslint --print --report=json
 
 The selected value for each rule is preserved, including arrays such as
 `["error", { ...options }]`. Native utoo rules consume the options they support;
-unsupported rules are reported instead of being copied.
+enabled unsupported rules are reported instead of being copied. Unsupported
+rules configured as `"off"`, `0`, `false`, or an array with one of those
+severities do not block migration.
 
 Flat-config output starts with a schema metadata entry, followed by the
 migrated entries. Matching entries are applied in array order, so a later value
