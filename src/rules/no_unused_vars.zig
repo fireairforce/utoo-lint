@@ -22,6 +22,7 @@ pub const Options = struct {
     ignore_class_with_static_init_block: bool = false,
     ignore_using_declarations: bool = false,
     check_type_parameters: bool = false,
+    check_imports: bool = true,
     react_jsx_uses_react: bool = false,
     args_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
     caught_errors_ignore_pattern: core.NoUnusedVarsIgnorePattern = .{},
@@ -138,6 +139,7 @@ pub fn runWithOptions(
         const flags = symbol.flags;
 
         if (!isLintableSymbol(flags, options)) continue;
+        if (!options.check_imports and (flags.import or flags.type_import)) continue;
         if (flags.exported or flags.ambient) continue;
         if (options.vars == .local and isGlobalVariable(scope_tree, symbol.scope, flags)) continue;
         if (flags.catch_var and !options.check_caught_errors) continue;
