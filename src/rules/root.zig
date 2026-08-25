@@ -267,6 +267,7 @@ pub const promise_no_callback_in_promise = @import("promise_no_callback_in_promi
 pub const promise_no_nesting = @import("promise_no_nesting.zig");
 pub const promise_no_new_statics = @import("promise_no_new_statics.zig");
 pub const preserve_caught_error = @import("preserve_caught_error.zig");
+pub const promise_no_promise_in_callback = @import("promise_no_promise_in_callback.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
@@ -3393,6 +3394,11 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.promise_no_promise_in_callback) {
+            try promise_no_promise_in_callback.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, ctx, .{
+                .exempt_declarations = self.options.promise_no_promise_in_callback_exempt_declarations,
+            });
+        }
         if (self.options.array_callback_return) {
             try array_callback_return.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, .{
                 .allow_implicit = self.options.array_callback_return_allow_implicit == .yes,

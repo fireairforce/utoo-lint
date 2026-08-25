@@ -308,6 +308,7 @@ const BUILTIN_RULE_IDS = [
   "import/no-named-as-default-member",
   "import/no-unresolved",
   "import/no-self-import",
+  "promise/no-promise-in-callback",
   "jsx-a11y/alt-text",
   "jsx-a11y/anchor-has-content",
   "jsx-a11y/aria-props",

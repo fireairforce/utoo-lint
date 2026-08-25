@@ -261,6 +261,7 @@ instead of being rewritten.
 | [`promise/no-callback-in-promise`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-callback-in-promise.md) | Supports `exceptions` and `timeoutsErr` configuration, including deferred-callback exceptions |
 | [`promise/no-nesting`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-nesting.md) | Implements nested `then`/`catch` detection with closest-handler closure exceptions |
 | [`promise/no-new-statics`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-new-statics.md) | Implements all Promise static methods with autofix |
+| [`promise/no-promise-in-callback`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-promise-in-callback.md) | Implemented with `exemptDeclarations` configuration |
 
 ## JSX a11y rules
 
