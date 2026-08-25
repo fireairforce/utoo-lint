@@ -264,6 +264,7 @@ instead of being rewritten.
 | [`promise/no-promise-in-callback`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-promise-in-callback.md) | Implemented with `exemptDeclarations` configuration |
 | [`promise/no-return-in-finally`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-return-in-finally.md) | Implemented |
 | [`promise/no-return-wrap`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-return-wrap.md) | Implemented with `allowReject` configuration |
+| [`promise/param-names`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/param-names.md) | Implemented with `resolvePattern` and `rejectPattern` configuration |
 
 ## JSX a11y rules
 
