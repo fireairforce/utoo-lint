@@ -428,6 +428,8 @@ fn ruleIdFromPath(allocator: Allocator, normalized_relative_path: []const u8) ![
         "react/"
     else if (std.mem.eql(u8, category, "react-hooks"))
         "react-hooks/"
+    else if (std.mem.eql(u8, category, "unused-imports"))
+        "unused-imports/"
     else if (std.mem.eql(u8, category, "jsx-a11y"))
         "jsx-a11y/"
     else if (std.mem.eql(u8, category, "import"))
