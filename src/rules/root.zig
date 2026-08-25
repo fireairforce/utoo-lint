@@ -263,6 +263,7 @@ pub const prefer_object_spread = @import("prefer_object_spread.zig");
 pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
 pub const promise_always_return = @import("promise_always_return.zig");
 pub const promise_catch_or_return = @import("promise_catch_or_return.zig");
+pub const promise_no_callback_in_promise = @import("promise_no_callback_in_promise.zig");
 pub const preserve_caught_error = @import("preserve_caught_error.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
@@ -3407,6 +3408,12 @@ const BasicVisitor = struct {
         }
         if (self.options.no_process_exit) {
             try no_process_exit.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        if (self.options.promise_no_callback_in_promise) {
+            try promise_no_callback_in_promise.check(self.allocator, self.diagnostics, ctx.tree, call, index, ctx, .{
+                .exceptions = self.options.promise_no_callback_in_promise_exceptions,
+                .timeouts_err = self.options.promise_no_callback_in_promise_timeouts_err,
+            });
         }
         if (self.options.promise_always_return) {
             try promise_always_return.check(self.allocator, self.diagnostics, ctx.tree, call, index, ctx, .{

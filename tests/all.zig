@@ -1015,6 +1015,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/promise_no_callback_in_promise.zig");
+}
+
+comptime {
     _ = @import("rules/preserve_caught_error.zig");
 }
 
