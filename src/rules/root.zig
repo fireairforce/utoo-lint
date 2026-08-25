@@ -298,6 +298,7 @@ pub const react_forbid_prop_types = @import("react_forbid_prop_types.zig");
 pub const react_no_children_prop = @import("react_no_children_prop.zig");
 pub const react_no_array_index_key = @import("react_no_array_index_key.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
+pub const react_no_forward_ref = @import("react_no_forward_ref.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const react_no_multi_comp = @import("react_no_multi_comp.zig");
 pub const react_no_redundant_should_component_update = @import("react_no_redundant_should_component_update.zig");
@@ -777,6 +778,10 @@ pub fn runSemantic(
             semantic_result.symbol_table,
             options.react_hooks_exhaustive_deps_additional_hooks,
         );
+    }
+
+    if (options.react_no_forward_ref) {
+        try react_no_forward_ref.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.alipay_ant_no_spread_params) {
