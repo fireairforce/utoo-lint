@@ -44,6 +44,42 @@ function write(path, source = "{}\n") {
   return path;
 }
 
+test("frontend typed and JSON entry points expose the same reviewed rule set", () => {
+  const jsonPath = join(packageDirectory, "configs", "frontend.json");
+  const declarationPath = join(packageDirectory, "configs", "frontend.d.ts");
+  const fromJson = JSON.parse(readFileSync(jsonPath, "utf8"));
+  const fromPackageExport = require("@utoo/lint/configs/frontend");
+  assert.deepEqual(fromPackageExport, fromJson);
+
+  const declaration = readFileSync(declarationPath, "utf8");
+  const typedRuleIds = [...declaration.matchAll(/^\s*\|\s*"([^"]+)";?$/gm)].map((match) => match[1]);
+  assert.deepEqual(typedRuleIds, Object.keys(fromJson.rules));
+
+  const reviewedRules = {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "react/jsx-key": "error",
+    "react/no-array-index-key": "warn",
+    "react/no-children-prop": "error",
+    "react/no-danger-with-children": "error",
+    "react/void-dom-elements-no-children": "error",
+    "react/no-unstable-nested-components": "warn",
+    "react/no-forward-ref": "warn",
+    "no-script-url": "error",
+    "promise/no-nesting": "error",
+    "unused-imports/no-unused-imports": "warn",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/ban-types": "warn"
+  };
+  for (const [ruleId, severity] of Object.entries(reviewedRules)) {
+    assert.equal(fromJson.rules[ruleId], severity, ruleId);
+  }
+  assert.equal(
+    Object.keys(fromJson.rules).some((ruleId) => /prettier|format|indent|quotes|semi/.test(ruleId)),
+    false
+  );
+});
+
 test("ESLint exposes diagnostics suppressed by utlint-ignore", async () => {
   const eslint = new ESLint({
     binary: testBinary(),

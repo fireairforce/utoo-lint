@@ -7,6 +7,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("frontend_preset.zig");
+}
+
+comptime {
     _ = @import("rules/accessor_pairs.zig");
 }
 
