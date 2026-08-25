@@ -256,6 +256,11 @@ instead of being rewritten.
 
 | Rule | Status |
 | --- | --- |
+| [`promise/always-return`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/always-return.md) | Supports `ignoreLastCallback` and `ignoreAssignmentVariable` configuration |
+| [`promise/catch-or-return`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/catch-or-return.md) | Supports `allowThen`, `allowThenStrict`, `allowFinally`, and string/array `terminationMethod` configuration |
+| [`promise/no-callback-in-promise`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-callback-in-promise.md) | Supports `exceptions` and `timeoutsErr` configuration, including deferred-callback exceptions |
+| [`promise/no-nesting`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-nesting.md) | Implements nested `then`/`catch` detection with closest-handler closure exceptions |
+| [`promise/no-new-statics`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-new-statics.md) | Implements all Promise static methods with autofix |
 | [`promise/no-promise-in-callback`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-promise-in-callback.md) | Implemented with `exemptDeclarations` configuration |
 
 ## JSX a11y rules
@@ -329,7 +334,14 @@ instead of being rewritten.
 
 | Rule | Status |
 | --- | --- |
+| [`react-hooks/exhaustive-deps`](https://react.dev/reference/eslint-plugin-react-hooks/lints/exhaustive-deps) | Implements dependency-array validation for built-in hooks and `additionalHooks` literal, alternation, anchor, and wildcard patterns; reports missing, duplicate, unnecessary, complex, and unstable dependencies without type information |
 | [`react-hooks/rules-of-hooks`](https://legacy.reactjs.org/docs/hooks-rules.html) | Implemented for top-level, ordinary function, class method, callback, conditional branch, and loop checks |
+
+## Unused Imports rules
+
+| Rule | Status |
+| --- | --- |
+| [`unused-imports/no-unused-imports`](https://github.com/sweepline/eslint-plugin-unused-imports) | Detects unused default, named, namespace, and type-only bindings in JavaScript, TypeScript, and TSX; autofix preserves used bindings, comments, multiline syntax, and side-effect imports |
 
 ## TypeScript ESLint rules
 
@@ -352,6 +364,7 @@ instead of being rewritten.
 | [`@typescript-eslint/no-dupe-class-members`](https://typescript-eslint.io/rules/no-dupe-class-members/) | Implemented |
 | [`@typescript-eslint/no-empty-function`](https://typescript-eslint.io/rules/no-empty-function/) | Supports base `allow` kinds plus `private-constructors`, `protected-constructors`, `decoratedFunctions`, and `overrideMethods` configuration |
 | [`@typescript-eslint/no-empty-interface`](https://typescript-eslint.io/rules/no-empty-interface/) | Supports `allowSingleExtends` configuration |
+| [`@typescript-eslint/no-empty-object-type`](https://typescript-eslint.io/rules/no-empty-object-type/) | Supports `allowInterfaces`, `allowObjectTypes`, and common anchored `allowWithName` patterns; excludes empty object constituents in intersection types |
 | [`@typescript-eslint/no-duplicate-enum-values`](https://typescript-eslint.io/rules/no-duplicate-enum-values/) | Implemented |
 | [`@typescript-eslint/no-extra-semi`](https://typescript-eslint.io/rules/no-extra-semi/) | Implemented with autofix |
 | [`@typescript-eslint/no-extra-non-null-assertion`](https://typescript-eslint.io/rules/no-extra-non-null-assertion/) | Implemented |
@@ -367,6 +380,7 @@ instead of being rewritten.
 | [`@typescript-eslint/no-shadow`](https://typescript-eslint.io/rules/no-shadow/) | Supports `allow`, `builtinGlobals`, `hoist`, `ignoreOnInitialization`, `ignoreTypeValueShadow`, and `ignoreFunctionTypeParameterNameValueShadow` configuration |
 | [`@typescript-eslint/no-this-alias`](https://typescript-eslint.io/rules/no-this-alias/) | Supports `allowedNames` and `allowDestructuring` configuration |
 | [`@typescript-eslint/no-unsafe-declaration-merging`](https://typescript-eslint.io/rules/no-unsafe-declaration-merging/) | Implemented |
+| [`@typescript-eslint/no-unsafe-function-type`](https://typescript-eslint.io/rules/no-unsafe-function-type/) | Reports unshadowed global `Function` references in type annotations, interface heritage, and class implements clauses |
 | [`@typescript-eslint/triple-slash-reference`](https://typescript-eslint.io/rules/triple-slash-reference/) | Implemented for `path`, `types`, and `lib` `always`/`never` configurations |
 | [`@typescript-eslint/typedef`](https://typescript-eslint.io/rules/typedef/) | Supports `propertyDeclaration`, `memberVariableDeclaration`, `parameter`, `arrowParameter`, `arrayDestructuring`, `objectDestructuring`, `variableDeclaration`, and `variableDeclarationIgnoreFunction` configuration |
 | [`@typescript-eslint/unified-signatures`](https://typescript-eslint.io/rules/unified-signatures/) | Implemented |

@@ -1,0 +1,83 @@
+---
+fixture: "tests/snapshots/specs/unused-imports/no-unused-imports/invalid.tsx"
+rule: "unused-imports/no-unused-imports"
+---
+
+# Input
+
+```tsx
+import UnusedDefault, {
+  Used,
+  type UnusedType,
+  Kept as UsedAlias,
+} from "package";
+import "side-effect";
+
+export const View = () => <Used value={UsedAlias} />;
+```
+
+# Diagnostics
+
+count: 2
+
+## Diagnostic 1
+
+- rule: "unused-imports/no-unused-imports"
+- severity: "warning"
+- message: "'UnusedDefault' is defined but never used."
+- byte span: 7..20
+- start: 1:8
+- end: 1:21
+- source: "UnusedDefault"
+- fixes: 3
+
+### Fix 1.1
+
+- byte span: 7..20
+- start: 1:8
+- end: 1:21
+- source: "UnusedDefault"
+- replacement: ""
+
+### Fix 1.2
+
+- byte span: 20..21
+- start: 1:21
+- end: 1:22
+- source: ","
+- replacement: ""
+
+### Fix 1.3
+
+- byte span: 32..51
+- start: 3:1
+- end: 4:1
+- source: "  type UnusedType,\n"
+- replacement: ""
+
+## Diagnostic 2
+
+- rule: "unused-imports/no-unused-imports"
+- severity: "warning"
+- message: "'UnusedType' is defined but never used."
+- byte span: 39..49
+- start: 3:8
+- end: 3:18
+- source: "UnusedType"
+- fixes: 0
+
+# First fix pass
+
+- fixed: true
+- applied diagnostics: 1
+- remaining diagnostics: 0
+
+```tsx
+import  {
+  Used,
+  Kept as UsedAlias,
+} from "package";
+import "side-effect";
+
+export const View = () => <Used value={UsedAlias} />;
+```

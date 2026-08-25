@@ -1008,6 +1008,26 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/promise_always_return.zig");
+}
+
+comptime {
+    _ = @import("rules/promise_catch_or_return.zig");
+}
+
+comptime {
+    _ = @import("rules/promise_no_callback_in_promise.zig");
+}
+
+comptime {
+    _ = @import("rules/promise_no_nesting.zig");
+}
+
+comptime {
+    _ = @import("rules/promise_no_new_statics.zig");
+}
+
+comptime {
     _ = @import("rules/preserve_caught_error.zig");
 }
 
@@ -1196,6 +1216,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_hooks_exhaustive_deps.zig");
+}
+
+comptime {
     _ = @import("rules/react_hooks_rules_of_hooks.zig");
 }
 
@@ -1296,6 +1320,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_empty_object_type.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_extra_semi.zig");
 }
 
@@ -1345,6 +1373,10 @@ comptime {
 
 comptime {
     _ = @import("rules/typescript_eslint_no_unsafe_declaration_merging.zig");
+}
+
+comptime {
+    _ = @import("rules/typescript_eslint_no_unsafe_function_type.zig");
 }
 
 comptime {
@@ -1409,6 +1441,10 @@ comptime {
 
 comptime {
     _ = @import("rules/typescript_eslint_restrict_plus_operands.zig");
+}
+
+comptime {
+    _ = @import("rules/unused_imports_no_unused_imports.zig");
 }
 
 comptime {
