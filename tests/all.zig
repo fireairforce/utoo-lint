@@ -1149,6 +1149,7 @@ comptime {
 
 comptime {
     _ = @import("rules/react_no_multi_comp.zig");
+    _ = @import("rules/react_no_unstable_nested_components.zig");
 }
 
 comptime {
