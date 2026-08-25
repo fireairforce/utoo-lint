@@ -447,7 +447,81 @@ test("migrator defaults to utlint.config.json", (t) => {
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(existsSync(outputPath), true);
-  assert.equal(JSON.parse(readFileSync(outputPath, "utf8")).$schema.endsWith("/schema.json"), true);
+  const config = JSON.parse(readFileSync(outputPath, "utf8"));
+  assert.equal(config[0].$schema.endsWith("/schema.json"), true);
+  assert.deepEqual(config[1], {
+    files: ["src/**/*.ts"],
+    rules: { "no-debugger": "error" }
+  });
+});
+
+test("migrator preserves flat config scopes, global ignores, and override order", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, "eslint.config.mjs"),
+    [
+      "export default [",
+      '  { name: "global ignores", ignores: ["dist/"] },',
+      '  { name: "source", files: ["src/**/*.js"], ignores: ["src/generated/**"], rules: { "no-console": "error", "no-debugger": "warn" } },',
+      '  { name: "tests", files: ["test/**/*.js"], rules: { "no-console": "off", "no-debugger": "error" } },',
+      '  { name: "late source override", files: ["src/special/**/*.js"], rules: { "no-console": "off" } },',
+      '  { name: "scoped ignores", ignores: ["fixtures/**"], languageOptions: { ecmaVersion: 2022 } }',
+      "];",
+      ""
+    ].join("\n")
+  );
+  const outputPath = join(project, "utlint.config.json");
+
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, `--output=${outputPath}`],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 0, migration.stderr);
+  const config = JSON.parse(readFileSync(outputPath, "utf8"));
+  assert.equal(config[0].$schema.endsWith("/schema.json"), true);
+  assert.deepEqual(config.slice(1), [
+    { name: "global ignores", ignores: ["dist/"] },
+    {
+      name: "source",
+      files: ["src/**/*.js"],
+      ignores: ["src/generated/**"],
+      rules: { "no-console": "error", "no-debugger": "warn" }
+    },
+    {
+      name: "tests",
+      files: ["test/**/*.js"],
+      rules: { "no-console": "off", "no-debugger": "error" }
+    },
+    {
+      name: "late source override",
+      files: ["src/special/**/*.js"],
+      rules: { "no-console": "off" }
+    },
+    { name: "scoped ignores", ignores: ["fixtures/**"], rules: {} }
+  ]);
+
+  const sourcePath = write(join(project, "src", "index.js"), "console.log('source');\ndebugger;\n");
+  const testPath = write(join(project, "test", "index.js"), "console.log('test');\ndebugger;\n");
+  const specialPath = write(join(project, "src", "special", "index.js"), "console.log('special');\ndebugger;\n");
+  const lint = spawnSync(
+    process.execPath,
+    [cliPath, `--config=${outputPath}`, "--format=json", sourcePath, testPath, specialPath],
+    { cwd: project, env: { ...process.env, UTOO_LINT_BIN: testBinary() }, encoding: "utf8" }
+  );
+
+  assert.equal(lint.status, 1, lint.stderr);
+  const diagnostics = JSON.parse(lint.stdout).diagnostics;
+  assert.deepEqual(
+    diagnostics.map(({ filePath, ruleId, severity }) => ({ filePath, ruleId, severity })),
+    [
+      { filePath: sourcePath, ruleId: "no-debugger", severity: "warning" },
+      { filePath: sourcePath, ruleId: "no-console", severity: "error" },
+      { filePath: testPath, ruleId: "no-debugger", severity: "error" },
+      { filePath: specialPath, ruleId: "no-debugger", severity: "warning" }
+    ]
+  );
 });
 
 test("migrator config stdout does not corrupt its serialized input", (t) => {
@@ -464,7 +538,125 @@ test("migrator config stdout does not corrupt its serialized input", (t) => {
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(JSON.parse(result.stdout).rules["no-debugger"], "error");
+  assert.equal(JSON.parse(result.stdout)[1].rules["no-debugger"], "error");
+});
+
+test("migrator omits disabled unsupported rules from the blocking report", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, "eslint.config.json"),
+    JSON.stringify({
+      rules: {
+        "example/off-string": "off",
+        "example/off-number": 0,
+        "example/off-boolean": false,
+        "example/off-string-array": ["off", { reason: "disabled" }],
+        "example/off-number-array": [0, { reason: "disabled" }],
+        "example/off-boolean-array": [false, { reason: "disabled" }],
+        "no-debugger": "error"
+      }
+    })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).rules, { "no-debugger": "error" });
+  assert.deepEqual(JSON.parse(result.stderr).unsupportedRules, []);
+});
+
+test("migrator still blocks on enabled unsupported rules", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, "eslint.config.json"),
+    JSON.stringify({
+      rules: {
+        "example/disabled": "off",
+        "example/enabled": ["warn", { reason: "still active" }]
+      }
+    })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.deepEqual(JSON.parse(result.stderr).unsupportedRules, ["example/enabled"]);
+});
+
+test("migrator translates reviewed @eslint-react aliases", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      rules: {
+        "@eslint-react/no-array-index-key": ["warn"],
+        "@eslint-react/dom-no-find-dom-node": 2,
+        "@eslint-react/dom-no-render-return-value": false,
+        "@eslint-react/dom-no-void-elements-with-children": ["error"],
+        "@eslint-react/rules-of-hooks": "error"
+      }
+    })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).rules, {
+    "react-hooks/rules-of-hooks": "error",
+    "react/no-array-index-key": ["warn"],
+    "react/no-find-dom-node": 2,
+    "react/no-render-return-value": false,
+    "react/void-dom-elements-no-children": ["error"]
+  });
+  const report = JSON.parse(result.stderr);
+  assert.deepEqual(report.unsupportedRules, []);
+  assert.deepEqual(report.translatedRules, [
+    { sourceRuleId: "@eslint-react/dom-no-find-dom-node", targetRuleId: "react/no-find-dom-node" },
+    { sourceRuleId: "@eslint-react/dom-no-render-return-value", targetRuleId: "react/no-render-return-value" },
+    { sourceRuleId: "@eslint-react/dom-no-void-elements-with-children", targetRuleId: "react/void-dom-elements-no-children" },
+    { sourceRuleId: "@eslint-react/no-array-index-key", targetRuleId: "react/no-array-index-key" },
+    { sourceRuleId: "@eslint-react/rules-of-hooks", targetRuleId: "react-hooks/rules-of-hooks" }
+  ]);
+});
+
+test("migrator does not infer @eslint-react aliases without equivalent rules", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      rules: {
+        "@eslint-react/no-missing-key": "error",
+        "@eslint-react/dom-no-render": "warn"
+      }
+    })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).rules, {});
+  const report = JSON.parse(result.stderr);
+  assert.deepEqual(report.translatedRules, []);
+  assert.deepEqual(report.unsupportedRules, [
+    "@eslint-react/dom-no-render",
+    "@eslint-react/no-missing-key"
+  ]);
 });
 
 test("ESLint.findConfigFile prefers utlint.config.ts over utlint.config.json in the same directory", async (t) => {

@@ -1,0 +1,23 @@
+---
+fixture: "tests/snapshots/specs/unused-imports/no-unused-imports/valid.tsx"
+rule: "unused-imports/no-unused-imports"
+---
+
+# Input
+
+```tsx
+import Component from "component";
+import type { Props } from "types";
+import "side-effect";
+
+export const View = (props: Props) => <Component {...props} />;
+```
+
+# Diagnostics
+
+count: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0

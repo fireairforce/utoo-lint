@@ -219,6 +219,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_alert or
         options.no_async_promise_executor or
         options.alipay_ant_exhaustive_deps or
+        options.react_hooks_exhaustive_deps or
         options.alipay_ant_prefer_click_with_debounce or
         options.no_buffer_constructor or
         options.no_console or
@@ -275,6 +276,7 @@ fn hasSemanticRules(options: Options) bool {
         options.prefer_object_has_own or
         options.prefer_object_spread or
         options.prefer_promise_reject_errors or
+        options.promise_no_nesting or
         options.preserve_caught_error or
         options.prefer_regex_literals or
         options.radix or
@@ -286,9 +288,11 @@ fn hasSemanticRules(options: Options) bool {
         options.typescript_eslint_no_loop_func or
         options.typescript_eslint_no_shadow or
         options.typescript_eslint_no_unsafe_declaration_merging or
+        options.typescript_eslint_no_unsafe_function_type or
         options.typescript_eslint_no_unused_vars or
         options.typescript_eslint_no_use_before_define or
-        options.typescript_eslint_no_var_requires;
+        options.typescript_eslint_no_var_requires or
+        options.unused_imports_no_unused_imports;
 }
 
 pub fn offsetToLineColumn(source: []const u8, offset: u32) SourcePosition {
