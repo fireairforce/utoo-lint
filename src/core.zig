@@ -752,6 +752,115 @@ pub const PromiseValidParamsExclusions = struct {
         return false;
     }
 };
+
+pub const max_promise_param_name_pattern_len = 128;
+
+pub const PromiseParamNamePattern = struct {
+    const Default = enum { resolve, reject };
+
+    default: Default = .resolve,
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_promise_param_name_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const PromiseParamNamePattern) []const u8 {
+        if (self.custom) return self.storage[0..self.length];
+        return switch (self.default) {
+            .resolve => "^_?resolve$",
+            .reject => "^_?reject$",
+        };
+    }
+
+    pub fn set(self: *PromiseParamNamePattern, value: []const u8) bool {
+        if (value.len > max_promise_param_name_pattern_len) return false;
+        @memcpy(self.storage[0..value.len], value);
+        self.length = value.len;
+        self.custom = true;
+        return true;
+    }
+
+    pub fn matches(self: *const PromiseParamNamePattern, name: []const u8) bool {
+        return simpleRegexMatches(self.pattern(), name);
+    }
+
+    fn simpleRegexMatches(pattern_text: []const u8, name: []const u8) bool {
+        const anchored_start = pattern_text.len > 0 and pattern_text[0] == '^';
+        const start = if (anchored_start) @as(usize, 1) else 0;
+        const anchored_end = pattern_text.len > start and pattern_text[pattern_text.len - 1] == '$' and
+            (pattern_text.len < 2 or pattern_text[pattern_text.len - 2] != '\\');
+        const end = if (anchored_end) pattern_text.len - 1 else pattern_text.len;
+        const regex_pattern = pattern_text[start..end];
+
+        if (anchored_start) return matchHere(regex_pattern, 0, name, 0, anchored_end);
+        for (0..name.len + 1) |offset| {
+            if (matchHere(regex_pattern, 0, name, offset, anchored_end)) return true;
+        }
+        return false;
+    }
+
+    fn matchHere(regex_pattern: []const u8, pattern_index: usize, name: []const u8, name_index: usize, anchored_end: bool) bool {
+        if (pattern_index >= regex_pattern.len) return !anchored_end or name_index == name.len;
+
+        const atom_end = atomEnd(regex_pattern, pattern_index);
+        const quantifier = if (atom_end < regex_pattern.len) regex_pattern[atom_end] else 0;
+        const next_pattern = if (quantifier == '?' or quantifier == '*' or quantifier == '+') atom_end + 1 else atom_end;
+
+        if (quantifier == '?') {
+            if (name_index < name.len and atomMatches(regex_pattern[pattern_index..atom_end], name[name_index]) and
+                matchHere(regex_pattern, next_pattern, name, name_index + 1, anchored_end)) return true;
+            return matchHere(regex_pattern, next_pattern, name, name_index, anchored_end);
+        }
+        if (quantifier == '*' or quantifier == '+') {
+            var consumed: usize = 0;
+            while (name_index + consumed < name.len and atomMatches(regex_pattern[pattern_index..atom_end], name[name_index + consumed])) {
+                consumed += 1;
+            }
+            const minimum: usize = if (quantifier == '+') 1 else 0;
+            if (consumed < minimum) return false;
+            var count = consumed + 1;
+            while (count > minimum) {
+                count -= 1;
+                if (matchHere(regex_pattern, next_pattern, name, name_index + count, anchored_end)) return true;
+            }
+            return false;
+        }
+
+        return name_index < name.len and atomMatches(regex_pattern[pattern_index..atom_end], name[name_index]) and
+            matchHere(regex_pattern, next_pattern, name, name_index + 1, anchored_end);
+    }
+
+    fn atomEnd(regex_pattern: []const u8, start: usize) usize {
+        if (regex_pattern[start] == '\\' and start + 1 < regex_pattern.len) return start + 2;
+        if (regex_pattern[start] == '[') {
+            var index = start + 1;
+            while (index < regex_pattern.len) : (index += 1) {
+                if (regex_pattern[index] == ']' and index > start + 1) return index + 1;
+            }
+        }
+        return start + 1;
+    }
+
+    fn atomMatches(atom: []const u8, character: u8) bool {
+        if (atom.len == 1) return atom[0] == '.' or atom[0] == character;
+        if (atom[0] == '\\') return atom.len == 2 and atom[1] == character;
+        if (atom[0] != '[' or atom[atom.len - 1] != ']') return false;
+
+        var index: usize = 1;
+        const negated = index < atom.len - 1 and atom[index] == '^';
+        if (negated) index += 1;
+        var found = false;
+        while (index < atom.len - 1) {
+            if (index + 2 < atom.len - 1 and atom[index + 1] == '-') {
+                found = found or (character >= atom[index] and character <= atom[index + 2]);
+                index += 3;
+            } else {
+                found = found or character == atom[index];
+                index += 1;
+            }
+        }
+        return if (negated) !found else found;
+    }
+};
 pub const max_camelcase_allow_patterns = 64;
 pub const max_camelcase_allow_pattern_len = 256;
 
@@ -1367,6 +1476,30 @@ pub const NoUnusedVarsIgnorePattern = struct {
     }
 };
 
+pub const max_react_hooks_additional_hooks_pattern_len = 256;
+
+pub const ReactHooksAdditionalHooksPatternError = error{
+    ReactHooksAdditionalHooksPatternTooLong,
+};
+
+pub const ReactHooksAdditionalHooksPattern = struct {
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_react_hooks_additional_hooks_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const ReactHooksAdditionalHooksPattern) ?[]const u8 {
+        if (!self.custom) return null;
+        return self.storage[0..self.length];
+    }
+
+    pub fn set(self: *ReactHooksAdditionalHooksPattern, pattern_value: []const u8) ReactHooksAdditionalHooksPatternError!void {
+        if (pattern_value.len > max_react_hooks_additional_hooks_pattern_len) return error.ReactHooksAdditionalHooksPatternTooLong;
+        @memcpy(self.storage[0..pattern_value.len], pattern_value);
+        self.custom = true;
+        self.length = pattern_value.len;
+    }
+};
+
 pub const max_no_useless_escape_allow_regex_characters = 32;
 
 pub const NoUselessEscapeAllowRegexCharactersError = error{
@@ -1936,6 +2069,19 @@ pub const TypescriptEslintConsistentTypeDefinitionsStyle = enum {
     type,
 };
 
+pub const TypescriptEslintNoEmptyObjectTypeAllowInterfaces = enum {
+    always,
+    never,
+    with_single_extends,
+};
+
+pub const TypescriptEslintNoEmptyObjectTypeAllowObjectTypes = enum {
+    always,
+    never,
+};
+
+pub const TypescriptEslintNoEmptyObjectTypeAllowWithName = NoUnusedVarsIgnorePattern;
+
 pub const TypescriptEslintClassLiteralPropertyStyle = enum {
     fields,
     getters,
@@ -2028,6 +2174,39 @@ pub const NoInlineCommentsIgnorePattern = struct {
     }
 };
 
+pub const max_promise_always_return_ignore_assignment_variables = 32;
+pub const max_promise_always_return_ignore_assignment_variable_len = 128;
+
+pub const PromiseAlwaysReturnIgnoreAssignmentVariables = struct {
+    custom: bool = false,
+    count: usize = 0,
+    lengths: [max_promise_always_return_ignore_assignment_variables]usize = undefined,
+    storage: [max_promise_always_return_ignore_assignment_variables][max_promise_always_return_ignore_assignment_variable_len]u8 = undefined,
+
+    pub fn contains(self: *const PromiseAlwaysReturnIgnoreAssignmentVariables, name: []const u8) bool {
+        if (!self.custom) return std.mem.eql(u8, name, "globalThis");
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const PromiseAlwaysReturnIgnoreAssignmentVariables, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *PromiseAlwaysReturnIgnoreAssignmentVariables, name: []const u8) bool {
+        if (name.len == 0) return false;
+        if (self.count >= max_promise_always_return_ignore_assignment_variables) return false;
+        if (name.len > max_promise_always_return_ignore_assignment_variable_len) return false;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
+    }
+};
+
 pub const max_dot_notation_allow_pattern_len = 256;
 
 pub const DotNotationAllowPatternError = error{
@@ -2097,6 +2276,69 @@ pub const NoFallthroughCommentPattern = struct {
         @memcpy(self.storage[0..pattern_value.len], pattern_value);
         self.custom = true;
         self.length = pattern_value.len;
+    }
+};
+
+pub const max_promise_no_callback_in_promise_exceptions = 32;
+pub const max_promise_no_callback_in_promise_exception_len = 128;
+
+pub const PromiseNoCallbackInPromiseExceptions = struct {
+    count: usize = 0,
+    lengths: [max_promise_no_callback_in_promise_exceptions]usize = undefined,
+    storage: [max_promise_no_callback_in_promise_exceptions][max_promise_no_callback_in_promise_exception_len]u8 = undefined,
+
+    pub fn contains(self: *const PromiseNoCallbackInPromiseExceptions, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const PromiseNoCallbackInPromiseExceptions, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *PromiseNoCallbackInPromiseExceptions, name: []const u8) bool {
+        if (name.len == 0) return false;
+        if (name.len > max_promise_no_callback_in_promise_exception_len) return false;
+        if (self.count >= max_promise_no_callback_in_promise_exceptions) return false;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
+    }
+};
+
+pub const max_promise_catch_or_return_termination_methods = 32;
+pub const max_promise_catch_or_return_termination_method_len = 128;
+
+pub const PromiseCatchOrReturnTerminationMethods = struct {
+    custom: bool = false,
+    count: usize = 0,
+    lengths: [max_promise_catch_or_return_termination_methods]usize = undefined,
+    storage: [max_promise_catch_or_return_termination_methods][max_promise_catch_or_return_termination_method_len]u8 = undefined,
+
+    pub fn contains(self: *const PromiseCatchOrReturnTerminationMethods, name: []const u8) bool {
+        if (!self.custom) return std.mem.eql(u8, name, "catch");
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const PromiseCatchOrReturnTerminationMethods, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *PromiseCatchOrReturnTerminationMethods, name: []const u8) bool {
+        if (name.len > max_promise_catch_or_return_termination_method_len) return false;
+        if (self.count >= max_promise_catch_or_return_termination_methods) return false;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
     }
 };
 
@@ -2598,6 +2840,14 @@ pub const Options = struct {
     prefer_promise_reject_errors_allow_empty_reject: bool = false,
     preserve_caught_error: bool = true,
     preserve_caught_error_require_catch_parameter: bool = false,
+    promise_no_promise_in_callback: bool = true,
+    promise_no_promise_in_callback_exempt_declarations: bool = false,
+    promise_no_return_in_finally: bool = true,
+    promise_no_return_wrap: bool = true,
+    promise_no_return_wrap_allow_reject: bool = false,
+    promise_param_names: bool = true,
+    promise_param_names_resolve_pattern: PromiseParamNamePattern = .{},
+    promise_param_names_reject_pattern: PromiseParamNamePattern = .{ .default = .reject },
     promise_valid_params: bool = true,
     promise_valid_params_exclude: PromiseValidParamsExclusions = .{},
     prefer_destructuring: bool = true,
@@ -2702,7 +2952,10 @@ pub const Options = struct {
     react_self_closing_comp_html: bool = true,
     react_style_prop_object: bool = true,
     react_void_dom_elements_no_children: bool = true,
+    react_hooks_exhaustive_deps: bool = true,
+    react_hooks_exhaustive_deps_additional_hooks: ReactHooksAdditionalHooksPattern = .{},
     react_hooks_rules_of_hooks: bool = true,
+    unused_imports_no_unused_imports: bool = false,
     radix: bool = true,
     radix_style: RadixStyle = .always,
     require_await: bool = true,
@@ -2761,6 +3014,10 @@ pub const Options = struct {
     typescript_eslint_no_confusing_non_null_assertion: bool = true,
     typescript_eslint_no_empty_function: bool = true,
     typescript_eslint_no_empty_function_allow: NoEmptyFunctionAllow = .{},
+    typescript_eslint_no_empty_object_type: bool = false,
+    typescript_eslint_no_empty_object_type_allow_interfaces: TypescriptEslintNoEmptyObjectTypeAllowInterfaces = .never,
+    typescript_eslint_no_empty_object_type_allow_object_types: TypescriptEslintNoEmptyObjectTypeAllowObjectTypes = .never,
+    typescript_eslint_no_empty_object_type_allow_with_name: TypescriptEslintNoEmptyObjectTypeAllowWithName = .{},
     typescript_eslint_no_empty_interface: bool = true,
     typescript_eslint_no_empty_interface_allow_single_extends: bool = false,
     typescript_eslint_no_extra_semi: bool = true,
@@ -2797,6 +3054,7 @@ pub const Options = struct {
     typescript_eslint_no_this_alias_allowed_names: NoThisAliasAllowedNames = .{},
     typescript_eslint_no_this_alias_allow_destructuring: bool = true,
     typescript_eslint_no_unsafe_declaration_merging: bool = true,
+    typescript_eslint_no_unsafe_function_type: bool = false,
     typescript_eslint_triple_slash_reference: bool = true,
     typescript_eslint_triple_slash_reference_path: TypescriptEslintTripleSlashReferenceMode = .never,
     typescript_eslint_triple_slash_reference_types: TypescriptEslintTripleSlashReferenceMode = .always,
@@ -2841,6 +3099,19 @@ pub const Options = struct {
     typescript_eslint_prefer_namespace_keyword: bool = true,
     typescript_eslint_restrict_plus_operands: bool = true,
     typescript_eslint_restrict_plus_operands_allow_number_and_string: bool = false,
+    promise_always_return: bool = true,
+    promise_always_return_ignore_last_callback: bool = false,
+    promise_always_return_ignore_assignment_variables: PromiseAlwaysReturnIgnoreAssignmentVariables = .{},
+    promise_catch_or_return: bool = true,
+    promise_catch_or_return_allow_finally: bool = false,
+    promise_catch_or_return_allow_then: bool = false,
+    promise_catch_or_return_allow_then_strict: bool = false,
+    promise_catch_or_return_termination_methods: PromiseCatchOrReturnTerminationMethods = .{},
+    promise_no_callback_in_promise: bool = true,
+    promise_no_callback_in_promise_exceptions: PromiseNoCallbackInPromiseExceptions = .{},
+    promise_no_callback_in_promise_timeouts_err: bool = false,
+    promise_no_nesting: bool = true,
+    promise_no_new_statics: bool = true,
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
     valid_typeof_require_string_literals: bool = false,
@@ -2919,6 +3190,14 @@ pub const Options = struct {
 
         if (std.mem.startsWith(u8, cli_name, "react-hooks/")) {
             return self.setByPrefixedRuleName("react_hooks_", cli_name["react-hooks/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "promise/")) {
+            return self.setByPrefixedRuleName("promise_", cli_name["promise/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "unused-imports/")) {
+            return self.setByPrefixedRuleName("unused_imports_", cli_name["unused-imports/".len..], value);
         }
 
         inline for (@typeInfo(Options).@"struct".fields) |field| {
@@ -3088,6 +3367,16 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "promise/valid-params")) {
             self.promise_valid_params_exclude = try promiseValidParamsExclusionsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "promise/param-names")) {
+            self.promise_param_names_resolve_pattern = try promiseParamNamePatternFromConfig(value, "resolvePattern", .resolve);
+            self.promise_param_names_reject_pattern = try promiseParamNamePatternFromConfig(value, "rejectPattern", .reject);
+        }
+        if (std.mem.eql(u8, cli_name, "promise/no-return-wrap")) {
+            self.promise_no_return_wrap_allow_reject = try promiseNoReturnWrapAllowRejectFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "promise/no-promise-in-callback")) {
+            self.promise_no_promise_in_callback_exempt_declarations = try promiseNoPromiseInCallbackExemptDeclarationsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "import/no-cycle")) {
             self.import_no_cycle_amd = try importNoCycleBoolOptionFromConfig(value, "amd", false);
@@ -3526,6 +3815,23 @@ pub const Options = struct {
             self.react_self_closing_comp_component = try reactSelfClosingCompBoolOptionFromConfig(value, "component", true);
             self.react_self_closing_comp_html = try reactSelfClosingCompBoolOptionFromConfig(value, "html", true);
         }
+        if (std.mem.eql(u8, cli_name, "promise/no-callback-in-promise")) {
+            self.promise_no_callback_in_promise_exceptions = try promiseNoCallbackInPromiseExceptionsFromConfig(value);
+            self.promise_no_callback_in_promise_timeouts_err = try promiseNoCallbackInPromiseTimeoutsErrFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "promise/catch-or-return")) {
+            self.promise_catch_or_return_allow_finally = try promiseCatchOrReturnBoolOptionFromConfig(value, "allowFinally");
+            self.promise_catch_or_return_allow_then = try promiseCatchOrReturnBoolOptionFromConfig(value, "allowThen");
+            self.promise_catch_or_return_allow_then_strict = try promiseCatchOrReturnBoolOptionFromConfig(value, "allowThenStrict");
+            self.promise_catch_or_return_termination_methods = try promiseCatchOrReturnTerminationMethodsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "promise/always-return")) {
+            self.promise_always_return_ignore_last_callback = try promiseAlwaysReturnBoolOptionFromConfig(value, "ignoreLastCallback", false);
+            self.promise_always_return_ignore_assignment_variables = try promiseAlwaysReturnIgnoreAssignmentVariablesFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react-hooks/exhaustive-deps")) {
+            self.react_hooks_exhaustive_deps_additional_hooks = try reactHooksAdditionalHooksFromConfig(value);
+        }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/array-type")) {
             self.typescript_eslint_array_type_style = try typescriptEslintArrayTypeStyleFromConfig(value);
         }
@@ -3555,6 +3861,11 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-empty-interface")) {
             self.typescript_eslint_no_empty_interface_allow_single_extends = try typescriptEslintNoEmptyInterfaceAllowSingleExtendsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-empty-object-type")) {
+            self.typescript_eslint_no_empty_object_type_allow_interfaces = try typescriptEslintNoEmptyObjectTypeAllowInterfacesFromConfig(value);
+            self.typescript_eslint_no_empty_object_type_allow_object_types = try typescriptEslintNoEmptyObjectTypeAllowObjectTypesFromConfig(value);
+            self.typescript_eslint_no_empty_object_type_allow_with_name = try typescriptEslintNoEmptyObjectTypeAllowWithNameFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-inferrable-types")) {
             self.typescript_eslint_no_inferrable_types_ignore_parameters = try typescriptEslintNoInferrableTypesBoolOptionFromConfig(value, "ignoreParameters", false);
@@ -6993,6 +7304,62 @@ pub const Options = struct {
         return result;
     }
 
+    fn promiseParamNamePatternFromConfig(
+        value: std.json.Value,
+        key: []const u8,
+        default: PromiseParamNamePattern.Default,
+    ) RuleConfigError!PromiseParamNamePattern {
+        var result = PromiseParamNamePattern{ .default = default };
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return result,
+        };
+        if (items.len < 2) return result;
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const pattern = switch (config.get(key) orelse return result) {
+            .string => |pattern| pattern,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (!result.set(pattern)) return error.UnsupportedRuleConfigValue;
+        return result;
+    }
+
+    fn promiseNoReturnWrapAllowRejectFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowReject") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn promiseNoPromiseInCallbackExemptDeclarationsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("exemptDeclarations") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn preserveCaughtErrorRequireCatchParameterFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -8450,6 +8817,28 @@ pub const Options = struct {
         };
     }
 
+    fn reactHooksAdditionalHooksFromConfig(value: std.json.Value) RuleConfigError!ReactHooksAdditionalHooksPattern {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const pattern_value = switch (config.get("additionalHooks") orelse return .{}) {
+            .string => |pattern_value| pattern_value,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (pattern_value.len == 0) return .{};
+
+        var pattern = ReactHooksAdditionalHooksPattern{};
+        pattern.set(pattern_value) catch return error.UnsupportedRuleConfigValue;
+        return pattern;
+    }
+
     fn reactJsxPascalCaseAllowAllCapsFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -8923,6 +9312,45 @@ pub const Options = struct {
         };
     }
 
+    fn typescriptEslintNoEmptyObjectTypeAllowInterfacesFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintNoEmptyObjectTypeAllowInterfaces {
+        const option = try typescriptEslintNoEmptyObjectTypeStringOption(value, "allowInterfaces") orelse return .never;
+        if (std.mem.eql(u8, option, "always")) return .always;
+        if (std.mem.eql(u8, option, "never")) return .never;
+        if (std.mem.eql(u8, option, "with-single-extends")) return .with_single_extends;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintNoEmptyObjectTypeAllowObjectTypesFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintNoEmptyObjectTypeAllowObjectTypes {
+        const option = try typescriptEslintNoEmptyObjectTypeStringOption(value, "allowObjectTypes") orelse return .never;
+        if (std.mem.eql(u8, option, "always")) return .always;
+        if (std.mem.eql(u8, option, "never")) return .never;
+        return error.UnsupportedRuleConfigValue;
+    }
+
+    fn typescriptEslintNoEmptyObjectTypeAllowWithNameFromConfig(value: std.json.Value) RuleConfigError!TypescriptEslintNoEmptyObjectTypeAllowWithName {
+        const option = try typescriptEslintNoEmptyObjectTypeStringOption(value, "allowWithName") orelse return .{};
+        var pattern: TypescriptEslintNoEmptyObjectTypeAllowWithName = .{};
+        pattern.set(option) catch return error.UnsupportedRuleConfigValue;
+        return pattern;
+    }
+
+    fn typescriptEslintNoEmptyObjectTypeStringOption(value: std.json.Value, key: []const u8) RuleConfigError!?[]const u8 {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return null,
+        };
+        if (items.len < 2) return null;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return null) {
+            .string => |option| option,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn typescriptEslintTypedefBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -8955,6 +9383,139 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => return error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn promiseNoCallbackInPromiseExceptionsFromConfig(value: std.json.Value) RuleConfigError!PromiseNoCallbackInPromiseExceptions {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const exception_items = switch (config.get("exceptions") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var exceptions = PromiseNoCallbackInPromiseExceptions{};
+        for (exception_items) |item| {
+            const name = switch (item) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!exceptions.append(name)) return error.UnsupportedRuleConfigValue;
+        }
+        return exceptions;
+    }
+
+    fn promiseNoCallbackInPromiseTimeoutsErrFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("timeoutsErr") orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn promiseCatchOrReturnBoolOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn promiseAlwaysReturnBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn promiseCatchOrReturnTerminationMethodsFromConfig(value: std.json.Value) RuleConfigError!PromiseCatchOrReturnTerminationMethods {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const method_value = config.get("terminationMethod") orelse return .{};
+
+        var methods = PromiseCatchOrReturnTerminationMethods{ .custom = true };
+        switch (method_value) {
+            .string => |method| if (!methods.append(method)) return error.UnsupportedRuleConfigValue,
+            .array => |array| for (array.items) |item| {
+                const method = switch (item) {
+                    .string => |method| method,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                if (!methods.append(method)) return error.UnsupportedRuleConfigValue;
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+        return methods;
+    }
+
+    fn promiseAlwaysReturnIgnoreAssignmentVariablesFromConfig(value: std.json.Value) RuleConfigError!PromiseAlwaysReturnIgnoreAssignmentVariables {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const name_items = switch (config.get("ignoreAssignmentVariable") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var names = PromiseAlwaysReturnIgnoreAssignmentVariables{ .custom = true };
+        for (name_items) |item| {
+            const name = switch (item) {
+                .string => |string| string,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!names.append(name)) return error.UnsupportedRuleConfigValue;
+        }
+        return names;
     }
 
     fn setByPrefixedRuleName(self: *Options, comptime field_prefix: []const u8, rule_name: []const u8, value: bool) bool {
@@ -9256,6 +9817,12 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(options.typescript_eslint_no_empty_interface);
     try std.testing.expect(!options.typescript_eslint_no_empty_interface_allow_single_extends);
 
+    try std.testing.expect(!options.typescript_eslint_no_empty_object_type);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-empty-object-type", true));
+    try std.testing.expect(options.typescript_eslint_no_empty_object_type);
+    try std.testing.expectEqual(TypescriptEslintNoEmptyObjectTypeAllowInterfaces.never, options.typescript_eslint_no_empty_object_type_allow_interfaces);
+    try std.testing.expectEqual(TypescriptEslintNoEmptyObjectTypeAllowObjectTypes.never, options.typescript_eslint_no_empty_object_type_allow_object_types);
+
     try std.testing.expect(!options.typescript_eslint_restrict_plus_operands);
     try std.testing.expect(options.setByCliName("@typescript-eslint/restrict-plus-operands", true));
     try std.testing.expect(options.typescript_eslint_restrict_plus_operands);
@@ -9290,6 +9857,46 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.promise_valid_params);
     try std.testing.expect(options.setByCliName("promise/valid-params", true));
     try std.testing.expect(options.promise_valid_params);
+
+    try std.testing.expect(!options.promise_param_names);
+    try std.testing.expect(options.setByCliName("promise/param-names", true));
+    try std.testing.expect(options.promise_param_names);
+
+    try std.testing.expect(!options.promise_no_return_wrap);
+    try std.testing.expect(options.setByCliName("promise/no-return-wrap", true));
+    try std.testing.expect(options.promise_no_return_wrap);
+
+    try std.testing.expect(!options.promise_no_return_in_finally);
+    try std.testing.expect(options.setByCliName("promise/no-return-in-finally", true));
+    try std.testing.expect(options.promise_no_return_in_finally);
+
+    try std.testing.expect(!options.promise_no_promise_in_callback);
+    try std.testing.expect(options.setByCliName("promise/no-promise-in-callback", true));
+    try std.testing.expect(options.promise_no_promise_in_callback);
+
+    try std.testing.expect(!options.promise_no_new_statics);
+    try std.testing.expect(options.setByCliName("promise/no-new-statics", true));
+    try std.testing.expect(options.promise_no_new_statics);
+
+    try std.testing.expect(!options.promise_no_nesting);
+    try std.testing.expect(options.setByCliName("promise/no-nesting", true));
+    try std.testing.expect(options.promise_no_nesting);
+
+    try std.testing.expect(!options.promise_no_callback_in_promise);
+    try std.testing.expect(options.setByCliName("promise/no-callback-in-promise", true));
+    try std.testing.expect(options.promise_no_callback_in_promise);
+
+    try std.testing.expect(!options.promise_catch_or_return);
+    try std.testing.expect(options.setByCliName("promise/catch-or-return", true));
+    try std.testing.expect(options.promise_catch_or_return);
+
+    try std.testing.expect(!options.promise_always_return);
+    try std.testing.expect(options.setByCliName("promise/always-return", true));
+    try std.testing.expect(options.promise_always_return);
+
+    try std.testing.expect(!options.typescript_eslint_no_unsafe_function_type);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-function-type", true));
+    try std.testing.expect(options.typescript_eslint_no_unsafe_function_type);
 
     try std.testing.expect(!options.jsx_a11y_aria_props);
     try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));
@@ -9460,6 +10067,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.react_hooks_rules_of_hooks);
     try std.testing.expect(options.setByCliName("react-hooks/rules-of-hooks", true));
     try std.testing.expect(options.react_hooks_rules_of_hooks);
+
+    try std.testing.expect(!options.unused_imports_no_unused_imports);
+    try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));
+    try std.testing.expect(options.unused_imports_no_unused_imports);
 
     try std.testing.expect(!options.setByCliName("unknown-rule", true));
 }
@@ -10352,6 +10963,19 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.typescript_eslint_no_empty_interface);
     try std.testing.expect(options.typescript_eslint_no_empty_interface_allow_single_extends);
 
+    var typescript_no_empty_object_type_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowInterfaces\":\"with-single-extends\",\"allowObjectTypes\":\"always\",\"allowWithName\":\"Props$\"}]",
+        .{},
+    );
+    defer typescript_no_empty_object_type_config.deinit();
+    try options.setByRuleConfigValue("@typescript-eslint/no-empty-object-type", typescript_no_empty_object_type_config.value);
+    try std.testing.expect(options.typescript_eslint_no_empty_object_type);
+    try std.testing.expectEqual(TypescriptEslintNoEmptyObjectTypeAllowInterfaces.with_single_extends, options.typescript_eslint_no_empty_object_type_allow_interfaces);
+    try std.testing.expectEqual(TypescriptEslintNoEmptyObjectTypeAllowObjectTypes.always, options.typescript_eslint_no_empty_object_type_allow_object_types);
+    try std.testing.expectEqualStrings("Props$", options.typescript_eslint_no_empty_object_type_allow_with_name.pattern().?);
+
     var no_else_return_config = try std.json.parseFromSlice(
         std.json.Value,
         std.testing.allocator,
@@ -10829,6 +11453,47 @@ test "Options can apply ESLint-style rule config values" {
     try options.setByRuleConfigValue("no-promise-executor-return", no_promise_executor_return_config.value);
     try std.testing.expect(options.no_promise_executor_return);
     try std.testing.expect(options.no_promise_executor_return_allow_void);
+
+    var promise_no_callback_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"exceptions\":[\"next\"],\"timeoutsErr\":true}]",
+        .{},
+    );
+    defer promise_no_callback_config.deinit();
+    try options.setByRuleConfigValue("promise/no-callback-in-promise", promise_no_callback_config.value);
+    try std.testing.expect(options.promise_no_callback_in_promise);
+    try std.testing.expect(options.promise_no_callback_in_promise_exceptions.contains("next"));
+    try std.testing.expect(options.promise_no_callback_in_promise_timeouts_err);
+
+    var promise_catch_or_return_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"allowFinally\":true,\"allowThen\":true,\"allowThenStrict\":true,\"terminationMethod\":[\"catch\",\"done\"]}]",
+        .{},
+    );
+    defer promise_catch_or_return_config.deinit();
+    try options.setByRuleConfigValue("promise/catch-or-return", promise_catch_or_return_config.value);
+    try std.testing.expect(options.promise_catch_or_return);
+    try std.testing.expect(options.promise_catch_or_return_allow_finally);
+    try std.testing.expect(options.promise_catch_or_return_allow_then);
+    try std.testing.expect(options.promise_catch_or_return_allow_then_strict);
+    try std.testing.expect(options.promise_catch_or_return_termination_methods.contains("catch"));
+    try std.testing.expect(options.promise_catch_or_return_termination_methods.contains("done"));
+
+    var promise_always_return_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"ignoreLastCallback\":true,\"ignoreAssignmentVariable\":[\"window\"]}]",
+        .{},
+    );
+    defer promise_always_return_config.deinit();
+    try options.setByRuleConfigValue("promise/always-return", promise_always_return_config.value);
+    try std.testing.expect(options.promise_always_return);
+    try std.testing.expect(options.promise_always_return_ignore_last_callback);
+    try std.testing.expect(options.promise_always_return_ignore_assignment_variables.custom);
+    try std.testing.expect(options.promise_always_return_ignore_assignment_variables.contains("window"));
+    try std.testing.expect(!options.promise_always_return_ignore_assignment_variables.contains("globalThis"));
 
     var prefer_regex_literals_config = try std.json.parseFromSlice(
         std.json.Value,

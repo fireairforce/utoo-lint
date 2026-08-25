@@ -308,6 +308,10 @@ const BUILTIN_RULE_IDS = [
   "import/no-named-as-default-member",
   "import/no-unresolved",
   "import/no-self-import",
+  "promise/no-promise-in-callback",
+  "promise/no-return-in-finally",
+  "promise/no-return-wrap",
+  "promise/param-names",
   "promise/valid-params",
   "jsx-a11y/alt-text",
   "jsx-a11y/anchor-has-content",
@@ -322,6 +326,11 @@ const BUILTIN_RULE_IDS = [
   "jsx-a11y/role-has-required-aria-props",
   "jsx-a11y/role-supports-aria-props",
   "jsx-a11y/scope",
+  "promise/always-return",
+  "promise/catch-or-return",
+  "promise/no-callback-in-promise",
+  "promise/no-nesting",
+  "promise/no-new-statics",
   "react/button-has-type",
   "react/default-props-match-prop-types",
   "react/display-name",
@@ -362,7 +371,9 @@ const BUILTIN_RULE_IDS = [
   "react/self-closing-comp",
   "react/style-prop-object",
   "react/void-dom-elements-no-children",
+  "react-hooks/exhaustive-deps",
   "react-hooks/rules-of-hooks",
+  "unused-imports/no-unused-imports",
   "@typescript-eslint/adjacent-overload-signatures",
   "@typescript-eslint/array-type",
   "@typescript-eslint/ban-ts-comment",
@@ -380,6 +391,7 @@ const BUILTIN_RULE_IDS = [
   "@typescript-eslint/no-dupe-class-members",
   "@typescript-eslint/no-empty-function",
   "@typescript-eslint/no-empty-interface",
+  "@typescript-eslint/no-empty-object-type",
   "@typescript-eslint/no-duplicate-enum-values",
   "@typescript-eslint/no-extra-semi",
   "@typescript-eslint/no-extra-non-null-assertion",
@@ -395,6 +407,7 @@ const BUILTIN_RULE_IDS = [
   "@typescript-eslint/no-shadow",
   "@typescript-eslint/no-this-alias",
   "@typescript-eslint/no-unsafe-declaration-merging",
+  "@typescript-eslint/no-unsafe-function-type",
   "@typescript-eslint/triple-slash-reference",
   "@typescript-eslint/typedef",
   "@typescript-eslint/unified-signatures",
@@ -438,7 +451,11 @@ const NATIVE_ONLY_RULE_IDS = [
   "semantic-errors"
 ];
 const NATIVE_RULE_IDS = [...BUILTIN_RULE_IDS, ...NATIVE_ONLY_RULE_IDS];
-const FIXABLE_BUILTIN_RULE_IDS = new Set(["no-extra-semi", "@typescript-eslint/no-extra-semi"]);
+const FIXABLE_BUILTIN_RULE_IDS = new Set([
+  "no-extra-semi",
+  "@typescript-eslint/no-extra-semi",
+  "unused-imports/no-unused-imports"
+]);
 const BUILTIN_RULES = new Map(BUILTIN_RULE_IDS.map((ruleId) => [ruleId, createBuiltinRule(ruleId)]));
 
 export class UtooLint {
