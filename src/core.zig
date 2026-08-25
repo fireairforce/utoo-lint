@@ -716,6 +716,43 @@ pub const max_id_length_exception_patterns = 64;
 pub const max_id_length_exception_pattern_len = 256;
 pub const max_id_match_pattern_len = 256;
 
+pub const PromiseValidParamsExclusions = struct {
+    resolve_method: bool = false,
+    reject_method: bool = false,
+    then_method: bool = false,
+    catch_method: bool = false,
+    finally_method: bool = false,
+    race_method: bool = false,
+    all_method: bool = false,
+    all_settled_method: bool = false,
+    any_method: bool = false,
+
+    pub fn enable(self: *PromiseValidParamsExclusions, name: []const u8) void {
+        if (std.mem.eql(u8, name, "resolve")) self.resolve_method = true;
+        if (std.mem.eql(u8, name, "reject")) self.reject_method = true;
+        if (std.mem.eql(u8, name, "then")) self.then_method = true;
+        if (std.mem.eql(u8, name, "catch")) self.catch_method = true;
+        if (std.mem.eql(u8, name, "finally")) self.finally_method = true;
+        if (std.mem.eql(u8, name, "race")) self.race_method = true;
+        if (std.mem.eql(u8, name, "all")) self.all_method = true;
+        if (std.mem.eql(u8, name, "allSettled")) self.all_settled_method = true;
+        if (std.mem.eql(u8, name, "any")) self.any_method = true;
+    }
+
+    pub fn contains(self: PromiseValidParamsExclusions, name: []const u8) bool {
+        if (std.mem.eql(u8, name, "resolve")) return self.resolve_method;
+        if (std.mem.eql(u8, name, "reject")) return self.reject_method;
+        if (std.mem.eql(u8, name, "then")) return self.then_method;
+        if (std.mem.eql(u8, name, "catch")) return self.catch_method;
+        if (std.mem.eql(u8, name, "finally")) return self.finally_method;
+        if (std.mem.eql(u8, name, "race")) return self.race_method;
+        if (std.mem.eql(u8, name, "all")) return self.all_method;
+        if (std.mem.eql(u8, name, "allSettled")) return self.all_settled_method;
+        if (std.mem.eql(u8, name, "any")) return self.any_method;
+        return false;
+    }
+};
+
 pub const max_promise_param_name_pattern_len = 128;
 
 pub const PromiseParamNamePattern = struct {
@@ -2811,6 +2848,8 @@ pub const Options = struct {
     promise_param_names: bool = true,
     promise_param_names_resolve_pattern: PromiseParamNamePattern = .{},
     promise_param_names_reject_pattern: PromiseParamNamePattern = .{ .default = .reject },
+    promise_valid_params: bool = true,
+    promise_valid_params_exclude: PromiseValidParamsExclusions = .{},
     prefer_destructuring: bool = true,
     prefer_destructuring_variable_declarator_array: bool = true,
     prefer_destructuring_variable_declarator_object: bool = true,
@@ -3325,6 +3364,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "max-statements")) {
             self.max_statements_max = try maxStatementsMaxFromConfig(value);
             self.max_statements_ignore_top_level_functions = try maxStatementsIgnoreTopLevelFunctionsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "promise/valid-params")) {
+            self.promise_valid_params_exclude = try promiseValidParamsExclusionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "promise/param-names")) {
             self.promise_param_names_resolve_pattern = try promiseParamNamePatternFromConfig(value, "resolvePattern", .resolve);
@@ -7236,6 +7278,32 @@ pub const Options = struct {
         };
     }
 
+    fn promiseValidParamsExclusionsFromConfig(value: std.json.Value) RuleConfigError!PromiseValidParamsExclusions {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const excluded = switch (config.get("exclude") orelse return .{}) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = PromiseValidParamsExclusions{};
+        for (excluded) |entry| {
+            const name = switch (entry) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            result.enable(name);
+        }
+        return result;
+    }
+
     fn promiseParamNamePatternFromConfig(
         value: std.json.Value,
         key: []const u8,
@@ -9785,6 +9853,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
     try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
+
+    try std.testing.expect(!options.promise_valid_params);
+    try std.testing.expect(options.setByCliName("promise/valid-params", true));
+    try std.testing.expect(options.promise_valid_params);
 
     try std.testing.expect(!options.promise_param_names);
     try std.testing.expect(options.setByCliName("promise/param-names", true));

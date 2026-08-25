@@ -271,6 +271,7 @@ pub const promise_no_promise_in_callback = @import("promise_no_promise_in_callba
 pub const promise_no_return_in_finally = @import("promise_no_return_in_finally.zig");
 pub const promise_no_return_wrap = @import("promise_no_return_wrap.zig");
 pub const promise_param_names = @import("promise_param_names.zig");
+pub const promise_valid_params = @import("promise_valid_params.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
 pub const prefer_spread = @import("prefer_spread.zig");
@@ -3397,6 +3398,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.promise_valid_params) {
+            try promise_valid_params.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, self.options.promise_valid_params_exclude);
+        }
         if (self.options.promise_no_return_wrap) {
             try promise_no_return_wrap.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, index, ctx, .{
                 .allow_reject = self.options.promise_no_return_wrap_allow_reject,

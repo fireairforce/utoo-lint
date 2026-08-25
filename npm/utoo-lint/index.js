@@ -312,6 +312,7 @@ const BUILTIN_RULE_IDS = [
   "promise/no-return-in-finally",
   "promise/no-return-wrap",
   "promise/param-names",
+  "promise/valid-params",
   "jsx-a11y/alt-text",
   "jsx-a11y/anchor-has-content",
   "jsx-a11y/aria-props",
