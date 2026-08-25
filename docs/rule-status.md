@@ -263,6 +263,7 @@ instead of being rewritten.
 | [`promise/no-new-statics`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-new-statics.md) | Implements all Promise static methods with autofix |
 | [`promise/no-promise-in-callback`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-promise-in-callback.md) | Implemented with `exemptDeclarations` configuration |
 | [`promise/no-return-in-finally`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-return-in-finally.md) | Implemented |
+| [`promise/no-return-wrap`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-return-wrap.md) | Implemented with `allowReject` configuration |
 
 ## JSX a11y rules
 

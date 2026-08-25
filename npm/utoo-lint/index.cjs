@@ -307,6 +307,7 @@ const BUILTIN_RULE_IDS = [
   "import/no-self-import",
   "promise/no-promise-in-callback",
   "promise/no-return-in-finally",
+  "promise/no-return-wrap",
   "jsx-a11y/alt-text",
   "jsx-a11y/anchor-has-content",
   "jsx-a11y/aria-props",

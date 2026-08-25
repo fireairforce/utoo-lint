@@ -2697,6 +2697,8 @@ pub const Options = struct {
     promise_no_promise_in_callback: bool = true,
     promise_no_promise_in_callback_exempt_declarations: bool = false,
     promise_no_return_in_finally: bool = true,
+    promise_no_return_wrap: bool = true,
+    promise_no_return_wrap_allow_reject: bool = false,
     prefer_destructuring: bool = true,
     prefer_destructuring_variable_declarator_array: bool = true,
     prefer_destructuring_variable_declarator_object: bool = true,
@@ -3211,6 +3213,9 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "max-statements")) {
             self.max_statements_max = try maxStatementsMaxFromConfig(value);
             self.max_statements_ignore_top_level_functions = try maxStatementsIgnoreTopLevelFunctionsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "promise/no-return-wrap")) {
+            self.promise_no_return_wrap_allow_reject = try promiseNoReturnWrapAllowRejectFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "promise/no-promise-in-callback")) {
             self.promise_no_promise_in_callback_exempt_declarations = try promiseNoPromiseInCallbackExemptDeclarationsFromConfig(value);
@@ -7115,6 +7120,22 @@ pub const Options = struct {
         };
     }
 
+    fn promiseNoReturnWrapAllowRejectFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get("allowReject") orelse return false) {
+            .bool => |enabled| enabled,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn promiseNoPromiseInCallbackExemptDeclarationsFromConfig(value: std.json.Value) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -9625,6 +9646,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
     try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
+
+    try std.testing.expect(!options.promise_no_return_wrap);
+    try std.testing.expect(options.setByCliName("promise/no-return-wrap", true));
+    try std.testing.expect(options.promise_no_return_wrap);
 
     try std.testing.expect(!options.promise_no_return_in_finally);
     try std.testing.expect(options.setByCliName("promise/no-return-in-finally", true));
