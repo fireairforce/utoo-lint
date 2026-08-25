@@ -27,13 +27,13 @@ npx utoo-lint migrate eslint --from eslint.config.js --output utlint.config.json
 ```
 
 The generated config is a native `utoo-lint` config, not an ESLint config
-executed through a compatibility layer. The current migrator flattens ESLint
-flat-config entries into one JSON object: it unions `files` and `ignores`, and
-later entries win when the same supported rule appears more than once. Review
-the result manually when entries give one rule different per-file values. It
-also skips formatter-only rules such as `prettier/prettier` and reports
-unsupported rules that still need a native utoo rule or a deliberate
-replacement.
+executed through a compatibility layer. ESLint flat-config entries remain
+separate and in their original order, including their `files`, `ignores`, and
+supported rule values. This preserves per-file overrides and keeps ignore-only
+entries global while other ignores remain entry-scoped. The migrator also skips
+formatter-only rules such as `prettier/prettier` and reports enabled unsupported
+rules that still need a native utoo rule or a deliberate replacement. Disabled
+unsupported rules are omitted because they have no runtime behavior to migrate.
 
 For a preview without writing a file:
 
@@ -43,7 +43,28 @@ npx utoo-lint migrate eslint --print --report=json
 
 The selected value for each rule is preserved, including arrays such as
 `["error", { ...options }]`. Native utoo rules consume the options they support;
-unsupported rules are reported instead of being copied.
+enabled unsupported rules are reported instead of being copied. Unsupported
+rules configured as `"off"`, `0`, `false`, or an array with one of those
+severities do not block migration.
+
+Flat-config output starts with a schema metadata entry, followed by the
+migrated entries. Matching entries are applied in array order, so a later value
+for the same rule retains ESLint's override behavior.
+
+The migrator translates the following `@eslint-react` aliases when their
+behavior has a native equivalent:
+
+| ESLint rule | utoo-lint rule |
+| --- | --- |
+| `@eslint-react/no-array-index-key` | `react/no-array-index-key` |
+| `@eslint-react/dom-no-find-dom-node` | `react/no-find-dom-node` |
+| `@eslint-react/dom-no-render-return-value` | `react/no-render-return-value` |
+| `@eslint-react/dom-no-void-elements-with-children` | `react/void-dom-elements-no-children` |
+| `@eslint-react/rules-of-hooks` | `react-hooks/rules-of-hooks` |
+
+Translated aliases are listed separately in the migration report. Other
+`@eslint-react` rules remain unsupported unless an explicit equivalent is added;
+the migrator does not infer mappings from similar names.
 
 ## Add a Config File
 
