@@ -262,6 +262,7 @@ pub const prefer_object_has_own = @import("prefer_object_has_own.zig");
 pub const prefer_object_spread = @import("prefer_object_spread.zig");
 pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
 pub const promise_always_return = @import("promise_always_return.zig");
+pub const promise_catch_or_return = @import("promise_catch_or_return.zig");
 pub const preserve_caught_error = @import("preserve_caught_error.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
@@ -2026,6 +2027,14 @@ const BasicVisitor = struct {
                 .allow_short_circuit = self.options.typescript_eslint_no_unused_expressions_allow_short_circuit == .yes,
                 .allow_ternary = self.options.typescript_eslint_no_unused_expressions_allow_ternary == .yes,
                 .allow_tagged_templates = self.options.typescript_eslint_no_unused_expressions_allow_tagged_templates == .yes,
+            });
+        }
+        if (self.options.promise_catch_or_return) {
+            try promise_catch_or_return.check(self.allocator, self.diagnostics, ctx.tree, statement, index, .{
+                .allow_finally = self.options.promise_catch_or_return_allow_finally,
+                .allow_then = self.options.promise_catch_or_return_allow_then,
+                .allow_then_strict = self.options.promise_catch_or_return_allow_then_strict,
+                .termination_methods = self.options.promise_catch_or_return_termination_methods,
             });
         }
         return .proceed;
