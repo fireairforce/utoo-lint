@@ -10,12 +10,18 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const codegen_options = b.addOptions();
+    codegen_options.addOption(bool, "source_maps", true);
+    const parser_extension_module = b.addOptions().createModule();
+
     const parser_module = b.createModule(.{
         .root_source_file = b.path("vendor/yuku/src/parser/root.zig"),
         .target = target,
         .optimize = optimize,
     });
     parser_module.addImport("util", util_module);
+    parser_module.addImport("codegen_options", codegen_options.createModule());
+    parser_module.addImport("parser_extension", parser_extension_module);
 
     const lint_module = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
