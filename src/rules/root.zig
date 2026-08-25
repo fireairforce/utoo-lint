@@ -261,6 +261,7 @@ pub const prefer_numeric_literals = @import("prefer_numeric_literals.zig");
 pub const prefer_object_has_own = @import("prefer_object_has_own.zig");
 pub const prefer_object_spread = @import("prefer_object_spread.zig");
 pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.zig");
+pub const promise_always_return = @import("promise_always_return.zig");
 pub const preserve_caught_error = @import("preserve_caught_error.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
@@ -3397,6 +3398,12 @@ const BasicVisitor = struct {
         }
         if (self.options.no_process_exit) {
             try no_process_exit.check(self.allocator, self.diagnostics, ctx.tree, call, index);
+        }
+        if (self.options.promise_always_return) {
+            try promise_always_return.check(self.allocator, self.diagnostics, ctx.tree, call, index, ctx, .{
+                .ignore_last_callback = self.options.promise_always_return_ignore_last_callback,
+                .ignore_assignment_variables = self.options.promise_always_return_ignore_assignment_variables,
+            });
         }
         if (self.options.no_restricted_modules) {
             try no_restricted_modules.check(self.allocator, self.diagnostics, ctx.tree, call, index, self.options.no_restricted_modules_entries);
