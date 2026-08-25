@@ -1023,6 +1023,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/promise_no_new_statics.zig");
+}
+
+comptime {
     _ = @import("rules/preserve_caught_error.zig");
 }
 

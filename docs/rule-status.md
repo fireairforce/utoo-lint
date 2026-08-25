@@ -260,6 +260,7 @@ instead of being rewritten.
 | [`promise/catch-or-return`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/catch-or-return.md) | Supports `allowThen`, `allowThenStrict`, `allowFinally`, and string/array `terminationMethod` configuration |
 | [`promise/no-callback-in-promise`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-callback-in-promise.md) | Supports `exceptions` and `timeoutsErr` configuration, including deferred-callback exceptions |
 | [`promise/no-nesting`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-nesting.md) | Implements nested `then`/`catch` detection with closest-handler closure exceptions |
+| [`promise/no-new-statics`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-new-statics.md) | Implements all Promise static methods with autofix |
 
 ## JSX a11y rules
 
