@@ -169,11 +169,12 @@ fn buildFixes(
     unused_count: usize,
 ) Allocator.Error!bool {
     if (unused_count == bindings.len) {
-        const replacement = try commentsOnlyReplacement(allocator, tree, tree.span(declaration_index));
+        const declaration_span = tree.span(declaration_index);
+        const replacement = try commentsOnlyReplacement(allocator, tree, declaration_span);
         errdefer allocator.free(replacement);
         try replacements.append(allocator, replacement);
         try fixes.append(allocator, .{
-            .span = tree.span(declaration_index),
+            .span = declarationRemovalSpan(tree.source, declaration_span),
             .replacement = replacement,
         });
         return true;
@@ -181,7 +182,7 @@ fn buildFixes(
 
     for (bindings) |binding| {
         if (!binding.used) {
-            try fixes.append(allocator, .{ .span = tree.span(binding.specifier), .replacement = "" });
+            try fixes.append(allocator, .{ .span = bindingRemovalSpan(tree, binding.specifier), .replacement = "" });
         }
     }
 
@@ -353,18 +354,39 @@ fn commentsOnlyReplacement(allocator: Allocator, tree: *const ast.Tree, span: as
     var cursor = span.start;
     for (tree.comments) |comment| {
         if (comment.span.start < span.start or comment.span.end > span.end) continue;
-        try appendWhitespace(allocator, &output, tree.source[cursor..comment.span.start]);
+        try appendLineBreaks(allocator, &output, tree.source[cursor..comment.span.start]);
         try output.appendSlice(allocator, tree.source[comment.span.start..comment.span.end]);
         cursor = comment.span.end;
     }
-    try appendWhitespace(allocator, &output, tree.source[cursor..span.end]);
+    try appendLineBreaks(allocator, &output, tree.source[cursor..span.end]);
     return output.toOwnedSlice(allocator);
 }
 
-fn appendWhitespace(allocator: Allocator, output: *std.ArrayList(u8), source: []const u8) Allocator.Error!void {
+fn appendLineBreaks(allocator: Allocator, output: *std.ArrayList(u8), source: []const u8) Allocator.Error!void {
     for (source) |byte| {
-        if (std.ascii.isWhitespace(byte)) try output.append(allocator, byte);
+        if (byte == '\r' or byte == '\n') try output.append(allocator, byte);
     }
+}
+
+fn declarationRemovalSpan(source: []const u8, declaration_span: ast.Span) ast.Span {
+    var start = declaration_span.start;
+    const start_of_line = lineStart(source, start);
+    while (start > start_of_line and isHorizontalWhitespace(source[start - 1])) start -= 1;
+
+    var end = declaration_span.end;
+    while (end < source.len and isHorizontalWhitespace(source[end])) end += 1;
+    return .{ .start = start, .end = end };
+}
+
+fn bindingRemovalSpan(tree: *const ast.Tree, specifier: ast.NodeIndex) ast.Span {
+    var span = tree.span(specifier);
+    const start_of_line = lineStart(tree.source, span.start);
+    while (span.start > start_of_line and isHorizontalWhitespace(tree.source[span.start - 1])) span.start -= 1;
+    return span;
+}
+
+fn isHorizontalWhitespace(byte: u8) bool {
+    return byte == ' ' or byte == '\t';
 }
 
 fn appendRemoval(allocator: Allocator, fixes: *std.ArrayList(core.Fix), position: u32) Allocator.Error!void {
