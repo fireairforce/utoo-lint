@@ -378,6 +378,7 @@ const BUILTIN_RULE_IDS = [
   "@typescript-eslint/no-dupe-class-members",
   "@typescript-eslint/no-empty-function",
   "@typescript-eslint/no-empty-interface",
+  "@typescript-eslint/no-empty-object-type",
   "@typescript-eslint/no-duplicate-enum-values",
   "@typescript-eslint/no-extra-semi",
   "@typescript-eslint/no-extra-non-null-assertion",

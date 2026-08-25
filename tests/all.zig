@@ -1299,6 +1299,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_empty_object_type.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_no_extra_semi.zig");
 }
 
