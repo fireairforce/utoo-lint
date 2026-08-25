@@ -323,7 +323,14 @@ instead of being rewritten.
 
 | Rule | Status |
 | --- | --- |
+| [`react-hooks/exhaustive-deps`](https://react.dev/reference/eslint-plugin-react-hooks/lints/exhaustive-deps) | Implements dependency-array validation for built-in hooks and `additionalHooks` literal, alternation, anchor, and wildcard patterns; reports missing, duplicate, unnecessary, complex, and unstable dependencies without type information |
 | [`react-hooks/rules-of-hooks`](https://legacy.reactjs.org/docs/hooks-rules.html) | Implemented for top-level, ordinary function, class method, callback, conditional branch, and loop checks |
+
+## Unused Imports rules
+
+| Rule | Status |
+| --- | --- |
+| [`unused-imports/no-unused-imports`](https://github.com/sweepline/eslint-plugin-unused-imports) | Detects unused default, named, namespace, and type-only bindings in JavaScript, TypeScript, and TSX; autofix preserves used bindings, comments, multiline syntax, and side-effect imports |
 
 ## TypeScript ESLint rules
 
@@ -346,6 +353,7 @@ instead of being rewritten.
 | [`@typescript-eslint/no-dupe-class-members`](https://typescript-eslint.io/rules/no-dupe-class-members/) | Implemented |
 | [`@typescript-eslint/no-empty-function`](https://typescript-eslint.io/rules/no-empty-function/) | Supports base `allow` kinds plus `private-constructors`, `protected-constructors`, `decoratedFunctions`, and `overrideMethods` configuration |
 | [`@typescript-eslint/no-empty-interface`](https://typescript-eslint.io/rules/no-empty-interface/) | Supports `allowSingleExtends` configuration |
+| [`@typescript-eslint/no-empty-object-type`](https://typescript-eslint.io/rules/no-empty-object-type/) | Supports `allowInterfaces`, `allowObjectTypes`, and common anchored `allowWithName` patterns; excludes empty object constituents in intersection types |
 | [`@typescript-eslint/no-duplicate-enum-values`](https://typescript-eslint.io/rules/no-duplicate-enum-values/) | Implemented |
 | [`@typescript-eslint/no-extra-semi`](https://typescript-eslint.io/rules/no-extra-semi/) | Implemented with autofix |
 | [`@typescript-eslint/no-extra-non-null-assertion`](https://typescript-eslint.io/rules/no-extra-non-null-assertion/) | Implemented |

@@ -306,6 +306,7 @@ pub const react_prefer_es6_class = @import("react_prefer_es6_class.zig");
 pub const react_style_prop_object = @import("react_style_prop_object.zig");
 pub const react_self_closing_comp = @import("react_self_closing_comp.zig");
 pub const react_void_dom_elements_no_children = @import("react_void_dom_elements_no_children.zig");
+pub const react_hooks_exhaustive_deps = @import("react_hooks_exhaustive_deps.zig");
 pub const react_hooks_rules_of_hooks = @import("react_hooks_rules_of_hooks.zig");
 pub const radix = @import("radix.zig");
 pub const require_await = @import("require_await.zig");
@@ -336,6 +337,7 @@ pub const typescript_eslint_no_confusing_non_null_assertion = @import("typescrip
 pub const typescript_eslint_no_dupe_class_members = @import("typescript_eslint_no_dupe_class_members.zig");
 pub const typescript_eslint_no_empty_function = @import("typescript_eslint_no_empty_function.zig");
 pub const typescript_eslint_no_empty_interface = @import("typescript_eslint_no_empty_interface.zig");
+pub const typescript_eslint_no_empty_object_type = @import("typescript_eslint_no_empty_object_type.zig");
 pub const typescript_eslint_no_extra_semi = @import("typescript_eslint_no_extra_semi.zig");
 pub const typescript_eslint_no_extra_non_null_assertion = @import("typescript_eslint_no_extra_non_null_assertion.zig");
 pub const typescript_eslint_no_duplicate_enum_values = @import("typescript_eslint_no_duplicate_enum_values.zig");
@@ -368,6 +370,7 @@ pub const typescript_eslint_prefer_as_const = @import("typescript_eslint_prefer_
 pub const typescript_eslint_prefer_namespace_keyword = @import("typescript_eslint_prefer_namespace_keyword.zig");
 pub const typescript_eslint_restrict_plus_operands = @import("typescript_eslint_restrict_plus_operands.zig");
 pub const unicode_bom = @import("unicode_bom.zig");
+pub const unused_imports_no_unused_imports = @import("unused_imports_no_unused_imports.zig");
 pub const use_isnan = @import("use_isnan.zig");
 pub const valid_typeof = @import("valid_typeof.zig");
 pub const vars_on_top = @import("vars_on_top.zig");
@@ -752,8 +755,18 @@ pub fn runSemantic(
         }
     }
 
-    if (options.alipay_ant_exhaustive_deps) {
+    if (options.alipay_ant_exhaustive_deps and !options.react_hooks_exhaustive_deps) {
         try alipay_ant_exhaustive_deps.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.react_hooks_exhaustive_deps) {
+        try react_hooks_exhaustive_deps.runWithOptions(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.react_hooks_exhaustive_deps_additional_hooks,
+        );
     }
 
     if (options.alipay_ant_no_spread_params) {
@@ -1147,6 +1160,10 @@ pub fn runSemantic(
         });
     }
 
+    if (options.unused_imports_no_unused_imports) {
+        try unused_imports_no_unused_imports.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
     if (options.no_unused_vars and !options.typescript_eslint_no_unused_vars) {
         try no_unused_vars.runWithOptions(allocator, diagnostics, tree, semantic_result.scope_tree, semantic_result.symbol_table, .{
             .vars = options.no_unused_vars_vars,
@@ -1157,6 +1174,7 @@ pub fn runSemantic(
             .ignore_class_with_static_init_block = options.no_unused_vars_ignore_class_with_static_init_block,
             .ignore_using_declarations = options.no_unused_vars_ignore_using_declarations,
             .react_jsx_uses_react = options.react_jsx_uses_react,
+            .check_imports = !options.unused_imports_no_unused_imports,
             .args_ignore_pattern = options.no_unused_vars_args_ignore_pattern,
             .caught_errors_ignore_pattern = options.no_unused_vars_caught_errors_ignore_pattern,
             .destructured_array_ignore_pattern = options.no_unused_vars_destructured_array_ignore_pattern,
@@ -1173,6 +1191,7 @@ pub fn runSemantic(
             semantic_result.scope_tree,
             semantic_result.symbol_table,
             options.react_jsx_uses_react,
+            !options.unused_imports_no_unused_imports,
             options.typescript_eslint_no_unused_vars_vars,
             options.typescript_eslint_no_unused_vars_args,
             options.typescript_eslint_no_unused_vars_caught_errors,
@@ -2198,7 +2217,13 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
-        if (self.options.typescript_eslint_no_empty_interface) {
+        if (self.options.typescript_eslint_no_empty_object_type) {
+            try typescript_eslint_no_empty_object_type.checkInterfaceDeclaration(self.allocator, self.diagnostics, ctx.tree, interface_declaration, .{
+                .allow_interfaces = self.options.typescript_eslint_no_empty_object_type_allow_interfaces,
+                .allow_object_types = self.options.typescript_eslint_no_empty_object_type_allow_object_types,
+                .allow_with_name = self.options.typescript_eslint_no_empty_object_type_allow_with_name,
+            });
+        } else if (self.options.typescript_eslint_no_empty_interface) {
             try typescript_eslint_no_empty_interface.check(self.allocator, self.diagnostics, ctx.tree, interface_declaration, .{
                 .allow_single_extends = self.options.typescript_eslint_no_empty_interface_allow_single_extends,
             });
@@ -2297,6 +2322,21 @@ const BasicVisitor = struct {
         }
         if (self.options.typescript_eslint_no_misused_new) {
             try typescript_eslint_no_misused_new.checkTypeLiteral(self.allocator, self.diagnostics, ctx.tree, type_literal);
+        }
+        if (self.options.typescript_eslint_no_empty_object_type) {
+            try typescript_eslint_no_empty_object_type.checkTypeLiteral(
+                self.allocator,
+                self.diagnostics,
+                ctx.tree,
+                type_literal,
+                index,
+                ctx,
+                .{
+                    .allow_interfaces = self.options.typescript_eslint_no_empty_object_type_allow_interfaces,
+                    .allow_object_types = self.options.typescript_eslint_no_empty_object_type_allow_object_types,
+                    .allow_with_name = self.options.typescript_eslint_no_empty_object_type_allow_with_name,
+                },
+            );
         }
         if (self.options.typescript_eslint_ban_types) {
             try typescript_eslint_ban_types.checkTypeLiteral(
