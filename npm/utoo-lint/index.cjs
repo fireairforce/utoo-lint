@@ -321,6 +321,7 @@ const BUILTIN_RULE_IDS = [
   "promise/always-return",
   "promise/catch-or-return",
   "promise/no-callback-in-promise",
+  "promise/no-nesting",
   "react/button-has-type",
   "react/default-props-match-prop-types",
   "react/display-name",

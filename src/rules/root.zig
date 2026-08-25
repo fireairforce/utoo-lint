@@ -264,6 +264,7 @@ pub const prefer_promise_reject_errors = @import("prefer_promise_reject_errors.z
 pub const promise_always_return = @import("promise_always_return.zig");
 pub const promise_catch_or_return = @import("promise_catch_or_return.zig");
 pub const promise_no_callback_in_promise = @import("promise_no_callback_in_promise.zig");
+pub const promise_no_nesting = @import("promise_no_nesting.zig");
 pub const preserve_caught_error = @import("preserve_caught_error.zig");
 pub const prefer_regex_literals = @import("prefer_regex_literals.zig");
 pub const prefer_rest_params = @import("prefer_rest_params.zig");
@@ -1107,6 +1108,16 @@ pub fn runSemantic(
             options.no_promise_executor_return_allow_void,
             options.prefer_promise_reject_errors,
             options.prefer_promise_reject_errors_allow_empty_reject,
+        );
+    }
+
+    if (options.promise_no_nesting) {
+        try promise_no_nesting.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.scope_tree,
+            semantic_result.symbol_table,
         );
     }
 

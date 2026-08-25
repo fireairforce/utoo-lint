@@ -2954,6 +2954,7 @@ pub const Options = struct {
     promise_no_callback_in_promise: bool = true,
     promise_no_callback_in_promise_exceptions: PromiseNoCallbackInPromiseExceptions = .{},
     promise_no_callback_in_promise_timeouts_err: bool = false,
+    promise_no_nesting: bool = true,
     parser_semantic_errors: bool = true,
     valid_typeof: bool = true,
     valid_typeof_require_string_literals: bool = false,
@@ -9596,6 +9597,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
     try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
+
+    try std.testing.expect(!options.promise_no_nesting);
+    try std.testing.expect(options.setByCliName("promise/no-nesting", true));
+    try std.testing.expect(options.promise_no_nesting);
 
     try std.testing.expect(!options.promise_no_callback_in_promise);
     try std.testing.expect(options.setByCliName("promise/no-callback-in-promise", true));
