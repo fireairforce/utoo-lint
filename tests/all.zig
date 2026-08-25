@@ -1355,6 +1355,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/typescript_eslint_no_unsafe_function_type.zig");
+}
+
+comptime {
     _ = @import("rules/typescript_eslint_triple_slash_reference.zig");
 }
 

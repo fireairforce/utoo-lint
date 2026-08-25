@@ -2802,6 +2802,7 @@ pub const Options = struct {
     typescript_eslint_no_this_alias_allowed_names: NoThisAliasAllowedNames = .{},
     typescript_eslint_no_this_alias_allow_destructuring: bool = true,
     typescript_eslint_no_unsafe_declaration_merging: bool = true,
+    typescript_eslint_no_unsafe_function_type: bool = false,
     typescript_eslint_triple_slash_reference: bool = true,
     typescript_eslint_triple_slash_reference_path: TypescriptEslintTripleSlashReferenceMode = .never,
     typescript_eslint_triple_slash_reference_types: TypescriptEslintTripleSlashReferenceMode = .always,
@@ -9337,6 +9338,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
     try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
+
+    try std.testing.expect(!options.typescript_eslint_no_unsafe_function_type);
+    try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-function-type", true));
+    try std.testing.expect(options.typescript_eslint_no_unsafe_function_type);
 
     try std.testing.expect(!options.jsx_a11y_aria_props);
     try std.testing.expect(options.setByCliName("jsx-a11y/aria-props", true));
