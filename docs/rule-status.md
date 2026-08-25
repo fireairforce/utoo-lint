@@ -262,6 +262,7 @@ instead of being rewritten.
 | [`promise/no-nesting`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-nesting.md) | Implements nested `then`/`catch` detection with closest-handler closure exceptions |
 | [`promise/no-new-statics`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-new-statics.md) | Implements all Promise static methods with autofix |
 | [`promise/no-promise-in-callback`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-promise-in-callback.md) | Implemented with `exemptDeclarations` configuration |
+| [`promise/no-return-in-finally`](https://github.com/eslint-community/eslint-plugin-promise/blob/main/docs/rules/no-return-in-finally.md) | Implemented |
 
 ## JSX a11y rules
 

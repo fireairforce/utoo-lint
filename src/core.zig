@@ -2696,6 +2696,7 @@ pub const Options = struct {
     preserve_caught_error_require_catch_parameter: bool = false,
     promise_no_promise_in_callback: bool = true,
     promise_no_promise_in_callback_exempt_declarations: bool = false,
+    promise_no_return_in_finally: bool = true,
     prefer_destructuring: bool = true,
     prefer_destructuring_variable_declarator_array: bool = true,
     prefer_destructuring_variable_declarator_object: bool = true,
@@ -9624,6 +9625,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.typescript_eslint_no_unsafe_declaration_merging);
     try std.testing.expect(options.setByCliName("@typescript-eslint/no-unsafe-declaration-merging", true));
     try std.testing.expect(options.typescript_eslint_no_unsafe_declaration_merging);
+
+    try std.testing.expect(!options.promise_no_return_in_finally);
+    try std.testing.expect(options.setByCliName("promise/no-return-in-finally", true));
+    try std.testing.expect(options.promise_no_return_in_finally);
 
     try std.testing.expect(!options.promise_no_promise_in_callback);
     try std.testing.expect(options.setByCliName("promise/no-promise-in-callback", true));

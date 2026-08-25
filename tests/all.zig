@@ -1004,6 +1004,9 @@ comptime {
 
 comptime {
     _ = @import("rules/prefer_promise_reject_errors.zig");
+}
+
+comptime {
     _ = @import("rules/promise_no_promise_in_callback.zig");
 }
 
@@ -1025,6 +1028,10 @@ comptime {
 
 comptime {
     _ = @import("rules/promise_no_new_statics.zig");
+}
+
+comptime {
+    _ = @import("rules/promise_no_return_in_finally.zig");
 }
 
 comptime {
