@@ -51,7 +51,7 @@ function write(path, source = "{}\n") {
   return path;
 }
 
-test("frontend typed and JSON entry points expose the same reviewed rule set", () => {
+test("frontend typed, package, and JSON entry points expose the same scope and rule set", () => {
   const jsonPath = join(packageDirectory, "configs", "frontend.json");
   const declarationPath = join(packageDirectory, "configs", "frontend.d.ts");
   const fromJson = JSON.parse(readFileSync(jsonPath, "utf8"));
@@ -61,6 +61,10 @@ test("frontend typed and JSON entry points expose the same reviewed rule set", (
   const declaration = readFileSync(declarationPath, "utf8");
   const typedRuleIds = [...declaration.matchAll(/^\s*\|\s*"([^"]+)";?$/gm)].map((match) => match[1]);
   assert.deepEqual(typedRuleIds, Object.keys(fromJson.rules));
+  assert.deepEqual(fromJson.files, ["src/**/*.{js,jsx,ts,tsx}"]);
+  assert.deepEqual(fromJson.ignores, ["dist", "coverage", "node_modules"]);
+  assert.match(declaration, /readonly files: \["src\/\*\*\/\*\.\{js,jsx,ts,tsx\}"\];/);
+  assert.match(declaration, /readonly ignores: \["dist", "coverage", "node_modules"\];/);
 
   const reviewedRules = {
     "react-hooks/rules-of-hooks": "error",
@@ -163,6 +167,45 @@ test("CLI preserves large JSON and text reports with the correct exit status", (
   assert.ok(Buffer.byteLength(text.stderr) > 1024 * 1024);
   assert.equal(text.stderr.match(/no-debugger/g)?.length, largeDiagnosticCount);
   assert.match(text.stderr, /20000 problems \(20000 errors, 0 warnings\)/);
+});
+
+test("frontend preset scopes default and explicit targets to source files", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "src", "index.js"), "debugger;\n");
+  const generatedPaths = [
+    write(join(project, "dist", "generated.js"), "debugger;\n"),
+    write(join(project, "coverage", "generated.js"), "debugger;\n"),
+    write(join(project, "node_modules", "example", "generated.js"), "debugger;\n")
+  ];
+  write(
+    join(project, "utlint.config.json"),
+    readFileSync(join(packageDirectory, "configs", "frontend.json"), "utf8")
+  );
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    for (const targets of [[], ["."]]) {
+      const result = execute(["--format=json", ...targets], {
+        cwd: project,
+        binary: testBinary(),
+        encoding: "utf8"
+      });
+
+      assert.equal(result.status, 1, result.stderr);
+      const report = JSON.parse(result.stdout);
+      assert.deepEqual(report.diagnostics.map((diagnostic) => diagnostic.ruleId), ["no-debugger"]);
+      assert.equal(resolve(report.diagnostics[0].filePath), resolve(sourcePath));
+      assert.equal(report.diagnostics.some((diagnostic) => diagnostic.ruleId === "parse"), false);
+      for (const generatedPath of generatedPaths) {
+        assert.equal(
+          report.diagnostics.some((diagnostic) => resolve(diagnostic.filePath) === resolve(generatedPath)),
+          false
+        );
+      }
+      if (targets.length === 0) {
+        assert.deepEqual(report.filePaths.map((filePath) => resolve(filePath)), [resolve(sourcePath)]);
+      }
+    }
+  }
 });
 
 test("ESLint exposes diagnostics suppressed by utlint-ignore", async () => {
