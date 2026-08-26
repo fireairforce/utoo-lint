@@ -45,27 +45,27 @@ function defineEditorTheme(monaco: MonacoInstance): void {
     base: 'vs-dark',
     inherit: true,
     rules: [
-      { token: 'comment', foreground: '66758A', fontStyle: 'italic' },
-      { token: 'keyword', foreground: '59B8FF' },
-      { token: 'number', foreground: 'C5A7FF' },
-      { token: 'string', foreground: 'F2A875' },
-      { token: 'type.identifier', foreground: '63D5D0' },
+      { token: 'comment', foreground: '8B949E' },
+      { token: 'keyword', foreground: 'FF7B72' },
+      { token: 'number', foreground: '79C0FF' },
+      { token: 'string', foreground: 'A5D6FF' },
+      { token: 'type.identifier', foreground: 'D2A8FF' },
     ],
     colors: {
-      'editor.background': '#0B121B',
-      'editor.foreground': '#D8E2EE',
-      'editorCursor.foreground': '#49B7FF',
-      'editorGutter.background': '#0B121B',
-      'editorIndentGuide.background1': '#1B2937',
-      'editorIndentGuide.activeBackground1': '#34485B',
-      'editorLineNumber.activeForeground': '#AFC1D5',
-      'editorLineNumber.foreground': '#4C5C70',
-      'editor.lineHighlightBackground': '#111C28',
-      'editor.selectionBackground': '#174A6A',
-      'editor.inactiveSelectionBackground': '#17364B',
-      'editorWhitespace.foreground': '#26384A',
-      'editorError.foreground': '#FF7081',
-      'editorWarning.foreground': '#F5BD55',
+      'editor.background': '#0D1117',
+      'editor.foreground': '#C9D1D9',
+      'editorCursor.foreground': '#58A6FF',
+      'editorGutter.background': '#0D1117',
+      'editorIndentGuide.background1': '#21262D',
+      'editorIndentGuide.activeBackground1': '#30363D',
+      'editorLineNumber.activeForeground': '#8B949E',
+      'editorLineNumber.foreground': '#7D8590',
+      'editor.lineHighlightBackground': '#161B22',
+      'editor.selectionBackground': '#264F78',
+      'editor.inactiveSelectionBackground': '#1F3D5A',
+      'editorWhitespace.foreground': '#30363D',
+      'editorError.foreground': '#F85149',
+      'editorWarning.foreground': '#D29922',
     },
   });
 }
@@ -286,71 +286,49 @@ export default function PlaygroundPage() {
           <span className="brand-mark" aria-hidden="true">
             <img alt="" height={40} src={utooRabbitUrl} width={28} />
           </span>
-          <div className="brand-copy">
-            <div className="brand-title">
-              <h1>utoo-lint</h1>
-              <span aria-hidden="true" className="brand-separator">
-                /
-              </span>
-              <span>Playground</span>
-            </div>
-            <span className="brand-caption">
-              Fast linting, powered by WebAssembly
-            </span>
+          <div className="brand-title">
+            <h1>utoo-lint</h1>
+            <span>Playground</span>
           </div>
         </div>
 
-        <div className="header-actions">
-          <div className="runtime-badges" aria-label="Runtime stack">
-            <span>EVJS</span>
-            <span>Utoopack</span>
-            <span>WebAssembly</span>
-          </div>
-
-          <a
-            aria-label="Open utoo-lint on GitHub (opens in a new tab)"
-            className="github-link"
-            href="https://github.com/utooland/utoo-lint"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <span>GitHub</span>
-            <svg aria-hidden="true" viewBox="0 0 20 20">
-              <path d="M7 13 13 7M8 7h5v5" />
-            </svg>
-          </a>
-        </div>
+        <a
+          aria-label="Open utoo-lint on GitHub (opens in a new tab)"
+          className="github-link"
+          href="https://github.com/utooland/utoo-lint"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub <span aria-hidden="true">↗</span>
+        </a>
       </header>
 
       <section className="controlbar" aria-label="Playground controls">
-        <div className="language-control">
-          <span className="control-label">Language</span>
-          <div
-            aria-label="Language"
-            aria-orientation="horizontal"
-            className="language-tabs"
-            role="tablist"
-          >
-            {LANGUAGES.map((item, index) => (
-              <button
-                aria-controls="source-editor-panel"
-                aria-selected={item.id === language}
-                className={item.id === language ? 'is-active' : undefined}
-                id={`language-tab-${item.id}`}
-                key={item.id}
-                onClick={() => selectLanguage(item.id)}
-                onKeyDown={(event) => handleLanguageTabKeyDown(event, index)}
-                ref={(element) => {
-                  languageTabRefs.current[index] = element;
-                }}
-                role="tab"
-                tabIndex={item.id === language ? 0 : -1}
-                type="button"
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+        <div
+          aria-label="Language"
+          aria-orientation="horizontal"
+          className="language-tabs"
+          role="tablist"
+        >
+          {LANGUAGES.map((item, index) => (
+            <button
+              aria-controls="source-editor-panel"
+              aria-selected={item.id === language}
+              className={item.id === language ? 'is-active' : undefined}
+              id={`language-tab-${item.id}`}
+              key={item.id}
+              onClick={() => selectLanguage(item.id)}
+              onKeyDown={(event) => handleLanguageTabKeyDown(event, index)}
+              ref={(element) => {
+                languageTabRefs.current[index] = element;
+              }}
+              role="tab"
+              tabIndex={item.id === language ? 0 : -1}
+              type="button"
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
 
         <div className="run-summary" aria-live="polite">
@@ -365,9 +343,11 @@ export default function PlaygroundPage() {
               `Ready · ${runState.elapsedMs?.toFixed(1)} ms`}
             {runState.phase === 'error' && 'Run failed'}
           </span>
-          <span className="summary-count error-count">{errorCount} errors</span>
+          <span className="summary-count error-count">
+            {errorCount} {errorCount === 1 ? 'error' : 'errors'}
+          </span>
           <span className="summary-count warning-count">
-            {warningCount} warnings
+            {warningCount} {warningCount === 1 ? 'warning' : 'warnings'}
           </span>
         </div>
 
@@ -377,10 +357,7 @@ export default function PlaygroundPage() {
           onClick={() => void execute(isRetry ? 'lint' : 'fix')}
           type="button"
         >
-          <svg aria-hidden="true" viewBox="0 0 20 20">
-            <path d="m4.5 10.2 3.4 3.4 7.6-7.7" />
-          </svg>
-          <span>{isRetry ? 'Retry' : 'Fix all'}</span>
+          {isRetry ? 'Retry' : 'Fix all'}
         </button>
       </section>
 
@@ -393,10 +370,7 @@ export default function PlaygroundPage() {
         >
           <div className="panel-heading">
             <span className="panel-title file-name">{fileName}</span>
-            <span className="panel-hint">
-              <span aria-hidden="true" className="auto-lint-dot" />
-              Auto lint
-            </span>
+            <span className="panel-hint">Auto lint</span>
           </div>
           <div className="editor-frame">
             <Editor
@@ -444,7 +418,7 @@ export default function PlaygroundPage() {
           >
             <div className="panel-heading rules-heading">
               <h2 className="panel-title" id="rules-panel-title">
-                Rules <span className="panel-subtitle">JSON config</span>
+                Rules
               </h2>
               <div className="segmented-control">
                 <button
@@ -585,16 +559,8 @@ export default function PlaygroundPage() {
       </section>
 
       <footer className="footer-note">
-        <span aria-hidden="true" className="privacy-dot" />
-        <span>Runs locally in your browser</span>
-        <span aria-hidden="true" className="footer-separator">
-          ·
-        </span>
-        <span>Single-file linting</span>
-        <span aria-hidden="true" className="footer-separator">
-          ·
-        </span>
-        <span>Project rules may be skipped</span>
+        Runs locally in your browser · Single-file linting · Project rules may
+        be skipped
       </footer>
     </main>
   );
