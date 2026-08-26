@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import utooRabbitUrl from '../../../../assets/utoo-lint-mark.svg';
 import { LintWorkerClient } from '../features/lint/client';
 import {
   diagnosticLabel,
@@ -247,7 +248,7 @@ export default function PlaygroundPage() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
-            u
+            <img alt="" height={40} src={utooRabbitUrl} width={28} />
           </span>
           <div>
             <h1>utoo-lint</h1>

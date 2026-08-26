@@ -1,4 +1,8 @@
 declare module '*.css';
+declare module '*.svg' {
+  const url: string;
+  export default url;
+}
 declare module 'monaco-editor/editor/browser/coreCommands.js';
 declare module 'monaco-editor/editor/contrib/find/browser/findController.js';
 declare module 'monaco-editor/editor/contrib/hover/browser/hoverContribution.js';

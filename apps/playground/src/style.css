@@ -83,18 +83,17 @@ textarea:focus-visible {
 
 .brand-mark {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 42px;
   place-items: center;
-  border: 1px solid #718cff;
-  border-radius: 10px;
-  color: #b9c6ff;
-  background: linear-gradient(145deg, #26356f, #151c3e);
-  box-shadow: 0 8px 30px rgb(67 89 200 / 22%);
-  font-family: Georgia, serif;
-  font-size: 22px;
-  font-style: italic;
-  font-weight: 700;
+  filter: drop-shadow(0 8px 18px rgb(11 157 238 / 22%));
+}
+
+.brand-mark img {
+  display: block;
+  width: 28px;
+  height: 40px;
+  object-fit: contain;
 }
 
 .brand > div {
