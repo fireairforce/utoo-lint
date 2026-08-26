@@ -108,6 +108,18 @@ jobs:
       - name: Test WebAssembly package types
         run: pnpm --dir npm/@utoo/lint-wasm test:types
 
+      - name: Type-check Playground
+        run: pnpm playground:typecheck
+
+      - name: Test Playground worker scheduling
+        run: pnpm --filter @utoo/lint-playground test
+
+      - name: Inspect Playground build plan
+        run: pnpm --filter @utoo/lint-playground inspect
+
+      - name: Build and audit Playground
+        run: pnpm --filter @utoo/lint-playground build
+
       - name: Verify WebAssembly npm package contents
         run: |
           pnpm --dir npm/@utoo/lint-wasm pack --pack-destination "${RUNNER_TEMP}"
