@@ -87,6 +87,60 @@ test "autofix removes an empty declaration but preserves comments and side effec
     try std.testing.expectEqual(@as(usize, 0), fixed_result.diagnostics.len);
 }
 
+test "autofix leaves deleted import lines free of spaces and tabs" {
+    const cases = [_]struct {
+        source: []const u8,
+        expected: []const u8,
+    }{
+        .{
+            .source = "import { Clean } from \"./clean\";\n\nexport const value = 1;",
+            .expected = "\n\nexport const value = 1;",
+        },
+        .{
+            .source = "\timport Unused from \"package\"; \t\nexport const value = 1;",
+            .expected = "\nexport const value = 1;",
+        },
+        .{
+            .source = "import * as Unused from \"package\";   // keep trailing\nexport const value = 1;",
+            .expected = "// keep trailing\nexport const value = 1;",
+        },
+    };
+
+    for (cases) |case| {
+        var result = try lint.lintSourceAndFix(std.testing.allocator, case.source, "fixture.ts", ruleOptions());
+        defer result.deinit(std.testing.allocator);
+
+        try std.testing.expect(result.fixed);
+        try std.testing.expectEqualStrings(case.expected, result.output);
+        var lines = std.mem.splitScalar(u8, result.output, '\n');
+        while (lines.next()) |line| {
+            if (std.mem.trim(u8, line, " \t").len == 0) {
+                try std.testing.expectEqual(@as(usize, 0), line.len);
+            }
+        }
+        try std.testing.expectEqual(@as(usize, 0), helpers.countRule(result.result, "parse"));
+    }
+}
+
+test "unused import autofix is idempotent" {
+    const source =
+        \\import UnusedDefault from "default-package";
+        \\import { Used, UnusedNamed } from "named-package";
+        \\console.log(Used);
+    ;
+
+    var first = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", ruleOptions());
+    defer first.deinit(std.testing.allocator);
+    try std.testing.expect(first.fixed);
+
+    var second = try lint.lintSourceAndFix(std.testing.allocator, first.output, "fixture.js", ruleOptions());
+    defer second.deinit(std.testing.allocator);
+    try std.testing.expect(!second.fixed);
+    try std.testing.expectEqual(@as(usize, 0), second.passes);
+    try std.testing.expectEqualStrings(first.output, second.output);
+    try std.testing.expectEqual(@as(usize, 0), helpers.countRule(second.result, "parse"));
+}
+
 test "autofix keeps mixed import forms syntactically valid" {
     const cases = [_]struct {
         source: []const u8,

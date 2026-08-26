@@ -33,10 +33,10 @@ count: 2
 
 ### Fix 1.1
 
-- byte span: 7..20
-- start: 1:8
+- byte span: 6..20
+- start: 1:7
 - end: 1:21
-- source: "UnusedDefault"
+- source: " UnusedDefault"
 - replacement: ""
 
 ### Fix 1.2
@@ -73,7 +73,7 @@ count: 2
 - remaining diagnostics: 0
 
 ```tsx
-import  {
+import {
   Used,
   Kept as UsedAlias,
 } from "package";

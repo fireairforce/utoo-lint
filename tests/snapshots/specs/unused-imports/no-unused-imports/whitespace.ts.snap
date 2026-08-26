@@ -1,0 +1,169 @@
+---
+fixture: "tests/snapshots/specs/unused-imports/no-unused-imports/whitespace.ts"
+rule: "unused-imports/no-unused-imports"
+---
+
+# Input
+
+```ts
+// keep leading default comment
+import UnusedDefault from "default-package";   // keep trailing default comment
+import { UnusedNamed } from "named-package";
+import * as UnusedNamespace from "namespace-package";
+import type { UnusedType } from "type-package";
+import /* keep block */ {
+  // keep line
+  UnusedCommented,
+} from "commented-package";
+import {
+  Used,
+  UnusedMultiline,
+  // keep partial comment
+  UsedToo,
+} from "mixed-package";
+
+console.log(Used, UsedToo);
+```
+
+# Diagnostics
+
+count: 6
+
+## Diagnostic 1
+
+- rule: "unused-imports/no-unused-imports"
+- severity: "warning"
+- message: "'UnusedDefault' is defined but never used."
+- byte span: 39..52
+- start: 2:8
+- end: 2:21
+- source: "UnusedDefault"
+- fixes: 1
+
+### Fix 1.1
+
+- byte span: 32..79
+- start: 2:1
+- end: 2:48
+- source: "import UnusedDefault from \"default-package\";   "
+- replacement: ""
+
+## Diagnostic 2
+
+- rule: "unused-imports/no-unused-imports"
+- severity: "warning"
+- message: "'UnusedNamed' is defined but never used."
+- byte span: 121..132
+- start: 3:10
+- end: 3:21
+- source: "UnusedNamed"
+- fixes: 1
+
+### Fix 2.1
+
+- byte span: 112..156
+- start: 3:1
+- end: 3:45
+- source: "import { UnusedNamed } from \"named-package\";"
+- replacement: ""
+
+## Diagnostic 3
+
+- rule: "unused-imports/no-unused-imports"
+- severity: "warning"
+- message: "'UnusedNamespace' is defined but never used."
+- byte span: 169..184
+- start: 4:13
+- end: 4:28
+- source: "UnusedNamespace"
+- fixes: 1
+
+### Fix 3.1
+
+- byte span: 157..210
+- start: 4:1
+- end: 4:54
+- source: "import * as UnusedNamespace from \"namespace-package\";"
+- replacement: ""
+
+## Diagnostic 4
+
+- rule: "unused-imports/no-unused-imports"
+- severity: "warning"
+- message: "'UnusedType' is defined but never used."
+- byte span: 225..235
+- start: 5:15
+- end: 5:25
+- source: "UnusedType"
+- fixes: 1
+
+### Fix 4.1
+
+- byte span: 211..258
+- start: 5:1
+- end: 5:48
+- source: "import type { UnusedType } from \"type-package\";"
+- replacement: ""
+
+## Diagnostic 5
+
+- rule: "unused-imports/no-unused-imports"
+- severity: "warning"
+- message: "'UnusedCommented' is defined but never used."
+- byte span: 302..317
+- start: 8:3
+- end: 8:18
+- source: "UnusedCommented"
+- fixes: 1
+
+### Fix 5.1
+
+- byte span: 259..346
+- start: 6:1
+- end: 9:28
+- source: "import /* keep block */ {\n  // keep line\n  UnusedCommented,\n} from \"commented-package\";"
+- replacement: "/* keep block */\n// keep line\n\n"
+
+## Diagnostic 6
+
+- rule: "unused-imports/no-unused-imports"
+- severity: "warning"
+- message: "'UnusedMultiline' is defined but never used."
+- byte span: 366..381
+- start: 12:3
+- end: 12:18
+- source: "UnusedMultiline"
+- fixes: 1
+
+### Fix 6.1
+
+- byte span: 364..383
+- start: 12:1
+- end: 13:1
+- source: "  UnusedMultiline,\n"
+- replacement: ""
+
+# First fix pass
+
+- fixed: true
+- applied diagnostics: 6
+- remaining diagnostics: 0
+
+```ts
+// keep leading default comment
+// keep trailing default comment
+
+
+
+/* keep block */
+// keep line
+
+
+import {
+  Used,
+  // keep partial comment
+  UsedToo,
+} from "mixed-package";
+
+console.log(Used, UsedToo);
+```
