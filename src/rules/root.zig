@@ -300,6 +300,7 @@ pub const react_no_array_index_key = @import("react_no_array_index_key.zig");
 pub const react_no_find_dom_node = @import("react_no_find_dom_node.zig");
 pub const react_no_is_mounted = @import("react_no_is_mounted.zig");
 pub const react_no_multi_comp = @import("react_no_multi_comp.zig");
+pub const react_no_unstable_nested_components = @import("react_no_unstable_nested_components.zig");
 pub const react_no_redundant_should_component_update = @import("react_no_redundant_should_component_update.zig");
 pub const react_no_render_return_value = @import("react_no_render_return_value.zig");
 pub const react_no_this_in_sfc = @import("react_no_this_in_sfc.zig");
@@ -1705,6 +1706,12 @@ const BasicVisitor = struct {
         if (self.options.react_no_multi_comp) {
             try react_no_multi_comp.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, &self.react_no_multi_comp_state, .{
                 .ignore_stateless = self.options.react_no_multi_comp_ignore_stateless,
+            });
+        }
+        if (self.options.react_no_unstable_nested_components) {
+            try react_no_unstable_nested_components.checkFunction(self.allocator, self.diagnostics, ctx.tree, function, index, ctx, .{
+                .allow_as_props = self.options.react_no_unstable_nested_components_allow_as_props,
+                .prop_name_pattern = self.options.react_no_unstable_nested_components_prop_name_pattern.pattern(),
             });
         }
         return .proceed;
@@ -3127,6 +3134,12 @@ const BasicVisitor = struct {
         }
         if (self.options.react_display_name) {
             try react_display_name.checkArrowFunction(self.allocator, ctx.tree, index, ctx.path.parent(), &self.react_display_name_state, reactDisplayNameOptions(self.options));
+        }
+        if (self.options.react_no_unstable_nested_components) {
+            try react_no_unstable_nested_components.checkArrowFunction(self.allocator, self.diagnostics, ctx.tree, index, ctx, .{
+                .allow_as_props = self.options.react_no_unstable_nested_components_allow_as_props,
+                .prop_name_pattern = self.options.react_no_unstable_nested_components_prop_name_pattern.pattern(),
+            });
         }
         return .proceed;
     }

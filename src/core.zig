@@ -1500,6 +1500,27 @@ pub const ReactHooksAdditionalHooksPattern = struct {
     }
 };
 
+pub const max_react_no_unstable_nested_components_prop_name_pattern_len = 256;
+
+pub const ReactNoUnstableNestedComponentsPropNamePattern = struct {
+    custom: bool = false,
+    length: usize = 0,
+    storage: [max_react_no_unstable_nested_components_prop_name_pattern_len]u8 = undefined,
+
+    pub fn pattern(self: *const ReactNoUnstableNestedComponentsPropNamePattern) []const u8 {
+        if (!self.custom) return "render*";
+        return self.storage[0..self.length];
+    }
+
+    pub fn set(self: *ReactNoUnstableNestedComponentsPropNamePattern, pattern_value: []const u8) bool {
+        if (pattern_value.len > max_react_no_unstable_nested_components_prop_name_pattern_len) return false;
+        @memcpy(self.storage[0..pattern_value.len], pattern_value);
+        self.custom = true;
+        self.length = pattern_value.len;
+        return true;
+    }
+};
+
 pub const max_no_useless_escape_allow_regex_characters = 32;
 
 pub const NoUselessEscapeAllowRegexCharactersError = error{
@@ -2921,6 +2942,9 @@ pub const Options = struct {
     react_no_is_mounted: bool = true,
     react_no_multi_comp: bool = true,
     react_no_multi_comp_ignore_stateless: bool = true,
+    react_no_unstable_nested_components: bool = false,
+    react_no_unstable_nested_components_allow_as_props: bool = false,
+    react_no_unstable_nested_components_prop_name_pattern: ReactNoUnstableNestedComponentsPropNamePattern = .{},
     react_no_redundant_should_component_update: bool = true,
     react_no_render_return_value: bool = true,
     react_no_will_update_set_state: bool = true,
@@ -3793,6 +3817,10 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "react/no-multi-comp")) {
             self.react_no_multi_comp_ignore_stateless = try reactNoMultiCompIgnoreStatelessFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "react/no-unstable-nested-components")) {
+            self.react_no_unstable_nested_components_allow_as_props = try reactNoUnstableNestedComponentsAllowAsPropsFromConfig(value);
+            self.react_no_unstable_nested_components_prop_name_pattern = try reactNoUnstableNestedComponentsPropNamePatternFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "react/no-children-prop")) {
             self.react_no_children_prop_allow_functions = try reactNoChildrenPropAllowFunctionsFromConfig(value);
@@ -8753,6 +8781,37 @@ pub const Options = struct {
         return switch (config.get("ignoreStateless") orelse return true) {
             .bool => |ignore_stateless| ignore_stateless,
             else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn reactNoUnstableNestedComponentsAllowAsPropsFromConfig(value: std.json.Value) RuleConfigError!bool {
+        const config = reactNoUnstableNestedComponentsConfigObject(value) orelse return false;
+        return switch (config.get("allowAsProps") orelse return false) {
+            .bool => |allow_as_props| allow_as_props,
+            else => error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn reactNoUnstableNestedComponentsPropNamePatternFromConfig(value: std.json.Value) RuleConfigError!ReactNoUnstableNestedComponentsPropNamePattern {
+        const config = reactNoUnstableNestedComponentsConfigObject(value) orelse return .{};
+        const pattern_value = switch (config.get("propNamePattern") orelse return .{}) {
+            .string => |pattern| pattern,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        var pattern = ReactNoUnstableNestedComponentsPropNamePattern{};
+        if (!pattern.set(pattern_value)) return error.UnsupportedRuleConfigValue;
+        return pattern;
+    }
+
+    fn reactNoUnstableNestedComponentsConfigObject(value: std.json.Value) ?std.json.ObjectMap {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return null,
+        };
+        if (items.len < 2) return null;
+        return switch (items[1]) {
+            .object => |object| object,
+            else => null,
         };
     }
 
