@@ -353,6 +353,7 @@ const BUILTIN_RULE_IDS = [
   "react/no-danger-with-children",
   "react/no-deprecated",
   "react/no-find-dom-node",
+  "react/no-forward-ref",
   "react/no-is-mounted",
   "react/no-multi-comp",
   "react/no-unstable-nested-components",

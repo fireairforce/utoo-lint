@@ -315,6 +315,7 @@ instead of being rewritten.
 | [`react/no-danger-with-children`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-danger-with-children.md) | Implemented |
 | [`react/no-deprecated`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-deprecated.md) | Implemented |
 | [`react/no-find-dom-node`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-find-dom-node.md) | Implemented |
+| [`react/no-forward-ref`](https://eslint-react.xyz/docs/rules/no-forward-ref) | Opt-in React 19 diagnostic; recognizes named, aliased, default, and namespace imports from `react` |
 | [`react/no-is-mounted`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md) | Implemented |
 | [`react/no-multi-comp`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md) | Supports `ignoreStateless` configuration |
 | [`react/no-unstable-nested-components`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-unstable-nested-components.md) | Opt-in; supports `allowAsProps` and `propNamePattern`, including wrapped nested components |

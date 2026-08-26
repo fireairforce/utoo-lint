@@ -2939,6 +2939,7 @@ pub const Options = struct {
     react_no_children_prop: bool = true,
     react_no_children_prop_allow_functions: bool = false,
     react_no_find_dom_node: bool = true,
+    react_no_forward_ref: bool = false,
     react_no_is_mounted: bool = true,
     react_no_multi_comp: bool = true,
     react_no_multi_comp_ignore_stateless: bool = true,

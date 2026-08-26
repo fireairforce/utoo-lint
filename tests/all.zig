@@ -1109,6 +1109,7 @@ comptime {
 
 comptime {
     _ = @import("rules/react_no_find_dom_node.zig");
+    _ = @import("rules/react_no_forward_ref.zig");
 }
 
 comptime {
