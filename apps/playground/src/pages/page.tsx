@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import utooRabbitUrl from '../../../../assets/utoo-lint-mark.svg';
+import utooRabbitUrl from '../../../../assets/utoo-lint-mark-gpt.png';
 import { LintWorkerClient } from '../features/lint/client';
 import {
   diagnosticLabel,
