@@ -52,6 +52,8 @@ export type FrontendRuleId =
 
 declare const frontend: ConfigObject & {
   readonly $schema: string;
+  readonly files: ["src/**/*.{js,jsx,ts,tsx}"];
+  readonly ignores: ["dist", "coverage", "node_modules"];
   readonly rules: Readonly<Record<FrontendRuleId, RuleConfig>>;
 };
 

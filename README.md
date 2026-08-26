@@ -91,21 +91,18 @@ Without a config file, `utoo-lint` uses its built-in default rules. It supports
 Create `utlint.config.ts`:
 
 ```ts
-import { defineConfig, globalIgnores } from "@utoo/lint/config";
+import { defineConfig } from "@utoo/lint/config";
 import frontend from "@utoo/lint/configs/frontend";
 
-export default defineConfig(
-  globalIgnores(["dist/", "coverage/"]),
-  {
-    ...frontend,
-    files: ["src/**/*.{js,jsx,ts,tsx}"],
-    rules: {
-      ...frontend.rules,
-      "no-console": "off",
-      "react/no-forward-ref": "off"
-    }
+export default defineConfig({
+  ...frontend,
+  ignores: [...frontend.ignores, ".next", "storybook-static"],
+  rules: {
+    ...frontend.rules,
+    "no-console": "off",
+    "react/no-forward-ref": "off"
   }
-);
+});
 ```
 
 The frontend preset uses `error` for correctness and safety checks that should
@@ -117,8 +114,8 @@ visible without blocking adoption:
 | `error` | `react-hooks/rules-of-hooks`, `react/jsx-key`, `react/no-children-prop`, `react/no-danger-with-children`, `react/void-dom-elements-no-children`, `no-script-url`, `promise/no-nesting` |
 | `warn` | `react-hooks/exhaustive-deps`, `react/no-array-index-key`, `react/no-unstable-nested-components`, `react/no-forward-ref`, `unused-imports/no-unused-imports`, `@typescript-eslint/no-unused-vars`, `@typescript-eslint/ban-types` |
 
-Override any project-specific rule after spreading `frontend.rules`, as shown
-above.
+Override project-specific rules after spreading `frontend.rules`, and append
+framework-generated directories to `frontend.ignores`, as shown above.
 
 The preset intentionally enables no formatter or type-checker integration.
 Keep Prettier (or another formatter) and `tsc` as independent project steps.

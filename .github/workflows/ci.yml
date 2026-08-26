@@ -53,8 +53,13 @@ jobs:
       - name: Verify npm wrapper
         run: |
           node npm/utoo-lint/bin/utoo-lint.js --no-config test/fixtures/bad.ts
+          frontend_fixture="$(mktemp -d)"
+          trap 'rm -rf "$frontend_fixture"' EXIT
+          mkdir -p "$frontend_fixture/src"
+          cp npm/utoo-lint/configs/frontend.json "$frontend_fixture/utlint.config.json"
+          cp test/fixtures/bad.ts "$frontend_fixture/src/bad.ts"
           set +e
-          node npm/utoo-lint/bin/utoo-lint.js --config=npm/utoo-lint/configs/frontend.json test/fixtures/bad.ts
+          node npm/utoo-lint/bin/utoo-lint.js --config="$frontend_fixture/utlint.config.json" "$frontend_fixture/src/bad.ts"
           status=$?
           set -e
           test "$status" -eq 1

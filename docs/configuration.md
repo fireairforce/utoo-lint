@@ -80,6 +80,7 @@ import frontend from "@utoo/lint/configs/frontend";
 
 export default defineConfig({
   ...frontend,
+  ignores: [...frontend.ignores, ".next", "storybook-static"],
   rules: {
     ...frontend.rules,
     "no-console": "off",
@@ -180,7 +181,7 @@ For a React or TypeScript frontend project, start by copying the packaged fronte
 
 ```bash
 cp node_modules/@utoo/lint/configs/frontend.json utlint.config.json
-npx utoo-lint src
+npx utoo-lint
 ```
 
 The template includes a `$schema` entry for editor validation and a focused set of browser, import, React, JSX a11y, and TypeScript rules:
@@ -189,7 +190,7 @@ The template includes a `$schema` entry for editor validation and a focused set 
 {
   "$schema": "https://raw.githubusercontent.com/utooland/utoo-lint/main/npm/utoo-lint/schema.json",
   "files": ["src/**/*.{js,jsx,ts,tsx}"],
-  "ignores": ["dist", "node_modules"],
+  "ignores": ["dist", "coverage", "node_modules"],
   "rules": {
     "no-debugger": "error",
     "no-console": "warn",
@@ -199,6 +200,13 @@ The template includes a `$schema` entry for editor validation and a focused set 
   }
 }
 ```
+
+With no target argument, the copied preset scans JavaScript and TypeScript
+under `src`. Its rules do not apply to `dist`, `coverage`, or `node_modules`,
+including when `.` is passed explicitly. Add framework-specific generated
+directories such as `.next`, `storybook-static`, or `build` to the copied
+`ignores` array. Typed configs can append to `frontend.ignores` as shown in the
+TypeScript example above.
 
 `utoo-lint` treats config severities like ESLint. `off`, `0`, and `false`
 disable a rule; `warn`, `warning`, `on`, and `1` report warnings; `error`, `2`,
