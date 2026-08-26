@@ -93,6 +93,8 @@ export interface LintOptions {
   cwd?: string;
   binary?: string;
   env?: Record<string, string | undefined>;
+  /** Maximum bytes captured from each native stdout/stderr stream. Defaults to 64 MiB. */
+  maxBuffer?: number;
   threads?: number;
   rules?: string[] | string;
   format?: "text" | "json" | string;

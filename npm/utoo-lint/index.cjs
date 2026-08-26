@@ -694,6 +694,20 @@ class CLIEngine {
   }
 }
 
+const DEFAULT_NATIVE_MAX_BUFFER = 64 * 1024 * 1024;
+
+function nativeMaxBuffer(options, env) {
+  const configured = options.maxBuffer ?? env.UTOO_LINT_MAX_BUFFER;
+  if (configured === undefined || configured === "") {
+    return DEFAULT_NATIVE_MAX_BUFFER;
+  }
+  const value = typeof configured === "number" ? configured : Number(configured);
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new TypeError("maxBuffer and UTOO_LINT_MAX_BUFFER must be a positive integer byte count");
+  }
+  return value;
+}
+
 function run(args = [], options = {}) {
   const cliArgs = normalizeStringArray(args, "args");
   const env = options.env ? { ...process.env, ...options.env } : process.env;
@@ -704,7 +718,8 @@ function run(args = [], options = {}) {
     env,
     encoding: options.encoding ?? "utf8",
     input: options.input,
-    stdio: options.stdio
+    stdio: options.stdio,
+    maxBuffer: nativeMaxBuffer(options, env)
   });
 }
 
@@ -955,7 +970,8 @@ function runFishlint(args = [], options = {}) {
     env,
     encoding: options.encoding ?? "utf8",
     input: options.input,
-    stdio: options.stdio
+    stdio: options.stdio,
+    maxBuffer: nativeMaxBuffer(options, env)
   });
 }
 

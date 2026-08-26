@@ -8,10 +8,15 @@ import { fileURLToPath } from "node:url";
 
 import { createRequire } from "node:module";
 
-import { ESLint, Linter, lintFiles, lintText, resolveBinary, runCli } from "../index.js";
+import { ESLint, Linter, lintFiles, lintText, resolveBinary, run, runCli } from "../index.js";
 
 const require = createRequire(import.meta.url);
-const { ESLint: CommonJSESLint, Linter: CommonJSLinter, runCli: commonJSRunCli } = require("../index.cjs");
+const {
+  ESLint: CommonJSESLint,
+  Linter: CommonJSLinter,
+  run: commonJSRun,
+  runCli: commonJSRunCli
+} = require("../index.cjs");
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const cliPath = join(packageDirectory, "bin", "utoo-lint.js");
@@ -24,6 +29,8 @@ const builtBinary = resolve(
   "bin",
   process.platform === "win32" ? "utoo-lint.exe" : "utoo-lint"
 );
+const largeDiagnosticCount = 20_000;
+const testOutputMaxBuffer = 64 * 1024 * 1024;
 
 function testBinary() {
   if (existsSync(builtBinary)) {
@@ -78,6 +85,84 @@ test("frontend typed and JSON entry points expose the same reviewed rule set", (
     Object.keys(fromJson.rules).some((ruleId) => /prettier|format|indent|quotes|semi/.test(ruleId)),
     false
   );
+});
+
+function createLargeDiagnosticProject(t) {
+  const project = createProject(t);
+  const sourcePath = write(join(project, "fixture.js"), "debugger;\n".repeat(largeDiagnosticCount));
+  const configPath = write(
+    join(project, "utlint.config.json"),
+    `${JSON.stringify({ rules: { "no-debugger": "error" } }, null, 2)}\n`
+  );
+  return { project, sourcePath, configPath };
+}
+
+function assertLargeJsonReport(stdout) {
+  const byteLength = Buffer.byteLength(stdout);
+  assert.ok(byteLength > 1024 * 1024, `expected more than 1 MiB of JSON, received ${byteLength} bytes`);
+  const report = JSON.parse(stdout);
+  assert.equal(report.diagnostics.length, largeDiagnosticCount);
+  assert.ok(report.diagnostics.every((diagnostic) => diagnostic.ruleId === "no-debugger"));
+}
+
+test("ESM and CommonJS run capture diagnostic JSON larger than Node's default spawnSync buffer", (t) => {
+  const { project, sourcePath, configPath } = createLargeDiagnosticProject(t);
+  const args = [`--config=${configPath}`, "--format=json", sourcePath];
+  const result = run(args, { binary: testBinary(), cwd: project });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr, "");
+  assertLargeJsonReport(result.stdout);
+
+  const commonJSResult = commonJSRun(args, { binary: testBinary(), cwd: project });
+  assert.equal(commonJSResult.error, undefined);
+  assert.equal(commonJSResult.status, 1);
+  assert.equal(commonJSResult.stderr, "");
+  assertLargeJsonReport(commonJSResult.stdout);
+
+  const bufferedOutputArgs = ["--eval", `process.stdout.write("x".repeat(4096))`];
+  const capped = run(bufferedOutputArgs, { binary: process.execPath, maxBuffer: 1024 });
+  assert.equal(capped.error?.code, "ENOBUFS");
+
+  const envCapped = run(bufferedOutputArgs, {
+    binary: process.execPath,
+    env: { UTOO_LINT_MAX_BUFFER: "1024" }
+  });
+  assert.equal(envCapped.error?.code, "ENOBUFS");
+
+  const missing = run([], { binary: join(project, "missing-utoo-lint") });
+  assert.equal(missing.error?.code, "ENOENT");
+});
+
+test("CLI preserves large JSON and text reports with the correct exit status", (t) => {
+  const { project, sourcePath, configPath } = createLargeDiagnosticProject(t);
+  const env = { ...process.env, UTOO_LINT_BIN: testBinary() };
+  const commonArgs = [`--config=${configPath}`, sourcePath];
+
+  const json = spawnSync(process.execPath, [cliPath, "--format=json", ...commonArgs], {
+    cwd: project,
+    env,
+    encoding: "utf8",
+    maxBuffer: testOutputMaxBuffer
+  });
+  assert.equal(json.error, undefined);
+  assert.equal(json.status, 1);
+  assert.equal(json.stderr, "");
+  assertLargeJsonReport(json.stdout);
+
+  const text = spawnSync(process.execPath, [cliPath, "--no-color", ...commonArgs], {
+    cwd: project,
+    env,
+    encoding: "utf8",
+    maxBuffer: testOutputMaxBuffer
+  });
+  assert.equal(text.error, undefined);
+  assert.equal(text.status, 1);
+  assert.equal(text.stdout, "");
+  assert.ok(Buffer.byteLength(text.stderr) > 1024 * 1024);
+  assert.equal(text.stderr.match(/no-debugger/g)?.length, largeDiagnosticCount);
+  assert.match(text.stderr, /20000 problems \(20000 errors, 0 warnings\)/);
 });
 
 test("ESLint exposes diagnostics suppressed by utlint-ignore", async () => {
