@@ -101,11 +101,27 @@ export default defineConfig(
     files: ["src/**/*.{js,jsx,ts,tsx}"],
     rules: {
       ...frontend.rules,
-      "no-console": "warn"
+      "no-console": "off",
+      "react/no-forward-ref": "off"
     }
   }
 );
 ```
+
+The frontend preset uses `error` for correctness and safety checks that should
+fail CI, and `warn` for migration or maintainability checks that should remain
+visible without blocking adoption:
+
+| Severity | Added frontend guardrails |
+| --- | --- |
+| `error` | `react-hooks/rules-of-hooks`, `react/jsx-key`, `react/no-children-prop`, `react/no-danger-with-children`, `react/void-dom-elements-no-children`, `no-script-url`, `promise/no-nesting` |
+| `warn` | `react-hooks/exhaustive-deps`, `react/no-array-index-key`, `react/no-unstable-nested-components`, `react/no-forward-ref`, `unused-imports/no-unused-imports`, `@typescript-eslint/no-unused-vars`, `@typescript-eslint/ban-types` |
+
+Override any project-specific rule after spreading `frontend.rules`, as shown
+above.
+
+The preset intentionally enables no formatter or type-checker integration.
+Keep Prettier (or another formatter) and `tsc` as independent project steps.
 
 Run the linter again without repeating the target:
 
