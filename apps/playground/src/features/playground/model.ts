@@ -4,25 +4,25 @@ export const LANGUAGES = [
   {
     id: 'typescript',
     label: 'TypeScript',
-    fileName: 'playground.ts',
+    fileName: 'index.ts',
     monacoLanguage: 'typescript',
   },
   {
     id: 'javascript',
     label: 'JavaScript',
-    fileName: 'playground.js',
+    fileName: 'index.js',
     monacoLanguage: 'javascript',
   },
   {
     id: 'tsx',
     label: 'TSX',
-    fileName: 'playground.tsx',
+    fileName: 'index.tsx',
     monacoLanguage: 'typescript',
   },
   {
     id: 'jsx',
     label: 'JSX',
-    fileName: 'playground.jsx',
+    fileName: 'index.jsx',
     monacoLanguage: 'javascript',
   },
 ] as const;
@@ -78,7 +78,7 @@ export const RECOMMENDED_RULES = {
 export const INITIAL_RULES = JSON.stringify(RECOMMENDED_RULES, null, 2);
 
 export function fileNameForLanguage(language: PlaygroundLanguage): string {
-  return LANGUAGES.find((candidate) => candidate.id === language)?.fileName ?? 'playground.ts';
+  return LANGUAGES.find((candidate) => candidate.id === language)?.fileName ?? 'index.ts';
 }
 
 export function monacoLanguageForLanguage(
