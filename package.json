@@ -7,6 +7,9 @@
     "build:wasm": "zig build wasm",
     "package:wasm": "bash scripts/package-wasm.sh",
     "test:wasm": "zig build test-wasm",
+    "playground:dev": "pnpm package:wasm && pnpm --filter @utoo/lint-playground dev",
+    "playground:build": "pnpm package:wasm && pnpm --filter @utoo/lint-playground build",
+    "playground:typecheck": "pnpm --filter @utoo/lint-playground typecheck",
     "bench:generate": "pnpm --dir benchmarks generate",
     "bench": "pnpm --dir benchmarks bench",
     "bench:chart": "pnpm --dir benchmarks chart"

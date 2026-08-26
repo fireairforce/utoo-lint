@@ -293,6 +293,10 @@ linter instance in a Web Worker so synchronous lint calls do not block the UI.
 See the [WebAssembly guide](docs/wasm.md) for the Node ESM API, autofix,
 configuration semantics, Worker setup, and local build commands.
 
+This repository also includes an [EVJS + Utoopack Playground](apps/playground/README.md)
+that bundles Monaco Editor and runs the WASM engine in a Web Worker. Its
+production output is a server-free static site suitable for public hosting.
+
 ## Documentation
 
 - [Rule status](docs/rule-status.md) — implemented rules and autofix coverage
