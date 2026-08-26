@@ -3,3 +3,4 @@ zig-out/
 dist/
 node_modules/
 .DS_Store
+npm/@utoo/lint-wasm/utoo-lint.wasm

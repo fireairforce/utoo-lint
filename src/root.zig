@@ -50,12 +50,26 @@ pub fn lintSourceAndFix(
     path: []const u8,
     options: Options,
 ) Allocator.Error!LintAndFixResult {
-    return lintSourceAndFixWithIo(allocator, null, source, path, options);
+    return lintSourceAndFixInternal(false, allocator, {}, source, path, options);
 }
 
 pub fn lintSourceAndFixWithIo(
     allocator: Allocator,
     io: ?std.Io,
+    source: []const u8,
+    path: []const u8,
+    options: Options,
+) Allocator.Error!LintAndFixResult {
+    if (io) |actual_io| {
+        return lintSourceAndFixInternal(true, allocator, actual_io, source, path, options);
+    }
+    return lintSourceAndFixInternal(false, allocator, {}, source, path, options);
+}
+
+fn lintSourceAndFixInternal(
+    comptime with_io: bool,
+    allocator: Allocator,
+    io: if (with_io) std.Io else void,
     source: []const u8,
     path: []const u8,
     options: Options,
@@ -67,7 +81,7 @@ pub fn lintSourceAndFixWithIo(
     var applied_diagnostics: usize = 0;
 
     while (passes < max_autofix_passes) {
-        var result = try lintSourceWithIo(allocator, io, output, path, options);
+        var result = try lintSourceInternal(with_io, allocator, io, output, path, options);
         var applied = applyFixes(allocator, output, result.diagnostics) catch |err| {
             result.deinit(allocator);
             return err;
@@ -93,7 +107,7 @@ pub fn lintSourceAndFixWithIo(
 
     return .{
         .output = output,
-        .result = try lintSourceWithIo(allocator, io, output, path, options),
+        .result = try lintSourceInternal(with_io, allocator, io, output, path, options),
         .fixed = true,
         .passes = passes,
         .applied_diagnostics = applied_diagnostics,
@@ -106,12 +120,26 @@ pub fn lintSource(
     path: []const u8,
     options: Options,
 ) Allocator.Error!Result {
-    return lintSourceWithIo(allocator, null, source, path, options);
+    return lintSourceInternal(false, allocator, {}, source, path, options);
 }
 
 pub fn lintSourceWithIo(
     allocator: Allocator,
     io: ?std.Io,
+    source: []const u8,
+    path: []const u8,
+    options: Options,
+) Allocator.Error!Result {
+    if (io) |actual_io| {
+        return lintSourceInternal(true, allocator, actual_io, source, path, options);
+    }
+    return lintSourceInternal(false, allocator, {}, source, path, options);
+}
+
+fn lintSourceInternal(
+    comptime with_io: bool,
+    allocator: Allocator,
+    io: if (with_io) std.Io else void,
     source: []const u8,
     path: []const u8,
     options: Options,
@@ -137,7 +165,11 @@ pub fn lintSourceWithIo(
         try semantic_result.symbol_table.resolveAll(semantic_result.scope_tree);
         try appendParserDiagnostics(allocator, &diagnostics, &tree, effective_options);
         try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);
-        try rules.runSemantic(allocator, &diagnostics, &tree, io, path, semantic_result, effective_options);
+        if (with_io) {
+            try rules.runSemanticWithIo(allocator, &diagnostics, &tree, io, path, semantic_result, effective_options);
+        } else {
+            try rules.runSemantic(allocator, &diagnostics, &tree, semantic_result, effective_options);
+        }
     } else {
         try appendParserDiagnostics(allocator, &diagnostics, &tree, effective_options);
         try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);

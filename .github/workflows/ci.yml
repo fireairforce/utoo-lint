@@ -66,3 +66,52 @@ jobs:
 
       - name: Test npm package
         run: pnpm --dir npm/utoo-lint test
+
+  test-wasm:
+    name: Test WebAssembly (Node 24)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+
+      - name: Build and stage WebAssembly package
+        run: pnpm package:wasm
+
+      - name: Verify WebAssembly artifacts
+        run: |
+          test -s zig-out/bin/utoo-lint.wasm
+          test -s npm/@utoo/lint-wasm/utoo-lint.wasm
+
+      - name: Test raw WebAssembly ABI
+        run: pnpm test:wasm
+
+      - name: Test WebAssembly package
+        run: pnpm --dir npm/@utoo/lint-wasm test
+
+      - name: Test WebAssembly package types
+        run: pnpm --dir npm/@utoo/lint-wasm test:types
+
+      - name: Verify WebAssembly npm package contents
+        run: |
+          pnpm --dir npm/@utoo/lint-wasm pack --pack-destination "${RUNNER_TEMP}"
+          package_tarball="$(find "${RUNNER_TEMP}" -maxdepth 1 -type f -name 'utoo-lint-wasm-*.tgz' -print -quit)"
+          test -n "${package_tarball}"
+          tar -tzf "${package_tarball}" > "${RUNNER_TEMP}/utoo-lint-wasm-files.txt"
+          grep -Fxq 'package/utoo-lint.wasm' "${RUNNER_TEMP}/utoo-lint-wasm-files.txt"

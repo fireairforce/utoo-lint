@@ -745,28 +745,51 @@ pub fn runBasic(
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
 
-pub fn runSemantic(
+pub fn runSemanticWithIo(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
-    io: ?std.Io,
+    io: std.Io,
     file_path: []const u8,
     semantic_result: traverser.semantic.Result,
     options: core.Options,
 ) Allocator.Error!void {
     if (options.alipay_ant_no_phantom_dependencies) {
-        if (io) |actual_io| {
-            try alipay_ant_no_phantom_dependencies.run(
-                allocator,
-                actual_io,
-                diagnostics,
-                tree,
-                file_path,
-                semantic_result.symbol_table,
-            );
-        }
+        try alipay_ant_no_phantom_dependencies.run(
+            allocator,
+            io,
+            diagnostics,
+            tree,
+            file_path,
+            semantic_result.symbol_table,
+        );
     }
 
+    try runSemanticBeforeIo(allocator, diagnostics, tree, semantic_result, options);
+
+    try runIoSemantic(allocator, diagnostics, tree, io, file_path, semantic_result, options);
+
+    try runSemanticAfterIo(allocator, diagnostics, tree, semantic_result, options);
+}
+
+pub fn runSemantic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    semantic_result: traverser.semantic.Result,
+    options: core.Options,
+) Allocator.Error!void {
+    try runSemanticBeforeIo(allocator, diagnostics, tree, semantic_result, options);
+    try runSemanticAfterIo(allocator, diagnostics, tree, semantic_result, options);
+}
+
+fn runSemanticBeforeIo(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    semantic_result: traverser.semantic.Result,
+    options: core.Options,
+) Allocator.Error!void {
     if (options.alipay_ant_exhaustive_deps and !options.react_hooks_exhaustive_deps) {
         try alipay_ant_exhaustive_deps.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
@@ -792,119 +815,119 @@ pub fn runSemantic(
     if (options.alipay_ant_prefer_click_with_debounce) {
         try alipay_ant_prefer_click_with_debounce.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
+}
 
+fn runIoSemantic(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    io: std.Io,
+    file_path: []const u8,
+    semantic_result: traverser.semantic.Result,
+    options: core.Options,
+) Allocator.Error!void {
     if (options.alipay_ant_prefer_import_from_stdlib) {
-        if (io) |actual_io| {
-            try alipay_ant_prefer_import_from_stdlib.run(
-                allocator,
-                actual_io,
-                diagnostics,
-                tree,
-                file_path,
-            );
-        }
+        try alipay_ant_prefer_import_from_stdlib.run(
+            allocator,
+            io,
+            diagnostics,
+            tree,
+            file_path,
+        );
     }
 
     if (options.import_default) {
-        if (io) |actual_io| {
-            try import_default.run(
-                allocator,
-                actual_io,
-                diagnostics,
-                tree,
-                file_path,
-            );
-        }
+        try import_default.run(
+            allocator,
+            io,
+            diagnostics,
+            tree,
+            file_path,
+        );
     }
     if (options.import_export) {
-        if (io) |actual_io| {
-            try import_export.run(
-                allocator,
-                actual_io,
-                diagnostics,
-                tree,
-                file_path,
-            );
-        }
+        try import_export.run(
+            allocator,
+            io,
+            diagnostics,
+            tree,
+            file_path,
+        );
     }
     if (options.import_named) {
-        if (io) |actual_io| {
-            try import_named.run(
-                allocator,
-                actual_io,
-                diagnostics,
-                tree,
-                file_path,
-            );
-        }
+        try import_named.run(
+            allocator,
+            io,
+            diagnostics,
+            tree,
+            file_path,
+        );
     }
     if (options.import_namespace) {
-        if (io) |actual_io| {
-            try import_namespace.run(
-                allocator,
-                actual_io,
-                diagnostics,
-                tree,
-                file_path,
-                semantic_result.symbol_table,
-            );
-        }
+        try import_namespace.run(
+            allocator,
+            io,
+            diagnostics,
+            tree,
+            file_path,
+            semantic_result.symbol_table,
+        );
     }
     if (options.import_no_cycle) {
-        if (io) |actual_io| {
-            try import_no_cycle.run(
-                allocator,
-                actual_io,
-                diagnostics,
-                tree,
-                file_path,
-                .{
-                    .amd = options.import_no_cycle_amd,
-                    .commonjs = options.import_no_cycle_commonjs,
-                    .max_depth = options.import_no_cycle_max_depth,
-                },
-            );
-        }
+        try import_no_cycle.run(
+            allocator,
+            io,
+            diagnostics,
+            tree,
+            file_path,
+            .{
+                .amd = options.import_no_cycle_amd,
+                .commonjs = options.import_no_cycle_commonjs,
+                .max_depth = options.import_no_cycle_max_depth,
+            },
+        );
     }
     if (options.import_no_named_as_default) {
-        if (io) |actual_io| {
-            try import_no_named_as_default.run(
-                allocator,
-                actual_io,
-                diagnostics,
-                tree,
-                file_path,
-            );
-        }
+        try import_no_named_as_default.run(
+            allocator,
+            io,
+            diagnostics,
+            tree,
+            file_path,
+        );
     }
     if (options.import_no_named_as_default_member) {
-        if (io) |actual_io| {
-            try import_no_named_as_default_member.run(
-                allocator,
-                actual_io,
-                diagnostics,
-                tree,
-                file_path,
-            );
-        }
+        try import_no_named_as_default_member.run(
+            allocator,
+            io,
+            diagnostics,
+            tree,
+            file_path,
+        );
     }
     if (options.import_no_unresolved) {
-        if (io) |actual_io| {
-            try import_no_unresolved.run(
-                allocator,
-                actual_io,
-                diagnostics,
-                tree,
-                file_path,
-                .{
-                    .amd = options.import_no_unresolved_amd,
-                    .commonjs = options.import_no_unresolved_commonjs,
-                    .ignore = options.import_no_unresolved_ignore,
-                },
-            );
-        }
+        try import_no_unresolved.run(
+            allocator,
+            io,
+            diagnostics,
+            tree,
+            file_path,
+            .{
+                .amd = options.import_no_unresolved_amd,
+                .commonjs = options.import_no_unresolved_commonjs,
+                .ignore = options.import_no_unresolved_ignore,
+            },
+        );
     }
+}
 
+fn runSemanticAfterIo(
+    allocator: Allocator,
+    diagnostics: *core.DiagnosticList,
+    tree: *const ast.Tree,
+    semantic_result: traverser.semantic.Result,
+    options: core.Options,
+) Allocator.Error!void {
     if (options.block_scoped_var) {
         try block_scoped_var.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }

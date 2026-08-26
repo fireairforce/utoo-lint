@@ -1,13 +1,34 @@
 # npm packaging
 
-This directory contains the npm CLI wrapper for `@utoo/lint` and the native platform packages.
+This directory contains the npm CLI wrapper for `@utoo/lint`, the native
+platform packages, and the standalone WebAssembly package.
 
 - `@utoo/lint` is the JavaScript CLI package.
+- `@utoo/lint-wasm` is the ESM wrapper and freestanding WebAssembly module for
+  browser and Node single-file linting.
 - `@utoo/lint-darwin-arm64` contains the native Zig binary for macOS arm64.
 - `@utoo/lint-darwin-x64` contains the native Zig binary for macOS x64.
 - `@utoo/lint-linux-arm64` contains the native Zig binary for Linux arm64.
 - `@utoo/lint-linux-x64` contains the native Zig binary for Linux x64.
 - `@utoo/lint-win32-x64` contains the native Zig binary for Windows x64.
+
+## WebAssembly Package
+
+`npm/@utoo/lint-wasm` is published independently from the Node CLI because it
+does not use a native platform package, WASI, or a real filesystem. The package
+contains `index.js`, TypeScript declarations, and `utoo-lint.wasm`.
+
+Build and stage the WebAssembly file before testing or packing the package:
+
+```bash
+pnpm package:wasm
+pnpm test:wasm
+pnpm --dir npm/@utoo/lint-wasm test
+pnpm --dir npm/@utoo/lint-wasm test:types
+```
+
+See the repository's [WebAssembly guide](../docs/wasm.md) for the public API
+and runtime behavior.
 
 ## Configuration Files
 

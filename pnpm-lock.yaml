@@ -43,6 +43,12 @@ importers:
 
   npm/@utoo/lint-linux-x64: {}
 
+  npm/@utoo/lint-wasm:
+    devDependencies:
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   npm/@utoo/lint-win32-x64: {}
 
   npm/utoo-lint:

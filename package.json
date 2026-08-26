@@ -4,6 +4,9 @@
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "scripts": {
+    "build:wasm": "zig build wasm",
+    "package:wasm": "bash scripts/package-wasm.sh",
+    "test:wasm": "zig build test-wasm",
     "bench:generate": "pnpm --dir benchmarks generate",
     "bench": "pnpm --dir benchmarks bench",
     "bench:chart": "pnpm --dir benchmarks chart"

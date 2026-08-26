@@ -16,7 +16,7 @@ lint engine with familiar configuration, CLI, and JavaScript APIs.
 
 [Installation](#installation) · [Quick start](#quick-start) ·
 [Rules](docs/rule-status.md) · [Configuration](docs/configuration.md) ·
-[ESLint migration](docs/eslint-migration.md)
+[WebAssembly](docs/wasm.md) · [ESLint migration](docs/eslint-migration.md)
 
 ## Why utoo-lint?
 
@@ -30,6 +30,8 @@ lint engine with familiar configuration, CLI, and JavaScript APIs.
   and ESM/CommonJS APIs are included.
 - **Portable installation** — Prebuilt binaries are available for macOS,
   Linux, and Windows on supported architectures.
+- **Browser-ready engine** — The separate `@utoo/lint-wasm` package runs
+  single-file linting and autofix entirely in memory.
 
 ## Performance
 
@@ -262,6 +264,35 @@ stream by default. Programmatic `run`, `runCli`, and `runFishlint` calls can set
 the same limit to CLI invocations; output beyond the configured bound reports
 `ENOBUFS` instead of being truncated.
 
+## WebAssembly
+
+Use the separate `@utoo/lint-wasm` package for browser playgrounds, Web
+Workers, and other ESM runtimes that support WebAssembly:
+
+```bash
+pnpm add @utoo/lint-wasm
+```
+
+```js
+import { createUtooLint } from "@utoo/lint-wasm";
+
+const linter = await createUtooLint();
+const report = linter.lint("debugger;", {
+  filePath: "playground.js",
+  rules: { "no-debugger": "error" }
+});
+
+console.log(report.diagnostics);
+```
+
+The WebAssembly build has no WASI or real-filesystem dependency. It lints one
+in-memory source at a time; enabled rules that require project I/O are not run
+and are reported in `skippedRules`. For an interactive playground, keep the
+linter instance in a Web Worker so synchronous lint calls do not block the UI.
+
+See the [WebAssembly guide](docs/wasm.md) for the Node ESM API, autofix,
+configuration semantics, Worker setup, and local build commands.
+
 ## Documentation
 
 - [Rule status](docs/rule-status.md) — implemented rules and autofix coverage
@@ -269,6 +300,8 @@ the same limit to CLI invocations; output beyond the configured bound reports
   values
 - [Suppression comments](docs/suppressions.md) — line, file, and range
   suppressions
+- [WebAssembly](docs/wasm.md) — browser and Node ESM usage, runtime boundaries,
+  and Playground integration
 - [Migrating from ESLint](docs/eslint-migration.md) — migration workflow and
   compatibility notes
 - [Contributing](CONTRIBUTING.md) — local development, rule work, and releases
