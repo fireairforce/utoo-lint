@@ -292,74 +292,97 @@ export default function PlaygroundPage() {
           </div>
         </div>
 
-        <a
-          aria-label="Open utoo-lint on GitHub (opens in a new tab)"
-          className="github-link"
-          href="https://github.com/utooland/utoo-lint"
-          target="_blank"
-          rel="noreferrer"
-        >
-          GitHub <span aria-hidden="true">↗</span>
-        </a>
-      </header>
+        <section className="controlbar" aria-label="Playground controls">
+          <div
+            aria-label="Language"
+            aria-orientation="horizontal"
+            className="language-tabs"
+            role="tablist"
+          >
+            {LANGUAGES.map((item, index) => (
+              <button
+                aria-controls="source-editor-panel"
+                aria-selected={item.id === language}
+                className={item.id === language ? 'is-active' : undefined}
+                id={`language-tab-${item.id}`}
+                key={item.id}
+                onClick={() => selectLanguage(item.id)}
+                onKeyDown={(event) => handleLanguageTabKeyDown(event, index)}
+                ref={(element) => {
+                  languageTabRefs.current[index] = element;
+                }}
+                role="tab"
+                tabIndex={item.id === language ? 0 : -1}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
 
-      <section className="controlbar" aria-label="Playground controls">
-        <div
-          aria-label="Language"
-          aria-orientation="horizontal"
-          className="language-tabs"
-          role="tablist"
-        >
-          {LANGUAGES.map((item, index) => (
-            <button
-              aria-controls="source-editor-panel"
-              aria-selected={item.id === language}
-              className={item.id === language ? 'is-active' : undefined}
-              id={`language-tab-${item.id}`}
-              key={item.id}
-              onClick={() => selectLanguage(item.id)}
-              onKeyDown={(event) => handleLanguageTabKeyDown(event, index)}
-              ref={(element) => {
-                languageTabRefs.current[index] = element;
-              }}
-              role="tab"
-              tabIndex={item.id === language ? 0 : -1}
-              type="button"
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+          <div className="run-summary" aria-hidden="true">
+            <span
+              aria-hidden="true"
+              className={`status-dot status-${runState.phase}`}
+            />
+            <span className="run-state-copy">
+              {runState.phase === 'idle' && 'Queued…'}
+              {runState.phase === 'running' && 'Linting…'}
+              {runState.phase === 'ready' && 'Ready'}
+              {runState.phase === 'error' && 'Run failed'}
+            </span>
+            {runState.phase === 'ready' && (
+              <span className="run-duration">
+                {runState.elapsedMs?.toFixed(1)} ms
+              </span>
+            )}
+            <span className="summary-count error-count">
+              <strong>{errorCount}</strong>{' '}
+              {errorCount === 1 ? 'error' : 'errors'}
+            </span>
+            <span className="summary-count warning-count">
+              <strong>{warningCount}</strong>{' '}
+              {warningCount === 1 ? 'warning' : 'warnings'}
+            </span>
+          </div>
 
-        <div className="run-summary" aria-live="polite">
           <span
-            aria-hidden="true"
-            className={`status-dot status-${runState.phase}`}
-          />
-          <span className="run-state-copy">
-            {runState.phase === 'idle' && 'Queued…'}
-            {runState.phase === 'running' && 'Linting…'}
+            aria-atomic="true"
+            className="run-announcement"
+            role="status"
+          >
+            {runState.phase === 'idle' && 'Lint queued.'}
+            {runState.phase === 'running' && 'Linting.'}
             {runState.phase === 'ready' &&
-              `Ready · ${runState.elapsedMs?.toFixed(1)} ms`}
-            {runState.phase === 'error' && 'Run failed'}
+              `Lint complete. ${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}.`}
+            {runState.phase === 'error' &&
+              `Lint failed${runState.message ? `: ${runState.message}` : '.'}`}
           </span>
-          <span className="summary-count error-count">
-            {errorCount} {errorCount === 1 ? 'error' : 'errors'}
-          </span>
-          <span className="summary-count warning-count">
-            {warningCount} {warningCount === 1 ? 'warning' : 'warnings'}
-          </span>
-        </div>
 
-        <button
-          className="fix-button"
-          disabled={isRetry ? !hasValidRules : !canFix}
-          onClick={() => void execute(isRetry ? 'lint' : 'fix')}
-          type="button"
-        >
-          {isRetry ? 'Retry' : 'Fix all'}
-        </button>
-      </section>
+          <button
+            className="fix-button"
+            disabled={isRetry ? !hasValidRules : !canFix}
+            onClick={() => void execute(isRetry ? 'lint' : 'fix')}
+            type="button"
+          >
+            {isRetry ? 'Retry' : 'Fix all'}
+          </button>
+
+          <a
+            aria-label="Open utoo-lint on GitHub (opens in a new tab)"
+            className="github-link"
+            href="https://github.com/utooland/utoo-lint"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3.3-.4 6.8-1.6 6.8-7A5.4 5.4 0 0 0 19.4 4 5 5 0 0 0 19.3.5S18.2.1 15 1.8a13.4 13.4 0 0 0-7 0C4.8.1 3.7.5 3.7.5A5 5 0 0 0 3.6 4a5.4 5.4 0 0 0-1.4 3.7c0 5.4 3.5 6.6 6.8 7A4.8 4.8 0 0 0 8 18v4" />
+              <path d="M8 19c-3 .9-3-1.5-4-2" />
+            </svg>
+            <span>GitHub</span>
+          </a>
+        </section>
+      </header>
 
       <section className="workspace">
         <div

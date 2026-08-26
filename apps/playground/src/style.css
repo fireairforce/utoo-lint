@@ -59,7 +59,7 @@ textarea:focus-visible {
 
 .playground-shell {
   display: grid;
-  grid-template-rows: 56px 44px minmax(0, 1fr) 28px;
+  grid-template-rows: 52px minmax(0, 1fr) 28px;
   width: 100%;
   height: 100vh;
   height: 100dvh;
@@ -82,9 +82,12 @@ textarea:focus-visible {
 }
 
 .topbar {
-  justify-content: space-between;
-  padding: 0 20px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
 
 .brand {
@@ -132,23 +135,36 @@ textarea:focus-visible {
 }
 
 .github-link {
+  display: inline-flex;
+  min-height: 28px;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+  padding: 0 4px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 550;
   text-decoration: none;
 }
 
+.github-link svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .github-link:hover {
   color: var(--text-strong);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 .controlbar {
   min-width: 0;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  height: 100%;
 }
 
 .language-tabs {
@@ -186,7 +202,7 @@ textarea:focus-visible {
 
 .run-summary {
   min-width: 0;
-  gap: 9px;
+  gap: 8px;
   margin-left: auto;
   color: var(--muted);
   font-size: 11px;
@@ -194,7 +210,25 @@ textarea:focus-visible {
 }
 
 .run-state-copy {
+  color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+
+.run-duration {
+  color: var(--muted-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.run-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  white-space: nowrap;
 }
 
 .status-dot {
@@ -225,41 +259,43 @@ textarea:focus-visible {
 }
 
 .summary-count {
-  padding-left: 9px;
-  border-left: 1px solid var(--line);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
-.error-count {
+.error-count strong {
   color: #ff7b72;
+  font-weight: 650;
 }
 
-.warning-count {
+.warning-count strong {
   color: #e3b341;
+  font-weight: 650;
 }
 
 .fix-button {
-  min-width: 68px;
+  min-width: 62px;
   min-height: 28px;
-  margin-left: 12px;
-  padding: 4px 11px;
-  border: 1px solid #388bfd;
+  margin-left: 10px;
+  padding: 4px 10px;
+  border: 1px solid #3d444d;
   border-radius: 5px;
-  color: #fff;
-  background: #1f6feb;
+  color: #58a6ff;
+  background: var(--line-muted);
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
 }
 
 .fix-button:hover:not(:disabled) {
-  background: #388bfd;
+  border-color: #58a6ff;
+  background: #262c36;
 }
 
 .fix-button:disabled {
   border-color: var(--line);
   color: var(--muted-subtle);
-  background: var(--line-muted);
+  background: transparent;
   cursor: not-allowed;
 }
 
@@ -577,9 +613,26 @@ textarea:focus-visible {
   }
 
   .playground-shell {
-    grid-template-rows: 52px 44px auto 28px;
+    grid-template-rows: auto auto 28px;
     height: auto;
     min-height: 100vh;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
+  }
+
+  .brand {
+    height: 52px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .controlbar {
+    height: 44px;
+    padding: 0 8px;
   }
 
   .workspace {
@@ -604,14 +657,11 @@ textarea:focus-visible {
 
 @media (max-width: 620px) {
   .playground-shell {
-    grid-template-rows: 52px auto auto 28px;
-  }
-
-  .topbar {
-    padding: 0 12px;
+    grid-template-rows: auto auto 28px;
   }
 
   .controlbar {
+    height: auto;
     flex-wrap: wrap;
     padding: 0;
   }
@@ -633,8 +683,14 @@ textarea:focus-visible {
   }
 
   .fix-button {
-    margin-right: 8px;
+    min-height: 32px;
     margin-left: auto;
+  }
+
+  .github-link {
+    min-height: 32px;
+    margin-right: 8px;
+    margin-left: 6px;
   }
 
   .panel-hint {
@@ -655,24 +711,22 @@ textarea:focus-visible {
     display: none;
   }
 
-  .run-state-copy {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    border: 0;
-    white-space: nowrap;
+  .run-duration {
+    display: none;
   }
 
   .run-summary {
     gap: 7px;
   }
 
-  .summary-count {
-    padding-left: 7px;
+  .github-link {
+    width: 32px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .github-link span {
+    display: none;
   }
 }
 
