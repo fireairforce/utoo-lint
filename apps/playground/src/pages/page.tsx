@@ -323,10 +323,8 @@ export default function PlaygroundPage() {
 
           <div className="run-summary" aria-hidden="true">
             <span
-              aria-hidden="true"
-              className={`status-dot status-${runState.phase}`}
-            />
-            <span className="run-state-copy">
+              className={`run-state-copy run-state-${runState.phase}`}
+            >
               {runState.phase === 'idle' && 'Queued…'}
               {runState.phase === 'running' && 'Linting…'}
               {runState.phase === 'ready' && 'Ready'}
@@ -360,6 +358,8 @@ export default function PlaygroundPage() {
               `Lint failed${runState.message ? `: ${runState.message}` : '.'}`}
           </span>
 
+          <span aria-hidden="true" className="toolbar-divider" />
+
           <button
             className="fix-button"
             disabled={isRetry ? !hasValidRules : !canFix}
@@ -376,11 +376,10 @@ export default function PlaygroundPage() {
             target="_blank"
             rel="noreferrer"
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3.3-.4 6.8-1.6 6.8-7A5.4 5.4 0 0 0 19.4 4 5 5 0 0 0 19.3.5S18.2.1 15 1.8a13.4 13.4 0 0 0-7 0C4.8.1 3.7.5 3.7.5A5 5 0 0 0 3.6 4a5.4 5.4 0 0 0-1.4 3.7c0 5.4 3.5 6.6 6.8 7A4.8 4.8 0 0 0 8 18v4" />
-              <path d="M8 19c-3 .9-3-1.5-4-2" />
-            </svg>
-            <span>GitHub</span>
+            GitHub
+            <span aria-hidden="true" className="external-mark">
+              ↗
+            </span>
           </a>
         </section>
       </header>

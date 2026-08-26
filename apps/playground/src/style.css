@@ -139,23 +139,18 @@ textarea:focus-visible {
   min-height: 28px;
   flex: none;
   align-items: center;
-  gap: 5px;
-  margin-left: 10px;
-  padding: 0 4px;
+  gap: 4px;
+  margin-left: 2px;
+  padding: 0 6px;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 550;
+  font-weight: 500;
   text-decoration: none;
 }
 
-.github-link svg {
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentcolor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
+.external-mark {
+  color: var(--muted-subtle);
+  font-size: 10px;
 }
 
 .github-link:hover {
@@ -202,7 +197,7 @@ textarea:focus-visible {
 
 .run-summary {
   min-width: 0;
-  gap: 8px;
+  gap: 12px;
   margin-left: auto;
   color: var(--muted);
   font-size: 11px;
@@ -210,13 +205,28 @@ textarea:focus-visible {
 }
 
 .run-state-copy {
-  color: var(--text);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+.run-state-idle,
+.run-state-running {
+  color: var(--text);
+}
+
+.run-state-error {
+  color: #ff7b72;
 }
 
 .run-duration {
   color: var(--muted-subtle);
   font-variant-numeric: tabular-nums;
+}
+
+.run-duration::before {
+  margin-right: 12px;
+  color: #484f58;
+  content: "·";
 }
 
 .run-announcement {
@@ -231,72 +241,51 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
-.status-dot {
-  width: 6px;
-  height: 6px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--muted-subtle);
-}
-
-.status-running {
-  background: var(--warning);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-.status-ready {
-  background: var(--success);
-}
-
-.status-error {
-  background: var(--error);
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.4;
-  }
-}
-
 .summary-count {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
-.error-count strong {
-  color: #ff7b72;
-  font-weight: 650;
+.summary-count strong {
+  color: var(--text);
+  font-weight: 500;
 }
 
-.warning-count strong {
-  color: #e3b341;
-  font-weight: 650;
+.toolbar-divider {
+  width: 1px;
+  height: 16px;
+  flex: none;
+  margin-left: 12px;
+  background: var(--line);
 }
 
 .fix-button {
-  min-width: 62px;
+  min-width: 0;
   min-height: 28px;
-  margin-left: 10px;
-  padding: 4px 10px;
-  border: 1px solid #3d444d;
-  border-radius: 5px;
-  color: #58a6ff;
-  background: var(--line-muted);
+  margin-left: 6px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 3px;
+  color: var(--text);
+  background: transparent;
   cursor: pointer;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .fix-button:hover:not(:disabled) {
-  border-color: #58a6ff;
-  background: #262c36;
+  color: var(--text-strong);
+  background: var(--surface-hover);
+}
+
+.fix-button:active:not(:disabled) {
+  background: var(--line-muted);
 }
 
 .fix-button:disabled {
-  border-color: var(--line);
   color: var(--muted-subtle);
   background: transparent;
-  cursor: not-allowed;
+  cursor: default;
 }
 
 .workspace {
@@ -684,13 +673,13 @@ textarea:focus-visible {
 
   .fix-button {
     min-height: 32px;
-    margin-left: auto;
+    margin-left: 6px;
   }
 
   .github-link {
     min-height: 32px;
     margin-right: 8px;
-    margin-left: 6px;
+    margin-left: 2px;
   }
 
   .panel-hint {
@@ -720,12 +709,10 @@ textarea:focus-visible {
   }
 
   .github-link {
-    width: 32px;
-    justify-content: center;
-    padding: 0;
+    padding: 0 5px;
   }
 
-  .github-link span {
+  .github-link .external-mark {
     display: none;
   }
 }
