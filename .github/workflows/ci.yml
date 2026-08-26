@@ -111,6 +111,9 @@ jobs:
       - name: Type-check Playground
         run: pnpm playground:typecheck
 
+      - name: Test Playground worker scheduling
+        run: pnpm --filter @utoo/lint-playground test
+
       - name: Inspect Playground build plan
         run: pnpm --filter @utoo/lint-playground inspect
 

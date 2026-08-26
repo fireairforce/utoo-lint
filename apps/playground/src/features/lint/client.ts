@@ -7,9 +7,15 @@ import type {
 } from './protocol';
 
 interface PendingRequest {
+  request: LintWorkerRequest;
   resolve: (result: LintResult) => void;
   reject: (error: LintClientError) => void;
 }
+
+const SUPERSEDED_REQUEST: LintWorkerError = {
+  name: 'AbortError',
+  message: 'The lint request was superseded by a newer request',
+};
 
 export class LintClientError extends Error {
   readonly code?: string;
@@ -26,36 +32,36 @@ export class LintClientError extends Error {
 export class LintWorkerClient {
   #nextId = 1;
   #worker: Worker | undefined;
-  #pending = new Map<number, PendingRequest>();
+  #active: PendingRequest | undefined;
+  #queued: PendingRequest | undefined;
 
   run(
     action: LintWorkerAction,
     source: string,
     options: LintOptions,
   ): Promise<LintResult> {
-    const worker = this.#getWorker();
     const id = this.#nextId++;
     const request = { id, action, source, options } satisfies LintWorkerRequest;
 
     return new Promise((resolve, reject) => {
-      this.#pending.set(id, { resolve, reject });
-      try {
-        worker.postMessage(request);
-      } catch (error) {
-        this.#pending.delete(id);
-        worker.terminate();
-        if (this.#worker === worker) this.#worker = undefined;
-        reject(
-          new LintClientError({
-            name: error instanceof Error ? error.name : 'WorkerError',
-            message:
-              error instanceof Error
-                ? error.message
-                : 'Unable to send work to the lint worker',
-          }),
-        );
+      const pending = { request, resolve, reject } satisfies PendingRequest;
+
+      if (this.#active) {
+        this.cancelQueued();
+        this.#queued = pending;
+        return;
       }
+
+      this.#start(pending);
     });
+  }
+
+  cancelQueued(): void {
+    const queued = this.#queued;
+    if (!queued) return;
+
+    this.#queued = undefined;
+    queued.reject(new LintClientError(SUPERSEDED_REQUEST));
   }
 
   dispose(): void {
@@ -76,20 +82,22 @@ export class LintWorkerClient {
     });
 
     worker.onmessage = ({ data }: MessageEvent<LintWorkerResponse>) => {
-      const pending = this.#pending.get(data.id);
-      if (!pending) return;
+      const active = this.#active;
+      if (!active || active.request.id !== data.id) return;
 
-      this.#pending.delete(data.id);
+      this.#active = undefined;
       if ('error' in data) {
-        pending.reject(new LintClientError(data.error));
+        active.reject(new LintClientError(data.error));
       } else {
-        pending.resolve(data.result);
+        active.resolve(data.result);
       }
+      this.#startQueued();
     };
 
     worker.onerror = ({ message }) => {
+      if (this.#worker !== worker) return;
       worker.terminate();
-      if (this.#worker === worker) this.#worker = undefined;
+      this.#worker = undefined;
       this.#rejectAll({
         name: 'WorkerError',
         message: message || 'The lint worker failed to load',
@@ -97,8 +105,9 @@ export class LintWorkerClient {
     };
 
     worker.onmessageerror = () => {
+      if (this.#worker !== worker) return;
       worker.terminate();
-      if (this.#worker === worker) this.#worker = undefined;
+      this.#worker = undefined;
       this.#rejectAll({
         name: 'DataCloneError',
         message: 'The lint worker returned an unreadable response',
@@ -109,10 +118,36 @@ export class LintWorkerClient {
     return worker;
   }
 
-  #rejectAll(error: LintWorkerError): void {
-    for (const pending of this.#pending.values()) {
-      pending.reject(new LintClientError(error));
+  #start(pending: PendingRequest): void {
+    this.#active = pending;
+
+    try {
+      this.#getWorker().postMessage(pending.request);
+    } catch (error) {
+      this.#worker?.terminate();
+      this.#worker = undefined;
+      this.#rejectAll({
+        name: error instanceof Error ? error.name : 'WorkerError',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Unable to send work to the lint worker',
+      });
     }
-    this.#pending.clear();
+  }
+
+  #startQueued(): void {
+    const queued = this.#queued;
+    if (this.#active || !queued) return;
+
+    this.#queued = undefined;
+    this.#start(queued);
+  }
+
+  #rejectAll(error: LintWorkerError): void {
+    this.#active?.reject(new LintClientError(error));
+    this.#queued?.reject(new LintClientError(error));
+    this.#active = undefined;
+    this.#queued = undefined;
   }
 }

@@ -151,6 +151,7 @@ export default function PlaygroundPage() {
 
   useEffect(() => {
     const requestId = ++latestRequestRef.current;
+    clientRef.current?.cancelQueued();
     setRunState(EMPTY_RUN_STATE);
     const timeout = window.setTimeout(
       () => void execute('lint', requestId),
