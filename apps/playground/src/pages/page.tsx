@@ -29,6 +29,8 @@ type MonacoInstance = Parameters<OnMount>[1];
 type RulesMode = 'recommended' | 'custom';
 type RunPhase = 'idle' | 'running' | 'ready' | 'error';
 
+const EDITOR_THEME = 'utoo-dark';
+
 interface RunState {
   phase: RunPhase;
   result?: LintResult;
@@ -37,6 +39,36 @@ interface RunState {
 }
 
 const EMPTY_RUN_STATE: RunState = { phase: 'idle' };
+
+function defineEditorTheme(monaco: MonacoInstance): void {
+  monaco.editor.defineTheme(EDITOR_THEME, {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'comment', foreground: '66758A', fontStyle: 'italic' },
+      { token: 'keyword', foreground: '59B8FF' },
+      { token: 'number', foreground: 'C5A7FF' },
+      { token: 'string', foreground: 'F2A875' },
+      { token: 'type.identifier', foreground: '63D5D0' },
+    ],
+    colors: {
+      'editor.background': '#0B121B',
+      'editor.foreground': '#D8E2EE',
+      'editorCursor.foreground': '#49B7FF',
+      'editorGutter.background': '#0B121B',
+      'editorIndentGuide.background1': '#1B2937',
+      'editorIndentGuide.activeBackground1': '#34485B',
+      'editorLineNumber.activeForeground': '#AFC1D5',
+      'editorLineNumber.foreground': '#4C5C70',
+      'editor.lineHighlightBackground': '#111C28',
+      'editor.selectionBackground': '#174A6A',
+      'editor.inactiveSelectionBackground': '#17364B',
+      'editorWhitespace.foreground': '#26384A',
+      'editorError.foreground': '#FF7081',
+      'editorWarning.foreground': '#F5BD55',
+    },
+  });
+}
 
 function diagnosticButtonLabel(diagnostic: LintDiagnostic): string {
   const fixable = diagnostic.fixes.length > 0 ? ', fixable' : '';
@@ -184,6 +216,10 @@ export default function PlaygroundPage() {
     applyMarkers(editor, monaco);
   };
 
+  const handleEditorBeforeMount = (monaco: MonacoInstance) => {
+    defineEditorTheme(monaco);
+  };
+
   const revealDiagnostic = (diagnostic: LintDiagnostic) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -250,54 +286,71 @@ export default function PlaygroundPage() {
           <span className="brand-mark" aria-hidden="true">
             <img alt="" height={40} src={utooRabbitUrl} width={28} />
           </span>
-          <div>
-            <h1>utoo-lint</h1>
-            <span>Playground</span>
+          <div className="brand-copy">
+            <div className="brand-title">
+              <h1>utoo-lint</h1>
+              <span aria-hidden="true" className="brand-separator">
+                /
+              </span>
+              <span>Playground</span>
+            </div>
+            <span className="brand-caption">
+              Fast linting, powered by WebAssembly
+            </span>
           </div>
         </div>
 
-        <div className="runtime-badges" aria-label="Runtime stack">
-          <span>EVJS</span>
-          <span>Utoopack</span>
-          <span>WebAssembly</span>
-        </div>
+        <div className="header-actions">
+          <div className="runtime-badges" aria-label="Runtime stack">
+            <span>EVJS</span>
+            <span>Utoopack</span>
+            <span>WebAssembly</span>
+          </div>
 
-        <a
-          className="github-link"
-          href="https://github.com/utooland/utoo-lint"
-          target="_blank"
-          rel="noreferrer"
-        >
-          GitHub ↗
-        </a>
+          <a
+            aria-label="Open utoo-lint on GitHub (opens in a new tab)"
+            className="github-link"
+            href="https://github.com/utooland/utoo-lint"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span>GitHub</span>
+            <svg aria-hidden="true" viewBox="0 0 20 20">
+              <path d="M7 13 13 7M8 7h5v5" />
+            </svg>
+          </a>
+        </div>
       </header>
 
       <section className="controlbar" aria-label="Playground controls">
-        <div
-          aria-label="Language"
-          aria-orientation="horizontal"
-          className="language-tabs"
-          role="tablist"
-        >
-          {LANGUAGES.map((item, index) => (
-            <button
-              aria-controls="source-editor-panel"
-              aria-selected={item.id === language}
-              className={item.id === language ? 'is-active' : undefined}
-              id={`language-tab-${item.id}`}
-              key={item.id}
-              onClick={() => selectLanguage(item.id)}
-              onKeyDown={(event) => handleLanguageTabKeyDown(event, index)}
-              ref={(element) => {
-                languageTabRefs.current[index] = element;
-              }}
-              role="tab"
-              tabIndex={item.id === language ? 0 : -1}
-              type="button"
-            >
-              {item.label}
-            </button>
-          ))}
+        <div className="language-control">
+          <span className="control-label">Language</span>
+          <div
+            aria-label="Language"
+            aria-orientation="horizontal"
+            className="language-tabs"
+            role="tablist"
+          >
+            {LANGUAGES.map((item, index) => (
+              <button
+                aria-controls="source-editor-panel"
+                aria-selected={item.id === language}
+                className={item.id === language ? 'is-active' : undefined}
+                id={`language-tab-${item.id}`}
+                key={item.id}
+                onClick={() => selectLanguage(item.id)}
+                onKeyDown={(event) => handleLanguageTabKeyDown(event, index)}
+                ref={(element) => {
+                  languageTabRefs.current[index] = element;
+                }}
+                role="tab"
+                tabIndex={item.id === language ? 0 : -1}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="run-summary" aria-live="polite">
@@ -305,7 +358,7 @@ export default function PlaygroundPage() {
             aria-hidden="true"
             className={`status-dot status-${runState.phase}`}
           />
-          <span>
+          <span className="run-state-copy">
             {runState.phase === 'idle' && 'Queued…'}
             {runState.phase === 'running' && 'Linting…'}
             {runState.phase === 'ready' &&
@@ -324,7 +377,10 @@ export default function PlaygroundPage() {
           onClick={() => void execute(isRetry ? 'lint' : 'fix')}
           type="button"
         >
-          {isRetry ? 'Retry' : 'Fix all'}
+          <svg aria-hidden="true" viewBox="0 0 20 20">
+            <path d="m4.5 10.2 3.4 3.4 7.6-7.7" />
+          </svg>
+          <span>{isRetry ? 'Retry' : 'Fix all'}</span>
         </button>
       </section>
 
@@ -336,11 +392,15 @@ export default function PlaygroundPage() {
           role="tabpanel"
         >
           <div className="panel-heading">
-            <span>{fileName}</span>
-            <span className="panel-hint">Runs automatically as you type</span>
+            <span className="panel-title file-name">{fileName}</span>
+            <span className="panel-hint">
+              <span aria-hidden="true" className="auto-lint-dot" />
+              Auto lint
+            </span>
           </div>
           <div className="editor-frame">
             <Editor
+              beforeMount={handleEditorBeforeMount}
               height="100%"
               language={monacoLanguage}
               onChange={(value) => {
@@ -352,7 +412,7 @@ export default function PlaygroundPage() {
               }}
               onMount={handleEditorMount}
               path={fileName}
-              theme="vs-dark"
+              theme={EDITOR_THEME}
               value={source}
               options={{
                 ariaLabel: `${fileName} source editor`,
@@ -374,10 +434,18 @@ export default function PlaygroundPage() {
           </div>
         </div>
 
-        <aside className="side-panel">
-          <section className="rules-section">
+        <aside
+          aria-label="Lint configuration and diagnostics"
+          className="side-panel"
+        >
+          <section
+            aria-labelledby="rules-panel-title"
+            className="rules-section"
+          >
             <div className="panel-heading rules-heading">
-              <span>Rules</span>
+              <h2 className="panel-title" id="rules-panel-title">
+                Rules <span className="panel-subtitle">JSON config</span>
+              </h2>
               <div className="segmented-control">
                 <button
                   aria-pressed={rulesMode === 'recommended'}
@@ -430,10 +498,13 @@ export default function PlaygroundPage() {
 
           <section
             aria-busy={runState.phase === 'idle' || runState.phase === 'running'}
+            aria-labelledby="diagnostics-panel-title"
             className="diagnostics-section"
           >
             <div className="panel-heading">
-              <span>Diagnostics</span>
+              <h2 className="panel-title" id="diagnostics-panel-title">
+                Diagnostics
+              </h2>
               <span className="diagnostic-total">{diagnostics.length}</span>
             </div>
 
@@ -485,7 +556,9 @@ export default function PlaygroundPage() {
                     <span className="diagnostic-meta">
                       <code>{diagnostic.ruleId}</code>
                       <span>{diagnosticLabel(diagnostic)}</span>
-                      {diagnostic.fixes.length > 0 && <span>fixable</span>}
+                      {diagnostic.fixes.length > 0 && (
+                        <span className="fixable-badge">fixable</span>
+                      )}
                     </span>
                   </span>
                 </button>
@@ -512,8 +585,16 @@ export default function PlaygroundPage() {
       </section>
 
       <footer className="footer-note">
-        Single-file, in-memory linting. Project filesystem and module resolution
-        rules are reported as skipped.
+        <span aria-hidden="true" className="privacy-dot" />
+        <span>Runs locally in your browser</span>
+        <span aria-hidden="true" className="footer-separator">
+          ·
+        </span>
+        <span>Single-file linting</span>
+        <span aria-hidden="true" className="footer-separator">
+          ·
+        </span>
+        <span>Project rules may be skipped</span>
       </footer>
     </main>
   );
