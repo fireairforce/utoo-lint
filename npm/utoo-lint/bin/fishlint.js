@@ -61,6 +61,8 @@ const STYLELINT_VALUE_FLAGS = new Set([
   "-f",
   "-o"
 ]);
+const DEFAULT_NATIVE_MAX_BUFFER = 64 * 1024 * 1024;
+const nativeOutputMaxBuffer = readNativeMaxBuffer();
 
 if (isVersionRequest(values)) {
   printVersion();
@@ -182,7 +184,10 @@ const needsReportOutput =
   ignoredFiltered.diagnostics.length > 0 ||
   usesJsonWithMetadataFormat(nativeValues) ||
   ruleResolution.configuredRules.size > 0;
-const result = spawnSync(binary, needsReportOutput ? withJsonFormat(ruleConfig.args) : ruleConfig.args, { encoding: "utf8" });
+const result = spawnSync(binary, needsReportOutput ? withJsonFormat(ruleConfig.args) : ruleConfig.args, {
+  encoding: "utf8",
+  maxBuffer: nativeOutputMaxBuffer
+});
 
 if (result.error) {
   console.error(`utoo-lint: failed to run native binary: ${result.error.message}`);
@@ -1102,7 +1107,7 @@ function runFlatConfigGroups(binary, translatedArgs, selectedConfig, ruleOverrid
       ...withoutConfigAndTargets(translatedArgs),
       `--config=${runtimeConfig.file}`,
       ...group.files
-    ]), { encoding: "utf8" });
+    ]), { encoding: "utf8", maxBuffer: nativeOutputMaxBuffer });
     cleanupRuleConfig(runtimeConfig);
     if (result.error) {
       return { error: result.error };
@@ -1500,11 +1505,26 @@ function parseJsonReport(stdout) {
 }
 
 function jsonDiagnosticCounts(binary, args) {
-  const result = spawnSync(binary, withJsonFormat(args), { encoding: "utf8" });
+  const result = spawnSync(binary, withJsonFormat(args), {
+    encoding: "utf8",
+    maxBuffer: nativeOutputMaxBuffer
+  });
   if (result.error) {
     return null;
   }
   return diagnosticCounts(result.stdout ?? "");
+}
+
+function readNativeMaxBuffer() {
+  const configured = process.env.UTOO_LINT_MAX_BUFFER;
+  if (configured === undefined || configured === "") {
+    return DEFAULT_NATIVE_MAX_BUFFER;
+  }
+  const value = Number(configured);
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new TypeError("UTOO_LINT_MAX_BUFFER must be a positive integer byte count");
+  }
+  return value;
 }
 
 function withJsonFormat(args) {

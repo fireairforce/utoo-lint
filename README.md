@@ -259,6 +259,12 @@ Raw reports include active diagnostics, suppressed diagnostics, fixed outputs,
 and an exit code. The compatibility layer also exports `Linter`, `CLIEngine`,
 `RuleTester`, and `SourceCode` APIs.
 
+The Node wrapper captures up to 64 MiB from each native stdout and stderr
+stream by default. Programmatic `run`, `runCli`, and `runFishlint` calls can set
+`maxBuffer` to another positive byte count. Set `UTOO_LINT_MAX_BUFFER` to apply
+the same limit to CLI invocations; output beyond the configured bound reports
+`ENOBUFS` instead of being truncated.
+
 ## Documentation
 
 - [Rule status](docs/rule-status.md) — implemented rules and autofix coverage
