@@ -152,9 +152,20 @@ pnpm add -g ./npm/utoo-lint
 utoo-lint test/fixtures/bad.ts
 ```
 
+Build, stage, and validate the browser WebAssembly package:
+
+```bash
+pnpm package:wasm
+pnpm test:wasm
+pnpm --dir npm/@utoo/lint-wasm test
+pnpm --dir npm/@utoo/lint-wasm test:types
+```
+
 The npm package layout is:
 
 - `npm/utoo-lint` is the public CLI wrapper published as `@utoo/lint`.
+- `npm/@utoo/lint-wasm` is the browser-ready package published as
+  `@utoo/lint-wasm`.
 - `npm/@utoo/lint-darwin-arm64` is published as
   `@utoo/lint-darwin-arm64`.
 - `npm/@utoo/lint-darwin-x64` is published as `@utoo/lint-darwin-x64`.
@@ -171,12 +182,16 @@ GitHub Releases publish binary archives for:
 - `utoo-lint-linux-arm64.tar.gz`
 - `utoo-lint-linux-x64.tar.gz`
 - `utoo-lint-windows-x64.zip`
+- `utoo-lint.wasm`
+- `utoo-lint.wasm.gz`
+- `utoo-lint.wasm.sha256`
 
-Each archive is uploaded with a matching `.sha256` file.
+Each native archive is uploaded with a matching `.sha256` file. The
+WebAssembly checksum covers the raw `utoo-lint.wasm` artifact.
 
-The release workflow builds all release archives, stages all native npm
-packages from the same binaries, uploads the archives to the GitHub Release,
-and publishes the native packages before the CLI wrapper.
+The release workflow builds all native and WebAssembly assets, stages the npm
+packages from the same artifacts, uploads the release assets to GitHub, and
+publishes the scoped packages before the CLI wrapper.
 
 Required GitHub repository secret:
 

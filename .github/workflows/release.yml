@@ -102,9 +102,84 @@ jobs:
           path: dist/native
           if-no-files-found: error
 
+  build-wasm:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v')
+    name: Build WebAssembly
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+
+      - name: Build and stage WebAssembly package
+        run: pnpm package:wasm
+
+      - name: Verify WebAssembly artifacts
+        run: |
+          test -s zig-out/bin/utoo-lint.wasm
+          test -s npm/@utoo/lint-wasm/utoo-lint.wasm
+
+      - name: Test raw WebAssembly ABI
+        run: pnpm test:wasm
+
+      - name: Test WebAssembly package
+        run: pnpm --dir npm/@utoo/lint-wasm test
+
+      - name: Test WebAssembly package types
+        run: pnpm --dir npm/@utoo/lint-wasm test:types
+
+      - name: Verify WebAssembly npm package contents
+        run: |
+          pnpm --dir npm/@utoo/lint-wasm pack --pack-destination "${RUNNER_TEMP}"
+          package_tarball="$(find "${RUNNER_TEMP}" -maxdepth 1 -type f -name 'utoo-lint-wasm-*.tgz' -print -quit)"
+          test -n "${package_tarball}"
+          tar -tzf "${package_tarball}" > "${RUNNER_TEMP}/utoo-lint-wasm-files.txt"
+          grep -Fxq 'package/utoo-lint.wasm' "${RUNNER_TEMP}/utoo-lint-wasm-files.txt"
+
+      - name: Package WebAssembly release assets
+        run: |
+          mkdir -p dist/wasm-release
+          cp npm/@utoo/lint-wasm/utoo-lint.wasm dist/wasm-release/utoo-lint.wasm
+          gzip -9 -c dist/wasm-release/utoo-lint.wasm > dist/wasm-release/utoo-lint.wasm.gz
+          (cd dist/wasm-release && shasum -a 256 utoo-lint.wasm > utoo-lint.wasm.sha256)
+          test -s dist/wasm-release/utoo-lint.wasm
+          test -s dist/wasm-release/utoo-lint.wasm.gz
+          test -s dist/wasm-release/utoo-lint.wasm.sha256
+          (cd dist/wasm-release && shasum -a 256 -c utoo-lint.wasm.sha256)
+
+      - name: Upload WebAssembly release artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-utoo-lint-wasm
+          path: dist/wasm-release/*
+          if-no-files-found: error
+
+      - name: Upload WebAssembly npm package
+        uses: actions/upload-artifact@v6
+        with:
+          name: wasm-package
+          path: npm/@utoo/lint-wasm/utoo-lint.wasm
+          if-no-files-found: error
+
   publish-github-release:
     name: Publish GitHub Release assets
-    needs: build-release-assets
+    needs: [build-release-assets, build-wasm]
     if: (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')) || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
     runs-on: ubuntu-latest
     steps:
@@ -125,7 +200,7 @@ jobs:
 
   publish-npm:
     name: Publish npm packages
-    needs: build-release-assets
+    needs: [build-release-assets, build-wasm]
     if: (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')) || (github.event_name == 'workflow_dispatch' && inputs.publish_npm && inputs.release_tag != '')
     runs-on: ubuntu-latest
     permissions:
@@ -155,6 +230,12 @@ jobs:
           pattern: native-*
           path: dist/native-packages
           merge-multiple: true
+
+      - name: Download WebAssembly npm package
+        uses: actions/download-artifact@v7
+        with:
+          name: wasm-package
+          path: dist/wasm-package
 
       - name: Resolve release version
         id: release_version
@@ -187,12 +268,12 @@ jobs:
           const path = require("node:path");
 
           const version = process.env.VERSION;
-          const nativeRoot = "npm/@utoo";
-          const nativePackagePaths = fs
-            .readdirSync(nativeRoot)
+          const scopedRoot = "npm/@utoo";
+          const scopedPackagePaths = fs
+            .readdirSync(scopedRoot)
             .filter((name) => name.startsWith("lint-"))
-            .map((name) => path.join(nativeRoot, name, "package.json"));
-          const packagePaths = ["npm/utoo-lint/package.json", ...nativePackagePaths];
+            .map((name) => path.join(scopedRoot, name, "package.json"));
+          const packagePaths = ["npm/utoo-lint/package.json", ...scopedPackagePaths];
 
           for (const packagePath of packagePaths) {
             const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
@@ -213,6 +294,12 @@ jobs:
             mkdir -p "npm/@utoo/${package_name}/bin"
             cp -R "${package_dir}/bin/." "npm/@utoo/${package_name}/bin/"
           done
+
+      - name: Stage WebAssembly into workspace package
+        run: |
+          test -s dist/wasm-package/utoo-lint.wasm
+          cp dist/wasm-package/utoo-lint.wasm npm/@utoo/lint-wasm/utoo-lint.wasm
+          test -s npm/@utoo/lint-wasm/utoo-lint.wasm
 
       - name: Verify package contents
         run: |

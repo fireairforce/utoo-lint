@@ -1,0 +1,54 @@
+{
+  "name": "@utoo/lint-wasm",
+  "version": "0.1.0",
+  "description": "Browser-ready WebAssembly build of utoo-lint",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/utooland/utoo-lint.git",
+    "directory": "npm/@utoo/lint-wasm"
+  },
+  "bugs": {
+    "url": "https://github.com/utooland/utoo-lint/issues"
+  },
+  "homepage": "https://github.com/utooland/utoo-lint#readme",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
+    "./utoo-lint.wasm": "./utoo-lint.wasm",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.d.ts",
+    "index.js",
+    "LICENSE",
+    "README.md",
+    "utoo-lint.wasm"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "test:types": "tsc -p test/types/tsconfig.json"
+  },
+  "keywords": [
+    "browser",
+    "javascript",
+    "linter",
+    "typescript",
+    "wasm",
+    "webassembly",
+    "zig"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

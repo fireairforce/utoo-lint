@@ -254,6 +254,16 @@ stream by default. Programmatic `run`, `runCli`, and `runFishlint` calls can set
 the same limit to CLI invocations; output beyond the configured bound reports
 `ENOBUFS` instead of being truncated.
 
+## WebAssembly
+
+For browser playgrounds and in-memory Node ESM usage, install the independent
+`@utoo/lint-wasm` package. It ships a freestanding WebAssembly module rather
+than selecting one of the native platform packages used by `@utoo/lint`.
+
+See the
+[WebAssembly guide](https://github.com/utooland/utoo-lint/blob/main/docs/wasm.md)
+for its API, runtime boundaries, and Web Worker recommendation.
+
 ## Supported platforms
 
 The package installs a platform-specific optional dependency containing the
@@ -273,6 +283,7 @@ development.
 - [Rule status](https://github.com/utooland/utoo-lint/blob/main/docs/rule-status.md)
 - [Configuration](https://github.com/utooland/utoo-lint/blob/main/docs/configuration.md)
 - [Suppression comments](https://github.com/utooland/utoo-lint/blob/main/docs/suppressions.md)
+- [WebAssembly](https://github.com/utooland/utoo-lint/blob/main/docs/wasm.md)
 - [Migrating from ESLint](https://github.com/utooland/utoo-lint/blob/main/docs/eslint-migration.md)
 - [Benchmarks](https://github.com/utooland/utoo-lint/tree/main/benchmarks)
 - [Security policy](https://github.com/utooland/utoo-lint/blob/main/SECURITY.md)
