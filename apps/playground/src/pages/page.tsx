@@ -524,59 +524,61 @@ export default function PlaygroundPage() {
               `Lint failed${runState.message ? `: ${runState.message}` : '.'}`}
           </span>
 
-          <span aria-hidden="true" className="toolbar-divider" />
-
-          <button
-            aria-label={fixButtonLabel}
-            className="fix-button"
-            disabled={isRetry ? !hasValidRules : !canFix}
-            onClick={() => void execute(isRetry ? 'lint' : 'fix')}
-            title={fixButtonLabel}
-            type="button"
-          >
-            {fixButtonText}
-          </button>
-
-          <label className="version-control">
-            <span className="visually-hidden">Utoo Lint version</span>
-            <select
-              aria-label="Utoo Lint version"
-              onChange={(event) => selectLintVersion(event.target.value)}
-              value={lintVersion}
+          <div className="control-actions">
+            <button
+              aria-label={fixButtonLabel}
+              className="fix-button"
+              disabled={isRetry ? !hasValidRules : !canFix}
+              onClick={() => void execute(isRetry ? 'lint' : 'fix')}
+              title={fixButtonLabel}
+              type="button"
             >
-              {LINT_VERSIONS.map((version) => (
-                <option key={version.id} value={version.id}>
-                  {version.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              {fixButtonText}
+            </button>
 
-          <button
-            aria-label="Share this playground"
-            className="share-button"
-            onClick={() => void sharePlayground()}
-            type="button"
-          >
-            <span aria-live="polite">
-              {shareState === 'idle' && 'Share'}
-              {shareState === 'copied' && 'Copied'}
-              {shareState === 'error' && 'Copy failed'}
-            </span>
-          </button>
+            <label className="version-control">
+              <span className="version-control-label">Version</span>
+              <span className="version-select-wrap">
+                <select
+                  aria-label="Utoo Lint version"
+                  onChange={(event) => selectLintVersion(event.target.value)}
+                  value={lintVersion}
+                >
+                  {LINT_VERSIONS.map((version) => (
+                    <option key={version.id} value={version.id}>
+                      {version.label}
+                    </option>
+                  ))}
+                </select>
+              </span>
+            </label>
 
-          <a
-            aria-label="Open utoo-lint on GitHub (opens in a new tab)"
-            className="github-link"
-            href="https://github.com/utooland/utoo-lint"
-            target="_blank"
-            rel="noreferrer"
-          >
-            GitHub
-            <span aria-hidden="true" className="external-mark">
-              ↗
-            </span>
-          </a>
+            <button
+              aria-label="Share this playground"
+              className="share-button"
+              onClick={() => void sharePlayground()}
+              type="button"
+            >
+              <span aria-live="polite">
+                {shareState === 'idle' && 'Share'}
+                {shareState === 'copied' && 'Copied'}
+                {shareState === 'error' && 'Copy failed'}
+              </span>
+            </button>
+
+            <a
+              aria-label="Open utoo-lint on GitHub (opens in a new tab)"
+              className="github-link"
+              href="https://github.com/utooland/utoo-lint"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub
+              <span aria-hidden="true" className="external-mark">
+                ↗
+              </span>
+            </a>
+          </div>
         </section>
       </header>
 
