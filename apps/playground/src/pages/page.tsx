@@ -278,12 +278,25 @@ export default function PlaygroundPage() {
     languageTabRefs.current[nextIndex]?.focus();
   };
 
-  const canFix =
-    runState.phase === 'ready' &&
-    diagnostics.some((diagnostic) => diagnostic.fixes.length > 0);
+  const fixableCount = diagnostics.filter(
+    (diagnostic) => diagnostic.fixes.length > 0,
+  ).length;
+  const canFix = runState.phase === 'ready' && fixableCount > 0;
   const hasValidRules = rulesMode === 'recommended' || parsedRules.ok;
   const isRetry = runState.phase === 'error';
   const hasCustomRulesError = rulesMode === 'custom' && !parsedRules.ok;
+  const fixButtonText = isRetry
+    ? 'Retry'
+    : canFix && fixableCount < diagnostics.length
+      ? `Fix ${fixableCount}`
+      : 'Fix all';
+  const fixButtonLabel = isRetry
+    ? 'Retry lint'
+    : canFix
+      ? fixableCount === diagnostics.length
+        ? `Fix all ${fixableCount} diagnostics`
+        : `Fix ${fixableCount} of ${diagnostics.length} diagnostics with safe autofixes`
+      : 'No safe autofixes available';
   const rulesDescriptionId = hasCustomRulesError
     ? 'rules-config-error'
     : rulesMode === 'recommended'
@@ -371,12 +384,14 @@ export default function PlaygroundPage() {
           <span aria-hidden="true" className="toolbar-divider" />
 
           <button
+            aria-label={fixButtonLabel}
             className="fix-button"
             disabled={isRetry ? !hasValidRules : !canFix}
             onClick={() => void execute(isRetry ? 'lint' : 'fix')}
+            title={fixButtonLabel}
             type="button"
           >
-            {isRetry ? 'Retry' : 'Fix all'}
+            {fixButtonText}
           </button>
 
           <a

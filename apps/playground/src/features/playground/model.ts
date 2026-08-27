@@ -31,37 +31,35 @@ export type PlaygroundLanguage = (typeof LANGUAGES)[number]['id'];
 
 export const INITIAL_SOURCES: Record<PlaygroundLanguage, string> = {
   typescript: `function greet(name: string) {
-  const unused = 42;
-  debugger;
   let message = \`Hello, \${name}\`;;
-  return message;
+  const messages = new Array(message, 'Welcome');
+  return { messages: messages };
 }
 
 greet('utoo');
 `,
   javascript: `function greet(name) {
-  const unused = 42;
-  debugger;
   let message = \`Hello, \${name}\`;;
-  return message;
+  const messages = new Array(message, 'Welcome');
+  return { messages: messages };
 }
 
 greet('utoo');
 `,
   tsx: `function Greeting({ name }: { name: string }) {
-  const unused = 42;
-  debugger;
   let message = \`Hello, \${name}\`;;
-  return <h1>{message}</h1>;
+  const messages = new Array(message, 'Welcome');
+  const props = { messages: messages };
+  return <h1>{props.messages.join(' ')}</h1>;
 }
 
 export default <Greeting name="utoo" />;
 `,
   jsx: `function Greeting({ name }) {
-  const unused = 42;
-  debugger;
   let message = \`Hello, \${name}\`;;
-  return <h1>{message}</h1>;
+  const messages = new Array(message, 'Welcome');
+  const props = { messages: messages };
+  return <h1>{props.messages.join(' ')}</h1>;
 }
 
 export default <Greeting name="utoo" />;
@@ -69,10 +67,10 @@ export default <Greeting name="utoo" />;
 };
 
 export const RECOMMENDED_RULES = {
-  'no-debugger': 'error',
-  'no-unused-vars': 'warn',
-  'prefer-const': 'warn',
+  'no-array-constructor': 'error',
   'no-extra-semi': 'error',
+  'object-shorthand': 'warn',
+  'prefer-const': 'warn',
 } satisfies Record<string, RuleConfig>;
 
 export const INITIAL_RULES = JSON.stringify(RECOMMENDED_RULES, null, 2);
