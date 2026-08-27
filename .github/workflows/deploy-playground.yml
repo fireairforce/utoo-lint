@@ -9,6 +9,7 @@ on:
       - "apps/playground/**"
       - "npm/@utoo/lint-wasm/**"
       - "scripts/package-wasm.sh"
+      - "scripts/stage-playground-wasm.mjs"
       - "src/**"
       - "vendor/**"
       - "build.zig"

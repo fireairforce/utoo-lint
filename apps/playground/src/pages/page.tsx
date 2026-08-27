@@ -43,8 +43,12 @@ const EDITOR_THEME = 'utoo-dark';
 const DEFAULT_EDITOR_RATIO = 68;
 const DEFAULT_RULES_RATIO = 42;
 const INSPECTOR_MODES = ['rules', 'ast'] as const;
+const V030_WASM_URL = new URL(
+  '../../../../npm/@utoo/lint-wasm/utoo-lint.wasm',
+  import.meta.url,
+).href;
 const LINT_VERSIONS = [
-  { id: '0.3.0', label: 'v0.3.0', wasmUrl: undefined },
+  { id: '0.3.0', label: 'v0.3.0', wasmUrl: V030_WASM_URL },
 ] as const;
 
 type LintVersionId = (typeof LINT_VERSIONS)[number]['id'];
