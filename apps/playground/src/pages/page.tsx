@@ -12,6 +12,9 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import utooRabbitUrl from '../../../../assets/utoo-lint-mark-gpt.png';
+import { ASTWorkerClient } from '../features/ast/client';
+import type { ASTParseResult } from '../features/ast/protocol';
+import { ASTTree } from '../features/ast/tree';
 import { LintWorkerClient } from '../features/lint/client';
 import {
   diagnosticLabel,
@@ -30,12 +33,15 @@ import '../style.css';
 
 type EditorInstance = Parameters<OnMount>[0];
 type MonacoInstance = Parameters<OnMount>[1];
+type InspectorMode = 'ast' | 'rules';
 type RulesMode = 'recommended' | 'custom';
+type ASTPhase = 'idle' | 'running' | 'ready' | 'error';
 type RunPhase = 'idle' | 'running' | 'ready' | 'error';
 
 const EDITOR_THEME = 'utoo-dark';
 const DEFAULT_EDITOR_RATIO = 68;
 const DEFAULT_RULES_RATIO = 42;
+const INSPECTOR_MODES = ['rules', 'ast'] as const;
 
 interface RunState {
   phase: RunPhase;
@@ -44,7 +50,15 @@ interface RunState {
   elapsedMs?: number;
 }
 
+interface ASTState {
+  message?: string;
+  phase: ASTPhase;
+  result?: ASTParseResult;
+  revision: number;
+}
+
 const EMPTY_RUN_STATE: RunState = { phase: 'idle' };
+const EMPTY_AST_STATE: ASTState = { phase: 'idle', revision: 0 };
 
 function defineEditorTheme(monaco: MonacoInstance): void {
   monaco.editor.defineTheme(EDITOR_THEME, {
@@ -87,20 +101,26 @@ export default function PlaygroundPage() {
     useState<PlaygroundLanguage>('typescript');
   const [sources, setSources] =
     useState<Record<PlaygroundLanguage, string>>(INITIAL_SOURCES);
+  const [inspectorMode, setInspectorMode] =
+    useState<InspectorMode>('rules');
   const [rulesMode, setRulesMode] = useState<RulesMode>('custom');
   const [rulesSource, setRulesSource] = useState(INITIAL_RULES);
   const [runState, setRunState] = useState<RunState>(EMPTY_RUN_STATE);
+  const [astState, setASTState] = useState<ASTState>(EMPTY_AST_STATE);
   const editorRef = useRef<EditorInstance | null>(null);
   const monacoRef = useRef<MonacoInstance | null>(null);
+  const astClientRef = useRef<ASTWorkerClient | null>(null);
   const clientRef = useRef<LintWorkerClient | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const sidePanelRef = useRef<HTMLElement | null>(null);
   const languageTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const latestASTRequestRef = useRef(0);
   const latestRequestRef = useRef(0);
   const [editorRatio, setEditorRatio] = useState(DEFAULT_EDITOR_RATIO);
   const [rulesRatio, setRulesRatio] = useState(DEFAULT_RULES_RATIO);
 
   if (!clientRef.current) clientRef.current = new LintWorkerClient();
+  if (!astClientRef.current) astClientRef.current = new ASTWorkerClient();
 
   const parsedRules = useMemo(() => parseRules(rulesSource), [rulesSource]);
   const source = sources[language];
@@ -171,8 +191,43 @@ export default function PlaygroundPage() {
   }, [execute]);
 
   useEffect(() => {
+    if (inspectorMode !== 'ast') return;
+
+    const requestId = ++latestASTRequestRef.current;
+    astClientRef.current?.cancelQueued();
+    setASTState({ phase: 'idle', revision: requestId });
+    const timeout = window.setTimeout(() => {
+      setASTState({ phase: 'running', revision: requestId });
+      void astClientRef.current
+        ?.parse(source, fileName)
+        .then((result) => {
+          if (requestId !== latestASTRequestRef.current) return;
+          setASTState({ phase: 'ready', result, revision: requestId });
+        })
+        .catch((error: unknown) => {
+          if (requestId !== latestASTRequestRef.current) return;
+          setASTState({
+            message: error instanceof Error ? error.message : 'AST parsing failed.',
+            phase: 'error',
+            revision: requestId,
+          });
+        });
+    }, 220);
+
     return () => {
+      window.clearTimeout(timeout);
+      if (latestASTRequestRef.current === requestId) {
+        latestASTRequestRef.current += 1;
+      }
+      astClientRef.current?.cancelQueued();
+    };
+  }, [fileName, inspectorMode, source]);
+
+  useEffect(() => {
+    return () => {
+      latestASTRequestRef.current += 1;
       latestRequestRef.current += 1;
+      astClientRef.current?.dispose();
       clientRef.current?.dispose();
     };
   }, []);
@@ -245,6 +300,23 @@ export default function PlaygroundPage() {
     editor.focus();
   };
 
+  const revealASTNode = (start: number, end: number) => {
+    const editor = editorRef.current;
+    const model = editor?.getModel();
+    if (!editor || !model) return;
+
+    const startPosition = model.getPositionAt(start);
+    const endPosition = model.getPositionAt(end);
+    const range = {
+      endColumn: endPosition.column,
+      endLineNumber: endPosition.lineNumber,
+      startColumn: startPosition.column,
+      startLineNumber: startPosition.lineNumber,
+    };
+    editor.setSelection(range);
+    editor.revealRangeInCenter(range);
+  };
+
   const selectLanguage = (nextLanguage: PlaygroundLanguage) => {
     setRunState(EMPTY_RUN_STATE);
     setLanguage(nextLanguage);
@@ -276,6 +348,36 @@ export default function PlaygroundPage() {
     event.preventDefault();
     selectLanguage(LANGUAGES[nextIndex].id);
     languageTabRefs.current[nextIndex]?.focus();
+  };
+
+  const handleInspectorTabKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    let nextIndex: number;
+
+    switch (event.key) {
+      case 'ArrowRight':
+        nextIndex = (index + 1) % INSPECTOR_MODES.length;
+        break;
+      case 'ArrowLeft':
+        nextIndex = (index - 1 + INSPECTOR_MODES.length) %
+          INSPECTOR_MODES.length;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = INSPECTOR_MODES.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    setInspectorMode(INSPECTOR_MODES[nextIndex]);
+    const tabs = event.currentTarget.parentElement?.querySelectorAll('button');
+    tabs?.[nextIndex]?.focus();
   };
 
   const fixableCount = diagnostics.filter(
@@ -480,61 +582,164 @@ export default function PlaygroundPage() {
           style={{ '--rules-ratio': `${rulesRatio}%` } as CSSProperties}
         >
           <section
-            aria-labelledby="rules-panel-title"
+            aria-label="Source inspector"
             className="rules-section"
             id="rules-panel"
           >
             <div className="panel-heading rules-heading">
-              <h2 className="panel-title" id="rules-panel-title">
-                Rules
-              </h2>
-              <div className="segmented-control">
+              <div
+                aria-label="Inspector view"
+                className="inspector-tabs"
+                role="tablist"
+              >
                 <button
-                  aria-pressed={rulesMode === 'recommended'}
-                  className={rulesMode === 'recommended' ? 'is-active' : undefined}
-                  onClick={() => {
-                    setRunState(EMPTY_RUN_STATE);
-                    setRulesMode('recommended');
-                  }}
+                  aria-controls="rules-config-panel"
+                  aria-selected={inspectorMode === 'rules'}
+                  className={inspectorMode === 'rules' ? 'is-active' : undefined}
+                  id="inspector-tab-rules"
+                  onClick={() => setInspectorMode('rules')}
+                  onKeyDown={(event) => handleInspectorTabKeyDown(event, 0)}
+                  role="tab"
+                  tabIndex={inspectorMode === 'rules' ? 0 : -1}
                   type="button"
                 >
-                  Recommended
+                  Rules
                 </button>
                 <button
-                  aria-pressed={rulesMode === 'custom'}
-                  className={rulesMode === 'custom' ? 'is-active' : undefined}
-                  onClick={() => {
-                    setRunState(EMPTY_RUN_STATE);
-                    setRulesMode('custom');
-                  }}
+                  aria-controls="ast-panel"
+                  aria-selected={inspectorMode === 'ast'}
+                  className={inspectorMode === 'ast' ? 'is-active' : undefined}
+                  id="inspector-tab-ast"
+                  onClick={() => setInspectorMode('ast')}
+                  onKeyDown={(event) => handleInspectorTabKeyDown(event, 1)}
+                  role="tab"
+                  tabIndex={inspectorMode === 'ast' ? 0 : -1}
                   type="button"
                 >
-                  Custom
+                  AST
                 </button>
               </div>
+
+              {inspectorMode === 'rules' ? (
+                <div className="segmented-control">
+                  <button
+                    aria-pressed={rulesMode === 'recommended'}
+                    className={
+                      rulesMode === 'recommended' ? 'is-active' : undefined
+                    }
+                    onClick={() => {
+                      setRunState(EMPTY_RUN_STATE);
+                      setRulesMode('recommended');
+                    }}
+                    type="button"
+                  >
+                    Recommended
+                  </button>
+                  <button
+                    aria-pressed={rulesMode === 'custom'}
+                    className={rulesMode === 'custom' ? 'is-active' : undefined}
+                    onClick={() => {
+                      setRunState(EMPTY_RUN_STATE);
+                      setRulesMode('custom');
+                    }}
+                    type="button"
+                  >
+                    Custom
+                  </button>
+                </div>
+              ) : (
+                <span className="ast-status">
+                  {astState.phase === 'idle' && 'Queued'}
+                  {astState.phase === 'running' && 'Parsing…'}
+                  {astState.phase === 'ready' &&
+                    `${astState.result?.elapsedMs.toFixed(1)} ms`}
+                  {astState.phase === 'error' && 'Parse failed'}
+                </span>
+              )}
             </div>
-            <textarea
-              aria-describedby={rulesDescriptionId}
-              aria-invalid={hasCustomRulesError || undefined}
-              aria-label="Rule configuration JSON"
-              className={`rules-editor ${hasCustomRulesError ? 'has-error' : ''}`}
-              disabled={rulesMode === 'recommended'}
-              onChange={(event) => {
-                setRunState(EMPTY_RUN_STATE);
-                setRulesSource(event.target.value);
-              }}
-              spellCheck={false}
-              value={rulesMode === 'recommended' ? INITIAL_RULES : rulesSource}
-            />
-            {hasCustomRulesError && (
-              <p className="config-error" id="rules-config-error" role="alert">
-                {parsedRules.message}
-              </p>
-            )}
-            {rulesMode === 'recommended' && (
-              <p className="rules-note" id="rules-mode-note">
-                Using the Playground&apos;s curated browser-safe rule set.
-              </p>
+
+            {inspectorMode === 'rules' ? (
+              <div
+                aria-labelledby="inspector-tab-rules"
+                className="rules-config-panel"
+                id="rules-config-panel"
+                role="tabpanel"
+              >
+                <textarea
+                  aria-describedby={rulesDescriptionId}
+                  aria-invalid={hasCustomRulesError || undefined}
+                  aria-label="Rule configuration JSON"
+                  className={`rules-editor ${hasCustomRulesError ? 'has-error' : ''}`}
+                  disabled={rulesMode === 'recommended'}
+                  onChange={(event) => {
+                    setRunState(EMPTY_RUN_STATE);
+                    setRulesSource(event.target.value);
+                  }}
+                  spellCheck={false}
+                  value={
+                    rulesMode === 'recommended' ? INITIAL_RULES : rulesSource
+                  }
+                />
+                {hasCustomRulesError && (
+                  <p
+                    className="config-error"
+                    id="rules-config-error"
+                    role="alert"
+                  >
+                    {parsedRules.message}
+                  </p>
+                )}
+                {rulesMode === 'recommended' && (
+                  <p className="rules-note" id="rules-mode-note">
+                    Using the Playground&apos;s curated browser-safe rule set.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div
+                aria-busy={
+                  astState.phase === 'idle' || astState.phase === 'running'
+                }
+                aria-labelledby="inspector-tab-ast"
+                className="ast-panel"
+                id="ast-panel"
+                role="tabpanel"
+              >
+                {astState.phase === 'error' && (
+                  <div className="empty-state error-state" role="alert">
+                    <strong>Unable to parse AST</strong>
+                    <span>{astState.message}</span>
+                  </div>
+                )}
+                {(astState.phase === 'idle' ||
+                  astState.phase === 'running') && (
+                  <div className="empty-state ast-loading-state">
+                    <span className="loading-icon" aria-hidden="true">
+                      ···
+                    </span>
+                    <strong>
+                      {astState.phase === 'idle'
+                        ? 'AST queued'
+                        : 'Parsing AST…'}
+                    </strong>
+                  </div>
+                )}
+                {astState.phase === 'ready' && astState.result && (
+                  <>
+                    {astState.result.diagnostics.length > 0 && (
+                      <div className="ast-diagnostic-note">
+                        {astState.result.diagnostics.length} parser diagnostic
+                        {astState.result.diagnostics.length === 1 ? '' : 's'}
+                      </div>
+                    )}
+                    <ASTTree
+                      key={astState.revision}
+                      onSelect={revealASTNode}
+                      program={astState.result.program}
+                    />
+                  </>
+                )}
+              </div>
             )}
           </section>
 

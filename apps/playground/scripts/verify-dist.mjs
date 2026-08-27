@@ -40,13 +40,36 @@ for (const fileName of requiredFiles) {
 
 const files = await collectFiles(clientDir);
 const wasmFiles = files.filter((file) => path.extname(file) === '.wasm');
-if (wasmFiles.length !== 1) {
-  throw new Error(`expected one WebAssembly asset, found ${wasmFiles.length}`);
+if (wasmFiles.length !== 2) {
+  throw new Error(`expected two WebAssembly assets, found ${wasmFiles.length}`);
 }
 
-const wasm = await readFile(wasmFiles[0]);
-if (wasm.length === 0 || !wasm.subarray(0, 4).equals(Buffer.from([0, 97, 115, 109]))) {
-  throw new Error('invalid WebAssembly asset');
+const wasmAssets = new Map();
+for (const file of wasmFiles) {
+  const name = path.basename(file);
+  const kind = name.includes('utoo-lint')
+    ? 'lint'
+    : name.includes('yuku-parser')
+      ? 'parser'
+      : undefined;
+  if (!kind || wasmAssets.has(kind)) {
+    throw new Error(`unexpected WebAssembly asset: ${name}`);
+  }
+
+  const contents = await readFile(file);
+  if (
+    contents.length === 0 ||
+    !contents.subarray(0, 4).equals(Buffer.from([0, 97, 115, 109]))
+  ) {
+    throw new Error(`invalid WebAssembly asset: ${name}`);
+  }
+  wasmAssets.set(kind, contents);
+}
+
+for (const kind of ['lint', 'parser']) {
+  if (!wasmAssets.has(kind)) {
+    throw new Error(`missing ${kind} WebAssembly asset`);
+  }
 }
 
 const deployment = JSON.parse(
@@ -106,7 +129,9 @@ for (const file of files) {
   }
 }
 
-const wasmSize = (wasm.length / 1024 / 1024).toFixed(1);
+const wasmSizes = [...wasmAssets]
+  .map(([kind, contents]) => `${kind} ${(contents.length / 1024 / 1024).toFixed(1)} MiB`)
+  .join(', ');
 console.log(
-  `verified static EVJS deployment (${files.length} files, ${wasmSize} MiB wasm)`,
+  `verified static EVJS deployment (${files.length} files, ${wasmSizes})`,
 );
