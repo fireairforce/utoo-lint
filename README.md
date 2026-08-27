@@ -16,7 +16,8 @@ lint engine with familiar configuration, CLI, and JavaScript APIs.
 
 [Installation](#installation) · [Quick start](#quick-start) ·
 [Rules](docs/rule-status.md) · [Configuration](docs/configuration.md) ·
-[WebAssembly](docs/wasm.md) · [ESLint migration](docs/eslint-migration.md)
+[WebAssembly](docs/wasm.md) · [Playground](https://utlint.umijs.org/) ·
+[ESLint migration](docs/eslint-migration.md)
 
 ## Why utoo-lint?
 

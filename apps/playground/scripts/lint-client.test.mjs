@@ -212,6 +212,28 @@ test('rejects oversized AST input before starting a worker', async () => {
   delete globalThis.Worker;
 });
 
+test('keeps Yuku spans aligned with Monaco UTF-16 offsets', async () => {
+  const { parse } = await import('@yuku-parser/wasm');
+  const source = "const 前缀 = '🐰';\nfunction greet() {}";
+  const { program } = parse(source, {
+    lang: 'ts',
+    sourceType: 'module',
+  });
+  const declaration = program.body[1];
+  const expectedStart = source.indexOf('function');
+  const utf8Start = new TextEncoder().encode(
+    source.slice(0, expectedStart),
+  ).length;
+
+  assert.equal(declaration.type, 'FunctionDeclaration');
+  assert.equal(declaration.start, expectedStart);
+  assert.notEqual(declaration.start, utf8Start);
+  assert.equal(
+    source.slice(declaration.start, declaration.end),
+    'function greet() {}',
+  );
+});
+
 test('fixes every diagnostic in each default Playground fixture', async () => {
   const { createUtooLint } = await import('@utoo/lint-wasm');
   const { langFromPath, parse } = await import('@yuku-parser/wasm');

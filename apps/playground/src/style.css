@@ -1,21 +1,21 @@
 :root {
-  color: #c9d1d9;
-  background: #0d1117;
+  color: #d1d5db;
+  background: #121418;
   color-scheme: dark;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --canvas: #0d1117;
-  --surface: #161b22;
-  --surface-hover: #1c2128;
-  --line: #30363d;
-  --line-muted: #21262d;
-  --text: #c9d1d9;
-  --text-strong: #f0f6fc;
-  --muted: #8b949e;
-  --muted-subtle: #7d8590;
+  --canvas: #121418;
+  --surface: #1a1d23;
+  --surface-hover: #23272f;
+  --line: #303641;
+  --line-muted: #252a32;
+  --text: #d1d5db;
+  --text-strong: #f4f5f7;
+  --muted: #969da8;
+  --muted-subtle: #7f8793;
   --accent: #2f81f7;
   --success: #3fb950;
   --error: #f85149;
@@ -60,7 +60,7 @@ textarea:focus-visible {
 
 .playground-shell {
   display: grid;
-  grid-template-rows: 58px minmax(0, 1fr) 30px;
+  grid-template-rows: 58px minmax(0, 1fr);
   width: 100%;
   height: 100vh;
   height: 100dvh;
@@ -76,7 +76,6 @@ textarea:focus-visible {
 .brand-title,
 .diagnostic-meta,
 .segmented-control,
-.footer-note,
 .panel-hint {
   display: flex;
   align-items: center;
@@ -773,17 +772,6 @@ textarea:focus-visible {
   color: #e3b341;
 }
 
-.footer-note {
-  min-width: 0;
-  padding: 0 14px;
-  overflow: hidden;
-  border-top: 1px solid var(--line);
-  color: var(--muted-subtle);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 @media (min-width: 901px) and (max-height: 659px) {
   body {
     overflow: auto;
@@ -800,7 +788,7 @@ textarea:focus-visible {
   }
 
   .playground-shell {
-    grid-template-rows: auto auto 30px;
+    grid-template-rows: auto auto;
     height: auto;
     min-height: 100vh;
   }
@@ -847,10 +835,6 @@ textarea:focus-visible {
 }
 
 @media (max-width: 620px) {
-  .playground-shell {
-    grid-template-rows: auto auto 30px;
-  }
-
   .controlbar {
     height: auto;
     flex-wrap: wrap;
