@@ -20,10 +20,9 @@ on:
 
 permissions:
   contents: read
-  deployments: write
 
 concurrency:
-  group: playground-production
+  group: playground-production-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -31,19 +30,21 @@ env:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     name: Deploy to Cloudflare Pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          persist-credentials: false
           submodules: recursive
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: pnpm
@@ -52,13 +53,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@v2
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
 
       - name: Build and audit Playground
         run: pnpm playground:build
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -68,4 +69,3 @@ jobs:
             --branch=main
             --commit-hash=${{ github.sha }}
             --commit-dirty=false
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "ev dev",
-    "build": "ev build && node scripts/verify-dist.mjs",
+    "build": "ev build && node scripts/stage-static.mjs && node scripts/verify-dist.mjs",
     "inspect": "ev inspect --json",
     "test": "node --test scripts/lint-client.test.mjs",
     "typecheck": "ev prepare && tsc --noEmit"

@@ -54,7 +54,9 @@ the underlying Cloudflare Pages domain.
 Pushes to `main` that affect the Playground or its WASM sources are deployed by
 `.github/workflows/deploy-playground.yml`. The repository must provide the
 `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` Actions secrets; the API
-token only needs `Account > Cloudflare Pages > Edit` permission.
+token only needs `Account > Cloudflare Pages > Edit` permission. Limit its
+account resources to the specific account that owns `utoo-lint-playground`;
+no zone permission is required.
 
 ## Runtime boundaries
 
