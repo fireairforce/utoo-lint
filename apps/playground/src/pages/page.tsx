@@ -468,9 +468,9 @@ export default function PlaygroundPage() {
         </div>
 
         <section className="controlbar" aria-label="Playground controls">
-          <label className="language-select-control">
-            <span className="language-select-label">Language</span>
-            <span className="language-select-wrap">
+          <label className="select-control language-select-control">
+            <span className="select-label">Language</span>
+            <span className="select-wrap">
               <select
                 aria-controls="source-editor-panel"
                 onChange={(event) =>
@@ -536,9 +536,9 @@ export default function PlaygroundPage() {
               {fixButtonText}
             </button>
 
-            <label className="version-control">
-              <span className="version-control-label">Version</span>
-              <span className="version-select-wrap">
+            <label className="select-control version-control">
+              <span className="select-label">Version</span>
+              <span className="select-wrap">
                 <select
                   aria-label="Utoo Lint version"
                   onChange={(event) => selectLintVersion(event.target.value)}
