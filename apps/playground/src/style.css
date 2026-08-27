@@ -3,8 +3,7 @@
   background: #080a0d;
   color-scheme: dark;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   --app: #080a0d;
@@ -164,7 +163,7 @@ select:focus-visible {
   color: var(--muted);
   background: rgba(255, 255, 255, 0.025);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 550;
   text-decoration: none;
   transition:
     color 120ms ease,
@@ -237,11 +236,8 @@ select:focus-visible {
 
 .select-label {
   color: var(--muted-subtle);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .select-wrap {
@@ -272,7 +268,7 @@ select:focus-visible {
   background: var(--surface-raised);
   cursor: pointer;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 550;
   transition:
     border-color 120ms ease,
     background-color 120ms ease;
@@ -403,7 +399,7 @@ select:focus-visible {
   background: rgba(255, 255, 255, 0.045);
   cursor: pointer;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 550;
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
   transition:
     color 120ms ease,
@@ -465,7 +461,7 @@ select:focus-visible {
   color: var(--text);
   background: var(--surface);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 550;
 }
 
 .panel-heading-copy {
@@ -477,11 +473,8 @@ select:focus-visible {
 
 .panel-kicker {
   color: var(--muted-subtle);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .panel-kicker::after {
@@ -507,11 +500,8 @@ select:focus-visible {
 
 .panel-hint {
   color: var(--muted-subtle);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 450;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .panel-hint::before {
@@ -615,7 +605,7 @@ select:focus-visible {
   padding: 0 15px;
   border-right: 1px solid var(--line-muted);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 550;
   transition:
     color 120ms ease,
     background-color 120ms ease;
@@ -634,21 +624,15 @@ select:focus-visible {
 
 .segmented-label {
   color: var(--muted-subtle);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .segmented-control button {
   position: relative;
   padding: 0 0 0 10px;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .segmented-control button::before {
