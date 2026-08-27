@@ -14,6 +14,9 @@
     "bench": "pnpm --dir benchmarks bench",
     "bench:chart": "pnpm --dir benchmarks chart"
   },
+  "devDependencies": {
+    "wrangler": "4.126.0"
+  },
   "pnpm": {
     "overrides": {
       "dompurify": "3.4.14"
