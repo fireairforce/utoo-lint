@@ -48,7 +48,9 @@ URLs, so repository-subpath hosting needs an origin rewrite or a dedicated
 domain.
 
 The production Playground is deployed to
-[`utoo-lint-playground.pages.dev`](https://utoo-lint-playground.pages.dev/).
+[`utlint.umijs.org`](https://utlint.umijs.org/), with
+[`utoo-lint-playground.pages.dev`](https://utoo-lint-playground.pages.dev/) as
+the underlying Cloudflare Pages domain.
 Pushes to `main` that affect the Playground or its WASM sources are deployed by
 `.github/workflows/deploy-playground.yml`. The repository must provide the
 `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` Actions secrets; the API
