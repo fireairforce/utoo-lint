@@ -26,6 +26,9 @@ importers:
       '@utoo/lint-wasm':
         specifier: workspace:*
         version: link:../../npm/@utoo/lint-wasm
+      '@yuku-parser/wasm':
+        specifier: 0.9.1
+        version: 0.9.1
       monaco-editor:
         specifier: 0.56.0
         version: 0.56.0
@@ -1318,6 +1321,12 @@ packages:
 
   '@xtuc/long@4.2.2':
     resolution: {integrity: sha512-NuHqBY1PB/D8xU6s/thBgOAiAP7HOYDQ32+BFZILJ8ivkUkAHQnWfn6WhL79Owj1qmUnoN/YPhktdIoucipkAQ==}
+
+  '@yuku-parser/wasm@0.9.1':
+    resolution: {integrity: sha512-/LDyPG/jNGZ2OSvVR2PDODop2076FsFx6SGqIgAjLiVw4uLIMGUQ1R0GSfO6jdFPgvxIXZhqONdoh0A9VP8Eyg==}
+
+  '@yuku-toolchain/types@0.9.1':
+    resolution: {integrity: sha512-GhfAIaKmtC4fCKJVnzP6bdGhWZSd7U9Sk7/lexEfROQPDNzuFE9lZKrcIWqzgGVcIMqKvtvFxnfEIaZ5WiroyQ==}
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -2636,6 +2645,9 @@ packages:
   youch@4.1.0-beta.10:
     resolution: {integrity: sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==}
 
+  yuku-ast@0.9.1:
+    resolution: {integrity: sha512-JN45kc3sxzv/bDGug063IsIHu6LTkL1vDQUL/m1zvIFBIvMRtYivyRp5LjtMbZtIWnNjV6jaAvHPA1f70yD6gg==}
+
 snapshots:
 
   '@babel/code-frame@7.22.5':
@@ -3634,6 +3646,13 @@ snapshots:
 
   '@xtuc/long@4.2.2':
     optional: true
+
+  '@yuku-parser/wasm@0.9.1':
+    dependencies:
+      '@yuku-toolchain/types': 0.9.1
+      yuku-ast: 0.9.1
+
+  '@yuku-toolchain/types@0.9.1': {}
 
   acorn-jsx@5.3.2(acorn@8.17.0):
     dependencies:
@@ -4892,3 +4911,7 @@ snapshots:
       '@speed-highlight/core': 1.2.24
       cookie: 1.1.1
       youch-core: 0.3.3
+
+  yuku-ast@0.9.1:
+    dependencies:
+      '@yuku-toolchain/types': 0.9.1

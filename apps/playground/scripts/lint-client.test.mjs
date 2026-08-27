@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -18,6 +18,7 @@ await run(
     ),
     '--ignoreConfig',
     fileURLToPath(new URL('../src/features/lint/client.ts', import.meta.url)),
+    fileURLToPath(new URL('../src/features/ast/client.ts', import.meta.url)),
     fileURLToPath(
       new URL('../src/features/playground/model.ts', import.meta.url),
     ),
@@ -36,8 +37,22 @@ await run(
   { cwd: playgroundDirectory },
 );
 await writeFile(join(outputDirectory, 'package.json'), '{"type":"module"}');
+const compiledASTClient = join(outputDirectory, 'ast', 'client.js');
+await writeFile(
+  compiledASTClient,
+  (await readFile(compiledASTClient, 'utf8')).replace(
+    "from './protocol';",
+    "from './protocol.js';",
+  ),
+);
 const { LintWorkerClient } = await import(
   pathToFileURL(join(outputDirectory, 'lint', 'client.js')).href
+);
+const { ASTWorkerClient } = await import(
+  pathToFileURL(join(outputDirectory, 'ast', 'client.js')).href
+);
+const { AST_SOURCE_LENGTH_MAX } = await import(
+  pathToFileURL(join(outputDirectory, 'ast', 'protocol.js')).href
 );
 const {
   fileNameForLanguage,
@@ -143,8 +158,85 @@ test('can discard queued work before its debounce replacement is ready', async (
   );
 });
 
+test('coalesces queued AST work to the newest source', async (t) => {
+  MockWorker.instances = [];
+  globalThis.Worker = MockWorker;
+
+  const client = new ASTWorkerClient();
+  t.after(() => {
+    client.dispose();
+    delete globalThis.Worker;
+  });
+  const first = client.parse('first', 'index.ts');
+  void first.catch(() => {});
+  const superseded = client.parse('superseded', 'index.ts');
+  const supersededAssertion = assert.rejects(
+    superseded,
+    (error) =>
+      error?.name === 'AbortError' && /superseded/i.test(error.message),
+  );
+  const latest = client.parse('latest', 'index.ts');
+  void latest.catch(() => {});
+  const worker = MockWorker.instances[0];
+
+  assert.deepEqual(
+    worker.messages.map(({ source }) => source),
+    ['first'],
+  );
+  await supersededAssertion;
+
+  const firstResult = { diagnostics: [], elapsedMs: 1, program: {} };
+  worker.respond({ id: worker.messages[0].id, result: firstResult });
+  assert.equal(await first, firstResult);
+  assert.deepEqual(
+    worker.messages.map(({ source }) => source),
+    ['first', 'latest'],
+  );
+
+  const latestResult = { diagnostics: [], elapsedMs: 2, program: {} };
+  worker.respond({ id: worker.messages[1].id, result: latestResult });
+  assert.equal(await latest, latestResult);
+});
+
+test('rejects oversized AST input before starting a worker', async () => {
+  MockWorker.instances = [];
+  globalThis.Worker = MockWorker;
+
+  const client = new ASTWorkerClient();
+  await assert.rejects(
+    client.parse('x'.repeat(AST_SOURCE_LENGTH_MAX + 1), 'index.ts'),
+    (error) => error?.name === 'RangeError' && /exceeds/i.test(error.message),
+  );
+  assert.equal(MockWorker.instances.length, 0);
+  client.dispose();
+  delete globalThis.Worker;
+});
+
+test('keeps Yuku spans aligned with Monaco UTF-16 offsets', async () => {
+  const { parse } = await import('@yuku-parser/wasm');
+  const source = "const 前缀 = '🐰';\nfunction greet() {}";
+  const { program } = parse(source, {
+    lang: 'ts',
+    sourceType: 'module',
+  });
+  const declaration = program.body[1];
+  const expectedStart = source.indexOf('function');
+  const utf8Start = new TextEncoder().encode(
+    source.slice(0, expectedStart),
+  ).length;
+
+  assert.equal(declaration.type, 'FunctionDeclaration');
+  assert.equal(declaration.start, expectedStart);
+  assert.notEqual(declaration.start, utf8Start);
+  assert.equal(
+    source.slice(declaration.start, declaration.end),
+    'function greet() {}',
+  );
+});
+
 test('fixes every diagnostic in each default Playground fixture', async () => {
   const { createUtooLint } = await import('@utoo/lint-wasm');
+  const { langFromPath, parse } = await import('@yuku-parser/wasm');
   const linter = await createUtooLint();
 
   for (const [language, source] of Object.entries(INITIAL_SOURCES)) {
@@ -169,5 +261,14 @@ test('fixes every diagnostic in each default Playground fixture', async () => {
       [],
       `${language} should be clean after one Fix all action`,
     );
+
+    const ast = parse(source, {
+      lang: langFromPath(options.filePath),
+      preserveParens: true,
+      sourceType: 'module',
+    });
+    assert.equal(ast.program.type, 'Program');
+    assert.equal(ast.program.start, 0);
+    assert.equal(ast.program.end, source.length);
   }
 });

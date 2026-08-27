@@ -169,6 +169,7 @@ textarea:focus-visible {
 }
 
 .language-tabs button,
+.inspector-tabs button,
 .segmented-control button {
   border: 0;
   color: var(--muted);
@@ -186,6 +187,7 @@ textarea:focus-visible {
 }
 
 .language-tabs button:hover,
+.inspector-tabs button:hover,
 .segmented-control button:hover {
   color: var(--text);
 }
@@ -359,7 +361,7 @@ textarea:focus-visible {
 }
 
 .rules-section {
-  grid-template-rows: 40px minmax(0, 1fr) auto;
+  grid-template-rows: 40px minmax(0, 1fr);
 }
 
 .pane-splitter {
@@ -415,6 +417,24 @@ textarea:focus-visible {
   gap: 12px;
 }
 
+.inspector-tabs {
+  display: flex;
+  align-self: stretch;
+  gap: 18px;
+}
+
+.inspector-tabs button {
+  padding: 0;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.inspector-tabs button.is-active {
+  border-bottom-color: var(--accent);
+  color: var(--text-strong);
+}
+
 .segmented-control {
   align-self: stretch;
   gap: 12px;
@@ -429,6 +449,13 @@ textarea:focus-visible {
 .segmented-control button.is-active {
   border-bottom-color: var(--accent);
   color: var(--text);
+}
+
+.rules-config-panel {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 .rules-editor {
@@ -463,6 +490,125 @@ textarea:focus-visible {
   border-top: 1px solid var(--line-muted);
   font-size: 11px;
   line-height: 1.45;
+}
+
+.ast-status {
+  color: var(--muted-subtle);
+  font-size: 11px;
+  font-weight: 450;
+  font-variant-numeric: tabular-nums;
+}
+
+.ast-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  color: var(--text);
+  background: var(--canvas);
+  scrollbar-color: #484f58 transparent;
+  scrollbar-width: thin;
+}
+
+.ast-loading-state {
+  min-height: 100%;
+}
+
+.ast-diagnostic-note {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--line-muted);
+  color: var(--warning);
+  background: var(--surface);
+  font-size: 11px;
+}
+
+.ast-tree {
+  min-width: max-content;
+  padding: 10px 14px 18px;
+  font-family:
+    "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.ast-tree details {
+  width: max-content;
+  min-width: 100%;
+}
+
+.ast-tree summary {
+  padding: 1px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  list-style: none;
+  white-space: pre;
+}
+
+.ast-tree summary::-webkit-details-marker {
+  display: none;
+}
+
+.ast-tree summary::before {
+  display: inline-block;
+  width: 1.1em;
+  color: var(--muted-subtle);
+  content: "\25B8";
+  transition: transform 120ms ease;
+}
+
+.ast-tree details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.ast-tree summary:hover,
+.ast-tree summary:focus-visible {
+  background: var(--surface-hover);
+}
+
+.ast-tree summary:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.ast-body {
+  margin-left: 0.65em;
+  padding-left: 0.95em;
+  border-left: 1px solid var(--line);
+}
+
+.ast-row {
+  padding-block: 1px;
+  padding-left: 1.1em;
+  white-space: pre;
+}
+
+.ast-type {
+  color: #79c0ff;
+}
+
+.ast-key {
+  color: #d2a8ff;
+}
+
+.ast-str {
+  color: #a5d6ff;
+}
+
+.ast-num {
+  color: #79c0ff;
+}
+
+.ast-bool,
+.ast-null {
+  color: #ff7b72;
+}
+
+.ast-span,
+.ast-meta,
+.ast-limit {
+  color: var(--muted-subtle);
 }
 
 .config-error {
