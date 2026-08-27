@@ -39,9 +39,16 @@ export class LintWorkerClient {
     action: LintWorkerAction,
     source: string,
     options: LintOptions,
+    wasmUrl?: string,
   ): Promise<LintResult> {
     const id = this.#nextId++;
-    const request = { id, action, source, options } satisfies LintWorkerRequest;
+    const request = {
+      id,
+      action,
+      source,
+      options,
+      ...(wasmUrl ? { wasmUrl } : {}),
+    } satisfies LintWorkerRequest;
 
     return new Promise((resolve, reject) => {
       const pending = { request, resolve, reject } satisfies PendingRequest;
