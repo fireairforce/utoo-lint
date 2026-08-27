@@ -58,15 +58,15 @@ function defineEditorTheme(monaco: MonacoInstance): void {
       { token: 'type.identifier', foreground: 'D2A8FF' },
     ],
     colors: {
-      'editor.background': '#0D1117',
-      'editor.foreground': '#C9D1D9',
+      'editor.background': '#121418',
+      'editor.foreground': '#D1D5DB',
       'editorCursor.foreground': '#58A6FF',
-      'editorGutter.background': '#0D1117',
-      'editorIndentGuide.background1': '#21262D',
-      'editorIndentGuide.activeBackground1': '#30363D',
+      'editorGutter.background': '#121418',
+      'editorIndentGuide.background1': '#252A32',
+      'editorIndentGuide.activeBackground1': '#303641',
       'editorLineNumber.activeForeground': '#8B949E',
       'editorLineNumber.foreground': '#7D8590',
-      'editor.lineHighlightBackground': '#161B22',
+      'editor.lineHighlightBackground': '#1A1D23',
       'editor.selectionBackground': '#264F78',
       'editor.inactiveSelectionBackground': '#1F3D5A',
       'editorWhitespace.foreground': '#30363D',
@@ -639,10 +639,6 @@ export default function PlaygroundPage() {
         </aside>
       </section>
 
-      <footer className="footer-note">
-        Runs locally in your browser · Single-file linting · Project rules may
-        be skipped
-      </footer>
     </main>
   );
 }
