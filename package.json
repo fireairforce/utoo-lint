@@ -13,5 +13,10 @@
     "bench:generate": "pnpm --dir benchmarks generate",
     "bench": "pnpm --dir benchmarks bench",
     "bench:chart": "pnpm --dir benchmarks chart"
+  },
+  "pnpm": {
+    "overrides": {
+      "dompurify": "3.4.14"
+    }
   }
 }

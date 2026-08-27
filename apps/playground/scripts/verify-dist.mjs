@@ -5,7 +5,12 @@ import { fileURLToPath } from 'node:url';
 const appDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const clientDir = path.join(appDir, 'dist', 'client');
 const deploymentFile = path.join(appDir, 'dist', 'deployment-metadata.json');
-const requiredFiles = ['index.html', '_redirects', 'deployment.static.json'];
+const requiredFiles = [
+  'index.html',
+  '_headers',
+  '_redirects',
+  'deployment.static.json',
+];
 const forbiddenText = [
   '@alipay/evjs',
   'registry.antgroup-inc.cn',
@@ -64,6 +69,20 @@ if (Object.keys(canonicalDeployment.server ?? {}).length !== 0) {
 const indexHtml = await readFile(path.join(clientDir, 'index.html'), 'utf8');
 if (!indexHtml.includes('id="__EVJS_CLIENT_RUNTIME__"')) {
   throw new Error('missing EVJS browser runtime');
+}
+
+const headers = await readFile(path.join(clientDir, '_headers'), 'utf8');
+for (const directive of [
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  'X-Content-Type-Options: nosniff',
+  'X-Frame-Options: DENY',
+]) {
+  if (!headers.includes(directive)) {
+    throw new Error(`missing security header directive: ${directive}`);
+  }
 }
 
 for (const match of indexHtml.matchAll(/(?:href|src)="([^"]+)"/g)) {

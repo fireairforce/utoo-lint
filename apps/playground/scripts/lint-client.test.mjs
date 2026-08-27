@@ -18,6 +18,9 @@ await run(
     ),
     '--ignoreConfig',
     fileURLToPath(new URL('../src/features/lint/client.ts', import.meta.url)),
+    fileURLToPath(
+      new URL('../src/features/playground/model.ts', import.meta.url),
+    ),
     '--target',
     'es2022',
     '--module',
@@ -34,7 +37,14 @@ await run(
 );
 await writeFile(join(outputDirectory, 'package.json'), '{"type":"module"}');
 const { LintWorkerClient } = await import(
-  pathToFileURL(join(outputDirectory, 'client.js')).href
+  pathToFileURL(join(outputDirectory, 'lint', 'client.js')).href
+);
+const {
+  fileNameForLanguage,
+  INITIAL_SOURCES,
+  RECOMMENDED_RULES,
+} = await import(
+  pathToFileURL(join(outputDirectory, 'playground', 'model.js')).href
 );
 await rm(outputDirectory, { force: true, recursive: true });
 
@@ -131,4 +141,33 @@ test('can discard queued work before its debounce replacement is ready', async (
     worker.messages.map(({ source }) => source),
     ['active'],
   );
+});
+
+test('fixes every diagnostic in each default Playground fixture', async () => {
+  const { createUtooLint } = await import('@utoo/lint-wasm');
+  const linter = await createUtooLint();
+
+  for (const [language, source] of Object.entries(INITIAL_SOURCES)) {
+    const options = {
+      filePath: fileNameForLanguage(language),
+      rules: RECOMMENDED_RULES,
+    };
+    const before = linter.lint(source, options);
+    assert.ok(
+      before.diagnostics.length > 0,
+      `${language} should demonstrate lint errors`,
+    );
+    assert.ok(
+      before.diagnostics.every((diagnostic) => diagnostic.fixes.length > 0),
+      `${language} should only demonstrate fixable diagnostics`,
+    );
+
+    const fixed = linter.lintAndFix(source, options);
+    assert.equal(fixed.fixed, true, `${language} should be changed`);
+    assert.deepEqual(
+      fixed.diagnostics,
+      [],
+      `${language} should be clean after one Fix all action`,
+    );
+  }
 });

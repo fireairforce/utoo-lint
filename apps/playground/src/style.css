@@ -20,6 +20,7 @@
   --success: #3fb950;
   --error: #f85149;
   --warning: #d29922;
+  --splitter-size: 7px;
 }
 
 * {
@@ -59,11 +60,11 @@ textarea:focus-visible {
 
 .playground-shell {
   display: grid;
-  grid-template-rows: 52px minmax(0, 1fr) 28px;
+  grid-template-rows: 58px minmax(0, 1fr) 30px;
   width: 100%;
   height: 100vh;
   height: 100dvh;
-  min-height: 620px;
+  min-height: 660px;
   background: var(--canvas);
 }
 
@@ -84,8 +85,8 @@ textarea:focus-visible {
 .topbar {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 20px;
-  padding: 0 16px;
+  gap: 24px;
+  padding: 0 18px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
@@ -118,14 +119,14 @@ textarea:focus-visible {
 .brand h1 {
   margin: 0;
   color: var(--text-strong);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 650;
   letter-spacing: -0.02em;
 }
 
 .brand-title span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .brand-title span::before {
@@ -136,14 +137,14 @@ textarea:focus-visible {
 
 .github-link {
   display: inline-flex;
-  min-height: 28px;
+  min-height: 32px;
   flex: none;
   align-items: center;
   gap: 4px;
   margin-left: 2px;
   padding: 0 6px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   text-decoration: none;
 }
@@ -179,9 +180,9 @@ textarea:focus-visible {
 .language-tabs button {
   position: relative;
   min-width: 0;
-  padding: 0 11px;
+  padding: 0 13px;
   border-bottom: 2px solid transparent;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 550;
 }
 
@@ -200,7 +201,7 @@ textarea:focus-visible {
   gap: 12px;
   margin-left: auto;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -261,7 +262,7 @@ textarea:focus-visible {
 
 .fix-button {
   min-width: 0;
-  min-height: 28px;
+  min-height: 32px;
   margin-left: 6px;
   padding: 0 7px;
   border: 0;
@@ -269,7 +270,7 @@ textarea:focus-visible {
   color: var(--text);
   background: transparent;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -290,7 +291,9 @@ textarea:focus-visible {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(330px, 29vw, 420px);
+  grid-template-columns:
+    minmax(480px, var(--editor-ratio, 68%)) var(--splitter-size)
+    minmax(340px, 1fr);
   min-height: 0;
 }
 
@@ -304,18 +307,17 @@ textarea:focus-visible {
 
 .editor-panel {
   display: grid;
-  grid-template-rows: 36px minmax(0, 1fr);
-  border-right: 1px solid var(--line);
+  grid-template-rows: 40px minmax(0, 1fr);
 }
 
 .panel-heading {
   justify-content: space-between;
-  min-height: 36px;
-  padding: 0 12px;
+  min-height: 40px;
+  padding: 0 14px;
   border-bottom: 1px solid var(--line);
   color: var(--text);
   background: var(--surface);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -335,7 +337,7 @@ textarea:focus-visible {
 
 .panel-hint {
   color: var(--muted-subtle);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 450;
 }
 
@@ -347,7 +349,9 @@ textarea:focus-visible {
 
 .side-panel {
   display: grid;
-  grid-template-rows: 238px minmax(0, 1fr);
+  grid-template-rows:
+    minmax(180px, var(--rules-ratio, 42%)) var(--splitter-size)
+    minmax(220px, 1fr);
 }
 
 .rules-section,
@@ -356,8 +360,56 @@ textarea:focus-visible {
 }
 
 .rules-section {
-  grid-template-rows: 36px minmax(0, 1fr) auto;
-  border-bottom: 1px solid var(--line);
+  grid-template-rows: 40px minmax(0, 1fr) auto;
+}
+
+.pane-splitter {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+  cursor: default;
+  touch-action: none;
+  user-select: none;
+}
+
+.pane-splitter::before {
+  position: absolute;
+  background: var(--line);
+  content: "";
+  transition: background-color 120ms ease;
+}
+
+.pane-splitter-vertical {
+  cursor: col-resize;
+}
+
+.pane-splitter-vertical::before {
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 1px;
+}
+
+.pane-splitter-horizontal {
+  cursor: row-resize;
+}
+
+.pane-splitter-horizontal::before {
+  top: 3px;
+  right: 0;
+  left: 0;
+  height: 1px;
+}
+
+.pane-splitter:hover::before,
+.pane-splitter:focus-visible::before {
+  background: var(--accent);
+}
+
+.pane-splitter:focus-visible {
+  outline: none;
 }
 
 .rules-heading {
@@ -372,7 +424,7 @@ textarea:focus-visible {
 .segmented-control button {
   padding: 0;
   border-bottom: 2px solid transparent;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .segmented-control button.is-active {
@@ -383,15 +435,15 @@ textarea:focus-visible {
 .rules-editor {
   width: 100%;
   min-height: 0;
-  padding: 12px;
+  padding: 14px;
   resize: none;
   border: 0;
   color: var(--text);
   background: var(--canvas);
   font-family:
     "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 11px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.6;
   scrollbar-color: #484f58 transparent;
   tab-size: 2;
 }
@@ -408,9 +460,9 @@ textarea:focus-visible {
 .config-error,
 .rules-note {
   margin: 0;
-  padding: 7px 12px;
+  padding: 8px 14px;
   border-top: 1px solid var(--line-muted);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.45;
 }
 
@@ -425,12 +477,12 @@ textarea:focus-visible {
 }
 
 .diagnostics-section {
-  grid-template-rows: 36px minmax(0, 1fr) auto;
+  grid-template-rows: 40px minmax(0, 1fr) auto;
 }
 
 .diagnostic-total {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -444,11 +496,11 @@ textarea:focus-visible {
 
 .diagnostic-card {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 10px;
   width: 100%;
   margin: 0;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 0;
   border-bottom: 1px solid var(--line-muted);
   color: inherit;
@@ -464,7 +516,7 @@ textarea:focus-visible {
 .severity-symbol {
   display: block;
   padding-top: 1px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1;
   text-align: center;
@@ -485,17 +537,17 @@ textarea:focus-visible {
 .diagnostic-message {
   display: block;
   color: var(--text);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 450;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .diagnostic-meta {
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 4px;
+  gap: 8px;
+  margin-top: 5px;
   color: var(--muted-subtle);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .diagnostic-meta code {
@@ -525,13 +577,13 @@ textarea:focus-visible {
 .empty-state strong {
   margin: 7px 0 3px;
   color: var(--text);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 550;
 }
 
 .empty-state span:last-child {
   max-width: 240px;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -557,11 +609,11 @@ textarea:focus-visible {
 .notice-row {
   display: flex;
   gap: 4px;
-  padding: 7px 12px;
+  padding: 8px 14px;
   border-top: 1px solid var(--line-muted);
   color: var(--muted);
   background: var(--surface);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.45;
 }
 
@@ -577,22 +629,22 @@ textarea:focus-visible {
 
 .footer-note {
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 14px;
   overflow: hidden;
   border-top: 1px solid var(--line);
   color: var(--muted-subtle);
-  font-size: 10px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-@media (min-width: 901px) and (max-height: 619px) {
+@media (min-width: 901px) and (max-height: 659px) {
   body {
     overflow: auto;
   }
 
   .playground-shell {
-    height: 620px;
+    height: 660px;
   }
 }
 
@@ -602,7 +654,7 @@ textarea:focus-visible {
   }
 
   .playground-shell {
-    grid-template-rows: auto auto 28px;
+    grid-template-rows: auto auto 30px;
     height: auto;
     min-height: 100vh;
   }
@@ -614,18 +666,22 @@ textarea:focus-visible {
   }
 
   .brand {
-    height: 52px;
+    height: 58px;
     padding: 0 12px;
     border-bottom: 1px solid var(--line);
   }
 
   .controlbar {
-    height: 44px;
+    height: 48px;
     padding: 0 8px;
   }
 
   .workspace {
     grid-template-columns: 1fr;
+  }
+
+  .pane-splitter {
+    display: none;
   }
 
   .editor-panel {
@@ -636,7 +692,7 @@ textarea:focus-visible {
   }
 
   .side-panel {
-    grid-template-rows: 238px minmax(400px, auto);
+    grid-template-rows: 260px minmax(400px, auto);
   }
 
   .diagnostics-section {
@@ -646,7 +702,7 @@ textarea:focus-visible {
 
 @media (max-width: 620px) {
   .playground-shell {
-    grid-template-rows: auto auto 28px;
+    grid-template-rows: auto auto 30px;
   }
 
   .controlbar {
@@ -657,7 +713,7 @@ textarea:focus-visible {
 
   .language-tabs {
     width: 100%;
-    height: 42px;
+    height: 44px;
     overflow-x: auto;
     border-bottom: 1px solid var(--line);
   }
@@ -667,7 +723,7 @@ textarea:focus-visible {
   }
 
   .run-summary {
-    min-height: 40px;
+    min-height: 44px;
     margin-left: 12px;
   }
 
@@ -687,11 +743,11 @@ textarea:focus-visible {
   }
 
   .side-panel {
-    grid-template-rows: 220px minmax(340px, auto);
+    grid-template-rows: 240px minmax(360px, auto);
   }
 
   .diagnostics-section {
-    min-height: 340px;
+    min-height: 360px;
   }
 }
 
