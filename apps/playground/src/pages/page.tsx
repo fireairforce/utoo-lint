@@ -7,7 +7,10 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type {
+  CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import utooRabbitUrl from '../../../../assets/utoo-lint-mark-gpt.png';
 import { LintWorkerClient } from '../features/lint/client';
 import {
@@ -22,6 +25,7 @@ import {
   type PlaygroundLanguage,
 } from '../features/playground/model';
 import '../features/playground/monaco';
+import { Splitter } from '../features/playground/splitter';
 import '../style.css';
 
 type EditorInstance = Parameters<OnMount>[0];
@@ -30,6 +34,8 @@ type RulesMode = 'recommended' | 'custom';
 type RunPhase = 'idle' | 'running' | 'ready' | 'error';
 
 const EDITOR_THEME = 'utoo-dark';
+const DEFAULT_EDITOR_RATIO = 68;
+const DEFAULT_RULES_RATIO = 42;
 
 interface RunState {
   phase: RunPhase;
@@ -87,8 +93,12 @@ export default function PlaygroundPage() {
   const editorRef = useRef<EditorInstance | null>(null);
   const monacoRef = useRef<MonacoInstance | null>(null);
   const clientRef = useRef<LintWorkerClient | null>(null);
+  const workspaceRef = useRef<HTMLElement | null>(null);
+  const sidePanelRef = useRef<HTMLElement | null>(null);
   const languageTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const latestRequestRef = useRef(0);
+  const [editorRatio, setEditorRatio] = useState(DEFAULT_EDITOR_RATIO);
+  const [rulesRatio, setRulesRatio] = useState(DEFAULT_RULES_RATIO);
 
   if (!clientRef.current) clientRef.current = new LintWorkerClient();
 
@@ -384,7 +394,11 @@ export default function PlaygroundPage() {
         </section>
       </header>
 
-      <section className="workspace">
+      <section
+        className="workspace"
+        ref={workspaceRef}
+        style={{ '--editor-ratio': `${editorRatio}%` } as CSSProperties}
+      >
         <div
           aria-labelledby={`language-tab-${language}`}
           className="editor-panel"
@@ -418,8 +432,8 @@ export default function PlaygroundPage() {
                 fontFamily:
                   "'SFMono-Regular', Consolas, 'Liberation Mono', monospace",
                 fontLigatures: true,
-                fontSize: 14,
-                lineHeight: 22,
+                fontSize: 16,
+                lineHeight: 25,
                 minimap: { enabled: false },
                 padding: { top: 16 },
                 renderLineHighlight: 'gutter',
@@ -431,13 +445,29 @@ export default function PlaygroundPage() {
           </div>
         </div>
 
+        <Splitter
+          ariaControls="source-editor-panel lint-side-panel"
+          ariaLabel="Resize source editor and lint sidebar"
+          containerRef={workspaceRef}
+          minPrimaryPx={480}
+          minSecondaryPx={340}
+          onChange={setEditorRatio}
+          onReset={() => setEditorRatio(DEFAULT_EDITOR_RATIO)}
+          orientation="vertical"
+          value={editorRatio}
+        />
+
         <aside
           aria-label="Lint configuration and diagnostics"
           className="side-panel"
+          id="lint-side-panel"
+          ref={sidePanelRef}
+          style={{ '--rules-ratio': `${rulesRatio}%` } as CSSProperties}
         >
           <section
             aria-labelledby="rules-panel-title"
             className="rules-section"
+            id="rules-panel"
           >
             <div className="panel-heading rules-heading">
               <h2 className="panel-title" id="rules-panel-title">
@@ -493,10 +523,23 @@ export default function PlaygroundPage() {
             )}
           </section>
 
+          <Splitter
+            ariaControls="rules-panel diagnostics-panel"
+            ariaLabel="Resize rules and diagnostics panels"
+            containerRef={sidePanelRef}
+            minPrimaryPx={180}
+            minSecondaryPx={220}
+            onChange={setRulesRatio}
+            onReset={() => setRulesRatio(DEFAULT_RULES_RATIO)}
+            orientation="horizontal"
+            value={rulesRatio}
+          />
+
           <section
             aria-busy={runState.phase === 'idle' || runState.phase === 'running'}
             aria-labelledby="diagnostics-panel-title"
             className="diagnostics-section"
+            id="diagnostics-panel"
           >
             <div className="panel-heading">
               <h2 className="panel-title" id="diagnostics-panel-title">
