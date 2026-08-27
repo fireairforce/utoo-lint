@@ -8,25 +8,26 @@ import {
 } from './protocol';
 
 const workerScope = self as unknown as DedicatedWorkerGlobalScope;
-let linterPromise: ReturnType<typeof createUtooLint> | undefined;
+const linterPromises = new Map<string, ReturnType<typeof createUtooLint>>();
 
-function getLinter() {
-  if (!linterPromise) {
-    const candidate = createUtooLint();
-    linterPromise = candidate;
-    void candidate.catch(() => {
-      if (linterPromise === candidate) linterPromise = undefined;
-    });
-  }
+function getLinter(wasmUrl?: string) {
+  const key = wasmUrl ?? 'bundled';
+  const existing = linterPromises.get(key);
+  if (existing) return existing;
 
-  return linterPromise;
+  const candidate = createUtooLint(wasmUrl ? { wasm: wasmUrl } : undefined);
+  linterPromises.set(key, candidate);
+  void candidate.catch(() => {
+    if (linterPromises.get(key) === candidate) linterPromises.delete(key);
+  });
+  return candidate;
 }
 
 workerScope.onmessage = async ({ data }: MessageEvent<LintWorkerRequest>) => {
-  const { id, action, source, options } = data;
+  const { id, action, source, options, wasmUrl } = data;
 
   try {
-    const linter = await getLinter();
+    const linter = await getLinter(wasmUrl);
     const result =
       action === 'fix'
         ? linter.lintAndFix(source, options)

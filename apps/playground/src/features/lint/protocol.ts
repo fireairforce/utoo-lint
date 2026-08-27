@@ -7,6 +7,7 @@ export interface LintWorkerRequest {
   action: LintWorkerAction;
   source: string;
   options: LintOptions;
+  wasmUrl?: string;
 }
 
 export interface LintWorkerError {

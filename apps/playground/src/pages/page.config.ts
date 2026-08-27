@@ -1,11 +1,11 @@
 import { definePageConfig } from '@evjs/ev';
 
 export default definePageConfig({
-  title: 'utoo-lint Playground',
+  title: 'Playground | Utoo Lint',
   meta: {
-    description: 'Run utoo-lint in your browser with WebAssembly.',
+    description: 'Playground of Utoo Lint',
     viewport: 'width=device-width, initial-scale=1',
-    'theme-color': '#0d1117',
+    'theme-color': '#080a0d',
   },
   render: 'csr',
 });

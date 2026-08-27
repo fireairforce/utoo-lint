@@ -158,6 +158,34 @@ test('can discard queued work before its debounce replacement is ready', async (
   );
 });
 
+test('passes the selected WebAssembly version URL to the lint worker', async (t) => {
+  MockWorker.instances = [];
+  globalThis.Worker = MockWorker;
+
+  const client = new LintWorkerClient();
+  t.after(() => {
+    client.dispose();
+    delete globalThis.Worker;
+  });
+  const result = client.run(
+    'lint',
+    'const value = 1;',
+    {},
+    'https://example.test/v0.4.0/utoo-lint.wasm',
+  );
+  const worker = MockWorker.instances[0];
+
+  assert.equal(
+    worker.messages[0].wasmUrl,
+    'https://example.test/v0.4.0/utoo-lint.wasm',
+  );
+  worker.respond({
+    id: worker.messages[0].id,
+    result: { diagnostics: [], mode: 'lint' },
+  });
+  await result;
+});
+
 test('coalesces queued AST work to the newest source', async (t) => {
   MockWorker.instances = [];
   globalThis.Worker = MockWorker;

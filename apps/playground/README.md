@@ -19,16 +19,17 @@ pnpm 10:
 pnpm install --frozen-lockfile
 ```
 
-The WebAssembly artifact is generated from the Zig source and intentionally
-is not checked into Git. Use the Zig version declared in `build.zig.zon`, then
-start the Playground:
+The versioned WebAssembly artifact is downloaded from the matching GitHub
+release and intentionally is not checked into Git. The staging script verifies
+its pinned SHA-256 before starting the Playground:
 
 ```bash
 pnpm playground:dev
 ```
 
-The root script stages `npm/@utoo/lint-wasm/utoo-lint.wasm` before starting
-EVJS. The Utoopack development URL is printed in the terminal.
+The root script stages the v0.3.0 artifact as
+`npm/@utoo/lint-wasm/utoo-lint.wasm` before starting EVJS. The Utoopack
+development URL is printed in the terminal.
 
 ## Verify and build
 
