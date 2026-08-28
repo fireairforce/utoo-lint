@@ -17,6 +17,7 @@ import type { ASTParseResult } from '../features/ast/protocol';
 import { ASTTree } from '../features/ast/tree';
 import { LintWorkerClient } from '../features/lint/client';
 import {
+  createPlaygroundShareUrl,
   diagnosticLabel,
   fileNameForLanguage,
   INITIAL_RULES,
@@ -24,8 +25,11 @@ import {
   LANGUAGES,
   monacoLanguageForLanguage,
   parseRules,
+  parsePlaygroundShareUrl,
   RECOMMENDED_RULES,
+  removePlaygroundShareState,
   type PlaygroundLanguage,
+  type PlaygroundRulesMode,
 } from '../features/playground/model';
 import '../features/playground/monaco';
 import { Splitter } from '../features/playground/splitter';
@@ -34,7 +38,6 @@ import '../style.css';
 type EditorInstance = Parameters<OnMount>[0];
 type MonacoInstance = Parameters<OnMount>[1];
 type InspectorMode = 'ast' | 'rules';
-type RulesMode = 'recommended' | 'custom';
 type ASTPhase = 'idle' | 'running' | 'ready' | 'error';
 type RunPhase = 'idle' | 'running' | 'ready' | 'error';
 type ShareState = 'idle' | 'copied' | 'error';
@@ -43,39 +46,15 @@ const EDITOR_THEME = 'utoo-dark';
 const DEFAULT_EDITOR_RATIO = 68;
 const DEFAULT_RULES_RATIO = 42;
 const INSPECTOR_MODES = ['rules', 'ast'] as const;
-const V030_WASM_URL = new URL(
+const LINT_WASM_URL = new URL(
   '../../../../npm/@utoo/lint-wasm/utoo-lint.wasm',
   import.meta.url,
 ).href;
-const LINT_VERSIONS = [
-  { id: '0.3.0', label: 'v0.3.0', wasmUrl: V030_WASM_URL },
-] as const;
-
-type LintVersionId = (typeof LINT_VERSIONS)[number]['id'];
-
-function getLintVersionDefinition(version: LintVersionId) {
-  return (
-    LINT_VERSIONS.find((candidate) => candidate.id === version) ??
-    LINT_VERSIONS[0]
-  );
-}
-
-function getInitialLintVersion(): LintVersionId {
-  if (typeof window === 'undefined') return LINT_VERSIONS[0].id;
-  const requestedVersion = new URLSearchParams(window.location.search).get(
-    'version',
-  );
-  const match = LINT_VERSIONS.find(
-    (candidate) => candidate.id === requestedVersion,
-  );
-  return match?.id ?? LINT_VERSIONS[0].id;
-}
 
 interface RunState {
   phase: RunPhase;
   result?: LintResult;
   message?: string;
-  elapsedMs?: number;
 }
 
 interface ASTState {
@@ -93,27 +72,27 @@ function defineEditorTheme(monaco: MonacoInstance): void {
     base: 'vs-dark',
     inherit: true,
     rules: [
-      { token: 'comment', foreground: '8B949E' },
-      { token: 'keyword', foreground: 'FF7B72' },
-      { token: 'number', foreground: '79C0FF' },
-      { token: 'string', foreground: 'A5D6FF' },
-      { token: 'type.identifier', foreground: 'D2A8FF' },
+      { token: 'comment', foreground: '727A85' },
+      { token: 'keyword', foreground: 'E58A82' },
+      { token: 'number', foreground: '79B8EA' },
+      { token: 'string', foreground: 'A9C98F' },
+      { token: 'type.identifier', foreground: 'C49ADD' },
     ],
     colors: {
-      'editor.background': '#101216',
-      'editor.foreground': '#D6DAE1',
-      'editorCursor.foreground': '#38BDF8',
-      'editorGutter.background': '#101216',
-      'editorIndentGuide.background1': '#232830',
-      'editorIndentGuide.activeBackground1': '#373E49',
-      'editorLineNumber.activeForeground': '#C7CDD6',
-      'editorLineNumber.foreground': '#626A76',
-      'editor.lineHighlightBackground': '#181B21',
-      'editor.selectionBackground': '#164B68',
-      'editor.inactiveSelectionBackground': '#15394C',
-      'editorWhitespace.foreground': '#2A3038',
-      'editorError.foreground': '#F85149',
-      'editorWarning.foreground': '#D29922',
+      'editor.background': '#141618',
+      'editor.foreground': '#D9DDE3',
+      'editorCursor.foreground': '#2BA7EE',
+      'editorGutter.background': '#141618',
+      'editorIndentGuide.background1': '#25292E',
+      'editorIndentGuide.activeBackground1': '#3A4047',
+      'editorLineNumber.activeForeground': '#C4C9D0',
+      'editorLineNumber.foreground': '#59616B',
+      'editor.lineHighlightBackground': '#191C1F',
+      'editor.selectionBackground': '#164A67',
+      'editor.inactiveSelectionBackground': '#183B4F',
+      'editorWhitespace.foreground': '#2B3035',
+      'editorError.foreground': '#FF716C',
+      'editorWarning.foreground': '#D6A956',
     },
   });
 }
@@ -124,18 +103,42 @@ function diagnosticButtonLabel(diagnostic: LintDiagnostic): string {
   return `${diagnostic.severity}: ${diagnostic.message} ${diagnostic.ruleId} ${location}${fixable}`;
 }
 
+function invalidateShareUrl(): void {
+  const currentUrl = window.location.href;
+  const nextUrl = removePlaygroundShareState(currentUrl);
+  if (nextUrl !== currentUrl) {
+    window.history.replaceState(null, '', nextUrl);
+  }
+}
+
 export default function PlaygroundPage() {
-  const [language, setLanguage] =
-    useState<PlaygroundLanguage>('typescript');
-  const [lintVersion, setLintVersion] = useState<LintVersionId>(
-    getInitialLintVersion,
+  const [initialSharePayload] = useState(() =>
+    typeof window === 'undefined'
+      ? undefined
+      : parsePlaygroundShareUrl(window.location.href),
   );
-  const [sources, setSources] =
-    useState<Record<PlaygroundLanguage, string>>(INITIAL_SOURCES);
+  const [language, setLanguage] =
+    useState<PlaygroundLanguage>(
+      initialSharePayload?.language ?? 'typescript',
+    );
+  const [sources, setSources] = useState<
+    Record<PlaygroundLanguage, string>
+  >(() =>
+    initialSharePayload
+      ? {
+          ...INITIAL_SOURCES,
+          [initialSharePayload.language]: initialSharePayload.source,
+        }
+      : INITIAL_SOURCES,
+  );
   const [inspectorMode, setInspectorMode] =
     useState<InspectorMode>('rules');
-  const [rulesMode, setRulesMode] = useState<RulesMode>('custom');
-  const [rulesSource, setRulesSource] = useState(INITIAL_RULES);
+  const [rulesMode, setRulesMode] = useState<PlaygroundRulesMode>(
+    initialSharePayload?.rulesMode ?? 'custom',
+  );
+  const [rulesSource, setRulesSource] = useState(
+    initialSharePayload?.rulesSource ?? INITIAL_RULES,
+  );
   const [runState, setRunState] = useState<RunState>(EMPTY_RUN_STATE);
   const [astState, setASTState] = useState<ASTState>(EMPTY_AST_STATE);
   const [shareState, setShareState] = useState<ShareState>('idle');
@@ -171,7 +174,6 @@ export default function PlaygroundPage() {
         return;
       }
 
-      const startedAt = performance.now();
       setRunState({ phase: 'running' });
 
       try {
@@ -187,12 +189,13 @@ export default function PlaygroundPage() {
                   ? parsedRules.rules
                   : {},
           },
-          getLintVersionDefinition(lintVersion).wasmUrl,
+          LINT_WASM_URL,
         );
 
         if (!result || requestId !== latestRequestRef.current) return;
 
         if (action === 'fix' && result.mode === 'fix' && result.fixed) {
+          invalidateShareUrl();
           setSources((current) => ({
             ...current,
             [language]: result.output,
@@ -202,18 +205,16 @@ export default function PlaygroundPage() {
         setRunState({
           phase: 'ready',
           result,
-          elapsedMs: performance.now() - startedAt,
         });
       } catch (error) {
         if (requestId !== latestRequestRef.current) return;
         setRunState({
           phase: 'error',
           message: error instanceof Error ? error.message : 'Lint failed.',
-          elapsedMs: performance.now() - startedAt,
         });
       }
     },
-    [fileName, language, lintVersion, parsedRules, rulesMode, source],
+    [fileName, language, parsedRules, rulesMode, source],
   );
 
   useEffect(() => {
@@ -357,39 +358,28 @@ export default function PlaygroundPage() {
   };
 
   const selectLanguage = (nextLanguage: PlaygroundLanguage) => {
+    invalidateShareUrl();
     setRunState(EMPTY_RUN_STATE);
     setLanguage(nextLanguage);
   };
 
-  const selectLintVersion = (nextVersion: string) => {
-    const definition = LINT_VERSIONS.find(
-      (candidate) => candidate.id === nextVersion,
-    );
-    if (!definition || definition.id === lintVersion) return;
-
-    setRunState(EMPTY_RUN_STATE);
-    setLintVersion(definition.id);
-    const url = new URL(window.location.href);
-    url.searchParams.set('version', definition.id);
-    window.history.replaceState(null, '', url);
-  };
-
   const sharePlayground = async () => {
-    const shareData = {
-      title: 'Playground | Utoo Lint',
-      text: 'Playground of Utoo Lint',
-      url: window.location.href,
-    };
-
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(shareData.url);
+      const shareUrl = createPlaygroundShareUrl(window.location.href, {
+        language,
+        rulesMode,
+        rulesSource,
+        source,
+        version: 1,
+      });
+      window.history.replaceState(null, '', shareUrl);
+
+      if (!navigator.clipboard) {
+        throw new Error('Clipboard access is unavailable.');
       }
+      await navigator.clipboard.writeText(shareUrl);
       setShareState('copied');
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
       setShareState('error');
     }
 
@@ -451,9 +441,7 @@ export default function PlaygroundPage() {
       : 'No safe autofixes available';
   const rulesDescriptionId = hasCustomRulesError
     ? 'rules-config-error'
-    : rulesMode === 'recommended'
-      ? 'rules-mode-note'
-      : undefined;
+    : undefined;
 
   return (
     <main className="playground-shell">
@@ -464,12 +452,13 @@ export default function PlaygroundPage() {
           </span>
           <div className="brand-title">
             <h1>utoo-lint</h1>
+            <span className="brand-context">Playground</span>
           </div>
         </div>
 
         <section className="controlbar" aria-label="Playground controls">
-          <label className="select-control language-select-control">
-            <span className="select-label">Language</span>
+          <label className="language-select-control">
+            <span className="visually-hidden">Language</span>
             <span className="select-wrap">
               <select
                 aria-controls="source-editor-panel"
@@ -488,19 +477,6 @@ export default function PlaygroundPage() {
           </label>
 
           <div className="run-summary" aria-hidden="true">
-            <span
-              className={`run-state-copy run-state-${runState.phase}`}
-            >
-              {runState.phase === 'idle' && 'Queued…'}
-              {runState.phase === 'running' && 'Linting…'}
-              {runState.phase === 'ready' && 'Ready'}
-              {runState.phase === 'error' && 'Run failed'}
-            </span>
-            {runState.phase === 'ready' && (
-              <span className="run-duration">
-                {runState.elapsedMs?.toFixed(1)} ms
-              </span>
-            )}
             <span className="summary-count error-count">
               <strong>{errorCount}</strong>{' '}
               {errorCount === 1 ? 'error' : 'errors'}
@@ -535,23 +511,6 @@ export default function PlaygroundPage() {
             >
               {fixButtonText}
             </button>
-
-            <label className="select-control version-control">
-              <span className="select-label">Version</span>
-              <span className="select-wrap">
-                <select
-                  aria-label="Utoo Lint version"
-                  onChange={(event) => selectLintVersion(event.target.value)}
-                  value={lintVersion}
-                >
-                  {LINT_VERSIONS.map((version) => (
-                    <option key={version.id} value={version.id}>
-                      {version.label}
-                    </option>
-                  ))}
-                </select>
-              </span>
-            </label>
 
             <button
               aria-label="Share this playground"
@@ -594,10 +553,8 @@ export default function PlaygroundPage() {
         >
           <div className="panel-heading">
             <div className="panel-heading-copy">
-              <span className="panel-kicker">Source</span>
               <span className="panel-title file-name">{fileName}</span>
             </div>
-            <span className="panel-hint">Live lint</span>
           </div>
           <div className="editor-frame">
             <Editor
@@ -605,6 +562,7 @@ export default function PlaygroundPage() {
               height="100%"
               language={monacoLanguage}
               onChange={(value) => {
+                invalidateShareUrl();
                 setRunState(EMPTY_RUN_STATE);
                 setSources((current) => ({
                   ...current,
@@ -702,6 +660,7 @@ export default function PlaygroundPage() {
                       rulesMode === 'recommended' ? 'is-active' : undefined
                     }
                     onClick={() => {
+                      invalidateShareUrl();
                       setRunState(EMPTY_RUN_STATE);
                       setRulesMode('recommended');
                     }}
@@ -713,6 +672,7 @@ export default function PlaygroundPage() {
                     aria-pressed={rulesMode === 'custom'}
                     className={rulesMode === 'custom' ? 'is-active' : undefined}
                     onClick={() => {
+                      invalidateShareUrl();
                       setRunState(EMPTY_RUN_STATE);
                       setRulesMode('custom');
                     }}
@@ -721,15 +681,7 @@ export default function PlaygroundPage() {
                     Custom
                   </button>
                 </div>
-              ) : (
-                <span className="ast-status">
-                  {astState.phase === 'idle' && 'Queued'}
-                  {astState.phase === 'running' && 'Parsing…'}
-                  {astState.phase === 'ready' &&
-                    `${astState.result?.elapsedMs.toFixed(1)} ms`}
-                  {astState.phase === 'error' && 'Parse failed'}
-                </span>
-              )}
+              ) : null}
             </div>
 
             {inspectorMode === 'rules' ? (
@@ -744,11 +696,12 @@ export default function PlaygroundPage() {
                   aria-invalid={hasCustomRulesError || undefined}
                   aria-label="utlint.json configuration"
                   className={`rules-editor ${hasCustomRulesError ? 'has-error' : ''}`}
-                  disabled={rulesMode === 'recommended'}
                   onChange={(event) => {
+                    invalidateShareUrl();
                     setRunState(EMPTY_RUN_STATE);
                     setRulesSource(event.target.value);
                   }}
+                  readOnly={rulesMode === 'recommended'}
                   spellCheck={false}
                   value={
                     rulesMode === 'recommended' ? INITIAL_RULES : rulesSource
@@ -761,11 +714,6 @@ export default function PlaygroundPage() {
                     role="alert"
                   >
                     {parsedRules.message}
-                  </p>
-                )}
-                {rulesMode === 'recommended' && (
-                  <p className="rules-note" id="rules-mode-note">
-                    Using the Playground&apos;s curated browser-safe rule set.
                   </p>
                 )}
               </div>
@@ -788,14 +736,7 @@ export default function PlaygroundPage() {
                 {(astState.phase === 'idle' ||
                   astState.phase === 'running') && (
                   <div className="empty-state ast-loading-state">
-                    <span className="loading-icon" aria-hidden="true">
-                      ···
-                    </span>
-                    <strong>
-                      {astState.phase === 'idle'
-                        ? 'AST queued'
-                        : 'Parsing AST…'}
-                    </strong>
+                    <strong>Parsing syntax tree…</strong>
                   </div>
                 )}
                 {astState.phase === 'ready' && astState.result && (
@@ -837,7 +778,6 @@ export default function PlaygroundPage() {
           >
             <div className="panel-heading">
               <div className="panel-heading-copy">
-                <span className="panel-kicker">Output</span>
                 <h2 className="panel-title" id="diagnostics-panel-title">
                   Diagnostics
                 </h2>
@@ -855,23 +795,13 @@ export default function PlaygroundPage() {
 
               {(runState.phase === 'idle' || runState.phase === 'running') && (
                 <div className="empty-state">
-                  <span className="loading-icon" aria-hidden="true">
-                    ···
-                  </span>
-                  <strong>
-                    {runState.phase === 'idle' ? 'Lint queued' : 'Linting…'}
-                  </strong>
-                  <span>Results will appear when the worker is ready.</span>
+                  <strong>Checking…</strong>
                 </div>
               )}
 
               {runState.phase === 'ready' && diagnostics.length === 0 && (
                 <div className="empty-state">
-                  <span className="success-icon" aria-hidden="true">
-                    ✓
-                  </span>
-                  <strong>No diagnostics</strong>
-                  <span>This file is clean for the selected rules.</span>
+                  <strong>No problems found</strong>
                 </div>
               )}
 

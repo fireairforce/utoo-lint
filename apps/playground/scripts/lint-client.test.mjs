@@ -55,9 +55,12 @@ const { AST_SOURCE_LENGTH_MAX } = await import(
   pathToFileURL(join(outputDirectory, 'ast', 'protocol.js')).href
 );
 const {
+  createPlaygroundShareUrl,
   fileNameForLanguage,
   INITIAL_SOURCES,
+  parsePlaygroundShareUrl,
   RECOMMENDED_RULES,
+  removePlaygroundShareState,
 } = await import(
   pathToFileURL(join(outputDirectory, 'playground', 'model.js')).href
 );
@@ -299,4 +302,54 @@ test('fixes every diagnostic in each default Playground fixture', async () => {
     assert.equal(ast.program.start, 0);
     assert.equal(ast.program.end, source.length);
   }
+});
+
+test('round-trips Playground state through a share URL', () => {
+  const payload = {
+    language: 'tsx',
+    rulesMode: 'custom',
+    rulesSource: '{"react/jsx-key":"error"}',
+    source: "const greeting = '你好，🐰';",
+    version: 1,
+  };
+  const shareUrl = createPlaygroundShareUrl(
+    'https://example.test/playground/?theme=dark',
+    payload,
+  );
+
+  assert.match(shareUrl, /#playground=[\w-]+$/u);
+  assert.deepEqual(parsePlaygroundShareUrl(shareUrl), payload);
+  assert.equal(new URL(shareUrl).searchParams.get('theme'), 'dark');
+});
+
+test('ignores malformed or unsupported Playground share state', () => {
+  assert.equal(
+    parsePlaygroundShareUrl('https://example.test/#playground=not-base64'),
+    undefined,
+  );
+
+  const unsupported = Buffer.from(
+    JSON.stringify({
+      language: 'typescript',
+      rulesMode: 'custom',
+      rulesSource: '{}',
+      source: 'const value = 1;',
+      version: 2,
+    }),
+  ).toString('base64url');
+  assert.equal(
+    parsePlaygroundShareUrl(
+      `https://example.test/#playground=${unsupported}`,
+    ),
+    undefined,
+  );
+});
+
+test('removes stale Playground state without changing other URL data', () => {
+  assert.equal(
+    removePlaygroundShareState(
+      'https://example.test/playground/?theme=dark#playground=old&panel=ast',
+    ),
+    'https://example.test/playground/?theme=dark#panel=ast',
+  );
 });
