@@ -28,6 +28,21 @@ export const LANGUAGES = [
 ] as const;
 
 export type PlaygroundLanguage = (typeof LANGUAGES)[number]['id'];
+export type PlaygroundRulesMode = 'recommended' | 'custom';
+
+export interface PlaygroundSharePayload {
+  language: PlaygroundLanguage;
+  rulesMode: PlaygroundRulesMode;
+  rulesSource: string;
+  source: string;
+  version: 1;
+}
+
+const SHARE_HASH_KEY = 'playground';
+const SHARE_PAYLOAD_VERSION = 1;
+const MAX_ENCODED_SHARE_LENGTH = 512_000;
+const MAX_SHARED_RULES_LENGTH = 50_000;
+const MAX_SHARED_SOURCE_LENGTH = 250_000;
 
 export const INITIAL_SOURCES: Record<PlaygroundLanguage, string> = {
   typescript: `function greet(name: string) {
@@ -74,6 +89,90 @@ export const RECOMMENDED_RULES = {
 } satisfies Record<string, RuleConfig>;
 
 export const INITIAL_RULES = JSON.stringify(RECOMMENDED_RULES, null, 2);
+
+function encodeBase64Url(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+
+  for (let index = 0; index < bytes.length; index += 32_768) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 32_768));
+  }
+
+  return btoa(binary)
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/u, '');
+}
+
+function decodeBase64Url(value: string): string {
+  const base64 = value.replaceAll('-', '+').replaceAll('_', '/');
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+  const binary = atob(`${base64}${padding}`);
+  const bytes = Uint8Array.from(binary, (character) =>
+    character.charCodeAt(0),
+  );
+  return new TextDecoder().decode(bytes);
+}
+
+function isPlaygroundLanguage(value: unknown): value is PlaygroundLanguage {
+  return LANGUAGES.some((language) => language.id === value);
+}
+
+function isPlaygroundSharePayload(
+  value: unknown,
+): value is PlaygroundSharePayload {
+  if (value === null || typeof value !== 'object') return false;
+
+  const payload = value as Partial<PlaygroundSharePayload>;
+  return (
+    payload.version === SHARE_PAYLOAD_VERSION &&
+    isPlaygroundLanguage(payload.language) &&
+    (payload.rulesMode === 'recommended' || payload.rulesMode === 'custom') &&
+    typeof payload.rulesSource === 'string' &&
+    payload.rulesSource.length <= MAX_SHARED_RULES_LENGTH &&
+    typeof payload.source === 'string' &&
+    payload.source.length <= MAX_SHARED_SOURCE_LENGTH
+  );
+}
+
+export function createPlaygroundShareUrl(
+  currentUrl: string,
+  payload: PlaygroundSharePayload,
+): string {
+  if (!isPlaygroundSharePayload(payload)) {
+    throw new RangeError('Playground content is too large to share in a URL.');
+  }
+
+  const url = new URL(currentUrl);
+  const encoded = encodeBase64Url(JSON.stringify(payload));
+  url.hash = `${SHARE_HASH_KEY}=${encoded}`;
+  return url.toString();
+}
+
+export function parsePlaygroundShareUrl(
+  currentUrl: string,
+): PlaygroundSharePayload | undefined {
+  try {
+    const url = new URL(currentUrl);
+    const encoded = new URLSearchParams(url.hash.slice(1)).get(SHARE_HASH_KEY);
+    if (!encoded || encoded.length > MAX_ENCODED_SHARE_LENGTH) return undefined;
+
+    const payload: unknown = JSON.parse(decodeBase64Url(encoded));
+    return isPlaygroundSharePayload(payload) ? payload : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function removePlaygroundShareState(currentUrl: string): string {
+  const url = new URL(currentUrl);
+  const parameters = new URLSearchParams(url.hash.slice(1));
+  if (!parameters.has(SHARE_HASH_KEY)) return currentUrl;
+
+  parameters.delete(SHARE_HASH_KEY);
+  url.hash = parameters.toString();
+  return url.toString();
+}
 
 export function fileNameForLanguage(language: PlaygroundLanguage): string {
   return LANGUAGES.find((candidate) => candidate.id === language)?.fileName ?? 'index.ts';
