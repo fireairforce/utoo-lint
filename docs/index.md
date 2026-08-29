@@ -2,7 +2,7 @@
 title: utoo-lint
 toc: false
 hero:
-  title: Lint at native speed. Migrate at your pace.
+  title: Find code problems faster.
   description: Native-speed linting for the JavaScript projects you already have—without replacing the workflow you already trust.
   actions:
     - text: Read the docs

@@ -2,7 +2,7 @@
 title: utoo-lint 中文文档
 toc: false
 hero:
-  title: 原生速度检查，按你的节奏迁移。
+  title: 更快地发现代码问题。
   description: 为现有 JavaScript 工程带来原生级检查速度，不用推翻你已经熟悉的工作流。
   actions:
     - text: 阅读文档
