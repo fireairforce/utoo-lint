@@ -100,6 +100,13 @@ test "skips exported bindings and variables without reads" {
     ));
 }
 
+test "skips bindings named by exported directives" {
+    try std.testing.expectEqual(@as(usize, 0), try count(
+        "/* exported value, other */ let value = 1; console.log(value); value = 2;",
+        "fixture.js",
+    ));
+}
+
 test "counts JSX references as reads" {
     try std.testing.expectEqual(@as(usize, 1), try count(
         "function App() { let Component = 'unused'; Component = Used; return <Component />; }",
