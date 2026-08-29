@@ -83,6 +83,7 @@ const Builder = struct {
     symbol_table: SymbolTable,
     symbol: SymbolId,
     code_path_root: ast.NodeIndex,
+    delayed_pattern_nodes: []const bool,
     graph: Graph,
 
     fn init(
@@ -91,6 +92,7 @@ const Builder = struct {
         symbol_table: SymbolTable,
         symbol: SymbolId,
         code_path_root: ast.NodeIndex,
+        delayed_pattern_nodes: []const bool,
     ) Builder {
         return .{
             .allocator = allocator,
@@ -98,6 +100,7 @@ const Builder = struct {
             .symbol_table = symbol_table,
             .symbol = symbol,
             .code_path_root = code_path_root,
+            .delayed_pattern_nodes = delayed_pattern_nodes,
             .graph = .{ .allocator = allocator },
         };
     }
@@ -372,6 +375,7 @@ const Builder = struct {
             .symbol_table = self.symbol_table,
             .symbol = self.symbol,
             .code_path_root = self.code_path_root,
+            .delayed_pattern_nodes = self.delayed_pattern_nodes,
             .suppress_writes = suppress_writes,
             .events = &events,
         };
@@ -387,6 +391,7 @@ const EventCollector = struct {
     symbol_table: SymbolTable,
     symbol: SymbolId,
     code_path_root: ast.NodeIndex,
+    delayed_pattern_nodes: []const bool,
     suppress_writes: bool,
     events: *std.ArrayList(Event),
 
@@ -396,7 +401,7 @@ const EventCollector = struct {
         index: ast.NodeIndex,
         _: *traverser.basic.Ctx,
     ) traverser.Action {
-        if (self.delayedPatternAncestor(index) != null) return .proceed;
+        if (self.isDelayedPatternNode(index)) return .proceed;
         const reference_id = self.symbol_table.model.referenceOf(index) orelse return .proceed;
         const reference = self.symbol_table.model.reference(reference_id);
         if (reference.symbol != self.symbol or reference.flags.write) return .proceed;
@@ -437,7 +442,7 @@ const EventCollector = struct {
         index: ast.NodeIndex,
         _: *traverser.basic.Ctx,
     ) traverser.Action {
-        if (self.delayedPatternAncestor(index) != null) return .proceed;
+        if (self.isDelayedPatternNode(index)) return .proceed;
         if (expression.operator != .assign and self.patternHasWrite(expression.left)) {
             self.events.appendAssumeCapacity(.{ .kind = .read, .node = firstWriteNode(self.tree, self.symbol_table, self.symbol, expression.left) orelse expression.left });
         }
@@ -450,7 +455,7 @@ const EventCollector = struct {
         index: ast.NodeIndex,
         _: *traverser.basic.Ctx,
     ) void {
-        if (self.delayedPatternAncestor(index) != null) return;
+        if (self.isDelayedPatternNode(index)) return;
         if (isPatternTarget(self.tree.data(expression.left)) and self.patternHasReference(expression.left)) {
             self.appendPatternEvents(expression.left);
         }
@@ -462,7 +467,7 @@ const EventCollector = struct {
         index: ast.NodeIndex,
         _: *traverser.basic.Ctx,
     ) traverser.Action {
-        if (self.delayedPatternAncestor(index) != null) return .proceed;
+        if (self.isDelayedPatternNode(index)) return .proceed;
         if (self.patternHasWrite(expression.argument)) {
             self.events.appendAssumeCapacity(.{ .kind = .read, .node = firstWriteNode(self.tree, self.symbol_table, self.symbol, expression.argument) orelse expression.argument });
         }
@@ -475,7 +480,7 @@ const EventCollector = struct {
         index: ast.NodeIndex,
         _: *traverser.basic.Ctx,
     ) void {
-        if (self.delayedPatternAncestor(index) != null) return;
+        if (self.isDelayedPatternNode(index)) return;
         if (firstWriteNode(self.tree, self.symbol_table, self.symbol, expression.argument)) |node| {
             self.appendWrite(node, false);
         }
@@ -487,7 +492,7 @@ const EventCollector = struct {
         index: ast.NodeIndex,
         _: *traverser.basic.Ctx,
     ) void {
-        if (declarator.init == .null or self.delayedPatternAncestor(index) != null) return;
+        if (declarator.init == .null or self.isDelayedPatternNode(index)) return;
         if (self.patternHasDeclaration(declarator.id) or self.patternHasReference(declarator.id)) {
             self.appendPatternEvents(declarator.id);
         }
@@ -560,17 +565,8 @@ const EventCollector = struct {
         return false;
     }
 
-    fn delayedPatternAncestor(self: *EventCollector, node: ast.NodeIndex) ?ast.NodeIndex {
-        var current = node;
-        while (self.symbol_table.parentOf(current)) |parent| {
-            switch (self.tree.data(parent)) {
-                .variable_declarator => |declarator| if (containsNode(self.tree, declarator.id, node)) return parent,
-                .assignment_expression => |expression| if (isPatternTarget(self.tree.data(expression.left)) and containsNode(self.tree, expression.left, node)) return parent,
-                else => {},
-            }
-            current = parent;
-        }
-        return null;
+    fn isDelayedPatternNode(self: *EventCollector, node: ast.NodeIndex) bool {
+        return node != .null and self.delayed_pattern_nodes[@intFromEnum(node)];
     }
 };
 
@@ -586,6 +582,9 @@ pub fn run(
     var exported_directive_names: std.ArrayList([]const u8) = .empty;
     defer exported_directive_names.deinit(allocator);
     try collectExportedDirectiveNames(allocator, tree.source, &exported_directive_names);
+
+    const delayed_pattern_nodes = try collectDelayedPatternNodes(allocator, tree);
+    defer allocator.free(delayed_pattern_nodes);
 
     var symbols = symbol_table.iterSymbols();
     while (symbols.next()) |entry| {
@@ -610,7 +609,7 @@ pub fn run(
         }
         if (!has_local_read or has_external_read) continue;
 
-        var builder = Builder.init(allocator, tree, symbol_table, entry.id, root);
+        var builder = Builder.init(allocator, tree, symbol_table, entry.id, root, delayed_pattern_nodes);
         defer builder.deinit();
         const graph_entry = try builder.build();
         if (graph_entry == .none or builder.graph.candidates.items.len == 0) continue;
@@ -761,6 +760,42 @@ fn isPatternTarget(data: ast.NodeData) bool {
         else => false,
     };
 }
+
+fn collectDelayedPatternNodes(allocator: Allocator, tree: *const ast.Tree) Allocator.Error![]bool {
+    const delayed = try allocator.alloc(bool, tree.nodes.len);
+    errdefer allocator.free(delayed);
+    @memset(delayed, false);
+
+    for (tree.nodes.items(.data)) |data| {
+        const pattern = switch (data) {
+            .variable_declarator => |declarator| declarator.id,
+            .assignment_expression => |expression| if (isPatternTarget(tree.data(expression.left))) expression.left else .null,
+            else => .null,
+        };
+        if (pattern == .null) continue;
+
+        var subtree = tree.*;
+        subtree.root = pattern;
+        var marker = DelayedPatternMarker{ .nodes = delayed };
+        try traverser.basic.traverse(DelayedPatternMarker, &subtree, &marker);
+    }
+
+    return delayed;
+}
+
+const DelayedPatternMarker = struct {
+    nodes: []bool,
+
+    pub fn enter_node(
+        self: *DelayedPatternMarker,
+        _: ast.NodeData,
+        index: ast.NodeIndex,
+        _: *traverser.basic.Ctx,
+    ) traverser.Action {
+        self.nodes[@intFromEnum(index)] = true;
+        return .proceed;
+    }
+};
 
 fn collectExportedDirectiveNames(
     allocator: Allocator,
