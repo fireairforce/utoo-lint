@@ -583,13 +583,17 @@ pub fn run(
     var report_nodes: std.ArrayList(ast.NodeIndex) = .empty;
     defer report_nodes.deinit(allocator);
 
+    var exported_directive_names: std.ArrayList([]const u8) = .empty;
+    defer exported_directive_names.deinit(allocator);
+    try collectExportedDirectiveNames(allocator, tree.source, &exported_directive_names);
+
     var symbols = symbol_table.iterSymbols();
     while (symbols.next()) |entry| {
         const symbol = entry.symbol;
         if (!symbol.flags.inValueSpace() or symbol.flags.exported) continue;
         const declarations = symbol_table.symbolDecls(entry.id);
         if (declarations.len == 0) continue;
-        if (isExportedByDirective(tree, tree.string(symbol.name)) or
+        if (isExportedByDirective(exported_directive_names.items, tree.string(symbol.name)) or
             isExportedBySpecifier(tree, symbol_table, entry.id)) continue;
 
         const root = codePathRoot(tree, symbol_table, declarations[0]);
@@ -758,16 +762,26 @@ fn isPatternTarget(data: ast.NodeData) bool {
     };
 }
 
-fn isExportedByDirective(tree: *const ast.Tree, name: []const u8) bool {
+fn collectExportedDirectiveNames(
+    allocator: Allocator,
+    source: []const u8,
+    names: *std.ArrayList([]const u8),
+) Allocator.Error!void {
     var offset: usize = 0;
-    while (std.mem.indexOfPos(u8, tree.source, offset, "/*")) |start| {
-        const end = std.mem.indexOfPos(u8, tree.source, start + 2, "*/") orelse return false;
-        const comment = tree.source[start + 2 .. end];
+    while (std.mem.indexOfPos(u8, source, offset, "/*")) |start| {
+        const end = std.mem.indexOfPos(u8, source, start + 2, "*/") orelse return;
+        const comment = source[start + 2 .. end];
         if (std.mem.indexOf(u8, comment, "exported")) |keyword| {
             var tokens = std.mem.tokenizeAny(u8, comment[keyword + "exported".len ..], " \t\r\n,;:");
-            while (tokens.next()) |token| if (std.mem.eql(u8, token, name)) return true;
+            while (tokens.next()) |token| try names.append(allocator, token);
         }
         offset = end + 2;
+    }
+}
+
+fn isExportedByDirective(names: []const []const u8, name: []const u8) bool {
+    for (names) |candidate| {
+        if (std.mem.eql(u8, candidate, name)) return true;
     }
     return false;
 }
