@@ -599,6 +599,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_invalid_this.zig");
+}
+
+comptime {
     _ = @import("rules/no_irregular_whitespace.zig");
 }
 

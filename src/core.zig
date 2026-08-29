@@ -103,6 +103,11 @@ pub const ClassMethodsUseThisIgnoreClassesWithImplements = enum {
     public_fields,
 };
 
+pub const NoInvalidThisCapIsConstructor = enum {
+    yes,
+    no,
+};
+
 pub const CurlyStyle = enum {
     all,
     multi_line,
@@ -2696,6 +2701,8 @@ pub const Options = struct {
     jsx_a11y_scope: bool = true,
     no_invalid_regexp: bool = true,
     no_invalid_regexp_allow_constructor_flags: NoInvalidRegexpAllowConstructorFlags = .{},
+    no_invalid_this: bool = false,
+    no_invalid_this_cap_is_constructor: NoInvalidThisCapIsConstructor = .yes,
     no_irregular_whitespace: bool = true,
     no_irregular_whitespace_skip_strings: bool = true,
     no_irregular_whitespace_skip_comments: bool = false,
@@ -3584,6 +3591,9 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "no-invalid-regexp")) {
             self.no_invalid_regexp_allow_constructor_flags = try noInvalidRegexpAllowConstructorFlagsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-invalid-this")) {
+            self.no_invalid_this_cap_is_constructor = if (try boolRuleObjectOption(value, "capIsConstructor", true)) .yes else .no;
         }
         if (std.mem.eql(u8, cli_name, "no-irregular-whitespace")) {
             self.no_irregular_whitespace_skip_strings = try noIrregularWhitespaceBoolOptionFromConfig(value, "skipStrings", true);
@@ -5245,6 +5255,19 @@ pub const Options = struct {
             .bool => |enabled| enabled,
             else => error.UnsupportedRuleConfigValue,
         };
+    }
+
+    fn boolRuleObjectOption(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return default,
+        };
+        if (items.len < 2) return default;
+        const object = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return boolObjectOption(object, key, default);
     }
 
     fn reactNoUnusedPropTypesSkipShapePropsFromConfig(value: std.json.Value) RuleConfigError!bool {
@@ -10660,6 +10683,17 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expect(options.class_methods_use_this_except_methods.contains("#private"));
     try std.testing.expect(options.class_methods_use_this_ignore_override_methods);
     try std.testing.expectEqual(ClassMethodsUseThisIgnoreClassesWithImplements.public_fields, options.class_methods_use_this_ignore_classes_with_implements);
+
+    var no_invalid_this_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"capIsConstructor\":false}]",
+        .{},
+    );
+    defer no_invalid_this_config.deinit();
+    try options.setByRuleConfigValue("no-invalid-this", no_invalid_this_config.value);
+    try std.testing.expect(options.no_invalid_this);
+    try std.testing.expectEqual(NoInvalidThisCapIsConstructor.no, options.no_invalid_this_cap_is_constructor);
 
     var consistent_return_config = try std.json.parseFromSlice(
         std.json.Value,

@@ -550,6 +550,13 @@ pub fn main(init: std.process.Init) !void {
             options.jsx_a11y_scope = false;
         } else if (std.mem.eql(u8, arg, "--no-invalid-regexp=off")) {
             options.no_invalid_regexp = false;
+        } else if (std.mem.eql(u8, arg, "--no-invalid-this=on")) {
+            options.no_invalid_this = true;
+        } else if (std.mem.eql(u8, arg, "--no-invalid-this=off")) {
+            options.no_invalid_this = false;
+        } else if (std.mem.eql(u8, arg, "--no-invalid-this-cap-is-constructor=off")) {
+            options.no_invalid_this = true;
+            options.no_invalid_this_cap_is_constructor = .no;
         } else if (std.mem.eql(u8, arg, "--no-irregular-whitespace=off")) {
             options.no_irregular_whitespace = false;
         } else if (std.mem.eql(u8, arg, "--no-inline-comments=off")) {
@@ -2605,6 +2612,9 @@ fn printHelp() void {
         \\  --jsx-a11y-role-supports-aria-props=off Disable jsx-a11y/role-supports-aria-props
         \\  --jsx-a11y-scope=off      Disable jsx-a11y/scope
         \\  --no-invalid-regexp=off    Disable no-invalid-regexp
+        \\  --no-invalid-this=on       Enable no-invalid-this
+        \\  --no-invalid-this=off      Disable no-invalid-this
+        \\  --no-invalid-this-cap-is-constructor=off Do not treat capitalized functions as constructors
         \\  --no-irregular-whitespace=off Disable no-irregular-whitespace
         \\  --no-inline-comments=off   Disable no-inline-comments
         \\  --no-inner-declarations=off Disable no-inner-declarations

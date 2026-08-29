@@ -62,6 +62,10 @@ pub const SymbolTable = struct {
         return Reference.fromYuku(self.model.reference(id));
     }
 
+    pub inline fn scopeOf(self: SymbolTable, node: ast.NodeIndex) yuku_semantic.ScopeId {
+        return self.model.scopeOf(node);
+    }
+
     pub fn iterSymbols(self: SymbolTable) yuku_semantic.Semantic.SymbolIterator {
         return self.model.iterSymbols();
     }

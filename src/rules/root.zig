@@ -161,6 +161,7 @@ pub const no_import_assign = @import("no_import_assign.zig");
 pub const no_inline_comments = @import("no_inline_comments.zig");
 pub const no_inner_declarations = @import("no_inner_declarations.zig");
 pub const no_invalid_regexp = @import("no_invalid_regexp.zig");
+pub const no_invalid_this = @import("no_invalid_this.zig");
 pub const no_irregular_whitespace = @import("no_irregular_whitespace.zig");
 pub const no_iterator = @import("no_iterator.zig");
 pub const no_label_var = @import("no_label_var.zig");
@@ -800,6 +801,16 @@ fn runSemanticBeforeIo(
     semantic_result: traverser.semantic.Result,
     options: core.Options,
 ) Allocator.Error!void {
+    if (options.no_invalid_this) {
+        try no_invalid_this.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.scope_tree,
+            semantic_result.symbol_table,
+            options.no_invalid_this_cap_is_constructor == .yes,
+        );
+    }
     if (options.alipay_ant_exhaustive_deps and !options.react_hooks_exhaustive_deps) {
         try alipay_ant_exhaustive_deps.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }

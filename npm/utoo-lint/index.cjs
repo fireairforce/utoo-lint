@@ -169,6 +169,7 @@ const BUILTIN_RULE_IDS = [
   "no-inline-comments",
   "no-inner-declarations",
   "no-invalid-regexp",
+  "no-invalid-this",
   "no-irregular-whitespace",
   "no-iterator",
   "no-label-var",
