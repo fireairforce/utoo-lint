@@ -5,10 +5,10 @@ hero:
   title: Lint at native speed. Migrate at your pace.
   description: Native-speed linting for the JavaScript projects you already have—without replacing the workflow you already trust.
   actions:
-    - text: Open the Playground
-      link: /playground/
     - text: Read the docs
       link: /configuration
+    - text: Open the Playground
+      link: /playground/
 ---
 
 <section class="utlint-home-section utlint-home-section--benchmark" aria-labelledby="utlint-benchmark-title">
