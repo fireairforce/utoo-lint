@@ -13,6 +13,7 @@ instead of being rewritten.
 | [`block-scoped-var`](https://eslint.org/docs/latest/rules/block-scoped-var) | Implemented |
 | [`camelcase`](https://eslint.org/docs/latest/rules/camelcase) | Supports declarations, imports, optional property checks, `ignoreDestructuring`, `ignoreImports`, lightweight `allow` patterns, and parses `ignoreGlobals` for migration compatibility |
 | [`capitalized-comments`](https://eslint.org/docs/latest/rules/capitalized-comments) | Supports `always`, `never`, `ignoreInlineComments`, and `ignoreConsecutiveComments` configuration with autofix |
+| [`class-methods-use-this`](https://eslint.org/docs/latest/rules/class-methods-use-this) | Supports methods, accessors, function-valued class fields, `exceptMethods`, `enforceForClassFields`, `ignoreOverrideMethods`, and `ignoreClassesWithImplements` |
 | [`complexity`](https://eslint.org/docs/latest/rules/complexity) | Supports `max`, deprecated `maximum`, `classic` and `modified` variants, functions, arrow functions, and static blocks |
 | [`consistent-return`](https://eslint.org/docs/latest/rules/consistent-return) | Implemented for mixed explicit value/bare returns and value-returning functions that can fall through |
 | [`consistent-this`](https://eslint.org/docs/latest/rules/consistent-this) | Supports configured aliases for direct `this` captures and same-scope deferred assignment checks |

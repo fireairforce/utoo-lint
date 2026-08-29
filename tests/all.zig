@@ -35,6 +35,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/class_methods_use_this.zig");
+}
+
+comptime {
     _ = @import("rules/complexity.zig");
 }
 
