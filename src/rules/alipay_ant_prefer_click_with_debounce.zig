@@ -11,7 +11,6 @@ pub const id = "@alipay/ant/prefer-click-with-debounce";
 const message = "异步点击事件(async function)必须防抖处理.";
 const SymbolId = traverser.semantic.SymbolId;
 const ReferenceLookup = std.AutoHashMap(ast.NodeIndex, SymbolId);
-const DeclSymbolMap = std.AutoHashMap(ast.NodeIndex, SymbolId);
 const DefinitionMap = std.AutoHashMap(ast.NodeIndex, ast.NodeIndex);
 
 pub fn run(
@@ -22,16 +21,6 @@ pub fn run(
 ) Allocator.Error!void {
     var reference_lookup = ReferenceLookup.init(allocator);
     defer reference_lookup.deinit();
-
-    var decl_symbols = DeclSymbolMap.init(allocator);
-    defer decl_symbols.deinit();
-
-    var symbol_iter = symbol_table.iterSymbols();
-    while (symbol_iter.next()) |entry| {
-        for (symbol_table.symbolDecls(entry.id)) |decl| {
-            try decl_symbols.put(decl, entry.id);
-        }
-    }
 
     var reference_iter = symbol_table.iterReferences();
     while (reference_iter.next()) |entry| {
@@ -50,8 +39,8 @@ pub fn run(
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
+        .symbol_table = symbol_table,
         .reference_lookup = &reference_lookup,
-        .decl_symbols = &decl_symbols,
         .definitions = &definitions,
     };
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -89,8 +78,8 @@ const DefinitionVisitor = struct {
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    symbol_table: traverser.semantic.SymbolTable,
     reference_lookup: *const ReferenceLookup,
-    decl_symbols: *const DeclSymbolMap,
     definitions: *const DefinitionMap,
 
     pub fn enter_jsx_element(
@@ -148,10 +137,8 @@ const Visitor = struct {
         const symbol_id = self.reference_lookup.get(reference) orelse return null;
         if (symbol_id == .none) return null;
 
-        var iter = self.decl_symbols.iterator();
-        while (iter.next()) |entry| {
-            if (entry.value_ptr.* != symbol_id) continue;
-            return self.definitions.get(entry.key_ptr.*);
+        for (self.symbol_table.symbolDecls(symbol_id)) |declaration| {
+            if (self.definitions.get(declaration)) |definition| return definition;
         }
         return null;
     }
