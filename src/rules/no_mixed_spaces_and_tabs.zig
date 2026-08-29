@@ -26,14 +26,19 @@ pub fn runWithOptions(
     options: Options,
 ) Allocator.Error!void {
     const source = tree.source;
-    var line_start: usize = 0;
-    var line_number: usize = 1;
+    var ignored_literal_spans: std.ArrayList(ast.Span) = .empty;
+    defer ignored_literal_spans.deinit(allocator);
+    try collectIgnoredLiteralSpans(allocator, tree, &ignored_literal_spans);
 
-    while (line_start <= source.len) : (line_number += 1) {
+    var line_start: usize = 0;
+    var comment_index: usize = 0;
+    var literal_index: usize = 0;
+
+    while (line_start <= source.len) {
         const line_end = findLineEnd(source, line_start);
-        if (!isIgnoredCommentLine(source, tree.comments, line_number)) {
+        if (!isIgnoredCommentLine(tree.comments, line_start, &comment_index)) {
             if (mixedIndentSpan(source, line_start, line_end, options.smart_tabs)) |span| {
-                if (!isInsideIgnoredLiteral(tree, span.start)) {
+                if (!isInsideIgnoredLiteral(ignored_literal_spans.items, span.start, &literal_index)) {
                     try core.addDiagnostic(
                         allocator,
                         diagnostics,
@@ -74,46 +79,55 @@ fn mixedIndentSpan(source: []const u8, line_start: usize, line_end: usize, smart
     };
 }
 
-fn isIgnoredCommentLine(source: []const u8, comments: []const ast.Comment, line_number: usize) bool {
-    for (comments) |comment| {
-        if (comment.type != .block) continue;
-
-        const start_line = lineNumberAtOffset(source, comment.span.start);
-        if (line_number <= start_line) continue;
-
-        const end_line = lineNumberAtOffset(source, comment.span.end);
-        if (line_number <= end_line) return true;
+fn isIgnoredCommentLine(comments: []const ast.Comment, line_start: usize, cursor: *usize) bool {
+    while (cursor.* < comments.len) {
+        const comment = comments[cursor.*];
+        if (comment.span.end < line_start) {
+            cursor.* += 1;
+            continue;
+        }
+        if (comment.span.start >= line_start) return false;
+        if (comment.type == .block) return true;
+        cursor.* += 1;
     }
-
     return false;
 }
 
-fn isInsideIgnoredLiteral(tree: *const ast.Tree, offset: u32) bool {
+fn collectIgnoredLiteralSpans(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    spans: *std.ArrayList(ast.Span),
+) Allocator.Error!void {
     const data = tree.nodes.items(.data);
-    const spans = tree.nodes.items(.span);
+    const node_spans = tree.nodes.items(.span);
 
-    for (data, spans) |node, span| {
+    for (data, node_spans) |node, span| {
         switch (node) {
-            .string_literal, .template_element => {
-                if (span.start <= offset and offset < span.end) return true;
-            },
+            .string_literal, .template_element => try spans.append(allocator, span),
             else => {},
         }
     }
 
+    std.mem.sort(ast.Span, spans.items, {}, spanLessThan);
+}
+
+fn isInsideIgnoredLiteral(spans: []const ast.Span, offset: u32, cursor: *usize) bool {
+    while (cursor.* < spans.len and spans[cursor.*].end <= offset) cursor.* += 1;
+
+    var index = cursor.*;
+    while (index < spans.len and spans[index].start <= offset) : (index += 1) {
+        if (offset < spans[index].end) {
+            cursor.* = index;
+            return true;
+        }
+    }
+
+    cursor.* = index;
     return false;
 }
 
-fn lineNumberAtOffset(source: []const u8, offset: u32) usize {
-    var line: usize = 1;
-    var index: usize = 0;
-    const end: usize = @min(offset, source.len);
-
-    while (index < end) : (index += 1) {
-        if (source[index] == '\n') line += 1;
-    }
-
-    return line;
+fn spanLessThan(_: void, left: ast.Span, right: ast.Span) bool {
+    return left.start < right.start or (left.start == right.start and left.end > right.end);
 }
 
 fn findLineEnd(source: []const u8, start: usize) usize {
