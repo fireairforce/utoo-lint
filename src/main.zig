@@ -854,6 +854,8 @@ pub fn main(init: std.process.Init) !void {
             options.no_useless_concat = false;
         } else if (std.mem.eql(u8, arg, "--no-useless-constructor=off")) {
             options.no_useless_constructor = false;
+        } else if (std.mem.eql(u8, arg, "--no-useless-assignment=off")) {
+            options.no_useless_assignment = false;
         } else if (std.mem.eql(u8, arg, "--no-useless-catch=off")) {
             options.no_useless_catch = false;
         } else if (std.mem.eql(u8, arg, "--no-useless-escape=off")) {
@@ -2862,6 +2864,7 @@ fn printHelp() void {
         \\  --no-useless-call=off     Disable no-useless-call
         \\  --no-useless-concat=off   Disable no-useless-concat
         \\  --no-useless-constructor=off Disable no-useless-constructor
+        \\  --no-useless-assignment=off Disable no-useless-assignment
         \\  --no-useless-catch=off    Disable no-useless-catch
         \\  --no-useless-escape=off   Disable no-useless-escape
         \\  --no-useless-rename=off   Disable no-useless-rename

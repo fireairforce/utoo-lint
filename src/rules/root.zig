@@ -240,6 +240,7 @@ pub const no_useless_backreference = @import("no_useless_backreference.zig");
 pub const no_useless_call = @import("no_useless_call.zig");
 pub const no_useless_concat = @import("no_useless_concat.zig");
 pub const no_useless_constructor = @import("no_useless_constructor.zig");
+pub const no_useless_assignment = @import("no_useless_assignment.zig");
 pub const no_undef = @import("no_undef.zig");
 pub const no_unassigned_vars = @import("no_unassigned_vars.zig");
 pub const no_useless_catch = @import("no_useless_catch.zig");
@@ -840,6 +841,14 @@ fn runSemanticBeforeIo(
     }
     if (options.no_unmodified_loop_condition) {
         try no_unmodified_loop_condition.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+        );
+    }
+    if (options.no_useless_assignment) {
+        try no_useless_assignment.run(
             allocator,
             diagnostics,
             tree,

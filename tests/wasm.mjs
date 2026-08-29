@@ -111,6 +111,24 @@ test("applies no-magic-numbers Number and BigInt ignore values", () => {
   assert.equal(diagnostics[0].message, "No magic number: 9.");
 });
 
+test("applies control-flow-aware no-useless-assignment analysis", () => {
+  const result = linter.lint(
+    "let value = 1; console.log(value); value = 2;",
+    {
+      filePath: "assignment.js",
+      rules: { "no-useless-assignment": "error" },
+    },
+  );
+  const diagnostics = result.diagnostics.filter(
+    (item) => item.ruleId === "no-useless-assignment",
+  );
+  assert.equal(diagnostics.length, 1);
+  assert.equal(
+    diagnostics[0].message,
+    "This assigned value is not used in subsequent statements.",
+  );
+});
+
 test("applies autofixes and reports diagnostics against output", () => {
   const result = linter.lintAndFix("const value = 1;;;", {
     filePath: "fix.js",
