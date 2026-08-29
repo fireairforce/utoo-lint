@@ -777,6 +777,10 @@ pub fn main(init: std.process.Init) !void {
             options.no_unneeded_ternary = false;
         } else if (std.mem.eql(u8, arg, "--no-unexpected-multiline=off")) {
             options.no_unexpected_multiline = false;
+        } else if (std.mem.eql(u8, arg, "--no-unmodified-loop-condition=on")) {
+            options.no_unmodified_loop_condition = true;
+        } else if (std.mem.eql(u8, arg, "--no-unmodified-loop-condition=off")) {
+            options.no_unmodified_loop_condition = false;
         } else if (std.mem.eql(u8, arg, "--no-unused-labels=off")) {
             options.no_unused_labels = false;
         } else if (std.mem.eql(u8, arg, "--no-unsafe-finally=off")) {
@@ -2763,6 +2767,8 @@ fn printHelp() void {
         \\  --unicode-bom=off         Disable unicode-bom
         \\  --no-unneeded-ternary=off Disable no-unneeded-ternary
         \\  --no-unexpected-multiline=off Disable no-unexpected-multiline
+        \\  --no-unmodified-loop-condition=on Enable no-unmodified-loop-condition
+        \\  --no-unmodified-loop-condition=off Disable no-unmodified-loop-condition
         \\  --no-unused-labels=off   Disable no-unused-labels
         \\  --no-unsafe-finally=off   Disable no-unsafe-finally
         \\  --no-unsafe-negation=off  Disable no-unsafe-negation

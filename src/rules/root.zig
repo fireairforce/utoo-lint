@@ -230,6 +230,7 @@ pub const no_underscore_dangle = @import("no_underscore_dangle.zig");
 pub const no_undefined = @import("no_undefined.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
 pub const no_unexpected_multiline = @import("no_unexpected_multiline.zig");
+pub const no_unmodified_loop_condition = @import("no_unmodified_loop_condition.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_unsafe_optional_chaining = @import("no_unsafe_optional_chaining.zig");
@@ -809,6 +810,14 @@ fn runSemanticBeforeIo(
             semantic_result.scope_tree,
             semantic_result.symbol_table,
             options.no_invalid_this_cap_is_constructor == .yes,
+        );
+    }
+    if (options.no_unmodified_loop_condition) {
+        try no_unmodified_loop_condition.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
         );
     }
     if (options.alipay_ant_exhaustive_deps and !options.react_hooks_exhaustive_deps) {
