@@ -28,6 +28,7 @@ pub fn runWithOptions(
     options: Options,
 ) Allocator.Error!void {
     const source = tree.source;
+    const content = contentBounds(source);
     var line_start: usize = 0;
     var empty_lines: usize = 0;
 
@@ -36,9 +37,9 @@ pub fn runWithOptions(
 
         if (isEmptyLine(source[line_start..line_end])) {
             empty_lines += 1;
-            const max = if (isLeadingEmptyLine(source, line_start))
+            const max = if (line_start <= content.first)
                 options.max_bof orelse options.max
-            else if (isTrailingEmptyLine(source, line_start))
+            else if (content.last == null or content.last.? < line_start)
                 options.max_eof orelse options.max
             else
                 options.max;
@@ -95,20 +96,27 @@ fn nextLineStart(source: []const u8, line_end: usize) usize {
     return start;
 }
 
-fn isLeadingEmptyLine(source: []const u8, line_start: usize) bool {
-    for (source[0..line_start]) |char| {
-        if (char == '\n' or char == '\r') continue;
-        if (!isBlankWhitespace(char)) return false;
+const ContentBounds = struct {
+    first: usize,
+    last: ?usize,
+};
+
+fn contentBounds(source: []const u8) ContentBounds {
+    var first: usize = 0;
+    while (first < source.len and isLineWhitespace(source[first])) : (first += 1) {}
+
+    var cursor = source.len;
+    while (cursor > first) {
+        cursor -= 1;
+        if (!isLineWhitespace(source[cursor])) {
+            return .{ .first = first, .last = cursor };
+        }
     }
-    return true;
+    return .{ .first = first, .last = null };
 }
 
-fn isTrailingEmptyLine(source: []const u8, line_start: usize) bool {
-    for (source[line_start..]) |char| {
-        if (char == '\n' or char == '\r') continue;
-        if (!isBlankWhitespace(char)) return false;
-    }
-    return true;
+fn isLineWhitespace(char: u8) bool {
+    return char == '\n' or char == '\r' or isBlankWhitespace(char);
 }
 
 fn findLineEnd(source: []const u8, start: usize) usize {
