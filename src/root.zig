@@ -302,6 +302,7 @@ fn hasSemanticRules(options: Options) bool {
         options.react_jsx_no_undef or
         options.react_no_forward_ref or
         options.no_unused_vars or
+        options.no_useless_assignment or
         options.no_useless_backreference or
         options.no_use_before_define or
         options.prefer_const or

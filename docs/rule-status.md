@@ -185,6 +185,7 @@ instead of being rewritten.
 | [`no-unused-expressions`](https://eslint.org/docs/latest/rules/no-unused-expressions) | Implemented with optional `allowShortCircuit`, `allowTernary`, and `allowTaggedTemplates` behavior |
 | [`no-unused-labels`](https://eslint.org/docs/latest/rules/no-unused-labels) | Implemented with nested label shadowing and autofix |
 | [`no-unused-vars`](https://eslint.org/docs/latest/rules/no-unused-vars) | Supports `vars`, `args`, `caughtErrors`, `ignoreRestSiblings`, `ignoreClassWithStaticInitBlock`, `ignoreUsingDeclarations`, `reportUsedIgnorePattern`, and common `argsIgnorePattern`/`caughtErrorsIgnorePattern`/`destructuredArrayIgnorePattern`/`varsIgnorePattern` configuration |
+| [`no-useless-assignment`](https://eslint.org/docs/latest/rules/no-useless-assignment) | Implements control-flow-aware unused assignment analysis |
 | [`no-useless-backreference`](https://eslint.org/docs/latest/rules/no-useless-backreference) | Detects nested, forward, disjunctive, and negative-lookaround backreferences in regex literals and static `RegExp` constructors |
 | [`no-useless-call`](https://eslint.org/docs/latest/rules/no-useless-call) | Implemented |
 | [`no-useless-catch`](https://eslint.org/docs/latest/rules/no-useless-catch) | Implemented |

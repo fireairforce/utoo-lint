@@ -2941,6 +2941,7 @@ pub const Options = struct {
     no_useless_call: bool = true,
     no_useless_concat: bool = true,
     no_useless_constructor: bool = true,
+    no_useless_assignment: bool = true,
     no_useless_catch: bool = true,
     no_useless_escape: bool = true,
     no_useless_escape_allow_regex_characters: NoUselessEscapeAllowRegexCharacters = .{},

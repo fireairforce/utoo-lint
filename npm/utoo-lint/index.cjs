@@ -249,6 +249,7 @@ const BUILTIN_RULE_IDS = [
   "no-unused-private-class-members",
   "no-unused-vars",
   "no-use-before-define",
+  "no-useless-assignment",
   "no-useless-backreference",
   "no-useless-call",
   "no-useless-catch",
