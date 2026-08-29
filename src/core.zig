@@ -2823,6 +2823,7 @@ pub const Options = struct {
     no_unneeded_ternary: bool = true,
     no_unneeded_ternary_default_assignment: bool = true,
     no_unexpected_multiline: bool = true,
+    no_unmodified_loop_condition: bool = false,
     no_unused_labels: bool = true,
     no_unreachable_loop: bool = true,
     no_unreachable_loop_ignore_while: bool = false,

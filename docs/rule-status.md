@@ -173,6 +173,7 @@ instead of being rewritten.
 | [`no-undefined`](https://eslint.org/docs/latest/rules/no-undefined) | Implemented for identifier references and binding names |
 | [`no-unneeded-ternary`](https://eslint.org/docs/latest/rules/no-unneeded-ternary) | Supports `defaultAssignment` with precedence-, side-effect-, and comment-safe autofix |
 | [`no-unexpected-multiline`](https://eslint.org/docs/latest/rules/no-unexpected-multiline) | Reports confusing multiline calls, computed property access, tagged templates, and regexp-looking division chains |
+| [`no-unmodified-loop-condition`](https://eslint.org/docs/latest/rules/no-unmodified-loop-condition) | Implemented |
 | [`no-unreachable`](https://eslint.org/docs/latest/rules/no-unreachable) | Implemented with hoisted declaration handling |
 | [`no-unreachable-loop`](https://eslint.org/docs/latest/rules/no-unreachable-loop) | Supports loop body exit detection and `ignore` configuration |
 | [`no-unsafe-finally`](https://eslint.org/docs/latest/rules/no-unsafe-finally) | Implemented with local loop, switch, and label exit handling |

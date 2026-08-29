@@ -270,6 +270,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_implied_eval or
         options.no_import_assign or
         options.no_invalid_this or
+        options.no_unmodified_loop_condition or
         options.alipay_ant_no_phantom_dependencies or
         options.import_default or
         options.import_export or

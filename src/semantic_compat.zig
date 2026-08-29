@@ -66,6 +66,18 @@ pub const SymbolTable = struct {
         return self.model.scopeOf(node);
     }
 
+    pub inline fn symbolOf(self: SymbolTable, node: ast.NodeIndex) ?yuku_semantic.SymbolId {
+        return self.model.symbolOf(node);
+    }
+
+    pub inline fn parentOf(self: SymbolTable, node: ast.NodeIndex) ?ast.NodeIndex {
+        return self.model.parentOf(node);
+    }
+
+    pub inline fn isWriteReference(self: SymbolTable, id: yuku_semantic.ReferenceId) bool {
+        return self.model.reference(id).flags.write;
+    }
+
     pub fn iterSymbols(self: SymbolTable) yuku_semantic.Semantic.SymbolIterator {
         return self.model.iterSymbols();
     }
