@@ -108,6 +108,94 @@ pub const NoInvalidThisCapIsConstructor = enum {
     no,
 };
 
+pub const max_no_magic_numbers_ignore_values = 64;
+pub const max_no_magic_numbers_bigint_len = 256;
+pub const max_no_magic_numbers_bigint_storage = 2048;
+
+pub const NoMagicNumbersIgnoreValues = struct {
+    const Kind = enum { number, bigint };
+
+    count: usize = 0,
+    kinds: [max_no_magic_numbers_ignore_values]Kind = undefined,
+    numbers: [max_no_magic_numbers_ignore_values]f64 = undefined,
+    bigint_offsets: [max_no_magic_numbers_ignore_values]u16 = undefined,
+    bigint_lengths: [max_no_magic_numbers_ignore_values]u16 = undefined,
+    bigint_storage: [max_no_magic_numbers_bigint_storage]u8 = undefined,
+    bigint_storage_len: usize = 0,
+
+    pub fn containsNumber(self: *const NoMagicNumbersIgnoreValues, value: f64) bool {
+        for (0..self.count) |index| {
+            if (self.kinds[index] == .number and self.numbers[index] == value) return true;
+        }
+        return false;
+    }
+
+    pub fn containsBigInt(self: *const NoMagicNumbersIgnoreValues, canonical: []const u8) bool {
+        for (0..self.count) |index| {
+            if (self.kinds[index] != .bigint) continue;
+            const start = self.bigint_offsets[index];
+            const stored = self.bigint_storage[start .. start + self.bigint_lengths[index]];
+            if (std.mem.eql(u8, stored, canonical)) return true;
+        }
+        return false;
+    }
+
+    pub fn appendNumber(self: *NoMagicNumbersIgnoreValues, value: f64) bool {
+        if (self.containsNumber(value)) return true;
+        if (self.count >= max_no_magic_numbers_ignore_values) return false;
+        self.kinds[self.count] = .number;
+        self.numbers[self.count] = value;
+        self.count += 1;
+        return true;
+    }
+
+    pub fn appendBigInt(self: *NoMagicNumbersIgnoreValues, value: []const u8) bool {
+        var canonical_buffer: [max_no_magic_numbers_bigint_len]u8 = undefined;
+        const canonical = canonicalBigIntConfigValue(value, &canonical_buffer) orelse return false;
+        if (self.containsBigInt(canonical)) return true;
+        if (self.count >= max_no_magic_numbers_ignore_values) return false;
+        if (self.bigint_storage_len + canonical.len > self.bigint_storage.len) return false;
+        self.kinds[self.count] = .bigint;
+        @memcpy(self.bigint_storage[self.bigint_storage_len..][0..canonical.len], canonical);
+        self.bigint_offsets[self.count] = @intCast(self.bigint_storage_len);
+        self.bigint_lengths[self.count] = @intCast(canonical.len);
+        self.bigint_storage_len += canonical.len;
+        self.count += 1;
+        return true;
+    }
+
+    pub fn appendCliValue(self: *NoMagicNumbersIgnoreValues, value: []const u8) bool {
+        if (std.mem.endsWith(u8, value, "n")) return self.appendBigInt(value);
+        const number = std.fmt.parseFloat(f64, value) catch return false;
+        return self.appendNumber(number);
+    }
+
+    fn canonicalBigIntConfigValue(value: []const u8, buffer: []u8) ?[]const u8 {
+        if (value.len < 2 or value[value.len - 1] != 'n') return null;
+        var digits = value[0 .. value.len - 1];
+        var negative = false;
+        if (digits[0] == '+' or digits[0] == '-') {
+            negative = digits[0] == '-';
+            digits = digits[1..];
+        }
+        if (digits.len == 0) return null;
+        for (digits) |digit| if (!std.ascii.isDigit(digit)) return null;
+
+        digits = std.mem.trimStart(u8, digits, "0");
+        if (digits.len == 0) digits = "0";
+        const length = digits.len + @intFromBool(negative and !std.mem.eql(u8, digits, "0"));
+        if (length > buffer.len) return null;
+
+        var offset: usize = 0;
+        if (negative and !std.mem.eql(u8, digits, "0")) {
+            buffer[0] = '-';
+            offset = 1;
+        }
+        @memcpy(buffer[offset..length], digits);
+        return buffer[0..length];
+    }
+};
+
 pub const CurlyStyle = enum {
     all,
     multi_line,
@@ -2722,6 +2810,17 @@ pub const Options = struct {
     no_lonely_if: bool = true,
     no_loop_func: bool = true,
     no_loss_of_precision: bool = true,
+    no_magic_numbers: bool = false,
+    no_magic_numbers_detect_objects: bool = false,
+    no_magic_numbers_enforce_const: bool = false,
+    no_magic_numbers_ignore: NoMagicNumbersIgnoreValues = .{},
+    no_magic_numbers_ignore_array_indexes: bool = false,
+    no_magic_numbers_ignore_default_values: bool = false,
+    no_magic_numbers_ignore_class_field_initial_values: bool = false,
+    no_magic_numbers_ignore_enums: bool = false,
+    no_magic_numbers_ignore_numeric_literal_types: bool = false,
+    no_magic_numbers_ignore_readonly_class_properties: bool = false,
+    no_magic_numbers_ignore_type_indexes: bool = false,
     no_multi_str: bool = true,
     no_multi_assign: bool = true,
     no_multi_assign_ignore_non_declaration: bool = false,
@@ -3609,6 +3708,18 @@ pub const Options = struct {
         if (std.mem.eql(u8, cli_name, "no-labels")) {
             self.no_labels_allow_loop = try noLabelsAllowLoopFromConfig(value);
             self.no_labels_allow_switch = try noLabelsAllowSwitchFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "no-magic-numbers")) {
+            self.no_magic_numbers_detect_objects = try boolRuleObjectOption(value, "detectObjects", false);
+            self.no_magic_numbers_enforce_const = try boolRuleObjectOption(value, "enforceConst", false);
+            self.no_magic_numbers_ignore = try noMagicNumbersIgnoreFromConfig(value);
+            self.no_magic_numbers_ignore_array_indexes = try boolRuleObjectOption(value, "ignoreArrayIndexes", false);
+            self.no_magic_numbers_ignore_default_values = try boolRuleObjectOption(value, "ignoreDefaultValues", false);
+            self.no_magic_numbers_ignore_class_field_initial_values = try boolRuleObjectOption(value, "ignoreClassFieldInitialValues", false);
+            self.no_magic_numbers_ignore_enums = try boolRuleObjectOption(value, "ignoreEnums", false);
+            self.no_magic_numbers_ignore_numeric_literal_types = try boolRuleObjectOption(value, "ignoreNumericLiteralTypes", false);
+            self.no_magic_numbers_ignore_readonly_class_properties = try boolRuleObjectOption(value, "ignoreReadonlyClassProperties", false);
+            self.no_magic_numbers_ignore_type_indexes = try boolRuleObjectOption(value, "ignoreTypeIndexes", false);
         }
         if (std.mem.eql(u8, cli_name, "no-mixed-spaces-and-tabs")) {
             self.no_mixed_spaces_and_tabs_smart_tabs = try noMixedSpacesAndTabsSmartTabsFromConfig(value);
@@ -5269,6 +5380,36 @@ pub const Options = struct {
             else => return error.UnsupportedRuleConfigValue,
         };
         return boolObjectOption(object, key, default);
+    }
+
+    fn noMagicNumbersIgnoreFromConfig(value: std.json.Value) RuleConfigError!NoMagicNumbersIgnoreValues {
+        var result: NoMagicNumbersIgnoreValues = .{};
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return result,
+        };
+        if (items.len < 2) return result;
+        const object = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const ignore_value = object.get("ignore") orelse return result;
+        const ignored = switch (ignore_value) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        for (ignored) |item| {
+            const appended = switch (item) {
+                .integer => |number| result.appendNumber(@floatFromInt(number)),
+                .float => |number| result.appendNumber(number),
+                .number_string => |raw| result.appendNumber(std.fmt.parseFloat(f64, raw) catch return error.UnsupportedRuleConfigValue),
+                .string => |bigint| result.appendBigInt(bigint),
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!appended) return error.UnsupportedRuleConfigValue;
+        }
+        return result;
     }
 
     fn reactNoUnusedPropTypesSkipShapePropsFromConfig(value: std.json.Value) RuleConfigError!bool {

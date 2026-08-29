@@ -181,6 +181,7 @@ const BUILTIN_RULE_IDS = [
   "no-lonely-if",
   "no-loop-func",
   "no-loss-of-precision",
+  "no-magic-numbers",
   "no-mixed-spaces-and-tabs",
   "no-misleading-character-class",
   "no-multi-assign",

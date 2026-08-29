@@ -164,7 +164,7 @@ fn lintSourceInternal(
         var semantic_result = semantic_compat.Result.init(&tree, semantic_model);
         try semantic_result.symbol_table.resolveAll(semantic_result.scope_tree);
         try appendParserDiagnostics(allocator, &diagnostics, &tree, effective_options);
-        try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);
+        try rules.runBasicWithOptionsPtr(allocator, &diagnostics, &tree, path, &effective_options);
         if (with_io) {
             try rules.runSemanticWithIo(allocator, &diagnostics, &tree, io, path, semantic_result, effective_options);
         } else {
@@ -172,7 +172,7 @@ fn lintSourceInternal(
         }
     } else {
         try appendParserDiagnostics(allocator, &diagnostics, &tree, effective_options);
-        try rules.runBasic(allocator, &diagnostics, &tree, path, effective_options);
+        try rules.runBasicWithOptionsPtr(allocator, &diagnostics, &tree, path, &effective_options);
     }
 
     try suppressions.apply(allocator, &diagnostics, &suppressed_diagnostics, &tree);
