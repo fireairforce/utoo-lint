@@ -99,6 +99,18 @@ test("applies configured severity and UTF-16 ranges", () => {
   assert.equal(result.diagnosticsSource, "input");
 });
 
+test("applies no-magic-numbers Number and BigInt ignore values", () => {
+  const result = linter.lint("call(7, 8n, 9);", {
+    filePath: "numbers.js",
+    rules: { "no-magic-numbers": ["error", { ignore: [7, "8n"] }] },
+  });
+  const diagnostics = result.diagnostics.filter(
+    (item) => item.ruleId === "no-magic-numbers",
+  );
+  assert.equal(diagnostics.length, 1);
+  assert.equal(diagnostics[0].message, "No magic number: 9.");
+});
+
 test("applies autofixes and reports diagnostics against output", () => {
   const result = linter.lintAndFix("const value = 1;;;", {
     filePath: "fix.js",

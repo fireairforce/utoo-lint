@@ -631,6 +631,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_magic_numbers.zig");
+}
+
+comptime {
     _ = @import("rules/no_mixed_spaces_and_tabs.zig");
 }
 

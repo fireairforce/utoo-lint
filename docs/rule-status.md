@@ -114,6 +114,7 @@ instead of being rewritten.
 | [`no-lonely-if`](https://eslint.org/docs/latest/rules/no-lonely-if) | Implemented with safe autofix |
 | [`no-loop-func`](https://eslint.org/docs/latest/rules/no-loop-func) | Implemented |
 | [`no-loss-of-precision`](https://eslint.org/docs/latest/rules/no-loss-of-precision) | Implemented |
+| [`no-magic-numbers`](https://eslint.org/docs/latest/rules/no-magic-numbers) | Supports `detectObjects`, `enforceConst`, `ignore`, `ignoreArrayIndexes`, `ignoreDefaultValues`, `ignoreClassFieldInitialValues`, `ignoreEnums`, `ignoreNumericLiteralTypes`, `ignoreReadonlyClassProperties`, and `ignoreTypeIndexes` |
 | [`no-mixed-spaces-and-tabs`](https://eslint.org/docs/latest/rules/no-mixed-spaces-and-tabs) | Supports `smart-tabs` configuration |
 | [`no-misleading-character-class`](https://eslint.org/docs/latest/rules/no-misleading-character-class) | Implemented |
 | [`no-multi-assign`](https://eslint.org/docs/latest/rules/no-multi-assign) | Supports `ignoreNonDeclaration` configuration and class field initializers |

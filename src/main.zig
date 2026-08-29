@@ -577,6 +577,57 @@ pub fn main(init: std.process.Init) !void {
             options.no_loop_func = false;
         } else if (std.mem.eql(u8, arg, "--no-loss-of-precision=off")) {
             options.no_loss_of_precision = false;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers=on")) {
+            options.no_magic_numbers = true;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers=off")) {
+            options.no_magic_numbers = false;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-detect-objects=on")) {
+            options.no_magic_numbers = true;
+            options.no_magic_numbers_detect_objects = true;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-detect-objects=off")) {
+            options.no_magic_numbers_detect_objects = false;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-enforce-const=on")) {
+            options.no_magic_numbers = true;
+            options.no_magic_numbers_enforce_const = true;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-enforce-const=off")) {
+            options.no_magic_numbers_enforce_const = false;
+        } else if (std.mem.startsWith(u8, arg, "--no-magic-numbers-ignore=")) {
+            parseNoMagicNumbersIgnore(arg["--no-magic-numbers-ignore=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-array-indexes=on")) {
+            options.no_magic_numbers = true;
+            options.no_magic_numbers_ignore_array_indexes = true;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-array-indexes=off")) {
+            options.no_magic_numbers_ignore_array_indexes = false;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-default-values=on")) {
+            options.no_magic_numbers = true;
+            options.no_magic_numbers_ignore_default_values = true;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-default-values=off")) {
+            options.no_magic_numbers_ignore_default_values = false;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-class-field-initial-values=on")) {
+            options.no_magic_numbers = true;
+            options.no_magic_numbers_ignore_class_field_initial_values = true;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-class-field-initial-values=off")) {
+            options.no_magic_numbers_ignore_class_field_initial_values = false;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-enums=on")) {
+            options.no_magic_numbers = true;
+            options.no_magic_numbers_ignore_enums = true;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-enums=off")) {
+            options.no_magic_numbers_ignore_enums = false;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-numeric-literal-types=on")) {
+            options.no_magic_numbers = true;
+            options.no_magic_numbers_ignore_numeric_literal_types = true;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-numeric-literal-types=off")) {
+            options.no_magic_numbers_ignore_numeric_literal_types = false;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-readonly-class-properties=on")) {
+            options.no_magic_numbers = true;
+            options.no_magic_numbers_ignore_readonly_class_properties = true;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-readonly-class-properties=off")) {
+            options.no_magic_numbers_ignore_readonly_class_properties = false;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-type-indexes=on")) {
+            options.no_magic_numbers = true;
+            options.no_magic_numbers_ignore_type_indexes = true;
+        } else if (std.mem.eql(u8, arg, "--no-magic-numbers-ignore-type-indexes=off")) {
+            options.no_magic_numbers_ignore_type_indexes = false;
         } else if (std.mem.eql(u8, arg, "--no-multi-str=off")) {
             options.no_multi_str = false;
         } else if (std.mem.eql(u8, arg, "--no-multi-assign=off")) {
@@ -1542,6 +1593,25 @@ fn parseNoConsoleAllow(value: []const u8, options: *lint.Options) void {
         }
     }
     options.no_console_allow = allow;
+}
+
+fn parseNoMagicNumbersIgnore(value: []const u8, options: *lint.Options) void {
+    if (value.len == 0) {
+        std.debug.print("utoo-lint: --no-magic-numbers-ignore requires a comma-separated number list\n", .{});
+        std.process.exit(2);
+    }
+
+    var ignored: @TypeOf(options.no_magic_numbers_ignore) = .{};
+    var iter = std.mem.splitScalar(u8, value, ',');
+    while (iter.next()) |raw_value| {
+        const number = std.mem.trim(u8, raw_value, " \t\r\n");
+        if (number.len == 0 or !ignored.appendCliValue(number)) {
+            std.debug.print("utoo-lint: invalid or excessive --no-magic-numbers-ignore value: {s}\n", .{number});
+            std.process.exit(2);
+        }
+    }
+    options.no_magic_numbers = true;
+    options.no_magic_numbers_ignore = ignored;
 }
 
 fn parseNoEmptyFunctionAllow(value: []const u8, options: *lint.Options) void {
@@ -2671,6 +2741,18 @@ fn printHelp() void {
         \\  --max-statements-ignore-top-level-functions=on Ignore single top-level functions
         \\  --no-loop-func=off        Disable no-loop-func
         \\  --no-loss-of-precision=off Disable no-loss-of-precision
+        \\  --no-magic-numbers=on     Enable no-magic-numbers
+        \\  --no-magic-numbers=off    Disable no-magic-numbers
+        \\  --no-magic-numbers-detect-objects=on Check object properties and member assignments
+        \\  --no-magic-numbers-enforce-const=on Require const for direct numeric declarations
+        \\  --no-magic-numbers-ignore=0,1,-1,100n Ignore selected Number or BigInt values
+        \\  --no-magic-numbers-ignore-array-indexes=on Ignore valid array indexes
+        \\  --no-magic-numbers-ignore-default-values=on Ignore default values
+        \\  --no-magic-numbers-ignore-class-field-initial-values=on Ignore class field initial values
+        \\  --no-magic-numbers-ignore-enums=on Ignore TypeScript enum values
+        \\  --no-magic-numbers-ignore-numeric-literal-types=on Ignore numeric literal type aliases
+        \\  --no-magic-numbers-ignore-readonly-class-properties=on Ignore readonly class properties
+        \\  --no-magic-numbers-ignore-type-indexes=on Ignore TypeScript indexed access values
         \\  --no-multi-str=off        Disable no-multi-str
         \\  --no-multi-assign=off     Disable no-multi-assign
         \\  --no-multi-spaces=off     Disable no-multi-spaces
