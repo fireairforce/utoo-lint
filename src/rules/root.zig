@@ -227,6 +227,7 @@ pub const no_undef_init = @import("no_undef_init.zig");
 pub const no_underscore_dangle = @import("no_underscore_dangle.zig");
 pub const no_undefined = @import("no_undefined.zig");
 pub const no_unneeded_ternary = @import("no_unneeded_ternary.zig");
+pub const no_unexpected_multiline = @import("no_unexpected_multiline.zig");
 pub const no_unsafe_finally = @import("no_unsafe_finally.zig");
 pub const no_unsafe_negation = @import("no_unsafe_negation.zig");
 pub const no_unsafe_optional_chaining = @import("no_unsafe_optional_chaining.zig");
@@ -3311,6 +3312,9 @@ const BasicVisitor = struct {
         if (self.options.no_constant_binary_expression) {
             try no_constant_binary_expression.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
+        if (self.options.no_unexpected_multiline) {
+            try no_unexpected_multiline.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression);
+        }
         if (self.options.eqeqeq) {
             try eqeqeq.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
                 .style = self.options.eqeqeq_style,
@@ -3439,6 +3443,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_unexpected_multiline) {
+            try no_unexpected_multiline.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
+        }
         if (self.options.promise_valid_params) {
             try promise_valid_params.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, call, self.options.promise_valid_params_exclude);
         }
@@ -3687,6 +3694,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.no_unexpected_multiline) {
+            try no_unexpected_multiline.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member);
+        }
         if (self.options.dot_notation and !self.options.typescript_eslint_dot_notation) {
             try dot_notation.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, member, index, .{
                 .allow_keywords = self.options.dot_notation_allow_keywords == .yes,
@@ -3752,6 +3762,18 @@ const BasicVisitor = struct {
         }
         if (self.options.complexity) {
             complexity.countMemberExpression(&self.complexity_state, member);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_tagged_template_expression(
+        self: *BasicVisitor,
+        tagged: ast.TaggedTemplateExpression,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.no_unexpected_multiline) {
+            try no_unexpected_multiline.checkTaggedTemplateExpression(self.allocator, self.diagnostics, ctx.tree, tagged);
         }
         return .proceed;
     }

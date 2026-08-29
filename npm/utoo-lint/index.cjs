@@ -234,6 +234,7 @@ const BUILTIN_RULE_IDS = [
   "no-underscore-dangle",
   "no-undefined",
   "no-unneeded-ternary",
+  "no-unexpected-multiline",
   "no-unreachable",
   "no-unreachable-loop",
   "no-unsafe-finally",
