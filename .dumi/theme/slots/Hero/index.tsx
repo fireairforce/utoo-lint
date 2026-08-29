@@ -16,11 +16,11 @@ interface HeroData {
 
 const heroMessages = {
   'en-US': {
-    eyebrow: 'utoo-lint · Faster JavaScript linting',
+    eyebrow: 'High-performance TS / JS lint tool',
     gpuLabel: 'utoo rabbit mark',
   },
   'zh-CN': {
-    eyebrow: 'utoo-lint · 更快的 JavaScript Lint',
+    eyebrow: '高性能 TS / JS Lint 工具',
     gpuLabel: 'utoo 兔子标志',
   },
 } as const;
