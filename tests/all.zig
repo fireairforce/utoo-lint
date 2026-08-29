@@ -863,6 +863,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/no_unexpected_multiline.zig");
+}
+
+comptime {
     _ = @import("rules/no_unused_labels.zig");
 }
 
