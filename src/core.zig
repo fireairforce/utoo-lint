@@ -62,6 +62,47 @@ pub const ConsistentThisAliases = struct {
     }
 };
 
+pub const max_class_methods_use_this_except_methods = 32;
+pub const max_class_methods_use_this_except_method_len = 128;
+
+pub const ClassMethodsUseThisExceptMethodsError = error{
+    TooManyClassMethodsUseThisExceptMethods,
+    ClassMethodsUseThisExceptMethodTooLong,
+};
+
+pub const ClassMethodsUseThisExceptMethods = struct {
+    count: usize = 0,
+    lengths: [max_class_methods_use_this_except_methods]usize = undefined,
+    storage: [max_class_methods_use_this_except_methods][max_class_methods_use_this_except_method_len]u8 = undefined,
+
+    pub fn contains(self: *const ClassMethodsUseThisExceptMethods, name: []const u8) bool {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const ClassMethodsUseThisExceptMethods, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *ClassMethodsUseThisExceptMethods, name: []const u8) ClassMethodsUseThisExceptMethodsError!void {
+        if (self.count >= max_class_methods_use_this_except_methods) return error.TooManyClassMethodsUseThisExceptMethods;
+        if (name.len > max_class_methods_use_this_except_method_len) return error.ClassMethodsUseThisExceptMethodTooLong;
+        if (self.contains(name)) return;
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+    }
+};
+
+pub const ClassMethodsUseThisIgnoreClassesWithImplements = enum {
+    none,
+    all,
+    public_fields,
+};
+
 pub const CurlyStyle = enum {
     all,
     multi_line,
@@ -2386,6 +2427,11 @@ pub const Options = struct {
     capitalized_comments_mode: CapitalizedCommentsMode = .always,
     capitalized_comments_ignore_inline_comments: CapitalizedCommentsIgnoreInlineComments = .no,
     capitalized_comments_ignore_consecutive_comments: CapitalizedCommentsIgnoreConsecutiveComments = .no,
+    class_methods_use_this: bool = false,
+    class_methods_use_this_enforce_for_class_fields: bool = true,
+    class_methods_use_this_except_methods: ClassMethodsUseThisExceptMethods = .{},
+    class_methods_use_this_ignore_override_methods: bool = false,
+    class_methods_use_this_ignore_classes_with_implements: ClassMethodsUseThisIgnoreClassesWithImplements = .none,
     complexity: bool = true,
     complexity_max: usize = 20,
     complexity_variant: ComplexityVariant = .classic,
@@ -3268,6 +3314,13 @@ pub const Options = struct {
             self.capitalized_comments_mode = try capitalizedCommentsModeFromConfig(value);
             self.capitalized_comments_ignore_inline_comments = try capitalizedCommentsIgnoreInlineCommentsFromConfig(value);
             self.capitalized_comments_ignore_consecutive_comments = try capitalizedCommentsIgnoreConsecutiveCommentsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "class-methods-use-this")) {
+            const config = try classMethodsUseThisFromConfig(value);
+            self.class_methods_use_this_enforce_for_class_fields = config.enforce_for_class_fields;
+            self.class_methods_use_this_except_methods = config.except_methods;
+            self.class_methods_use_this_ignore_override_methods = config.ignore_override_methods;
+            self.class_methods_use_this_ignore_classes_with_implements = config.ignore_classes_with_implements;
         }
         if (std.mem.eql(u8, cli_name, "complexity")) {
             self.complexity_max = try complexityMaxFromConfig(value);
@@ -4363,6 +4416,60 @@ pub const Options = struct {
                     else => return error.UnsupportedRuleConfigValue,
                 };
                 result.allow.append(pattern) catch return error.UnsupportedRuleConfigValue;
+            }
+        }
+
+        return result;
+    }
+
+    const ClassMethodsUseThisConfig = struct {
+        enforce_for_class_fields: bool = true,
+        except_methods: ClassMethodsUseThisExceptMethods = .{},
+        ignore_override_methods: bool = false,
+        ignore_classes_with_implements: ClassMethodsUseThisIgnoreClassesWithImplements = .none,
+    };
+
+    fn classMethodsUseThisFromConfig(value: std.json.Value) RuleConfigError!ClassMethodsUseThisConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = ClassMethodsUseThisConfig{};
+        result.enforce_for_class_fields = try boolObjectOption(config, "enforceForClassFields", true);
+        result.ignore_override_methods = try boolObjectOption(config, "ignoreOverrideMethods", false);
+
+        if (config.get("exceptMethods")) |except_methods_value| {
+            const except_methods = switch (except_methods_value) {
+                .array => |array| array.items,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            for (except_methods) |except_method_value| {
+                const except_method = switch (except_method_value) {
+                    .string => |name| name,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                result.except_methods.append(except_method) catch return error.UnsupportedRuleConfigValue;
+            }
+        }
+
+        if (config.get("ignoreClassesWithImplements")) |ignore_value| {
+            const ignore = switch (ignore_value) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (std.mem.eql(u8, ignore, "all")) {
+                result.ignore_classes_with_implements = .all;
+            } else if (std.mem.eql(u8, ignore, "public-fields")) {
+                result.ignore_classes_with_implements = .public_fields;
+            } else {
+                return error.UnsupportedRuleConfigValue;
             }
         }
 
@@ -10538,6 +10645,21 @@ test "Options can apply ESLint-style rule config values" {
     try std.testing.expectEqual(CapitalizedCommentsMode.never, options.capitalized_comments_mode);
     try std.testing.expectEqual(CapitalizedCommentsIgnoreInlineComments.yes, options.capitalized_comments_ignore_inline_comments);
     try std.testing.expectEqual(CapitalizedCommentsIgnoreConsecutiveComments.yes, options.capitalized_comments_ignore_consecutive_comments);
+
+    var class_methods_use_this_config = try std.json.parseFromSlice(
+        std.json.Value,
+        std.testing.allocator,
+        "[\"error\",{\"enforceForClassFields\":false,\"exceptMethods\":[\"render\",\"#private\"],\"ignoreOverrideMethods\":true,\"ignoreClassesWithImplements\":\"public-fields\"}]",
+        .{},
+    );
+    defer class_methods_use_this_config.deinit();
+    try options.setByRuleConfigValue("class-methods-use-this", class_methods_use_this_config.value);
+    try std.testing.expect(options.class_methods_use_this);
+    try std.testing.expect(!options.class_methods_use_this_enforce_for_class_fields);
+    try std.testing.expect(options.class_methods_use_this_except_methods.contains("render"));
+    try std.testing.expect(options.class_methods_use_this_except_methods.contains("#private"));
+    try std.testing.expect(options.class_methods_use_this_ignore_override_methods);
+    try std.testing.expectEqual(ClassMethodsUseThisIgnoreClassesWithImplements.public_fields, options.class_methods_use_this_ignore_classes_with_implements);
 
     var consistent_return_config = try std.json.parseFromSlice(
         std.json.Value,

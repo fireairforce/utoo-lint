@@ -234,6 +234,20 @@ pub fn main(init: std.process.Init) !void {
             options.capitalized_comments_mode = .never;
         } else if (std.mem.eql(u8, arg, "--capitalized-comments-ignore-inline-comments=on")) {
             options.capitalized_comments_ignore_inline_comments = .yes;
+        } else if (std.mem.eql(u8, arg, "--class-methods-use-this=on")) {
+            options.class_methods_use_this = true;
+        } else if (std.mem.eql(u8, arg, "--class-methods-use-this=off")) {
+            options.class_methods_use_this = false;
+        } else if (std.mem.eql(u8, arg, "--class-methods-use-this-enforce-for-class-fields=off")) {
+            options.class_methods_use_this = true;
+            options.class_methods_use_this_enforce_for_class_fields = false;
+        } else if (std.mem.startsWith(u8, arg, "--class-methods-use-this-except-method=")) {
+            appendClassMethodsUseThisExceptMethod(arg["--class-methods-use-this-except-method=".len..], &options);
+        } else if (std.mem.eql(u8, arg, "--class-methods-use-this-ignore-override-methods=on")) {
+            options.class_methods_use_this = true;
+            options.class_methods_use_this_ignore_override_methods = true;
+        } else if (std.mem.startsWith(u8, arg, "--class-methods-use-this-ignore-classes-with-implements=")) {
+            parseClassMethodsUseThisIgnoreClassesWithImplements(arg["--class-methods-use-this-ignore-classes-with-implements=".len..], &options);
         } else if (std.mem.eql(u8, arg, "--complexity=off")) {
             options.complexity = false;
         } else if (std.mem.startsWith(u8, arg, "--complexity-max=")) {
@@ -1586,6 +1600,28 @@ fn appendCamelcaseAllow(value: []const u8, options: *lint.Options) void {
     options.camelcase = true;
 }
 
+fn appendClassMethodsUseThisExceptMethod(value: []const u8, options: *lint.Options) void {
+    options.class_methods_use_this_except_methods.append(value) catch {
+        std.debug.print("utoo-lint: invalid --class-methods-use-this-except-method value: {s}\n", .{value});
+        std.process.exit(2);
+    };
+    options.class_methods_use_this = true;
+}
+
+fn parseClassMethodsUseThisIgnoreClassesWithImplements(value: []const u8, options: *lint.Options) void {
+    if (std.mem.eql(u8, value, "all")) {
+        options.class_methods_use_this_ignore_classes_with_implements = .all;
+    } else if (std.mem.eql(u8, value, "public-fields")) {
+        options.class_methods_use_this_ignore_classes_with_implements = .public_fields;
+    } else if (std.mem.eql(u8, value, "none")) {
+        options.class_methods_use_this_ignore_classes_with_implements = .none;
+    } else {
+        std.debug.print("utoo-lint: invalid --class-methods-use-this-ignore-classes-with-implements value: {s}\n", .{value});
+        std.process.exit(2);
+    }
+    options.class_methods_use_this = true;
+}
+
 fn appendNoRestrictedExportName(value: []const u8, options: *lint.Options) void {
     options.no_restricted_exports_names.append(value) catch {
         std.debug.print("utoo-lint: invalid --no-restricted-exports-name value: {s}\n", .{value});
@@ -2410,6 +2446,12 @@ fn printHelp() void {
         \\  --capitalized-comments=off Disable capitalized-comments
         \\  --capitalized-comments=never Require lowercase comment starts
         \\  --capitalized-comments-ignore-inline-comments=on Ignore inline comments
+        \\  --class-methods-use-this=on Enable class-methods-use-this
+        \\  --class-methods-use-this=off Disable class-methods-use-this
+        \\  --class-methods-use-this-enforce-for-class-fields=off Ignore function-valued class fields
+        \\  --class-methods-use-this-except-method=NAME Ignore a class method name
+        \\  --class-methods-use-this-ignore-override-methods=on Ignore TypeScript override methods
+        \\  --class-methods-use-this-ignore-classes-with-implements=MODE Ignore all or public-fields in implementing classes
         \\  --complexity=off          Disable complexity
         \\  --complexity-max=N        Set complexity maximum
         \\  --complexity-variant=modified Use modified switch complexity

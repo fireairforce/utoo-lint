@@ -80,6 +80,7 @@ const BUILTIN_RULE_IDS = [
   "block-scoped-var",
   "camelcase",
   "capitalized-comments",
+  "class-methods-use-this",
   "complexity",
   "consistent-return",
   "consistent-this",

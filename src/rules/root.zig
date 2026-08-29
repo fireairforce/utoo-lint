@@ -20,6 +20,7 @@ pub const arrow_body_style = @import("arrow_body_style.zig");
 pub const block_scoped_var = @import("block_scoped_var.zig");
 pub const camelcase = @import("camelcase.zig");
 pub const capitalized_comments = @import("capitalized_comments.zig");
+pub const class_methods_use_this = @import("class_methods_use_this.zig");
 pub const complexity = @import("complexity.zig");
 pub const consistent_this = @import("consistent_this.zig");
 pub const consistent_return = @import("consistent_return.zig");
@@ -561,6 +562,14 @@ pub fn runBasic(
             },
             .ignore_inline_comments = options.capitalized_comments_ignore_inline_comments == .yes,
             .ignore_consecutive_comments = options.capitalized_comments_ignore_consecutive_comments == .yes,
+        });
+    }
+    if (options.class_methods_use_this) {
+        try class_methods_use_this.run(allocator, diagnostics, tree, .{
+            .enforce_for_class_fields = options.class_methods_use_this_enforce_for_class_fields,
+            .except_methods = &options.class_methods_use_this_except_methods,
+            .ignore_override_methods = options.class_methods_use_this_ignore_override_methods,
+            .ignore_classes_with_implements = options.class_methods_use_this_ignore_classes_with_implements,
         });
     }
     if (options.no_warning_comments) {
