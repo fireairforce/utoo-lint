@@ -124,13 +124,13 @@ fn isModified(
     symbol_table: semantic_compat.SymbolTable,
     condition: Condition,
 ) bool {
-    var references = symbol_table.iterReferences();
-    while (references.next()) |entry| {
-        if (symbol_table.referenceSymbol(entry.id) != condition.symbol) continue;
-        if (!symbol_table.isWriteReference(entry.id)) continue;
+    var uses = symbol_table.symbolUses(condition.symbol);
+    while (uses.next()) |reference| {
+        const reference_id = symbol_table.model.referenceOf(reference) orelse continue;
+        if (!symbol_table.isWriteReference(reference_id)) continue;
 
-        if (isInLoop(tree, condition.loop, entry.reference.node)) return true;
-        if (enclosingFunctionCalledInLoop(tree, symbol_table, condition.loop, entry.reference.node)) return true;
+        if (isInLoop(tree, condition.loop, reference)) return true;
+        if (enclosingFunctionCalledInLoop(tree, symbol_table, condition.loop, reference)) return true;
     }
 
     // Yuku does not model declaration initializers as references. ESLint counts
