@@ -36,24 +36,37 @@ const ValueType = enum {
 
 const TypeEnv = std.StringHashMapUnmanaged(ValueType);
 
+pub const State = struct {
+    env: TypeEnv = .empty,
+    initialized: bool = false,
+
+    pub fn deinit(self: *State, allocator: Allocator) void {
+        self.env.deinit(allocator);
+    }
+
+    fn ensureInitialized(self: *State, allocator: Allocator, tree: *const ast.Tree) Allocator.Error!void {
+        if (self.initialized) return;
+        self.initialized = true;
+        var visitor = TypeEnvVisitor{ .allocator = allocator, .env = &self.env };
+        try traverser.basic.traverse(TypeEnvVisitor, tree, &visitor);
+    }
+};
+
 pub fn checkBinaryExpression(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     expression: ast.BinaryExpression,
     index: ast.NodeIndex,
+    state: *State,
     options: Options,
 ) Allocator.Error!void {
     if (expression.operator != .add) return;
 
-    var env: TypeEnv = .empty;
-    defer env.deinit(allocator);
+    try state.ensureInitialized(allocator, tree);
 
-    var visitor = TypeEnvVisitor{ .allocator = allocator, .env = &env };
-    try traverser.basic.traverse(TypeEnvVisitor, tree, &visitor);
-
-    const left = inferExpressionType(tree, env, expression.left);
-    const right = inferExpressionType(tree, env, expression.right);
+    const left = inferExpressionType(tree, state.env, expression.left);
+    const right = inferExpressionType(tree, state.env, expression.right);
     if (left == .unknown_expression or right == .unknown_expression) return;
     if (isAllowedPair(left, right, options)) return;
 

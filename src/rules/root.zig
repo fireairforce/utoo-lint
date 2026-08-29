@@ -780,6 +780,7 @@ pub fn runBasicWithOptionsPtr(
     defer visitor.max_statements_state.deinit(allocator);
     defer visitor.max_nested_callbacks_state.deinit(allocator);
     defer visitor.id_denylist_state.deinit(allocator);
+    defer visitor.typescript_eslint_restrict_plus_operands_state.deinit(allocator);
 
     try traverser.basic.traverse(BasicVisitor, tree, &visitor);
 }
@@ -1405,6 +1406,7 @@ const BasicVisitor = struct {
     max_nested_callbacks_state: max_nested_callbacks.State = .{},
     id_denylist_state: id_denylist.State = .{},
     init_declarations_state: init_declarations.State = .{},
+    typescript_eslint_restrict_plus_operands_state: typescript_eslint_restrict_plus_operands.State = .{},
 
     fn curlyOptions(self: *const BasicVisitor) curly.Options {
         return .{
@@ -3397,7 +3399,7 @@ const BasicVisitor = struct {
             try no_bitwise.checkBinaryExpressionWithOptions(self.allocator, self.diagnostics, ctx.tree, expression, index, self.noBitwiseOptions());
         }
         if (self.options.typescript_eslint_restrict_plus_operands) {
-            try typescript_eslint_restrict_plus_operands.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index, .{
+            try typescript_eslint_restrict_plus_operands.checkBinaryExpression(self.allocator, self.diagnostics, ctx.tree, expression, index, &self.typescript_eslint_restrict_plus_operands_state, .{
                 .allow_number_and_string = self.options.typescript_eslint_restrict_plus_operands_allow_number_and_string,
             });
         }
