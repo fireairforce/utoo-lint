@@ -2,6 +2,8 @@ import { defineConfig } from '@evjs/ev';
 import { staticDeploymentAdapter } from '@evjs/ev/deployment';
 
 export default defineConfig({
-  routing: { mode: 'spa' },
+  application: {
+    routes: [{ path: '/playground', page: '.' }],
+  },
   plugins: [staticDeploymentAdapter()],
 });

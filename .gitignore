@@ -2,5 +2,9 @@
 zig-out/
 dist/
 node_modules/
+.dumi/tmp/
+.dumi/tmp-production/
+.wrangler/
+/server/
 .DS_Store
 npm/@utoo/lint-wasm/utoo-lint.wasm

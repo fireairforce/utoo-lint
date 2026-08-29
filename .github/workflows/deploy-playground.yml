@@ -1,4 +1,4 @@
-name: Deploy Playground
+name: Deploy Site
 
 on:
   push:
@@ -6,10 +6,18 @@ on:
       - main
     paths:
       - ".github/workflows/deploy-playground.yml"
+      - ".dumi/**"
+      - ".dumirc.ts"
       - "apps/playground/**"
+      - "assets/**"
+      - "docs/**"
       - "npm/@utoo/lint-wasm/**"
+      - "public/**"
+      - "README.md"
+      - "scripts/assemble-site.mjs"
       - "scripts/package-wasm.sh"
       - "scripts/stage-playground-wasm.mjs"
+      - "scripts/verify-site.mjs"
       - "src/**"
       - "vendor/**"
       - "build.zig"
@@ -23,7 +31,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: playground-production-${{ github.ref }}
+  group: site-production-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -56,8 +64,8 @@ jobs:
       - name: Setup Zig
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
 
-      - name: Build and audit Playground
-        run: pnpm playground:build
+      - name: Build and audit site
+        run: pnpm site:build
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
@@ -65,7 +73,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: >-
-            pages deploy apps/playground/dist/client
+            pages deploy dist/site
             --project-name=utoo-lint-playground
             --branch=main
             --commit-hash=${{ github.sha }}

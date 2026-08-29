@@ -1,0 +1,129 @@
+---
+title: utoo-lint
+toc: false
+hero:
+  title: Lint at native speed. Migrate at your pace.
+  description: Native-speed linting for the JavaScript projects you already have—without replacing the workflow you already trust.
+  actions:
+    - text: Open the Playground
+      link: /playground/
+    - text: Read the docs
+      link: /configuration
+---
+
+<section class="utlint-home-section utlint-home-section--benchmark" aria-labelledby="utlint-benchmark-title">
+  <header class="utlint-home-section-heading">
+    <span class="utlint-home-kicker">01 · Benchmark</span>
+    <h2 id="utlint-benchmark-title">8.35 ms from a cold start.</h2>
+    <p>
+      The repository benchmark launches a fresh process for every run against
+      the same generated TypeScript corpus and the same 12 lint rules. These
+      results were recorded on Darwin arm64 on June 13, 2026.
+    </p>
+    <a class="utlint-home-text-link" href="https://github.com/utooland/utoo-lint/tree/main/benchmarks">
+      Read the methodology and run it yourself <span aria-hidden="true">→</span>
+    </a>
+  </header>
+  <figure class="utlint-benchmark-panel" aria-labelledby="utlint-benchmark-caption">
+    <header>
+      <div>
+        <span>Fresh CLI process</span>
+        <strong>Median wall-clock time</strong>
+      </div>
+      <span>Lower is better</span>
+    </header>
+    <div class="utlint-benchmark-chart">
+      <div class="utlint-benchmark-row utlint-benchmark-row--utoo">
+        <span>utoo-lint</span><i aria-hidden="true"></i><strong>8.35 ms</strong>
+      </div>
+      <div class="utlint-benchmark-row utlint-benchmark-row--oxlint">
+        <span>Oxlint</span><i aria-hidden="true"></i><strong>57.35 ms</strong>
+      </div>
+      <div class="utlint-benchmark-row utlint-benchmark-row--biome">
+        <span>Biome</span><i aria-hidden="true"></i><strong>61.56 ms</strong>
+      </div>
+      <div class="utlint-benchmark-row utlint-benchmark-row--eslint">
+        <span>ESLint</span><i aria-hidden="true"></i><strong>747.84 ms</strong>
+      </div>
+    </div>
+    <figcaption id="utlint-benchmark-caption">
+      100 TypeScript files · 12 shared rules · fresh process · median of repeated runs
+    </figcaption>
+  </figure>
+</section>
+
+<section class="utlint-home-section utlint-home-section--migration" aria-labelledby="utlint-migration-title">
+  <header class="utlint-home-section-heading">
+    <span class="utlint-home-kicker">02 · Migration</span>
+    <h2 id="utlint-migration-title">Replace ESLint without the big-bang rewrite.</h2>
+    <p>
+      Migration is deliberately incremental. Generate a report first, move the
+      rules utoo-lint implements natively, and keep processors or custom plugin
+      behavior where ESLint still owns the job.
+    </p>
+  </header>
+  <div class="utlint-migration-boundary">
+    <article>
+      <h3>Move now</h3>
+      <p>Compatible rule IDs, severities, file patterns and serializable flat-config entries.</p>
+      <code>utoo-lint migrate eslint --print</code>
+    </article>
+    <article>
+      <h3>Keep in ESLint</h3>
+      <p>Processors, project-specific plugins and type-service workflows that are not covered yet.</p>
+      <a href="/rule-status">Check rule coverage <span aria-hidden="true">→</span></a>
+    </article>
+    <article>
+      <h3>Verify in CI</h3>
+      <p>Run both tools, compare JSON diagnostics, then retire ESLint coverage rule by rule.</p>
+      <a href="/eslint-migration">Open the migration guide <span aria-hidden="true">→</span></a>
+    </article>
+  </div>
+</section>
+
+<section class="utlint-home-section utlint-home-section--architecture" aria-labelledby="utlint-architecture-title">
+  <header class="utlint-home-section-heading">
+    <span class="utlint-home-kicker">03 · Runtime</span>
+    <h2 id="utlint-architecture-title">One core. Native, Node and WebAssembly.</h2>
+    <p>
+      The Node wrapper handles trusted TypeScript configuration and project
+      discovery. The Zig engine receives a serializable rule map. The
+      freestanding WebAssembly build lints source already held in memory.
+    </p>
+  </header>
+  <ol class="utlint-engine-pipeline" aria-label="utoo-lint configuration pipeline">
+    <li><strong>utlint.config.ts</strong><span>Typed authoring</span></li>
+    <li><strong>Node wrapper</strong><span>Resolve files and config</span></li>
+    <li><strong>Zig engine</strong><span>Parse, analyze and fix</span></li>
+    <li><strong>CLI or WebAssembly</strong><span>Repository and browser</span></li>
+  </ol>
+  <div class="utlint-surface-grid">
+    <article>
+      <h3>Native CLI</h3>
+      <p>Traverse a repository, apply project config and write supported fixes.</p>
+    </article>
+    <article>
+      <h3>Typed configuration</h3>
+      <p>Import presets and keep editor completion in a trusted Node entry point.</p>
+    </article>
+    <article>
+      <h3>Browser WebAssembly</h3>
+      <p>Reuse one in-memory linter without sending source to a remote service.</p>
+    </article>
+  </div>
+</section>
+
+<aside class="utlint-home-cta" aria-labelledby="utlint-cta-title">
+  <div>
+    <span class="utlint-home-kicker">Try it locally</span>
+    <h2 id="utlint-cta-title">Put your own code through it.</h2>
+    <p>
+      The Playground uses the WebAssembly build locally in your browser. Your
+      code is not uploaded to a lint service.
+    </p>
+  </div>
+  <nav class="utlint-home-cta-actions" aria-label="Get started">
+    <a href="/playground/" class="utlint-home-button utlint-home-button--primary">Open the Playground</a>
+    <a href="/configuration" class="utlint-home-button utlint-home-button--secondary">Read the docs</a>
+  </nav>
+</aside>

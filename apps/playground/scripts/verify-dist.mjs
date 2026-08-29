@@ -93,6 +93,9 @@ const indexHtml = await readFile(path.join(clientDir, 'index.html'), 'utf8');
 if (!indexHtml.includes('id="__EVJS_CLIENT_RUNTIME__"')) {
   throw new Error('missing EVJS browser runtime');
 }
+if (!indexHtml.includes('"path":"/playground"')) {
+  throw new Error('Playground runtime is not mounted at /playground');
+}
 
 const headers = await readFile(path.join(clientDir, '_headers'), 'utf8');
 for (const directive of [
@@ -112,6 +115,13 @@ for (const match of indexHtml.matchAll(/(?:href|src)="([^"]+)"/g)) {
   if (/^https?:\/\//.test(match[1])) {
     throw new Error(`external runtime asset in index.html: ${match[1]}`);
   }
+  if (match[1].startsWith('/') && !match[1].startsWith('/playground/')) {
+    throw new Error(`root-scoped runtime asset in index.html: ${match[1]}`);
+  }
+}
+
+if (!indexHtml.includes('src="/playground/')) {
+  throw new Error('Playground runtime assets are missing the /playground/ prefix');
 }
 
 for (const file of files) {
