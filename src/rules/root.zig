@@ -1050,7 +1050,7 @@ fn runSemanticAfterIo(
         });
     }
 
-    if (options.no_restricted_globals) {
+    if (options.no_restricted_globals and options.no_restricted_globals_entries.count != 0) {
         try no_restricted_globals.run(allocator, diagnostics, tree, semantic_result.symbol_table, options.no_restricted_globals_entries);
     }
 
@@ -1553,10 +1553,10 @@ const BasicVisitor = struct {
         if (self.options.alipay_ant_no_negative_conditionals) {
             try alipay_ant_no_negative_conditionals.checkNode(self.allocator, self.diagnostics, ctx.tree, data, index);
         }
-        if (self.options.id_denylist) {
+        if (self.options.id_denylist and self.options.id_denylist_names.count != 0) {
             try id_denylist.checkNode(self.allocator, self.diagnostics, ctx.tree, data, index, &ctx.path, &self.id_denylist_state, &self.options.id_denylist_names);
         }
-        if (self.options.no_restricted_syntax) {
+        if (self.options.no_restricted_syntax and self.options.no_restricted_syntax_entries.count != 0) {
             try no_restricted_syntax.checkNode(self.allocator, self.diagnostics, ctx.tree, data, index, self.options.no_restricted_syntax_entries);
         }
         if (self.options.no_undefined) {
@@ -1620,7 +1620,7 @@ const BasicVisitor = struct {
         if (self.options.import_no_self_import) {
             try import_no_self_import.check(self.allocator, self.diagnostics, ctx.tree, program, self.file_path);
         }
-        if (self.options.no_restricted_imports) {
+        if (self.options.no_restricted_imports and self.options.no_restricted_imports_entries.count != 0) {
             try no_restricted_imports.check(self.allocator, self.diagnostics, ctx.tree, program, self.options.no_restricted_imports_entries);
         }
         if (self.options.react_no_deprecated) {
@@ -3599,7 +3599,7 @@ const BasicVisitor = struct {
                 .ignore_assignment_variables = self.options.promise_always_return_ignore_assignment_variables,
             });
         }
-        if (self.options.no_restricted_modules) {
+        if (self.options.no_restricted_modules and self.options.no_restricted_modules_entries.count != 0) {
             try no_restricted_modules.check(self.allocator, self.diagnostics, ctx.tree, call, index, self.options.no_restricted_modules_entries);
         }
         if (self.options.use_isnan) {
@@ -3823,7 +3823,7 @@ const BasicVisitor = struct {
         if (self.options.no_iterator) {
             try no_iterator.check(self.allocator, self.diagnostics, ctx.tree, member, index);
         }
-        if (self.options.no_restricted_properties) {
+        if (self.options.no_restricted_properties and self.options.no_restricted_properties_entries.count != 0) {
             try no_restricted_properties.checkMemberExpression(self.allocator, self.diagnostics, ctx.tree, member, index, self.options.no_restricted_properties_entries);
         }
         if (self.options.no_process_env) {
@@ -4291,7 +4291,7 @@ const BasicVisitor = struct {
         if (self.options.no_useless_computed_key) {
             try no_useless_computed_key.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern);
         }
-        if (self.options.no_restricted_properties) {
+        if (self.options.no_restricted_properties and self.options.no_restricted_properties_entries.count != 0) {
             try no_restricted_properties.checkObjectPattern(self.allocator, self.diagnostics, ctx.tree, pattern, self.options.no_restricted_properties_entries);
         }
         return .proceed;
