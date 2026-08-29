@@ -95,12 +95,5 @@ fn isUnresolvedReference(
     symbol_table: traverser.semantic.SymbolTable,
     node: ast.NodeIndex,
 ) bool {
-    var iter = symbol_table.iterReferences();
-    while (iter.next()) |entry| {
-        if (entry.reference.node == node) {
-            return symbol_table.referenceSymbol(entry.id) == .none;
-        }
-    }
-
-    return false;
+    return symbol_table.isUnresolvedReference(node);
 }

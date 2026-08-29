@@ -111,6 +111,11 @@ pub const SymbolTable = struct {
         return self.model.reference(id).symbol;
     }
 
+    pub inline fn isUnresolvedReference(self: SymbolTable, node: ast.NodeIndex) bool {
+        const reference = self.model.referenceOf(node) orelse return false;
+        return self.model.reference(reference).symbol == .none;
+    }
+
     pub inline fn symbolDecls(self: SymbolTable, id: yuku_semantic.SymbolId) []const ast.NodeIndex {
         return self.model.decls(id);
     }
