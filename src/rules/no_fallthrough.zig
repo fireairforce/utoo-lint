@@ -84,9 +84,16 @@ fn allowsEmptyCase(tree: *const ast.Tree, case_index: ast.NodeIndex, next_case_i
 }
 
 fn caseLabelsAreAdjacent(tree: *const ast.Tree, case_index: ast.NodeIndex, next_case_index: ast.NodeIndex) bool {
-    const current = offsetToLine(tree.source, tree.span(case_index).end);
-    const next = offsetToLine(tree.source, tree.span(next_case_index).start);
-    return next <= current + 1;
+    const current_end: usize = @intCast(tree.span(case_index).end);
+    const next_start: usize = @intCast(tree.span(next_case_index).start);
+    if (current_end >= next_start or current_end >= tree.source.len) return true;
+
+    var line_breaks: usize = 0;
+    for (tree.source[current_end..@min(next_start, tree.source.len)]) |byte| {
+        if (byte == '\n') line_breaks += 1;
+        if (line_breaks > 1) return false;
+    }
+    return true;
 }
 
 fn caseAlwaysExits(tree: *const ast.Tree, switch_case: ast.SwitchCase) bool {
@@ -234,15 +241,4 @@ fn lastWildcardPartStart(pattern: []const u8) usize {
         offset = start;
     }
     return start;
-}
-
-fn offsetToLine(source: []const u8, offset: u32) usize {
-    const limit = @min(@as(usize, @intCast(offset)), source.len);
-    var line: usize = 1;
-
-    for (source[0..limit]) |byte| {
-        if (byte == '\n') line += 1;
-    }
-
-    return line;
 }
