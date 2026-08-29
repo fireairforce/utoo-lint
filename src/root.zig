@@ -269,6 +269,7 @@ fn hasSemanticRules(options: Options) bool {
         options.no_global_is_nan or
         options.no_implied_eval or
         options.no_import_assign or
+        options.no_invalid_this or
         options.alipay_ant_no_phantom_dependencies or
         options.import_default or
         options.import_export or
