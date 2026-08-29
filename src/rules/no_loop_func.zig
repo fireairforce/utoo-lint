@@ -12,10 +12,7 @@ const SymbolId = traverser.semantic.SymbolId;
 const ReferenceLookup = std.AutoHashMap(ast.NodeIndex, SymbolId);
 const DeclSymbolMap = std.AutoHashMap(ast.NodeIndex, SymbolId);
 
-const Write = struct {
-    symbol_id: SymbolId,
-    span: ast.Span,
-};
+const WriteMap = std.AutoHashMap(SymbolId, ast.Span);
 
 pub fn run(
     allocator: Allocator,
@@ -56,11 +53,10 @@ pub fn runWithId(
         try reference_lookup.put(entry.reference.node, symbol_table.referenceSymbol(entry.id));
     }
 
-    var writes: std.ArrayList(Write) = .empty;
-    defer writes.deinit(allocator);
+    var writes = WriteMap.init(allocator);
+    defer writes.deinit();
 
     var write_visitor = WriteVisitor{
-        .allocator = allocator,
         .reference_lookup = &reference_lookup,
         .decl_symbols = &decl_symbols,
         .writes = &writes,
@@ -72,7 +68,7 @@ pub fn runWithId(
         .diagnostics = diagnostics,
         .symbol_table = symbol_table,
         .reference_lookup = &reference_lookup,
-        .writes = writes.items,
+        .writes = &writes,
         .rule_id = rule_id,
     };
     defer visitor.loop_stack.deinit(allocator);
@@ -144,10 +140,9 @@ const CandidateVisitor = struct {
 };
 
 const WriteVisitor = struct {
-    allocator: Allocator,
     reference_lookup: *const ReferenceLookup,
     decl_symbols: *const DeclSymbolMap,
-    writes: *std.ArrayList(Write),
+    writes: *WriteMap,
 
     pub fn enter_variable_declarator(
         self: *WriteVisitor,
@@ -206,7 +201,7 @@ const WriteVisitor = struct {
         switch (tree.data(index)) {
             .binding_identifier => {
                 const symbol_id = self.decl_symbols.get(index) orelse return;
-                try self.writes.append(self.allocator, .{ .symbol_id = symbol_id, .span = span });
+                try self.recordWrite(symbol_id, span);
             },
             .assignment_pattern => |pattern| try self.collectBindingWrite(tree, pattern.left, span),
             .binding_rest_element => |element| try self.collectBindingWrite(tree, element.argument, span),
@@ -254,7 +249,7 @@ const WriteVisitor = struct {
         switch (tree.data(unwrapped)) {
             .identifier_reference => {
                 const symbol_id = self.reference_lookup.get(unwrapped) orelse return;
-                if (symbol_id != .none) try self.writes.append(self.allocator, .{ .symbol_id = symbol_id, .span = span });
+                if (symbol_id != .none) try self.recordWrite(symbol_id, span);
             },
             .assignment_pattern => |pattern| try self.collectTargetWrite(tree, pattern.left, span),
             .array_pattern => |pattern| {
@@ -276,6 +271,13 @@ const WriteVisitor = struct {
             else => {},
         }
     }
+
+    fn recordWrite(self: *WriteVisitor, symbol_id: SymbolId, span: ast.Span) Allocator.Error!void {
+        const entry = try self.writes.getOrPut(symbol_id);
+        if (!entry.found_existing or span.start > entry.value_ptr.start) {
+            entry.value_ptr.* = span;
+        }
+    }
 };
 
 const Visitor = struct {
@@ -283,7 +285,7 @@ const Visitor = struct {
     diagnostics: *core.DiagnosticList,
     symbol_table: traverser.semantic.SymbolTable,
     reference_lookup: *const ReferenceLookup,
-    writes: []const Write,
+    writes: *const WriteMap,
     rule_id: []const u8,
     loop_stack: std.ArrayList(ast.Span) = .empty,
     function_loop_depth_stack: std.ArrayList(usize) = .empty,
@@ -465,10 +467,8 @@ const Visitor = struct {
             return true;
         }
 
-        for (self.writes) |write| {
-            if (write.symbol_id == symbol_id and write.span.start >= loop_span.start) return false;
-        }
-        return true;
+        const last_write = self.writes.get(symbol_id) orelse return true;
+        return last_write.start < loop_span.start;
     }
 };
 
