@@ -202,7 +202,7 @@ const Visitor = struct {
         const callee_index = unwrapTransparent(tree, callee);
         const name = identifierReferenceName(tree, callee_index) orelse return false;
         if (!isBuiltInErrorName(name)) return false;
-        return isUnresolvedReference(self.symbol_table, callee_index);
+        return (self.reference_lookup.get(callee_index) orelse return false) == .none;
     }
 
     fn addDiagnostic(
@@ -333,19 +333,6 @@ fn isBuiltInErrorName(name: []const u8) bool {
         std.mem.eql(u8, name, "TypeError") or
         std.mem.eql(u8, name, "URIError") or
         std.mem.eql(u8, name, "AggregateError");
-}
-
-fn isUnresolvedReference(
-    symbol_table: traverser.semantic.SymbolTable,
-    node: ast.NodeIndex,
-) bool {
-    var iter = symbol_table.iterReferences();
-    while (iter.next()) |entry| {
-        if (entry.reference.node == node) {
-            return symbol_table.referenceSymbol(entry.id) == .none;
-        }
-    }
-    return false;
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
