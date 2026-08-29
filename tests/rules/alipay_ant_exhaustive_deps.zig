@@ -91,6 +91,28 @@ test "allows @alipay/ant/exhaustive-deps stable values" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.alipay_ant_exhaustive_deps.id));
 }
 
+test "isolates dependencies for each @alipay/ant/exhaustive-deps callback" {
+    const source =
+        \\function App({ first, second }) {
+        \\  useEffect(() => {
+        \\    const local = first;
+        \\    console.log(local);
+        \\  }, []);
+        \\  useEffect(() => {
+        \\    const local = second;
+        \\    console.log(local);
+        \\  }, []);
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "test.jsx", optionsOnly());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.alipay_ant_exhaustive_deps.id));
+    try std.testing.expect(std.mem.indexOf(u8, result.diagnostics[0].message, "missing dependency: 'first'") != null);
+    try std.testing.expect(std.mem.indexOf(u8, result.diagnostics[1].message, "missing dependency: 'second'") != null);
+}
+
 test "can disable @alipay/ant/exhaustive-deps" {
     const source =
         \\function App({ foo }) {

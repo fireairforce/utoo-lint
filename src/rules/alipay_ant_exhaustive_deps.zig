@@ -71,8 +71,8 @@ pub fn runWithOptions(
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
+        .symbol_table = symbol_table,
         .reference_lookup = &reference_lookup,
-        .decl_symbols = &decl_symbols,
         .stable_symbols = &stable_symbols,
         .unstable_symbols = &unstable_symbols,
         .options = options,
@@ -157,8 +157,8 @@ const StableSymbolVisitor = struct {
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    symbol_table: traverser.semantic.SymbolTable,
     reference_lookup: *const ReferenceLookup,
-    decl_symbols: *const DeclSymbolMap,
     stable_symbols: *const SymbolSet,
     unstable_symbols: *const SymbolSet,
     options: Options,
@@ -277,11 +277,13 @@ const Visitor = struct {
             .allocator = self.allocator,
             .callback_span = ctx.tree.span(callback),
             .used = &used,
+            .symbol_table = self.symbol_table,
             .reference_lookup = self.reference_lookup,
             .stable_symbols = self.stable_symbols,
-            .decl_symbols = self.decl_symbols,
         };
-        try traverser.basic.traverse(DependencyVisitor, ctx.tree, &dep_visitor);
+        var callback_tree = ctx.tree.*;
+        callback_tree.root = callback;
+        try traverser.basic.traverse(DependencyVisitor, &callback_tree, &dep_visitor);
 
         if (duplicate) |name| {
             try self.reportFmt(
@@ -352,9 +354,9 @@ const DependencyVisitor = struct {
     allocator: Allocator,
     callback_span: ast.Span,
     used: *std.StringHashMap(ast.NodeIndex),
+    symbol_table: traverser.semantic.SymbolTable,
     reference_lookup: *const ReferenceLookup,
     stable_symbols: *const SymbolSet,
-    decl_symbols: *const DeclSymbolMap,
 
     pub fn enter_identifier_reference(
         self: *DependencyVisitor,
@@ -377,10 +379,8 @@ const DependencyVisitor = struct {
     }
 
     fn symbolDeclaredInsideCallback(self: *DependencyVisitor, tree: *const ast.Tree, symbol_id: SymbolId) bool {
-        var iter = self.decl_symbols.iterator();
-        while (iter.next()) |entry| {
-            if (entry.value_ptr.* != symbol_id) continue;
-            const span = tree.span(entry.key_ptr.*);
+        for (self.symbol_table.symbolDecls(symbol_id)) |declaration| {
+            const span = tree.span(declaration);
             if (span.start >= self.callback_span.start and span.end <= self.callback_span.end) return true;
         }
         return false;
