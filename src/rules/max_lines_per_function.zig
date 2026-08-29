@@ -115,28 +115,41 @@ fn isCommentOnlyLine(
     line_end: usize,
 ) bool {
     var saw_comment = false;
+    var cursor = line_start;
+    var comment_index = firstCommentEndingAfter(comments, line_start);
 
-    var index = line_start;
-    while (index < line_end) : (index += 1) {
-        if (std.ascii.isWhitespace(source[index])) continue;
-        if (!isInsideComment(comments, index, line_start, line_end)) return false;
+    while (comment_index < comments.len) : (comment_index += 1) {
+        const comment = comments[comment_index];
+        const start: usize = @intCast(comment.span.start);
+        const end: usize = @intCast(comment.span.end);
+        if (start >= line_end) break;
+        if (end <= cursor) continue;
+        const gap_end = @max(cursor, @min(start, line_end));
+        if (containsNonWhitespace(source[cursor..gap_end])) return false;
         saw_comment = true;
+        cursor = @max(cursor, @min(end, line_end));
     }
 
-    return saw_comment;
+    return saw_comment and !containsNonWhitespace(source[cursor..line_end]);
 }
 
-fn isInsideComment(
-    comments: []const ast.Comment,
-    index: usize,
-    line_start: usize,
-    line_end: usize,
-) bool {
-    for (comments) |comment| {
-        const start: usize = comment.span.start;
-        const end: usize = comment.span.end;
-        if (end <= line_start or start >= line_end) continue;
-        if (start <= index and index < end) return true;
+fn firstCommentEndingAfter(comments: []const ast.Comment, offset: usize) usize {
+    var low: usize = 0;
+    var high = comments.len;
+    while (low < high) {
+        const middle = low + (high - low) / 2;
+        if (comments[middle].span.end <= offset) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+fn containsNonWhitespace(source: []const u8) bool {
+    for (source) |byte| {
+        if (!std.ascii.isWhitespace(byte)) return true;
     }
     return false;
 }

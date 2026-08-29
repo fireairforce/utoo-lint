@@ -63,6 +63,28 @@ test "supports skipBlankLines and skipComments" {
     try std.testing.expect(!helpers.hasRule(skipped_result, lint.rules.max_lines_per_function.id));
 }
 
+test "skipComments handles multiline comments without skipping inline code" {
+    const source =
+        \\function counted() {
+        \\  /* first
+        \\   * second
+        \\   */
+        \\  const value = 1; // inline comment
+        \\  return value;
+        \\}
+    ;
+
+    var options = baseOptions();
+    options.max_lines_per_function_max = 3;
+    options.max_lines_per_function_skip_comments = true;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.max_lines_per_function.id));
+    try std.testing.expect(hasMessage(result, "Function has too many lines (4). Maximum allowed is 3."));
+}
+
 test "skips IIFEs unless configured" {
     const source =
         \\(function () {
