@@ -164,14 +164,8 @@ fn isUnresolvedReference(
     symbol_table: traverser.semantic.SymbolTable,
     node: ast.NodeIndex,
 ) bool {
-    var iter = symbol_table.iterReferences();
-    while (iter.next()) |entry| {
-        if (entry.reference.node == node) {
-            return symbol_table.referenceSymbol(entry.id) == .none;
-        }
-    }
-
-    return true;
+    const reference = symbol_table.model.referenceOf(node) orelse return true;
+    return symbol_table.referenceSymbol(reference) == .none;
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
