@@ -2,7 +2,10 @@ import { access, readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+);
 const siteDir = path.join(repoDir, 'dist', 'site');
 const playgroundDir = path.join(siteDir, 'playground');
 
@@ -74,7 +77,9 @@ async function verifyTranslationSources() {
         chinese,
       )
     ) {
-      throw new Error(`${stem} translation links back to an English docs route`);
+      throw new Error(
+        `${stem} translation links back to an English docs route`,
+      );
     }
   }
 
@@ -134,6 +139,23 @@ function verifyDocumentMetadata(html, expectedTitle, label) {
   const escapedTitle = expectedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (!new RegExp(`<title\\b[^>]*>${escapedTitle}</title>`).test(head)) {
     throw new Error(`${label} has the wrong document title`);
+  }
+}
+
+function verifyDocumentEnvelope(html, label) {
+  if (html.includes('\0')) {
+    throw new Error(`${label} contains a null byte`);
+  }
+
+  if (
+    /<!--\$\?-->|<template\b[^>]*\bdata-msg=|\bid="[BS]:|\$RC\(/i.test(html)
+  ) {
+    throw new Error(`${label} contains an unfinished streamed SSR boundary`);
+  }
+
+  const closingHtmlTags = html.match(/<\/html\s*>/gi)?.length ?? 0;
+  if (closingHtmlTags !== 1 || !/<\/html\s*>\s*$/i.test(html)) {
+    throw new Error(`${label} must end with exactly one closing html tag`);
   }
 }
 
@@ -214,8 +236,7 @@ function verifyLocalizedHead(
 function verifyLanguageSwitch(html, expectedHref, expectedText, label) {
   const switchLink = [...html.matchAll(/(<a\b[^>]*>)([\s\S]*?)<\/a>/gi)].find(
     (match) => {
-      const classes =
-        getHtmlAttribute(match[1], 'class')?.split(/\s+/) ?? [];
+      const classes = getHtmlAttribute(match[1], 'class')?.split(/\s+/) ?? [];
       return classes.includes('dumi-default-lang-switch');
     },
   );
@@ -248,7 +269,9 @@ function verifyHomepageVisual(html) {
     'utlint-hero-evidence',
   ]) {
     if (findOpeningTagByClass(html, removedClass)) {
-      throw new Error(`docs index still renders removed visual ${removedClass}`);
+      throw new Error(
+        `docs index still renders removed visual ${removedClass}`,
+      );
     }
   }
 
@@ -275,7 +298,10 @@ function verifyHomepagePlaygroundLinks(html, heroCtaText) {
   let heroCtaFound = false;
 
   for (const match of html.matchAll(/(<a\b[^>]*>)([\s\S]*?)<\/a>/gi)) {
-    const text = match[2].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const text = match[2]
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
     if (!/\bPlayground\b/i.test(text)) continue;
 
     if (getHtmlAttribute(match[1], 'href') !== '/playground/') {
@@ -307,8 +333,7 @@ function verifyAccessibleControls(html, label, colorThemeLabel) {
   }
 
   const colorThemeControl = [...html.matchAll(/<select\b[^>]*>/gi)].find(
-    (match) =>
-      getHtmlAttribute(match[0], 'aria-label') === colorThemeLabel,
+    (match) => getHtmlAttribute(match[0], 'aria-label') === colorThemeLabel,
   );
   if (!colorThemeControl) {
     throw new Error(`${label} has an inaccessible color theme control`);
@@ -389,7 +414,9 @@ function verifyHomepageBuildScript(source, label) {
       /\btexture/i.test(nearbySource);
 
     if (isCdnHost(url.hostname.toLowerCase()) || isRemoteTexture) {
-      throw new Error(`${label} unexpectedly references remote asset ${rawUrl}`);
+      throw new Error(
+        `${label} unexpectedly references remote asset ${rawUrl}`,
+      );
     }
   }
 }
@@ -579,6 +606,7 @@ const documents = new Map();
 for (const spec of documentSpecs) {
   const html = await readFile(await requireFile(spec.file), 'utf8');
   documents.set(spec.file, html);
+  verifyDocumentEnvelope(html, spec.label);
   verifyDocumentMetadata(html, spec.title, spec.label);
   verifyDocumentLanguage(html, spec.language, spec.label);
   verifyLocalizedHead(html, spec);
@@ -603,7 +631,9 @@ if (docsIndex.includes('__EVJS_CLIENT_RUNTIME__')) {
   throw new Error('root document unexpectedly contains the Playground runtime');
 }
 if (chineseDocsIndex.includes('__EVJS_CLIENT_RUNTIME__')) {
-  throw new Error('Chinese document unexpectedly contains the Playground runtime');
+  throw new Error(
+    'Chinese document unexpectedly contains the Playground runtime',
+  );
 }
 for (const [label, html] of [
   ['English root document', docsIndex],
@@ -640,6 +670,7 @@ const playgroundIndex = await readFile(
   await requireFile('playground/index.html'),
   'utf8',
 );
+verifyDocumentEnvelope(playgroundIndex, 'Playground index');
 if (!playgroundIndex.includes('id="__EVJS_CLIENT_RUNTIME__"')) {
   throw new Error('Playground browser runtime is missing');
 }
@@ -654,13 +685,19 @@ for (const match of playgroundIndex.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
 await verifyLocalAssets(playgroundIndex, 'Playground index');
 
 const playgroundFiles = await collectFiles(playgroundDir);
-const wasmFiles = playgroundFiles.filter((file) => path.extname(file) === '.wasm');
+const wasmFiles = playgroundFiles.filter(
+  (file) => path.extname(file) === '.wasm',
+);
 if (wasmFiles.length !== 2) {
-  throw new Error(`expected two Playground WebAssembly assets, found ${wasmFiles.length}`);
+  throw new Error(
+    `expected two Playground WebAssembly assets, found ${wasmFiles.length}`,
+  );
 }
 for (const controlFile of ['_headers', '_redirects']) {
   if (playgroundFiles.some((file) => path.basename(file) === controlFile)) {
-    throw new Error(`nested Playground control file was not removed: ${controlFile}`);
+    throw new Error(
+      `nested Playground control file was not removed: ${controlFile}`,
+    );
   }
 }
 

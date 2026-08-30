@@ -13,10 +13,12 @@
   --utlint-error: #c64b43;
   --utlint-warning: #a56608;
   --utlint-success: #247a59;
-  --utlint-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
-    Arial, sans-serif;
-  --utlint-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
+  --utlint-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial,
+    sans-serif;
+  --utlint-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    monospace;
 }
 
 html {
@@ -60,7 +62,9 @@ body {
   opacity: 0;
   pointer-events: none;
   transform: translateY(-140%);
-  transition: opacity 120ms ease, transform 120ms ease;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
 }
 
 .utlint-skip-link:focus {
@@ -76,7 +80,8 @@ body {
 
 .dumi-default-header,
 .dumi-default-doc-layout:has(> .dumi-default-hero) .dumi-default-header {
-  border-bottom: 1px solid color-mix(in srgb, var(--utlint-line) 82%, transparent);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--utlint-line) 82%, transparent);
   background: color-mix(in srgb, var(--utlint-paper) 92%, transparent);
   box-shadow: none;
   backdrop-filter: blur(16px);
@@ -128,7 +133,9 @@ body {
   content: '';
   opacity: 0;
   transform: scaleX(0.6);
-  transition: opacity 140ms ease, transform 140ms ease;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
 }
 
 .dumi-default-navbar > li > a:hover::after,
@@ -267,7 +274,9 @@ body {
   font-weight: 600;
   line-height: 1.4;
   text-decoration: none;
-  transition: border-color 140ms ease, background-color 140ms ease,
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
     transform 140ms ease;
 }
 
@@ -334,7 +343,9 @@ body {
   color: #73797d;
   cursor: pointer;
   place-items: center;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .utlint-hero-command button:hover,
@@ -1000,7 +1011,9 @@ body {
   font-size: 14px;
   font-weight: 600;
   text-decoration: none !important;
-  transition: background-color 140ms ease, border-color 140ms ease,
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
     transform 140ms ease;
 }
 
@@ -1087,7 +1100,9 @@ body {
   color: #656c70;
   font-size: 13px;
   line-height: 1.45;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .dumi-default-sidebar > dl > dd > a:hover {
@@ -1752,7 +1767,10 @@ body:where(html[data-prefers-color='dark'] *) {
 }
 
 body:where(html[data-prefers-color='dark'] *)
-  :is(.dumi-default-header, .dumi-default-doc-layout:has(> .dumi-default-hero) .dumi-default-header) {
+  :is(
+    .dumi-default-header,
+    .dumi-default-doc-layout:has(> .dumi-default-hero) .dumi-default-header
+  ) {
   background: rgba(21, 22, 22, 0.92);
 }
 
@@ -1760,8 +1778,14 @@ body:where(html[data-prefers-color='dark'] *)
   :is(
     .dumi-default-navbar > li > a,
     .dumi-default-navbar > li > span,
-    .dumi-default-doc-layout:has(> .dumi-default-hero) .dumi-default-navbar > li > a,
-    .dumi-default-doc-layout:has(> .dumi-default-hero) .dumi-default-navbar > li > span
+    .dumi-default-doc-layout:has(> .dumi-default-hero)
+      .dumi-default-navbar
+      > li
+      > a,
+    .dumi-default-doc-layout:has(> .dumi-default-hero)
+      .dumi-default-navbar
+      > li
+      > span
   ) {
   color: #c3c6c4;
 }
@@ -1816,12 +1840,14 @@ body:where(html[data-prefers-color='dark'] *)
 }
 
 body:where(html[data-prefers-color='dark'] *)
-  :is(.utlint-benchmark-row--utoo > span, .utlint-benchmark-row--utoo > strong) {
+  :is(
+    .utlint-benchmark-row--utoo > span,
+    .utlint-benchmark-row--utoo > strong
+  ) {
   color: var(--utlint-brand);
 }
 
-body:where(html[data-prefers-color='dark'] *)
-  .utlint-engine-pipeline {
+body:where(html[data-prefers-color='dark'] *) .utlint-engine-pipeline {
   border-color: #31576b;
 }
 
@@ -1837,13 +1863,11 @@ body:where(html[data-prefers-color='dark'] *)
   border-color: #31576b;
 }
 
-body:where(html[data-prefers-color='dark'] *)
-  .utlint-engine-pipeline strong {
+body:where(html[data-prefers-color='dark'] *) .utlint-engine-pipeline strong {
   color: #d9eef8;
 }
 
-body:where(html[data-prefers-color='dark'] *)
-  .utlint-engine-pipeline span {
+body:where(html[data-prefers-color='dark'] *) .utlint-engine-pipeline span {
   color: #a5becb;
 }
 
@@ -1852,8 +1876,7 @@ body:where(html[data-prefers-color='dark'] *) .utlint-home-cta {
   background: transparent;
 }
 
-body:where(html[data-prefers-color='dark'] *)
-  .utlint-home-button--primary,
+body:where(html[data-prefers-color='dark'] *) .utlint-home-button--primary,
 body:where(html[data-prefers-color='dark'] *)
   .utlint-home-button--primary:hover {
   border-color: var(--utlint-brand);
@@ -1877,10 +1900,7 @@ body:where(html[data-prefers-color='dark'] *) .markdown a:hover {
   color: #92d6f8;
 }
 
-body:where(html[data-prefers-color='dark'] *)
-  .markdown
-  *:not(pre)
-  > code {
+body:where(html[data-prefers-color='dark'] *) .markdown *:not(pre) > code {
   border-color: rgba(85, 185, 237, 0.18);
   background: rgba(85, 185, 237, 0.1);
   color: #91d8fa;
@@ -2081,17 +2101,20 @@ body:where(html[data-prefers-color='dark'] *)
 .utlint-gpu-logo > img,
 .utlint-gpu-logo > canvas {
   position: absolute;
+}
+
+.utlint-gpu-logo > canvas {
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
 .utlint-gpu-logo > img {
-  box-sizing: border-box;
-  padding: 13.5% 28.5%;
+  inset: 13.5% 28.5%;
+  width: 43%;
+  height: 73%;
   object-fit: contain;
-  filter:
-    drop-shadow(0 18px 36px rgba(0, 0, 0, 0.2))
+  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.2))
     drop-shadow(0 0 18px rgba(30, 158, 224, 0.12));
   opacity: 0.96;
   transition: opacity 320ms ease;
@@ -2107,8 +2130,7 @@ body:where(html[data-prefers-color='dark'] *)
   position: absolute;
   inset: 13.5% 28.5%;
   z-index: 1;
-  background:
-    linear-gradient(
+  background: linear-gradient(
       180deg,
       transparent 0%,
       transparent 40%,
@@ -2194,6 +2216,7 @@ body:where(html[data-prefers-color='dark'] *)
   color: var(--utlint-home-muted);
   font-size: clamp(17px, 1.45vw, 19px);
   line-height: 1.62;
+  text-wrap: balance;
 }
 
 .dumi-default-hero-actions > a,
@@ -2355,9 +2378,7 @@ body:where(html[data-prefers-color='dark'] *) .utlint-hero-command code {
 
 .dumi-default-doc-layout:has(> .dumi-default-hero)
   .dumi-default-content[data-no-sidebar],
-.dumi-default-doc-layout:has(> .dumi-default-hero)
-  article
-  > .markdown {
+.dumi-default-doc-layout:has(> .dumi-default-hero) article > .markdown {
   background: var(--utlint-home-bg);
 }
 
@@ -2365,9 +2386,7 @@ body:where(html[data-prefers-color='dark'] *) .utlint-hero-command code {
   color: var(--utlint-home-ink);
 }
 
-.dumi-default-doc-layout:has(> .dumi-default-hero)
-  article
-  > .markdown {
+.dumi-default-doc-layout:has(> .dumi-default-hero) article > .markdown {
   position: relative;
 }
 
@@ -2454,9 +2473,7 @@ body:where(html[data-prefers-color='dark'] *) .utlint-hero-command code {
 }
 
 .utlint-benchmark-row > i::after,
-body:where(html[data-prefers-color='dark'] *)
-  .utlint-benchmark-row
-  > i::after {
+body:where(html[data-prefers-color='dark'] *) .utlint-benchmark-row > i::after {
   background: #66717f;
 }
 
@@ -2481,7 +2498,10 @@ body:where(html[data-prefers-color='dark'] *)
 .utlint-benchmark-row--utoo > span,
 .utlint-benchmark-row--utoo > strong,
 body:where(html[data-prefers-color='dark'] *)
-  :is(.utlint-benchmark-row--utoo > span, .utlint-benchmark-row--utoo > strong) {
+  :is(
+    .utlint-benchmark-row--utoo > span,
+    .utlint-benchmark-row--utoo > strong
+  ) {
   color: var(--utlint-home-blue);
 }
 
@@ -2678,10 +2698,6 @@ html[data-prefers-color='dark']
   .utlint-gpu-logo {
     height: clamp(260px, 52vw, 340px);
     border-radius: 14px;
-  }
-
-  .utlint-gpu-logo > img {
-    padding: 11% 31%;
   }
 
   .utlint-home-section,

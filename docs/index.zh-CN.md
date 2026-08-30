@@ -121,7 +121,7 @@ hero:
     </p>
   </div>
   <nav class="utlint-home-cta-actions" aria-label="开始使用">
-    <a href="/playground/" class="utlint-home-button utlint-home-button--primary">打开 Playground</a>
+    <NativeLink href="/playground/" className="utlint-home-button utlint-home-button--primary">打开 Playground</NativeLink>
     <a href="/zh-CN/configuration" class="utlint-home-button utlint-home-button--secondary">阅读文档</a>
   </nav>
 </aside>

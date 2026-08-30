@@ -1,9 +1,10 @@
 import React from 'react';
+import NativeLink from '../../components/NativeLink';
 
 export default function NavbarExtra() {
   return (
     <li>
-      <a href="/playground/">Playground</a>
+      <NativeLink href="/playground/">Playground</NativeLink>
     </li>
   );
 }

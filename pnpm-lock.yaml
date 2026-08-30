@@ -7,6 +7,11 @@ settings:
 overrides:
   dompurify: 3.4.14
 
+patchedDependencies:
+  '@umijs/renderer-react@4.7.8':
+    hash: e7c268e2f439046ec5bd5bac17ab8441dac5680813fa2a66d92fad9f72793011
+    path: patches/@umijs__renderer-react@4.7.8.patch
+
 importers:
 
   .:
@@ -14,6 +19,9 @@ importers:
       dumi:
         specifier: 2.4.49
         version: 2.4.49(@babel/core@7.29.7)(@swc/helpers@0.5.15)(@types/node@26.3.0)(@types/react@18.3.28)(jiti@2.7.0)(lightningcss@1.22.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.63.1)(styled-jsx@5.1.7(@babel/core@7.29.7)(react@18.3.1))(typescript@7.0.2)(webpack@5.109.2(lightningcss@1.22.1)(postcss@8.4.31))
+      playwright:
+        specifier: 1.62.1
+        version: 1.62.1
       prism-react-renderer:
         specifier: 1.3.5
         version: 1.3.5(react@18.3.1)
@@ -4202,6 +4210,11 @@ packages:
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -5738,6 +5751,16 @@ packages:
 
   piscina@4.9.4:
     resolution: {integrity: sha512-RyBDr2VheQ8ZfH3N8SzQZHztqVyOtadTwLnUYof6gdj5161/eu2wNhCbGl5GHnNKDpnkicJYpKtL2J+y/gk6XA==}
+
+  playwright-core@1.62.1:
+    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.62.1:
+    resolution: {integrity: sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
@@ -9566,7 +9589,7 @@ snapshots:
       '@umijs/history': 5.3.1
       '@umijs/mfsu': 4.7.8
       '@umijs/plugin-run': 4.7.8
-      '@umijs/renderer-react': 4.7.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@umijs/renderer-react': 4.7.8(patch_hash=e7c268e2f439046ec5bd5bac17ab8441dac5680813fa2a66d92fad9f72793011)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@umijs/server': 4.7.8
       '@umijs/ui': 3.0.1
       '@umijs/utils': 4.7.8
@@ -9631,7 +9654,7 @@ snapshots:
       source-map: 0.7.6
       webpack: 5.109.2(lightningcss@1.22.1)(postcss@8.4.31)
 
-  '@umijs/renderer-react@4.7.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@umijs/renderer-react@4.7.8(patch_hash=e7c268e2f439046ec5bd5bac17ab8441dac5680813fa2a66d92fad9f72793011)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@babel/runtime': 7.23.6
       '@loadable/component': 5.15.2(react@18.3.1)
@@ -11644,6 +11667,9 @@ snapshots:
 
   fs.realpath@1.0.0: {}
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -13519,6 +13545,14 @@ snapshots:
     optionalDependencies:
       '@napi-rs/nice': 1.1.1
 
+  playwright-core@1.62.1: {}
+
+  playwright@1.62.1:
+    dependencies:
+      playwright-core: 1.62.1
+    optionalDependencies:
+      fsevents: 2.3.2
+
   pluralize@8.0.0: {}
 
   point-in-polygon@1.1.0: {}
@@ -14999,7 +15033,7 @@ snapshots:
       '@umijs/bundler-webpack': 4.7.8(typescript@7.0.2)(webpack@5.109.2(lightningcss@1.22.1)(postcss@8.4.31))
       '@umijs/core': 4.7.8
       '@umijs/preset-umi': 4.7.8(@types/node@26.3.0)(@types/react@18.3.28)(jiti@2.7.0)(lightningcss@1.22.1)(rollup@4.63.1)(sass@1.103.1)(styled-jsx@5.1.7(@babel/core@7.29.7)(react@18.3.1))(typescript@7.0.2)(webpack@5.109.2(lightningcss@1.22.1)(postcss@8.4.31))
-      '@umijs/renderer-react': 4.7.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@umijs/renderer-react': 4.7.8(patch_hash=e7c268e2f439046ec5bd5bac17ab8441dac5680813fa2a66d92fad9f72793011)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@umijs/server': 4.7.8
       '@umijs/test': 4.7.8(@babel/core@7.29.7)
       '@umijs/utils': 4.7.8

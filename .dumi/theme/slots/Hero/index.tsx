@@ -1,6 +1,7 @@
 import { Link, useLocale, useRouteMeta } from 'dumi';
 import HeroTitle from 'dumi/theme/slots/HeroTitle';
 import React from 'react';
+import NativeLink from '../../components/NativeLink';
 import WebGPULogo from '../../components/WebGPULogo';
 
 interface HeroAction {
@@ -60,9 +61,9 @@ export default function Hero() {
 
                   if (link.startsWith('/playground/')) {
                     return (
-                      <a className={className} href={link} key={text}>
+                      <NativeLink className={className} href={link} key={text}>
                         {text}
-                      </a>
+                      </NativeLink>
                     );
                   }
 

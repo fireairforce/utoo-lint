@@ -1,0 +1,13 @@
+diff --git a/dist/browser.js b/dist/browser.js
+index 6ddffa174727faf53e18b68ab8205c04c14b4491..8be70bb91aa97f50d7a572f3bfd19f20f25f6548 100644
+--- a/dist/browser.js
++++ b/dist/browser.js
+@@ -255,7 +255,7 @@ export function renderClient(opts) {
+     var loaderData = window.__UMI_LOADER_DATA__ || {};
+     var metadata = window.__UMI_METADATA_LOADER_DATA__ || {};
+     var hydtateHtmloptions = {
+-      metadata: metadata,
++      htmlPageOpts: metadata,
+       loaderData: loaderData,
+       mountElementId: opts.mountElementId
+     };

@@ -123,7 +123,7 @@ hero:
     </p>
   </div>
   <nav class="utlint-home-cta-actions" aria-label="Get started">
-    <a href="/playground/" class="utlint-home-button utlint-home-button--primary">Open the Playground</a>
+    <NativeLink href="/playground/" className="utlint-home-button utlint-home-button--primary">Open the Playground</NativeLink>
     <a href="/configuration" class="utlint-home-button utlint-home-button--secondary">Read the docs</a>
   </nav>
 </aside>
