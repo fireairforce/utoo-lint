@@ -7,8 +7,9 @@ EVJS packages, Utoopack, Monaco Editor, a Web Worker, and the workspace
 utoo-lint.
 
 No `@alipay/*` package, private registry, internal runtime, or server process
-is required. EVJS discovers the root `src/pages/page.tsx` as a CSR SPA, and
-the static deployment adapter emits a complete site under `dist/client`.
+is required. EVJS mounts the root `src/pages/page.tsx` as a CSR SPA at
+`/playground`, and the static deployment adapter emits a complete site under
+`dist/client`.
 
 ## Develop
 
@@ -30,6 +31,7 @@ pnpm playground:dev
 The root script stages the v0.3.0 artifact as
 `npm/@utoo/lint-wasm/utoo-lint.wasm` before starting EVJS. The Utoopack
 development URL is printed in the terminal.
+Open the `/playground` route rather than the server root.
 
 ## Verify and build
 
@@ -45,14 +47,13 @@ WASM assets,
 requires no server, loads no remote runtime assets, and contains no known
 internal registry or release-chain markers.
 
-Deploy `apps/playground/dist/client` at the root of a static origin. The
-generated `_redirects` file provides the SPA fallback on hosts such as
-Cloudflare Pages and Netlify. The current EVJS output uses root-relative asset
-URLs, so repository-subpath hosting needs an origin rewrite or a dedicated
-domain.
+The production HTML and its initial assets are prepared for the `/playground/`
+subpath. The repository-level `site:build` command builds the dumi docs, copies
+this output into `dist/site/playground`, and writes the Cloudflare Pages control
+files at the unified site root.
 
 The production Playground is deployed to
-[`utlint.umijs.org`](https://utlint.umijs.org/).
+[`utlint.umijs.org/playground/`](https://utlint.umijs.org/playground/).
 
 ## Runtime boundaries
 

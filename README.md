@@ -14,9 +14,10 @@ powered by [Yuku](https://github.com/yuku-toolchain/yuku).
 [`@utoo/lint`](https://www.npmjs.com/package/@utoo/lint). It combines a native
 lint engine with familiar configuration, CLI, and JavaScript APIs.
 
-[Installation](#installation) · [Quick start](#quick-start) ·
+[Website](https://utlint.umijs.org/) · [Installation](#installation) ·
+[Quick start](#quick-start) ·
 [Rules](docs/rule-status.md) · [Configuration](docs/configuration.md) ·
-[WebAssembly](docs/wasm.md) · [Playground](https://utlint.umijs.org/) ·
+[WebAssembly](docs/wasm.md) · [Playground](https://utlint.umijs.org/playground/) ·
 [ESLint migration](docs/eslint-migration.md)
 
 ## Why utoo-lint?

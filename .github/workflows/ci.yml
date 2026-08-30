@@ -117,8 +117,14 @@ jobs:
       - name: Inspect Playground build plan
         run: pnpm --filter @utoo/lint-playground inspect
 
-      - name: Build and audit Playground
-        run: pnpm --filter @utoo/lint-playground build
+      - name: Build and audit unified site
+        run: pnpm site:build
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+
+      - name: Smoke-test production site
+        run: pnpm site:smoke
 
       - name: Verify WebAssembly npm package contents
         run: |
