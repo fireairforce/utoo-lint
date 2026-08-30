@@ -11,9 +11,44 @@ hero:
       link: /playground/
 ---
 
+<section class="utlint-home-section utlint-home-section--benchmark" aria-labelledby="utlint-benchmark-title">
+  <header class="utlint-home-section-heading">
+    <span class="utlint-home-kicker">01 · Benchmark</span>
+    <h2 id="utlint-benchmark-title">About 70× faster than ESLint.</h2>
+    <p>
+      Measured with the same generated TypeScript corpus and the same 12 shared
+      rules. Every sample starts a fresh CLI process; results vary by project
+      and machine.
+    </p>
+    <a class="utlint-home-text-link" href="https://github.com/utooland/utoo-lint/tree/main/benchmarks">
+      See the methodology and run it yourself <span aria-hidden="true">→</span>
+    </a>
+  </header>
+  <figure class="utlint-benchmark-panel" aria-labelledby="utlint-benchmark-caption">
+    <header>
+      <div>
+        <span>Repository benchmark</span>
+        <strong>Relative wall-clock time</strong>
+      </div>
+      <span>Lower is better</span>
+    </header>
+    <div class="utlint-benchmark-chart">
+      <div class="utlint-benchmark-row utlint-benchmark-row--utoo">
+        <span>utoo-lint</span><i aria-hidden="true"></i><strong>1×</strong>
+      </div>
+      <div class="utlint-benchmark-row utlint-benchmark-row--eslint">
+        <span>ESLint</span><i aria-hidden="true"></i><strong>~70×</strong>
+      </div>
+    </div>
+    <figcaption id="utlint-benchmark-caption">
+      100 TypeScript files · 12 shared rules · fresh process per sample · rounded from repeated runs
+    </figcaption>
+  </figure>
+</section>
+
 <section class="utlint-home-section utlint-home-section--migration" aria-labelledby="utlint-migration-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">01 · Migration</span>
+    <span class="utlint-home-kicker">02 · Migration</span>
     <h2 id="utlint-migration-title">Replace ESLint without the big-bang rewrite.</h2>
     <p>
       Migration is deliberately incremental. Generate a report first, move the
@@ -42,7 +77,7 @@ hero:
 
 <section class="utlint-home-section utlint-home-section--architecture" aria-labelledby="utlint-architecture-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">02 · Runtime</span>
+    <span class="utlint-home-kicker">03 · Runtime</span>
     <h2 id="utlint-architecture-title">One core. Native, Node and WebAssembly.</h2>
     <p>
       The Node wrapper handles trusted TypeScript configuration and project

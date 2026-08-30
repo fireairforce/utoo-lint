@@ -723,16 +723,8 @@ body {
 }
 
 .utlint-benchmark-row--utoo > i::after {
-  width: max(1.12%, 7px);
+  width: max(1.43%, 7px);
   background: var(--utlint-brand);
-}
-
-.utlint-benchmark-row--oxlint > i::after {
-  width: 7.67%;
-}
-
-.utlint-benchmark-row--biome > i::after {
-  width: 8.23%;
 }
 
 .utlint-benchmark-row--eslint > i::after {

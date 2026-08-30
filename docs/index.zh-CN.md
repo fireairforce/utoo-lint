@@ -11,9 +11,43 @@ hero:
       link: /playground/
 ---
 
+<section class="utlint-home-section utlint-home-section--benchmark" aria-labelledby="utlint-benchmark-title">
+  <header class="utlint-home-section-heading">
+    <span class="utlint-home-kicker">01 · 性能基准</span>
+    <h2 id="utlint-benchmark-title">比 ESLint 快约 70 倍。</h2>
+    <p>
+      使用同一批生成的 TypeScript 文件和相同的 12 条共有规则进行测试。
+      每个样本都会启动新的 CLI 进程；实际结果会因项目和机器而异。
+    </p>
+    <a class="utlint-home-text-link" href="https://github.com/utooland/utoo-lint/tree/main/benchmarks">
+      查看测试方法并亲自运行 <span aria-hidden="true">→</span>
+    </a>
+  </header>
+  <figure class="utlint-benchmark-panel" aria-labelledby="utlint-benchmark-caption">
+    <header>
+      <div>
+        <span>仓库基准测试</span>
+        <strong>相对实际耗时</strong>
+      </div>
+      <span>越低越好</span>
+    </header>
+    <div class="utlint-benchmark-chart">
+      <div class="utlint-benchmark-row utlint-benchmark-row--utoo">
+        <span>utoo-lint</span><i aria-hidden="true"></i><strong>1×</strong>
+      </div>
+      <div class="utlint-benchmark-row utlint-benchmark-row--eslint">
+        <span>ESLint</span><i aria-hidden="true"></i><strong>~70×</strong>
+      </div>
+    </div>
+    <figcaption id="utlint-benchmark-caption">
+      100 个 TypeScript 文件 · 12 条共有规则 · 每个样本启动新进程 · 多次运行后的近似值
+    </figcaption>
+  </figure>
+</section>
+
 <section class="utlint-home-section utlint-home-section--migration" aria-labelledby="utlint-migration-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">01 · 渐进迁移</span>
+    <span class="utlint-home-kicker">02 · 渐进迁移</span>
     <h2 id="utlint-migration-title">不用一次性重写，也能迁移 ESLint。</h2>
     <p>
       迁移过程是渐进的。先生成报告，把 utoo-lint 已经原生实现的规则迁移过来；
@@ -41,7 +75,7 @@ hero:
 
 <section class="utlint-home-section utlint-home-section--architecture" aria-labelledby="utlint-architecture-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">02 · 运行方式</span>
+    <span class="utlint-home-kicker">03 · 运行方式</span>
     <h2 id="utlint-architecture-title">同一个内核，运行在原生、Node 和 WebAssembly。</h2>
     <p>
       Node 包装层负责加载可信的 TypeScript 配置和发现项目文件；Zig 引擎接收
