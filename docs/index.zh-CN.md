@@ -5,56 +5,55 @@ hero:
   title: 更快地发现代码问题。
   description: 为现有 JavaScript 工程带来原生级检查速度，不用推翻你已经熟悉的工作流。
   actions:
-    - text: 阅读文档
-      link: /zh-CN/configuration
-    - text: 打开 Playground
-      link: /playground/
+    - text: 快速开始
+      link: /zh-CN/quick-start
+    - text: GitHub
+      link: https://github.com/utooland/utoo-lint
 ---
 
 <section class="utlint-home-section utlint-home-section--benchmark" aria-labelledby="utlint-benchmark-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">01 · 性能基准</span>
-    <h2 id="utlint-benchmark-title">冷启动只需 8.35 毫秒。</h2>
+    <span class="utlint-home-kicker">性能基准</span>
+    <h2 id="utlint-benchmark-title">比 ESLint 快约 70 倍。</h2>
     <p>
-      仓库中的基准测试会针对同一批生成的 TypeScript 文件和相同的 12 条
-      Lint 规则，每次启动一个全新的进程。以下结果于 2026 年 6 月 13 日在
-      Darwin arm64 环境中记录。
+      使用同一批生成的 TypeScript 文件和相同的 12 条共有规则进行测试。
+      每个样本都会启动新的 CLI 进程；实际结果会因项目和机器而异。
     </p>
     <a class="utlint-home-text-link" href="https://github.com/utooland/utoo-lint/tree/main/benchmarks">
-      阅读测试方法并亲自运行 <span aria-hidden="true">→</span>
+      查看测试方法并亲自运行 <span aria-hidden="true">→</span>
     </a>
   </header>
   <figure class="utlint-benchmark-panel" aria-labelledby="utlint-benchmark-caption">
     <header>
       <div>
-        <span>每次启动新的 CLI 进程</span>
-        <strong>实际耗时中位数</strong>
+        <span>仓库基准测试</span>
+        <strong>相对实际耗时</strong>
       </div>
-      <span>数值越低越好</span>
+      <span>越低越好</span>
     </header>
     <div class="utlint-benchmark-chart">
       <div class="utlint-benchmark-row utlint-benchmark-row--utoo">
-        <span>utoo-lint</span><i aria-hidden="true"></i><strong>8.35 ms</strong>
+        <span>utoo-lint</span><i aria-hidden="true"></i><strong>1×</strong>
       </div>
       <div class="utlint-benchmark-row utlint-benchmark-row--oxlint">
-        <span>Oxlint</span><i aria-hidden="true"></i><strong>57.35 ms</strong>
+        <span>Oxlint</span><i aria-hidden="true"></i><strong>~4×</strong>
       </div>
       <div class="utlint-benchmark-row utlint-benchmark-row--biome">
-        <span>Biome</span><i aria-hidden="true"></i><strong>61.56 ms</strong>
+        <span>Biome</span><i aria-hidden="true"></i><strong>~5×</strong>
       </div>
       <div class="utlint-benchmark-row utlint-benchmark-row--eslint">
-        <span>ESLint</span><i aria-hidden="true"></i><strong>747.84 ms</strong>
+        <span>ESLint</span><i aria-hidden="true"></i><strong>~70×</strong>
       </div>
     </div>
     <figcaption id="utlint-benchmark-caption">
-      100 个 TypeScript 文件 · 12 条共有规则 · 全新进程 · 多次运行的中位数
+      100 个 TypeScript 文件 · 12 条共有规则 · 每个样本启动新进程 · 多次运行后的近似值
     </figcaption>
   </figure>
 </section>
 
 <section class="utlint-home-section utlint-home-section--migration" aria-labelledby="utlint-migration-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">02 · 渐进迁移</span>
+    <span class="utlint-home-kicker">渐进迁移</span>
     <h2 id="utlint-migration-title">不用一次性重写，也能迁移 ESLint。</h2>
     <p>
       迁移过程是渐进的。先生成报告，把 utoo-lint 已经原生实现的规则迁移过来；
@@ -82,7 +81,7 @@ hero:
 
 <section class="utlint-home-section utlint-home-section--architecture" aria-labelledby="utlint-architecture-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">03 · 运行方式</span>
+    <span class="utlint-home-kicker">运行方式</span>
     <h2 id="utlint-architecture-title">同一个内核，运行在原生、Node 和 WebAssembly。</h2>
     <p>
       Node 包装层负责加载可信的 TypeScript 配置和发现项目文件；Zig 引擎接收

@@ -32,6 +32,7 @@ async function collectFiles(directory) {
 async function verifyTranslationSources() {
   const stems = [
     'index',
+    'quick-start',
     'configuration',
     'eslint-migration',
     'rule-status',
@@ -73,7 +74,7 @@ async function verifyTranslationSources() {
     }
 
     if (
-      /(?:\]\(|href=["'])\/(?:configuration|rule-status|eslint-migration|suppressions|wasm)(?=[/#?"')])/i.test(
+      /(?:\]\(|href=["'])\/(?:quick-start|configuration|rule-status|eslint-migration|suppressions|wasm)(?=[/#?"')])/i.test(
         chinese,
       )
     ) {
@@ -278,7 +279,10 @@ function verifyHomepageVisual(html) {
   for (const requiredClass of [
     'utlint-gpu-logo',
     'utlint-home-kicker',
+    'utlint-home-section--benchmark',
     'utlint-benchmark-chart',
+    'utlint-benchmark-row--oxlint',
+    'utlint-benchmark-row--biome',
     'utlint-migration-boundary',
   ]) {
     if (!findOpeningTagByClass(html, requiredClass)) {
@@ -287,35 +291,56 @@ function verifyHomepageVisual(html) {
   }
 
   for (const result of ['8.35 ms', '57.35 ms', '61.56 ms', '747.84 ms']) {
-    if (!html.includes(result)) {
-      throw new Error(`docs index is missing benchmark result ${result}`);
+    if (html.includes(result)) {
+      throw new Error(`docs index still renders benchmark result ${result}`);
     }
+  }
+
+  if (
+    !['~4×', '~5×', '~70×'].every((comparison) =>
+      html.includes(comparison),
+    )
+  ) {
+    throw new Error('docs index is missing the rounded benchmark comparison');
+  }
+
+  if (/\b0[123]\s*·/.test(html)) {
+    throw new Error('docs index still numbers homepage section labels');
   }
 }
 
-function verifyHomepagePlaygroundLinks(html, heroCtaText) {
+function verifyHomepageActions(html, quickStartText, quickStartHref) {
   let linkCount = 0;
-  let heroCtaFound = false;
+  let quickStartFound = false;
+  let githubFound = false;
 
   for (const match of html.matchAll(/(<a\b[^>]*>)([\s\S]*?)<\/a>/gi)) {
     const text = match[2]
       .replace(/<[^>]*>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    if (!/\bPlayground\b/i.test(text)) continue;
+    const href = getHtmlAttribute(match[1], 'href');
 
-    if (getHtmlAttribute(match[1], 'href') !== '/playground/') {
-      throw new Error(`${text} must be a native link to /playground/`);
+    if (/\bPlayground\b/i.test(text)) {
+      if (href !== '/playground/') {
+        throw new Error(`${text} must be a native link to /playground/`);
+      }
+      linkCount += 1;
     }
-    linkCount += 1;
-    heroCtaFound ||= text === heroCtaText;
+
+    quickStartFound ||= text === quickStartText && href === quickStartHref;
+    githubFound ||=
+      text === 'GitHub' && href === 'https://github.com/utooland/utoo-lint';
   }
 
-  if (!heroCtaFound) {
-    throw new Error('docs index is missing the native Playground hero CTA');
+  if (!quickStartFound) {
+    throw new Error('docs index is missing the localized Quick Start hero CTA');
   }
-  if (linkCount < 2) {
-    throw new Error('docs index is missing its native Playground links');
+  if (!githubFound) {
+    throw new Error('docs index is missing the GitHub hero CTA');
+  }
+  if (linkCount < 1) {
+    throw new Error('docs index is missing its native Playground link');
   }
 }
 
@@ -468,6 +493,18 @@ const documentSpecs = [
     homepage: 'en',
   },
   {
+    file: 'quick-start/index.html',
+    title: 'Quick Start',
+    label: 'English quick start',
+    language: 'en',
+    currentPath: '/quick-start',
+    englishPath: '/quick-start',
+    chinesePath: '/zh-CN/quick-start',
+    switchHref: '/zh-CN/quick-start',
+    switchText: '中文',
+    colorThemeLabel: 'Color theme',
+  },
+  {
     file: 'configuration/index.html',
     title: 'Configuration',
     label: 'English configuration',
@@ -539,6 +576,18 @@ const documentSpecs = [
     switchText: 'English',
     colorThemeLabel: '颜色主题',
     homepage: 'zh-CN',
+  },
+  {
+    file: 'zh-CN/quick-start/index.html',
+    title: '快速开始',
+    label: 'Chinese quick start',
+    language: 'zh-CN',
+    currentPath: '/zh-CN/quick-start',
+    englishPath: '/quick-start',
+    chinesePath: '/zh-CN/quick-start',
+    switchHref: '/quick-start',
+    switchText: 'English',
+    colorThemeLabel: '颜色主题',
   },
   {
     file: 'zh-CN/configuration/index.html',
@@ -616,10 +665,10 @@ for (const spec of documentSpecs) {
 
   if (spec.homepage === 'en') {
     verifyHomepageVisual(html);
-    verifyHomepagePlaygroundLinks(html, 'Open the Playground');
+    verifyHomepageActions(html, 'Quick Start', '/quick-start');
   } else if (spec.homepage === 'zh-CN') {
     verifyHomepageVisual(html);
-    verifyHomepagePlaygroundLinks(html, '打开 Playground');
+    verifyHomepageActions(html, '快速开始', '/zh-CN/quick-start');
   }
 }
 
