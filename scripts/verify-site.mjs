@@ -280,6 +280,8 @@ function verifyHomepageVisual(html) {
     'utlint-home-kicker',
     'utlint-home-section--benchmark',
     'utlint-benchmark-chart',
+    'utlint-benchmark-row--oxlint',
+    'utlint-benchmark-row--biome',
     'utlint-migration-boundary',
   ]) {
     if (!findOpeningTagByClass(html, requiredClass)) {
@@ -293,7 +295,11 @@ function verifyHomepageVisual(html) {
     }
   }
 
-  if (!html.includes('~70×')) {
+  if (
+    !['~4×', '~5×', '~70×'].every((comparison) =>
+      html.includes(comparison),
+    )
+  ) {
     throw new Error('docs index is missing the rounded benchmark comparison');
   }
 }

@@ -727,6 +727,14 @@ body {
   background: var(--utlint-brand);
 }
 
+.utlint-benchmark-row--oxlint > i::after {
+  width: 5.71%;
+}
+
+.utlint-benchmark-row--biome > i::after {
+  width: 7.14%;
+}
+
 .utlint-benchmark-row--eslint > i::after {
   width: 100%;
   background: #555a5d;

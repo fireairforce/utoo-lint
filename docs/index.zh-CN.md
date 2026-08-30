@@ -35,6 +35,12 @@ hero:
       <div class="utlint-benchmark-row utlint-benchmark-row--utoo">
         <span>utoo-lint</span><i aria-hidden="true"></i><strong>1×</strong>
       </div>
+      <div class="utlint-benchmark-row utlint-benchmark-row--oxlint">
+        <span>Oxlint</span><i aria-hidden="true"></i><strong>~4×</strong>
+      </div>
+      <div class="utlint-benchmark-row utlint-benchmark-row--biome">
+        <span>Biome</span><i aria-hidden="true"></i><strong>~5×</strong>
+      </div>
       <div class="utlint-benchmark-row utlint-benchmark-row--eslint">
         <span>ESLint</span><i aria-hidden="true"></i><strong>~70×</strong>
       </div>
