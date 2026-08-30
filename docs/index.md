@@ -6,7 +6,7 @@ hero:
   description: Native-speed linting for the JavaScript projects you already have—without replacing the workflow you already trust.
   actions:
     - text: Quick Start
-      link: /configuration
+      link: /quick-start
     - text: GitHub
       link: https://github.com/utooland/utoo-lint
 ---

@@ -44,11 +44,13 @@ export default defineConfig({
       mode: 'override',
       value: {
         'en-US': [
+          { title: 'Quick Start', link: '/quick-start' },
           { title: 'Configuration', link: '/configuration' },
           { title: 'Rules', link: '/rule-status' },
           { title: 'Migration', link: '/eslint-migration' },
         ],
         'zh-CN': [
+          { title: '快速开始', link: '/zh-CN/quick-start' },
           { title: '配置', link: '/zh-CN/configuration' },
           { title: '规则', link: '/zh-CN/rule-status' },
           { title: '迁移', link: '/zh-CN/eslint-migration' },

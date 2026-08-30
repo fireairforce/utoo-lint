@@ -32,6 +32,7 @@ async function collectFiles(directory) {
 async function verifyTranslationSources() {
   const stems = [
     'index',
+    'quick-start',
     'configuration',
     'eslint-migration',
     'rule-status',
@@ -73,7 +74,7 @@ async function verifyTranslationSources() {
     }
 
     if (
-      /(?:\]\(|href=["'])\/(?:configuration|rule-status|eslint-migration|suppressions|wasm)(?=[/#?"')])/i.test(
+      /(?:\]\(|href=["'])\/(?:quick-start|configuration|rule-status|eslint-migration|suppressions|wasm)(?=[/#?"')])/i.test(
         chinese,
       )
     ) {
@@ -492,6 +493,18 @@ const documentSpecs = [
     homepage: 'en',
   },
   {
+    file: 'quick-start/index.html',
+    title: 'Quick Start',
+    label: 'English quick start',
+    language: 'en',
+    currentPath: '/quick-start',
+    englishPath: '/quick-start',
+    chinesePath: '/zh-CN/quick-start',
+    switchHref: '/zh-CN/quick-start',
+    switchText: '中文',
+    colorThemeLabel: 'Color theme',
+  },
+  {
     file: 'configuration/index.html',
     title: 'Configuration',
     label: 'English configuration',
@@ -563,6 +576,18 @@ const documentSpecs = [
     switchText: 'English',
     colorThemeLabel: '颜色主题',
     homepage: 'zh-CN',
+  },
+  {
+    file: 'zh-CN/quick-start/index.html',
+    title: '快速开始',
+    label: 'Chinese quick start',
+    language: 'zh-CN',
+    currentPath: '/zh-CN/quick-start',
+    englishPath: '/quick-start',
+    chinesePath: '/zh-CN/quick-start',
+    switchHref: '/quick-start',
+    switchText: 'English',
+    colorThemeLabel: '颜色主题',
   },
   {
     file: 'zh-CN/configuration/index.html',
@@ -640,10 +665,10 @@ for (const spec of documentSpecs) {
 
   if (spec.homepage === 'en') {
     verifyHomepageVisual(html);
-    verifyHomepageActions(html, 'Quick Start', '/configuration');
+    verifyHomepageActions(html, 'Quick Start', '/quick-start');
   } else if (spec.homepage === 'zh-CN') {
     verifyHomepageVisual(html);
-    verifyHomepageActions(html, '快速开始', '/zh-CN/configuration');
+    verifyHomepageActions(html, '快速开始', '/zh-CN/quick-start');
   }
 }
 

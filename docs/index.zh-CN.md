@@ -6,7 +6,7 @@ hero:
   description: 为现有 JavaScript 工程带来原生级检查速度，不用推翻你已经熟悉的工作流。
   actions:
     - text: 快速开始
-      link: /zh-CN/configuration
+      link: /zh-CN/quick-start
     - text: GitHub
       link: https://github.com/utooland/utoo-lint
 ---
