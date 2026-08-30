@@ -11,7 +11,7 @@ import type {
   CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
-import utooRabbitUrl from '../../../../assets/utoo-lint-mark-gpt.png';
+import utooRabbitUrl from '../../../../assets/utoo-lint-mark.svg';
 import { ASTWorkerClient } from '../features/ast/client';
 import type { ASTParseResult } from '../features/ast/protocol';
 import { ASTTree } from '../features/ast/tree';
@@ -445,101 +445,119 @@ export default function PlaygroundPage() {
 
   return (
     <main className="playground-shell">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            <img alt="" height={40} src={utooRabbitUrl} width={28} />
-          </span>
-          <div className="brand-title">
-            <h1>utoo-lint</h1>
-            <span className="brand-context">Playground</span>
-          </div>
-        </div>
-
-        <section className="controlbar" aria-label="Playground controls">
-          <label className="language-select-control">
-            <span className="visually-hidden">Language</span>
-            <span className="select-wrap">
-              <select
-                aria-controls="source-editor-panel"
-                onChange={(event) =>
-                  selectLanguage(event.target.value as PlaygroundLanguage)
-                }
-                value={language}
-              >
-                {LANGUAGES.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
-
-          <div className="run-summary" aria-hidden="true">
-            <span className="summary-count error-count">
-              <strong>{errorCount}</strong>{' '}
-              {errorCount === 1 ? 'error' : 'errors'}
-            </span>
-            <span className="summary-count warning-count">
-              <strong>{warningCount}</strong>{' '}
-              {warningCount === 1 ? 'warning' : 'warnings'}
-            </span>
-          </div>
-
-          <span
-            aria-atomic="true"
-            className="run-announcement"
-            role="status"
+      <header className="site-header">
+        <div className="site-header-content">
+          <a
+            aria-label="Back to the utoo-lint homepage"
+            className="brand"
+            href="/"
           >
-            {runState.phase === 'idle' && 'Lint queued.'}
-            {runState.phase === 'running' && 'Linting.'}
-            {runState.phase === 'ready' &&
-              `Lint complete. ${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}.`}
-            {runState.phase === 'error' &&
-              `Lint failed${runState.message ? `: ${runState.message}` : '.'}`}
-          </span>
+            <span className="brand-mark" aria-hidden="true">
+              <img alt="" height={40} src={utooRabbitUrl} width={28} />
+            </span>
+            <h1>utoo-lint</h1>
+          </a>
 
-          <div className="control-actions">
-            <button
-              aria-label={fixButtonLabel}
-              className="fix-button"
-              disabled={isRetry ? !hasValidRules : !canFix}
-              onClick={() => void execute(isRetry ? 'lint' : 'fix')}
-              title={fixButtonLabel}
-              type="button"
-            >
-              {fixButtonText}
-            </button>
+          <nav className="site-nav" aria-label="Main navigation">
+            <a href="/quick-start">Quick Start</a>
+            <a href="/configuration">Configuration</a>
+            <a href="/rule-status">Rules</a>
+            <a href="/eslint-migration">Migration</a>
+            <a aria-current="page" href="/playground/">
+              Playground
+            </a>
+          </nav>
 
-            <button
-              aria-label="Share this playground"
-              className="share-button"
-              onClick={() => void sharePlayground()}
-              type="button"
-            >
-              <span aria-live="polite">
-                {shareState === 'idle' && 'Share'}
-                {shareState === 'copied' && 'Copied'}
-                {shareState === 'error' && 'Copy failed'}
-              </span>
-            </button>
-
+          <div className="site-header-actions">
+            <a className="site-language-link" href="/zh-CN/">
+              中文
+            </a>
             <a
               aria-label="Open utoo-lint on GitHub (opens in a new tab)"
-              className="github-link"
+              className="site-github-link"
               href="https://github.com/utooland/utoo-lint"
               target="_blank"
               rel="noreferrer"
             >
-              GitHub
-              <span aria-hidden="true" className="external-mark">
-                ↗
-              </span>
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.49c-2.23.49-2.7-1.08-2.7-1.08-.36-.93-.89-1.18-.89-1.18-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.51-1.07-1.78-.2-3.65-.89-3.65-3.96 0-.88.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.63 7.63 0 0 1 8 3.72c.68 0 1.35.09 1.98.27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.08-1.87 3.75-3.66 3.95.29.25.54.74.54 1.5v2.22c0 .21.15.46.55.38A8 8 0 0 0 8 0Z" />
+              </svg>
+              <span className="visually-hidden">GitHub</span>
             </a>
           </div>
-        </section>
+        </div>
       </header>
+
+      <section className="controlbar" aria-label="Playground controls">
+        <label className="language-select-control">
+          <span className="visually-hidden">Language</span>
+          <span className="select-wrap">
+            <select
+              aria-controls="source-editor-panel"
+              onChange={(event) =>
+                selectLanguage(event.target.value as PlaygroundLanguage)
+              }
+              value={language}
+            >
+              {LANGUAGES.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </span>
+        </label>
+
+        <div className="run-summary" aria-hidden="true">
+          <span className="summary-count error-count">
+            <strong>{errorCount}</strong>{' '}
+            {errorCount === 1 ? 'error' : 'errors'}
+          </span>
+          <span className="summary-count warning-count">
+            <strong>{warningCount}</strong>{' '}
+            {warningCount === 1 ? 'warning' : 'warnings'}
+          </span>
+        </div>
+
+        <span
+          aria-atomic="true"
+          className="run-announcement"
+          role="status"
+        >
+          {runState.phase === 'idle' && 'Lint queued.'}
+          {runState.phase === 'running' && 'Linting.'}
+          {runState.phase === 'ready' &&
+            `Lint complete. ${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}.`}
+          {runState.phase === 'error' &&
+            `Lint failed${runState.message ? `: ${runState.message}` : '.'}`}
+        </span>
+
+        <div className="control-actions">
+          <button
+            aria-label={fixButtonLabel}
+            className="fix-button"
+            disabled={isRetry ? !hasValidRules : !canFix}
+            onClick={() => void execute(isRetry ? 'lint' : 'fix')}
+            title={fixButtonLabel}
+            type="button"
+          >
+            {fixButtonText}
+          </button>
+
+          <button
+            aria-label="Share this playground"
+            className="share-button"
+            onClick={() => void sharePlayground()}
+            type="button"
+          >
+            <span aria-live="polite">
+              {shareState === 'idle' && 'Share'}
+              {shareState === 'copied' && 'Copied'}
+              {shareState === 'error' && 'Copy failed'}
+            </span>
+          </button>
+        </div>
+      </section>
 
       <section
         className="workspace"
