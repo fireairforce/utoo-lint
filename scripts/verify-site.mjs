@@ -267,6 +267,8 @@ function verifyHomepageVisual(html) {
     'utlint-release-strip',
     'utlint-hero-command',
     'utlint-hero-evidence',
+    'utlint-home-section--benchmark',
+    'utlint-benchmark-chart',
   ]) {
     if (findOpeningTagByClass(html, removedClass)) {
       throw new Error(
@@ -278,7 +280,6 @@ function verifyHomepageVisual(html) {
   for (const requiredClass of [
     'utlint-gpu-logo',
     'utlint-home-kicker',
-    'utlint-benchmark-chart',
     'utlint-migration-boundary',
   ]) {
     if (!findOpeningTagByClass(html, requiredClass)) {
@@ -287,8 +288,8 @@ function verifyHomepageVisual(html) {
   }
 
   for (const result of ['8.35 ms', '57.35 ms', '61.56 ms', '747.84 ms']) {
-    if (!html.includes(result)) {
-      throw new Error(`docs index is missing benchmark result ${result}`);
+    if (html.includes(result)) {
+      throw new Error(`docs index still renders benchmark result ${result}`);
     }
   }
 }
