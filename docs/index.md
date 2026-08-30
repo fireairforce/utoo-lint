@@ -13,7 +13,7 @@ hero:
 
 <section class="utlint-home-section utlint-home-section--benchmark" aria-labelledby="utlint-benchmark-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">01 · Benchmark</span>
+    <span class="utlint-home-kicker">Benchmark</span>
     <h2 id="utlint-benchmark-title">About 70× faster than ESLint.</h2>
     <p>
       Measured with the same generated TypeScript corpus and the same 12 shared
@@ -54,7 +54,7 @@ hero:
 
 <section class="utlint-home-section utlint-home-section--migration" aria-labelledby="utlint-migration-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">02 · Migration</span>
+    <span class="utlint-home-kicker">Migration</span>
     <h2 id="utlint-migration-title">Replace ESLint without the big-bang rewrite.</h2>
     <p>
       Migration is deliberately incremental. Generate a report first, move the
@@ -83,7 +83,7 @@ hero:
 
 <section class="utlint-home-section utlint-home-section--architecture" aria-labelledby="utlint-architecture-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">03 · Runtime</span>
+    <span class="utlint-home-kicker">Runtime</span>
     <h2 id="utlint-architecture-title">One core. Native, Node and WebAssembly.</h2>
     <p>
       The Node wrapper handles trusted TypeScript configuration and project

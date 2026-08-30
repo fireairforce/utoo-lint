@@ -302,6 +302,10 @@ function verifyHomepageVisual(html) {
   ) {
     throw new Error('docs index is missing the rounded benchmark comparison');
   }
+
+  if (/\b0[123]\s*·/.test(html)) {
+    throw new Error('docs index still numbers homepage section labels');
+  }
 }
 
 function verifyHomepagePlaygroundLinks(html, heroCtaText) {

@@ -13,7 +13,7 @@ hero:
 
 <section class="utlint-home-section utlint-home-section--benchmark" aria-labelledby="utlint-benchmark-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">01 · 性能基准</span>
+    <span class="utlint-home-kicker">性能基准</span>
     <h2 id="utlint-benchmark-title">比 ESLint 快约 70 倍。</h2>
     <p>
       使用同一批生成的 TypeScript 文件和相同的 12 条共有规则进行测试。
@@ -53,7 +53,7 @@ hero:
 
 <section class="utlint-home-section utlint-home-section--migration" aria-labelledby="utlint-migration-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">02 · 渐进迁移</span>
+    <span class="utlint-home-kicker">渐进迁移</span>
     <h2 id="utlint-migration-title">不用一次性重写，也能迁移 ESLint。</h2>
     <p>
       迁移过程是渐进的。先生成报告，把 utoo-lint 已经原生实现的规则迁移过来；
@@ -81,7 +81,7 @@ hero:
 
 <section class="utlint-home-section utlint-home-section--architecture" aria-labelledby="utlint-architecture-title">
   <header class="utlint-home-section-heading">
-    <span class="utlint-home-kicker">03 · 运行方式</span>
+    <span class="utlint-home-kicker">运行方式</span>
     <h2 id="utlint-architecture-title">同一个内核，运行在原生、Node 和 WebAssembly。</h2>
     <p>
       Node 包装层负责加载可信的 TypeScript 配置和发现项目文件；Zig 引擎接收
