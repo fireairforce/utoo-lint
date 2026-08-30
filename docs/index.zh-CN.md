@@ -5,10 +5,10 @@ hero:
   title: 更快地发现代码问题。
   description: 为现有 JavaScript 工程带来原生级检查速度，不用推翻你已经熟悉的工作流。
   actions:
-    - text: 阅读文档
+    - text: 快速开始
       link: /zh-CN/configuration
-    - text: 打开 Playground
-      link: /playground/
+    - text: GitHub
+      link: https://github.com/utooland/utoo-lint
 ---
 
 <section class="utlint-home-section utlint-home-section--benchmark" aria-labelledby="utlint-benchmark-title">

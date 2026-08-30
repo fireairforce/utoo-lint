@@ -5,10 +5,10 @@ hero:
   title: Find code problems faster.
   description: Native-speed linting for the JavaScript projects you already have—without replacing the workflow you already trust.
   actions:
-    - text: Read the docs
+    - text: Quick Start
       link: /configuration
-    - text: Open the Playground
-      link: /playground/
+    - text: GitHub
+      link: https://github.com/utooland/utoo-lint
 ---
 
 <section class="utlint-home-section utlint-home-section--benchmark" aria-labelledby="utlint-benchmark-title">

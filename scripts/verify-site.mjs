@@ -308,29 +308,38 @@ function verifyHomepageVisual(html) {
   }
 }
 
-function verifyHomepagePlaygroundLinks(html, heroCtaText) {
+function verifyHomepageActions(html, quickStartText, quickStartHref) {
   let linkCount = 0;
-  let heroCtaFound = false;
+  let quickStartFound = false;
+  let githubFound = false;
 
   for (const match of html.matchAll(/(<a\b[^>]*>)([\s\S]*?)<\/a>/gi)) {
     const text = match[2]
       .replace(/<[^>]*>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    if (!/\bPlayground\b/i.test(text)) continue;
+    const href = getHtmlAttribute(match[1], 'href');
 
-    if (getHtmlAttribute(match[1], 'href') !== '/playground/') {
-      throw new Error(`${text} must be a native link to /playground/`);
+    if (/\bPlayground\b/i.test(text)) {
+      if (href !== '/playground/') {
+        throw new Error(`${text} must be a native link to /playground/`);
+      }
+      linkCount += 1;
     }
-    linkCount += 1;
-    heroCtaFound ||= text === heroCtaText;
+
+    quickStartFound ||= text === quickStartText && href === quickStartHref;
+    githubFound ||=
+      text === 'GitHub' && href === 'https://github.com/utooland/utoo-lint';
   }
 
-  if (!heroCtaFound) {
-    throw new Error('docs index is missing the native Playground hero CTA');
+  if (!quickStartFound) {
+    throw new Error('docs index is missing the localized Quick Start hero CTA');
   }
-  if (linkCount < 2) {
-    throw new Error('docs index is missing its native Playground links');
+  if (!githubFound) {
+    throw new Error('docs index is missing the GitHub hero CTA');
+  }
+  if (linkCount < 1) {
+    throw new Error('docs index is missing its native Playground link');
   }
 }
 
@@ -631,10 +640,10 @@ for (const spec of documentSpecs) {
 
   if (spec.homepage === 'en') {
     verifyHomepageVisual(html);
-    verifyHomepagePlaygroundLinks(html, 'Open the Playground');
+    verifyHomepageActions(html, 'Quick Start', '/configuration');
   } else if (spec.homepage === 'zh-CN') {
     verifyHomepageVisual(html);
-    verifyHomepagePlaygroundLinks(html, '打开 Playground');
+    verifyHomepageActions(html, '快速开始', '/zh-CN/configuration');
   }
 }
 
