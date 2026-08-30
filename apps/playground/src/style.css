@@ -80,7 +80,7 @@ select:focus-visible {
 
 .playground-shell {
   display: grid;
-  grid-template-rows: 52px minmax(0, 1fr);
+  grid-template-rows: 76px 44px minmax(0, 1fr);
   width: 100%;
   height: 100vh;
   height: 100dvh;
@@ -88,16 +88,16 @@ select:focus-visible {
   background: var(--app);
 }
 
-.topbar {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: stretch;
+.site-header {
+  min-width: 0;
   border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  background: rgba(21, 22, 22, 0.96);
 }
 
 .brand,
-.brand-title,
+.site-header-content,
+.site-nav,
+.site-header-actions,
 .controlbar,
 .control-actions,
 .run-summary,
@@ -110,51 +110,150 @@ select:focus-visible {
   align-items: center;
 }
 
+.site-header-content {
+  width: min(100%, 1280px);
+  height: 100%;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
 .brand {
-  min-width: 218px;
+  width: 184px;
+  height: 100%;
+  flex: none;
   gap: 10px;
-  padding: 0 16px;
-  border-right: 1px solid var(--line-muted);
+  color: inherit;
+  text-decoration: none;
+  transition: color 140ms ease;
+}
+
+.brand:hover {
+  color: var(--accent-hover);
 }
 
 .brand-mark {
   display: grid;
-  width: 22px;
-  height: 34px;
+  width: 24px;
+  height: 36px;
   flex: none;
   place-items: center;
 }
 
 .brand-mark img {
   display: block;
-  width: 21px;
-  height: 31px;
+  width: 23px;
+  height: 33px;
   object-fit: contain;
-}
-
-.brand-title {
-  min-width: 0;
-  gap: 10px;
 }
 
 .brand h1 {
   margin: 0;
-  color: var(--text-strong);
-  font-size: 14px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  color: currentColor;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
 
-.brand-context {
-  padding-left: 10px;
-  border-left: 1px solid var(--line);
+.site-nav {
+  height: 100%;
+  gap: 30px;
+}
+
+.site-nav a {
+  position: relative;
+  display: inline-flex;
+  height: 100%;
+  align-items: center;
+  color: #c3c6c4;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 140ms ease;
+}
+
+.site-nav a::after {
+  position: absolute;
+  right: 0;
+  bottom: 17px;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  content: '';
+  opacity: 0;
+  transform: scaleX(0.6);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.site-nav a:hover,
+.site-nav a[aria-current='page'] {
+  color: var(--text-strong);
+}
+
+.site-nav a:hover::after,
+.site-nav a[aria-current='page']::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.site-header-actions {
+  height: 100%;
+  margin-left: auto;
+  gap: 10px;
+}
+
+.site-language-link,
+.site-github-link {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 450;
+  text-decoration: none;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background-color 140ms ease;
+}
+
+.site-language-link {
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.site-language-link:hover {
+  border-color: #414445;
+  color: var(--text-strong);
+  background: var(--surface-hover);
+}
+
+.site-github-link {
+  width: 34px;
+  border-radius: 7px;
+}
+
+.site-github-link:hover {
+  color: var(--text-strong);
+  background: var(--surface-hover);
+}
+
+.site-github-link svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
 .controlbar {
   min-width: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
   padding: 0 10px 0 12px;
 }
 
@@ -249,8 +348,7 @@ select:focus-visible {
 }
 
 .fix-button,
-.share-button,
-.github-link {
+.share-button {
   display: inline-flex;
   min-height: 30px;
   flex: none;
@@ -304,21 +402,6 @@ select:focus-visible {
   border-color: #3a4047;
   color: var(--text-strong);
   background: var(--surface-raised);
-}
-
-.github-link {
-  gap: 5px;
-  padding: 0 7px;
-  color: var(--muted);
-}
-
-.github-link:hover {
-  color: var(--text-strong);
-}
-
-.external-mark {
-  color: var(--muted-subtle);
-  font-size: 10px;
 }
 
 .workspace {
@@ -836,7 +919,11 @@ select:focus-visible {
 
 @media (min-width: 901px) and (max-width: 1120px) {
   .brand {
-    min-width: 190px;
+    width: 160px;
+  }
+
+  .site-nav {
+    gap: 22px;
   }
 
   .segmented-label {
@@ -850,19 +937,25 @@ select:focus-visible {
   }
 
   .playground-shell {
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
     height: auto;
     min-height: 100vh;
   }
 
-  .brand {
-    min-width: 180px;
-    padding-inline: 12px;
+  .site-header-content {
+    min-height: 64px;
   }
 
-  .topbar,
+  .brand {
+    width: 150px;
+  }
+
   .controlbar {
-    min-height: 50px;
+    min-height: 44px;
+  }
+
+  .site-nav {
+    gap: 18px;
   }
 
   .workspace {
@@ -888,18 +981,46 @@ select:focus-visible {
   }
 }
 
-@media (max-width: 640px) {
-  .topbar {
-    grid-template-columns: 1fr;
+@media (max-width: 760px) {
+  .site-header-content {
+    min-height: 0;
+    flex-wrap: wrap;
   }
 
   .brand {
-    min-width: 0;
-    height: 50px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line-muted);
+    width: auto;
+    height: 54px;
+    flex: 1;
   }
 
+  .site-header-actions {
+    height: 54px;
+  }
+
+  .site-nav {
+    width: calc(100% + 48px);
+    height: 42px;
+    min-width: 0;
+    flex: none;
+    order: 3;
+    margin: 0 -24px;
+    padding: 0 24px;
+    overflow-x: auto;
+    border-top: 1px solid var(--line-muted);
+    gap: 24px;
+    scrollbar-width: none;
+  }
+
+  .site-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .site-nav a::after {
+    bottom: 5px;
+  }
+}
+
+@media (max-width: 640px) {
   .controlbar {
     flex-wrap: wrap;
     gap: 0;
@@ -915,11 +1036,6 @@ select:focus-visible {
     gap: 5px;
   }
 
-  .github-link {
-    padding-right: 3px;
-    padding-left: 3px;
-  }
-
   .side-panel {
     grid-template-rows: 240px minmax(360px, auto);
   }
@@ -930,8 +1046,14 @@ select:focus-visible {
 }
 
 @media (max-width: 500px) {
-  .brand {
-    padding: 0 12px;
+  .site-header-content {
+    padding: 0 16px;
+  }
+
+  .site-nav {
+    width: calc(100% + 32px);
+    margin-inline: -16px;
+    padding-inline: 16px;
   }
 
   .controlbar {
@@ -944,10 +1066,6 @@ select:focus-visible {
 
   .control-actions {
     width: 100%;
-  }
-
-  .github-link {
-    margin-left: auto;
   }
 
   .segmented-label {

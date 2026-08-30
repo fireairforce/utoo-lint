@@ -222,7 +222,11 @@ async function runSmoke(page, origin) {
     await page.waitForURL(`${origin}/playground/`);
     await waitForSettledPage(page);
     await page.getByRole('heading', { name: 'utoo-lint', level: 1 }).waitFor();
-    await page.locator('.brand-context', { hasText: 'Playground' }).waitFor();
+    await page
+      .locator('.site-nav a[aria-current="page"][href="/playground/"]', {
+        hasText: 'Playground',
+      })
+      .waitFor();
     await page.waitForFunction(
       () =>
         document
@@ -232,8 +236,33 @@ async function runSmoke(page, origin) {
       { timeout: 30_000 },
     );
 
-    // Let late worker/resource errors reach the event handlers before evaluating them.
+    // Let late worker/resource errors reach the event handlers before leaving
+    // the standalone Playground document.
     await page.waitForTimeout(250);
+
+    stage = 'Narrow Playground navigation';
+    await page.setViewportSize({ height: 900, width: 320 });
+    await page.waitForFunction(() => {
+      const navigation = document.querySelector('.site-nav');
+      const activeLink = navigation?.querySelector('[aria-current="page"]');
+      if (!navigation || !activeLink) return false;
+      const navigationRect = navigation.getBoundingClientRect();
+      const activeLinkRect = activeLink.getBoundingClientRect();
+      return (
+        activeLinkRect.left >= navigationRect.left &&
+        activeLinkRect.right <= navigationRect.right
+      );
+    });
+
+    stage = 'Playground navigation to home';
+    await page
+      .getByRole('link', { name: 'Back to the utoo-lint homepage' })
+      .click();
+    await page.waitForURL(`${origin}/`);
+    await waitForSettledPage(page);
+    await page
+      .getByRole('heading', { name: 'Find code problems faster.' })
+      .waitFor();
   } catch (error) {
     assertionError = error;
   }
