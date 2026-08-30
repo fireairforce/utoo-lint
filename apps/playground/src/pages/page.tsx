@@ -146,6 +146,7 @@ export default function PlaygroundPage() {
   const monacoRef = useRef<MonacoInstance | null>(null);
   const astClientRef = useRef<ASTWorkerClient | null>(null);
   const clientRef = useRef<LintWorkerClient | null>(null);
+  const siteNavRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const sidePanelRef = useRef<HTMLElement | null>(null);
   const shareResetTimerRef = useRef<number | undefined>(undefined);
@@ -260,6 +261,30 @@ export default function PlaygroundPage() {
       astClientRef.current?.cancelQueued();
     };
   }, [fileName, inspectorMode, source]);
+
+  useEffect(() => {
+    const navigation = siteNavRef.current;
+    const activeLink = navigation?.querySelector<HTMLElement>(
+      '[aria-current="page"]',
+    );
+    if (!navigation || !activeLink) return;
+
+    const keepActiveLinkVisible = () => {
+      const navigationRect = navigation.getBoundingClientRect();
+      const activeLinkRect = activeLink.getBoundingClientRect();
+
+      if (activeLinkRect.left < navigationRect.left) {
+        navigation.scrollLeft -= navigationRect.left - activeLinkRect.left;
+      } else if (activeLinkRect.right > navigationRect.right) {
+        navigation.scrollLeft += activeLinkRect.right - navigationRect.right;
+      }
+    };
+
+    keepActiveLinkVisible();
+    const resizeObserver = new ResizeObserver(keepActiveLinkVisible);
+    resizeObserver.observe(navigation);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -458,7 +483,11 @@ export default function PlaygroundPage() {
             <h1>utoo-lint</h1>
           </a>
 
-          <nav className="site-nav" aria-label="Main navigation">
+          <nav
+            aria-label="Main navigation"
+            className="site-nav"
+            ref={siteNavRef}
+          >
             <a href="/quick-start">Quick Start</a>
             <a href="/configuration">Configuration</a>
             <a href="/rule-status">Rules</a>
