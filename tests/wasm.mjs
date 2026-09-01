@@ -198,6 +198,23 @@ test("reports interpolation in inline Jest snapshots", () => {
   );
 });
 
+test("reports and fixes Jasmine globals", () => {
+  const source = [
+    "jasmine.any(String);",
+    "jasmine.DEFAULT_TIMEOUT_INTERVAL = 5000;",
+  ].join("\n");
+  const result = linter.lintAndFix(source, {
+    filePath: "input.js",
+    rules: { "jest/no-jasmine-globals": "error" },
+  });
+  assert.equal(result.fixed, true);
+  assert.equal(result.diagnostics.length, 0);
+  assert.equal(result.output, [
+    "expect.any(String);",
+    "jest.setTimeout(5000);",
+  ].join("\n"));
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",

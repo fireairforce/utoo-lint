@@ -273,6 +273,7 @@ comptime {
     _ = @import("rules/jest_no_focused_tests.zig");
     _ = @import("rules/jest_no_identical_title.zig");
     _ = @import("rules/jest_no_interpolation_in_snapshots.zig");
+    _ = @import("rules/jest_no_jasmine_globals.zig");
 }
 
 comptime {

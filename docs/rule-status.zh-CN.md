@@ -267,6 +267,7 @@
 | [`jest/no-focused-tests`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-focused-tests.md) | 已实现对全局、导入、别名及链式聚焦测试的检查，并提供上游编辑器建议 |
 | [`jest/no-identical-title`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-identical-title.md) | 已实现对同一测试套件层级中重复静态测试和套件标题的检查 |
 | [`jest/no-interpolation-in-snapshots`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-interpolation-in-snapshots.md) | 已实现对内联快照模板插值的检查，包括属性匹配器重载形式 |
+| [`jest/no-jasmine-globals`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-jasmine-globals.md) | 已实现 Jasmine 全局函数、成员调用、赋值、局部遮蔽和上游自动修复 |
 
 ## Promise 插件规则
 

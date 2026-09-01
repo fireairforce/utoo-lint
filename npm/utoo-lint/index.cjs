@@ -317,6 +317,7 @@ const BUILTIN_RULE_IDS = [
   "jest/no-focused-tests",
   "jest/no-identical-title",
   "jest/no-interpolation-in-snapshots",
+  "jest/no-jasmine-globals",
   "promise/no-promise-in-callback",
   "promise/no-return-in-finally",
   "promise/no-return-wrap",
@@ -465,6 +466,7 @@ const NATIVE_ONLY_RULE_IDS = [
 const NATIVE_RULE_IDS = [...BUILTIN_RULE_IDS, ...NATIVE_ONLY_RULE_IDS];
 const FIXABLE_BUILTIN_RULE_IDS = new Set([
   "jest/no-deprecated-functions",
+  "jest/no-jasmine-globals",
   "no-extra-semi",
   "@typescript-eslint/no-extra-semi",
   "unused-imports/no-unused-imports"

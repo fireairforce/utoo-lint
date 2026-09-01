@@ -2802,6 +2802,59 @@ test("project config and CLI --rules enable jest/no-interpolation-in-snapshots",
   }
 });
 
+test("jest/no-jasmine-globals supports config, --rules, and safe fixes", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({ rules: { "jest/no-jasmine-globals": "error" } })
+  );
+  const source = [
+    "jasmine.any(String);",
+    "jasmine.DEFAULT_TIMEOUT_INTERVAL = 5000;",
+    ""
+  ].join("\n");
+  const expected = [
+    "expect.any(String);",
+    "jest.setTimeout(5000);",
+    ""
+  ].join("\n");
+  const sourcePath = write(join(project, "jasmine.test.js"), source);
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const configured = execute(["--json", sourcePath], options);
+    const configuredReport = JSON.parse(configured.stdout);
+    assert.equal(configured.status, 1, configured.stderr);
+    assert.equal(configuredReport.diagnostics.length, 2);
+    assert.ok(configuredReport.diagnostics.every(({ ruleId, severity }) =>
+      ruleId === "jest/no-jasmine-globals" && severity === "error"
+    ));
+
+    const isolated = execute(
+      ["--no-config", "--rules=jest/no-jasmine-globals", "--json", sourcePath],
+      options
+    );
+    const isolatedReport = JSON.parse(isolated.stdout);
+    assert.equal(isolated.status, 0, isolated.stderr);
+    assert.equal(isolatedReport.diagnostics.length, 2);
+    assert.ok(isolatedReport.diagnostics.every(({ ruleId, severity }) =>
+      ruleId === "jest/no-jasmine-globals" && severity === "warning"
+    ));
+
+    const dryRun = execute(["--fix-dry-run", "--json", sourcePath], options);
+    const dryRunReport = JSON.parse(dryRun.stdout);
+    assert.equal(dryRun.status, 0, dryRun.stderr);
+    assert.equal(dryRunReport.outputs.length, 1);
+    assert.equal(dryRunReport.outputs[0].output, expected);
+    assert.equal(readFileSync(sourcePath, "utf8"), source);
+
+    const fixed = execute(["--fix", "--json", sourcePath], options);
+    assert.equal(fixed.status, 0, fixed.stderr);
+    assert.equal(readFileSync(sourcePath, "utf8"), expected);
+    writeFileSync(sourcePath, source);
+  }
+});
+
 test("flat config keeps Jest version settings scoped per file", (t) => {
   const project = createProject(t);
   write(
