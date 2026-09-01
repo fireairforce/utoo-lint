@@ -127,9 +127,12 @@ and arrays of `extends` values retain their ESLint order. Nested inherited
 rules and overrides become ordered utoo config entries; `files`,
 `excludedFiles`, and `ignorePatterns` become the corresponding scoped selectors
 and global ignores. These patterns are rebased to the output config directory,
-including when an ancestor `.eslintrc` is discovered. Circular chains and missing configs stop migration with the
-extends chain or referring config in the error instead of producing partial
-output.
+including when an ancestor `.eslintrc` is discovered. Literal-choice extglobs
+such as `**/*.@(js|ts)` are expanded to native selector alternatives. Extglob
+forms that cannot be represented safely stop migration with an actionable error
+instead of silently changing file coverage. Circular chains and missing configs
+likewise stop migration with the extends chain or referring config in the error
+instead of producing partial output.
 
 The migrator translates the following reviewed aliases when their behavior has
 a native equivalent. These mappings are semantic compatibility decisions, not

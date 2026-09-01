@@ -1083,6 +1083,61 @@ test("migrator preserves inherited rule options and classic basename override gl
   }
 });
 
+test("migrator expands representable classic extglobs and rejects unsupported forms", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      overrides: [{ files: "**/*.@(js|ts)", rules: { "no-console": "error" } }]
+    })
+  );
+  const outputPath = join(project, "utlint.config.json");
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, `--output=${outputPath}`],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 0, migration.stderr);
+  const { $schema, ...migratedConfig } = JSON.parse(readFileSync(outputPath, "utf8"));
+  assert.equal($schema.endsWith("/schema.json"), true);
+  assert.deepEqual(migratedConfig, {
+    files: ["**/*.js", "**/*.ts"],
+    rules: { "no-console": "error" }
+  });
+
+  const javaScript = write(join(project, "src", "example.js"), "console.log('js');\n");
+  const typeScript = write(join(project, "src", "example.ts"), "console.log('ts');\n");
+  const jsx = write(join(project, "src", "example.jsx"), "console.log('jsx');\n");
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+  for (const [name, execute] of [["ESM", runCli], ["CommonJS", commonJSRunCli]]) {
+    const lint = execute(["--json", javaScript, typeScript, jsx], options);
+    assert.equal(lint.status, 1, `${name}: ${lint.stderr}\n${lint.stdout}`);
+    assert.deepEqual(
+      JSON.parse(lint.stdout).diagnostics.map(({ filePath, ruleId }) => ({ filePath, ruleId })),
+      [
+        { filePath: javaScript, ruleId: "no-console" },
+        { filePath: typeScript, ruleId: "no-console" }
+      ]
+    );
+  }
+
+  const unsupportedConfig = write(
+    join(project, "unsupported.eslintrc.json"),
+    JSON.stringify({
+      overrides: [{ files: "**/*.!(test).js", rules: { "no-console": "error" } }]
+    })
+  );
+  const unsupported = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${unsupportedConfig}`, "--print"],
+    { cwd: project, encoding: "utf8" }
+  );
+  assert.equal(unsupported.status, 2, unsupported.stderr);
+  assert.equal(unsupported.stdout, "");
+  assert.match(unsupported.stderr, /cannot migrate classic selector pattern .*only literal @\(one\|two\)/u);
+});
+
 test("migrated unscoped rules keep project-wide default lint coverage", (t) => {
   const project = createProject(t);
   const eslintConfig = write(
@@ -1285,8 +1340,14 @@ test("migrator applies scoped unsupported-rule disables by coverage", (t) => {
       overrides: [
         { files: "src/**/*.js", rules: { "example/disabled-broadly": "error" } },
         { files: "**/*.ts", rules: { "example/still-enabled": "error" } },
+        {
+          files: ["src/**/*.jsx", "test/**/*.jsx"],
+          rules: { "example/disabled-in-parts": "error" }
+        },
         { files: "**/*.js", rules: { "example/disabled-broadly": "off" } },
-        { files: "src/**/*.ts", rules: { "example/still-enabled": "off" } }
+        { files: "src/**/*.ts", rules: { "example/still-enabled": "off" } },
+        { files: "src/**/*.jsx", rules: { "example/disabled-in-parts": "off" } },
+        { files: "test/**/*.jsx", rules: { "example/disabled-in-parts": "off" } }
       ]
     })
   );

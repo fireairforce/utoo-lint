@@ -451,8 +451,12 @@ function classicSelector(criteria) {
   const includeGroups = [];
   const ignores = [];
   for (const patternGroup of criteria.patterns) {
-    includeGroups.push(uniquePatterns((patternGroup.includes ?? []).map(classicIncludePattern)));
-    ignores.push(...(patternGroup.excludes ?? []).map(classicExcludePattern));
+    includeGroups.push(uniquePatterns(
+      (patternGroup.includes ?? []).flatMap((matcher) => expandClassicExtglobs(classicIncludePattern(matcher)))
+    ));
+    ignores.push(...(patternGroup.excludes ?? []).flatMap(
+      (matcher) => expandClassicExtglobs(classicExcludePattern(matcher))
+    ));
   }
   const files = classicFileSelectors(includeGroups);
 
@@ -472,6 +476,36 @@ function classicExcludePattern(matcher) {
   return matcher.options?.matchBase === false && !matcher.pattern.includes("/")
     ? `/${matcher.pattern}`
     : matcher.pattern;
+}
+
+function expandClassicExtglobs(pattern) {
+  let expansions = [pattern];
+  while (expansions.some((value) => /@\([^()]*\)/u.test(value))) {
+    expansions = expansions.flatMap((value) => {
+      const match = /@\(([^()]*)\)/u.exec(value);
+      if (!match) {
+        return value;
+      }
+      const alternatives = match[1].split("|");
+      if (alternatives.some((alternative) => !alternative || /[*?[\]{}()]/u.test(alternative))) {
+        throw unsupportedClassicExtglobError(pattern);
+      }
+      return alternatives.map((alternative) =>
+        `${value.slice(0, match.index)}${alternative}${value.slice(match.index + match[0].length)}`
+      );
+    });
+  }
+  if (/[?+*!@]\(/u.test(expansions[0])) {
+    throw unsupportedClassicExtglobError(pattern);
+  }
+  return uniquePatterns(expansions);
+}
+
+function unsupportedClassicExtglobError(pattern) {
+  return new Error(
+    `utoo-lint migrate eslint: cannot migrate classic selector pattern "${pattern}": ` +
+    "only literal @(one|two) extglob alternatives are supported"
+  );
 }
 
 function classicFileSelectors(includeGroups) {
@@ -503,41 +537,51 @@ function migrationRuleScope(entry) {
 
 function removeDisabledUnsupportedRule(rules, ruleId, entry) {
   const disabledScope = migrationRuleScope(entry);
-  return rules.filter(
-    (rule) => rule.ruleId !== ruleId || !disabledScopeCovers(rule.scope, disabledScope)
-  );
+  const remaining = [];
+  for (const rule of rules) {
+    if (rule.ruleId !== ruleId) {
+      remaining.push(rule);
+      continue;
+    }
+    const scope = subtractDisabledScope(rule.scope, disabledScope);
+    if (scope !== undefined) {
+      remaining.push({ ...rule, scope });
+    }
+  }
+  return remaining;
 }
 
-function disabledScopeCovers(enabledScope, disabledScope) {
+function subtractDisabledScope(enabledScope, disabledScope) {
   if (disabledScope === null) {
-    return true;
+    return undefined;
   }
   if (enabledScope === null) {
-    return false;
+    return enabledScope;
   }
   if (
     disabledScope.ignores.length > 0 &&
     JSON.stringify(enabledScope.ignores) !== JSON.stringify(disabledScope.ignores)
   ) {
-    return false;
+    return enabledScope;
   }
-  return fileSelectorsCover(enabledScope.files, disabledScope.files);
+  if (disabledScope.files.length === 0) {
+    return undefined;
+  }
+  if (enabledScope.files.length === 0) {
+    return enabledScope;
+  }
+
+  const disabledGroups = disabledScope.files.map((selector) => Array.isArray(selector) ? selector : [selector]);
+  const files = enabledScope.files.filter((selector) => {
+    const enabledGroup = Array.isArray(selector) ? selector : [selector];
+    return !disabledGroups.some((disabledGroup) => selectorGroupCovers(enabledGroup, disabledGroup));
+  });
+  return files.length === 0 ? undefined : { ...enabledScope, files };
 }
 
-function fileSelectorsCover(enabledFiles, disabledFiles) {
-  if (disabledFiles.length === 0) {
-    return true;
-  }
-  if (enabledFiles.length === 0) {
-    return false;
-  }
-
-  const enabledGroups = enabledFiles.map((selector) => Array.isArray(selector) ? selector : [selector]);
-  const disabledGroups = disabledFiles.map((selector) => Array.isArray(selector) ? selector : [selector]);
-  return enabledGroups.every((enabledGroup) => disabledGroups.some((disabledGroup) =>
-    disabledGroup.every((disabledPattern) => enabledGroup.some((enabledPattern) =>
-      globPatternCovers(enabledPattern, disabledPattern)
-    ))
+function selectorGroupCovers(enabledGroup, disabledGroup) {
+  return disabledGroup.every((disabledPattern) => enabledGroup.some((enabledPattern) =>
+    globPatternCovers(enabledPattern, disabledPattern)
   ));
 }
 
