@@ -143,7 +143,8 @@ does not execute or discover TypeScript. It searches for `utlint.config.json`
 and then the legacy JSON names. Use the npm CLI for `utlint.config.ts`; when
 invoking the raw binary directly, use `utlint.config.json`.
 
-The raw binary applies only the JSON config's `rules`. Config-driven
+The raw binary applies the JSON config's `rules` and supported shared
+`settings`. Config-driven
 `files` and `ignores` filtering, including choosing default lint targets, is an
 npm/Node wrapper feature. Pass lint targets explicitly when invoking the raw
 binary.
@@ -167,6 +168,18 @@ Use `utlint.config.json` for a static, runtime-independent config:
 The optional `$schema` property enables completion and validation in editors
 that support JSON Schema. JSON config cannot contain imports or computed
 values; use `utlint.config.ts` when those are required.
+
+Version-aware Jest rules detect the closest installed `jest` package by
+default and fall back to the latest supported major when no installation can
+be found. Set `settings.jest.version` when a repository uses multiple Jest
+versions or needs to pin the version used for linting:
+
+```json
+{
+  "settings": { "jest": { "version": "29.7.0" } },
+  "rules": { "jest/no-deprecated-functions": "error" }
+}
+```
 
 ESLint config files are a migration input, not the recommended long-term
 configuration format. Generate a native config with:

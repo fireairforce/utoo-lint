@@ -153,6 +153,17 @@ fn lintSourceInternal(
     if (isDefinitionFile(path) and effective_options.typescript_eslint_no_namespace_allow_definition_files) {
         effective_options.typescript_eslint_no_namespace = false;
     }
+    if (effective_options.jest_no_deprecated_functions and effective_options.jest_version == 0) {
+        if (comptime with_io) {
+            effective_options.jest_version = (try rules.jest_no_deprecated_functions.detectJestVersion(
+                allocator,
+                io,
+                path,
+            )) orelse rules.jest_no_deprecated_functions.latest_jest_version;
+        } else {
+            effective_options.jest_version = rules.jest_no_deprecated_functions.latest_jest_version;
+        }
+    }
 
     var tree = try parseSource(allocator, source, path);
     defer tree.deinit();

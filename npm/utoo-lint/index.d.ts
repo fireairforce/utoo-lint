@@ -67,13 +67,23 @@ export interface PluginObject {
   [key: string]: unknown;
 }
 
+export interface JestPluginSettings {
+  version?: string | number;
+  [key: string]: unknown;
+}
+
+export interface SharedSettings {
+  jest?: JestPluginSettings;
+  [key: string]: unknown;
+}
+
 export interface ConfigObject {
   name?: string;
   files?: Array<string | string[]>;
   ignores?: string[];
   rules?: Record<string, RuleConfig>;
   plugins?: Record<string, PluginObject>;
-  settings?: Record<string, unknown>;
+  settings?: SharedSettings;
   languageOptions?: {
     parser?: unknown;
     parserOptions?: Record<string, unknown>;
