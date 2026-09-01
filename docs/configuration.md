@@ -176,10 +176,22 @@ versions or needs to pin the version used for linting:
 
 ```json
 {
-  "settings": { "jest": { "version": "29.7.0" } },
-  "rules": { "jest/no-deprecated-functions": "error" }
+  "settings": {
+    "jest": {
+      "version": "29.7.0",
+      "globalAliases": { "describe": ["context"] }
+    }
+  },
+  "rules": {
+    "jest/no-deprecated-functions": "error",
+    "jest/no-focused-tests": "error"
+  }
 }
 ```
+
+Use `settings.jest.globalAliases` to map canonical Jest functions to
+project-specific global names. For example, the configuration above treats
+`context` as an alias for `describe`.
 
 ESLint config files are a migration input, not the recommended long-term
 configuration format. Generate a native config with:

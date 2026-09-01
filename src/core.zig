@@ -2762,6 +2762,8 @@ pub const Options = struct {
     jest_no_conditional_expect: bool = true,
     jest_no_deprecated_functions: bool = true,
     jest_no_export: bool = true,
+    jest_no_focused_tests: bool = true,
+    jest_global_aliases: JestGlobalAliases = .{},
     jest_version: u32 = 0,
     jsx_a11y_alt_text: bool = true,
     jsx_a11y_alt_text_img: bool = true,
@@ -4213,6 +4215,31 @@ pub const Options = struct {
             },
             else => return error.InvalidJestVersion,
         };
+    }
+
+    pub fn setJestGlobalAliasesFromConfig(self: *Options, value: std.json.Value) RuleConfigError!void {
+        const aliases = switch (value) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        self.jest_global_aliases = .{};
+        var iterator = aliases.iterator();
+        while (iterator.next()) |entry| {
+            const values = switch (entry.value_ptr.*) {
+                .array => |array| array.items,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            for (values) |item| {
+                const alias = switch (item) {
+                    .string => |string| string,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                if (!self.jest_global_aliases.append(entry.key_ptr.*, alias)) {
+                    return error.UnsupportedRuleConfigValue;
+                }
+            }
+        }
     }
 
     pub fn severityFromRuleConfigValue(value: std.json.Value) RuleConfigError!?Severity {
@@ -9926,12 +9953,53 @@ pub const DeprecatedDependenceProfile = enum {
     profile_b,
 };
 
+pub const max_jest_global_aliases = 32;
+pub const max_jest_global_alias_len = 128;
+
+pub const JestGlobalAliases = struct {
+    count: usize = 0,
+    canonical_lengths: [max_jest_global_aliases]usize = undefined,
+    alias_lengths: [max_jest_global_aliases]usize = undefined,
+    canonical_storage: [max_jest_global_aliases][max_jest_global_alias_len]u8 = undefined,
+    alias_storage: [max_jest_global_aliases][max_jest_global_alias_len]u8 = undefined,
+
+    pub fn canonicalAt(self: *const JestGlobalAliases, index: usize) []const u8 {
+        return self.canonical_storage[index][0..self.canonical_lengths[index]];
+    }
+
+    pub fn aliasAt(self: *const JestGlobalAliases, index: usize) []const u8 {
+        return self.alias_storage[index][0..self.alias_lengths[index]];
+    }
+
+    pub fn canonicalFor(self: *const JestGlobalAliases, alias: []const u8) ?[]const u8 {
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.aliasAt(index), alias)) return self.canonicalAt(index);
+        }
+        return null;
+    }
+
+    pub fn append(self: *JestGlobalAliases, canonical: []const u8, alias: []const u8) bool {
+        if (canonical.len == 0 or alias.len == 0) return false;
+        if (canonical.len > max_jest_global_alias_len or alias.len > max_jest_global_alias_len) return false;
+        if (self.count >= max_jest_global_aliases) return false;
+        if (self.canonicalFor(alias) != null) return true;
+
+        @memcpy(self.canonical_storage[self.count][0..canonical.len], canonical);
+        @memcpy(self.alias_storage[self.count][0..alias.len], alias);
+        self.canonical_lengths[self.count] = canonical.len;
+        self.alias_lengths[self.count] = alias.len;
+        self.count += 1;
+        return true;
+    }
+};
+
 pub const Diagnostic = struct {
     rule_id: []const u8,
     message: []const u8,
     span: ast.Span,
     severity: Severity,
     fixes: []Fix,
+    suggestions: []Suggestion = &.{},
     suppression: ?Suppression = null,
 };
 
@@ -9942,6 +10010,11 @@ pub const Suppression = struct {
 pub const Fix = struct {
     span: ast.Span,
     replacement: []const u8,
+};
+
+pub const Suggestion = struct {
+    message: []const u8,
+    fixes: []const Fix,
 };
 
 pub const Result = struct {
@@ -10020,11 +10093,57 @@ pub fn addDiagnosticWithFixes(
     span: ast.Span,
     fixes: []const Fix,
 ) Allocator.Error!void {
+    return addDiagnosticWithFixesAndSuggestions(
+        allocator,
+        diagnostics,
+        severity,
+        rule_id,
+        message,
+        span,
+        fixes,
+        &.{},
+    );
+}
+
+pub fn addDiagnosticWithSuggestions(
+    allocator: Allocator,
+    diagnostics: *DiagnosticList,
+    severity: Severity,
+    rule_id: []const u8,
+    message: []const u8,
+    span: ast.Span,
+    suggestions: []const Suggestion,
+) Allocator.Error!void {
+    return addDiagnosticWithFixesAndSuggestions(
+        allocator,
+        diagnostics,
+        severity,
+        rule_id,
+        message,
+        span,
+        &.{},
+        suggestions,
+    );
+}
+
+fn addDiagnosticWithFixesAndSuggestions(
+    allocator: Allocator,
+    diagnostics: *DiagnosticList,
+    severity: Severity,
+    rule_id: []const u8,
+    message: []const u8,
+    span: ast.Span,
+    fixes: []const Fix,
+    suggestions: []const Suggestion,
+) Allocator.Error!void {
     const owned_message = try allocator.dupe(u8, message);
     errdefer allocator.free(owned_message);
 
     const owned_fixes = try dupeFixes(allocator, fixes);
     errdefer freeFixes(allocator, owned_fixes);
+
+    const owned_suggestions = try dupeSuggestions(allocator, suggestions);
+    errdefer freeSuggestions(allocator, owned_suggestions);
 
     try diagnostics.append(allocator, .{
         .rule_id = rule_id,
@@ -10032,6 +10151,7 @@ pub fn addDiagnosticWithFixes(
         .span = span,
         .severity = severity,
         .fixes = owned_fixes,
+        .suggestions = owned_suggestions,
     });
 }
 
@@ -10083,9 +10203,43 @@ fn dupeFixes(allocator: Allocator, fixes: []const Fix) Allocator.Error![]Fix {
     return owned;
 }
 
+fn dupeSuggestions(allocator: Allocator, suggestions: []const Suggestion) Allocator.Error![]Suggestion {
+    if (suggestions.len == 0) return &.{};
+
+    const owned = try allocator.alloc(Suggestion, suggestions.len);
+    var initialized: usize = 0;
+    errdefer {
+        for (owned[0..initialized]) |suggestion| {
+            allocator.free(suggestion.message);
+            freeFixes(allocator, suggestion.fixes);
+        }
+        allocator.free(owned);
+    }
+
+    for (suggestions, 0..) |suggestion, index| {
+        const owned_message = try allocator.dupe(u8, suggestion.message);
+        errdefer allocator.free(owned_message);
+        owned[index] = .{
+            .message = owned_message,
+            .fixes = try dupeFixes(allocator, suggestion.fixes),
+        };
+        initialized += 1;
+    }
+    return owned;
+}
+
+fn freeSuggestions(allocator: Allocator, suggestions: []Suggestion) void {
+    for (suggestions) |suggestion| {
+        allocator.free(suggestion.message);
+        freeFixes(allocator, suggestion.fixes);
+    }
+    if (suggestions.len > 0) allocator.free(suggestions);
+}
+
 pub fn freeDiagnostic(allocator: Allocator, diagnostic: Diagnostic) void {
     allocator.free(diagnostic.message);
     freeFixes(allocator, diagnostic.fixes);
+    freeSuggestions(allocator, diagnostic.suggestions);
     if (diagnostic.suppression) |suppression| allocator.free(suppression.justification);
 }
 
@@ -10094,7 +10248,7 @@ pub fn freeDiagnosticSlice(allocator: Allocator, diagnostics: []Diagnostic) void
     if (diagnostics.len > 0) allocator.free(diagnostics);
 }
 
-fn freeFixes(allocator: Allocator, fixes: []Fix) void {
+fn freeFixes(allocator: Allocator, fixes: []const Fix) void {
     for (fixes) |fix| allocator.free(fix.replacement);
     if (fixes.len > 0) allocator.free(fixes);
 }
@@ -10444,6 +10598,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.jest_no_export);
     try std.testing.expect(options.setByCliName("jest/no-export", true));
     try std.testing.expect(options.jest_no_export);
+
+    try std.testing.expect(!options.jest_no_focused_tests);
+    try std.testing.expect(options.setByCliName("jest/no-focused-tests", true));
+    try std.testing.expect(options.jest_no_focused_tests);
 
     try std.testing.expect(!options.unused_imports_no_unused_imports);
     try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));

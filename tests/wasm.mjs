@@ -143,6 +143,29 @@ test("reports exports from files containing Jest tests", () => {
   assert.equal(result.diagnostics[0].message, "Do not export from a test file");
 });
 
+test("reports focused Jest tests with non-automatic suggestions", () => {
+  const source = "context.only('suite', () => {});";
+  const result = linter.lint(source, {
+    filePath: "input.js",
+    settings: { jest: { globalAliases: { describe: ["context"] } } },
+    rules: { "jest/no-focused-tests": "error" },
+  });
+  assert.equal(result.diagnostics.length, 1);
+  assert.equal(result.diagnostics[0].ruleId, "jest/no-focused-tests");
+  assert.equal(result.diagnostics[0].fixes.length, 0);
+  assert.deepEqual(result.diagnostics[0].suggestions, [
+    { desc: "Remove focus from test", fix: [{ range: [7, 12], text: "" }] },
+  ]);
+
+  const fixed = linter.lintAndFix(source, {
+    filePath: "input.js",
+    settings: { jest: { globalAliases: { describe: ["context"] } } },
+    rules: { "jest/no-focused-tests": "error" },
+  });
+  assert.equal(fixed.fixed, false);
+  assert.equal(fixed.output, source);
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",

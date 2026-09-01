@@ -3,6 +3,7 @@ export type RuleConfig = RuleSeverity | [RuleSeverity, ...unknown[]];
 
 export interface JestPluginSettings {
   version?: string | number;
+  globalAliases?: Record<string, string[]>;
   [key: string]: unknown;
 }
 
@@ -14,6 +15,11 @@ export interface SharedSettings {
 export interface LintFix {
   range: [number, number];
   text: string;
+}
+
+export interface LintSuggestion {
+  desc: string;
+  fix: LintFix[];
 }
 
 export interface LintSuppression {
@@ -32,6 +38,7 @@ export interface LintDiagnostic {
   endLine: number;
   endColumn: number;
   fixes: LintFix[];
+  suggestions: LintSuggestion[];
   suppression?: LintSuppression;
 }
 

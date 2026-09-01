@@ -314,6 +314,7 @@ const BUILTIN_RULE_IDS = [
   "jest/no-conditional-expect",
   "jest/no-deprecated-functions",
   "jest/no-export",
+  "jest/no-focused-tests",
   "promise/no-promise-in-callback",
   "promise/no-return-in-finally",
   "promise/no-return-wrap",
@@ -465,6 +466,9 @@ const FIXABLE_BUILTIN_RULE_IDS = new Set([
   "no-extra-semi",
   "@typescript-eslint/no-extra-semi",
   "unused-imports/no-unused-imports"
+]);
+const SUGGESTION_BUILTIN_RULE_IDS = new Set([
+  "jest/no-focused-tests"
 ]);
 const BUILTIN_RULES = new Map(BUILTIN_RULE_IDS.map((ruleId) => [ruleId, createBuiltinRule(ruleId)]));
 
@@ -4581,6 +4585,9 @@ function ruleMetaForRuleId(ruleId) {
   if (FIXABLE_BUILTIN_RULE_IDS.has(ruleId)) {
     meta.fixable = "code";
   }
+  if (SUGGESTION_BUILTIN_RULE_IDS.has(ruleId)) {
+    meta.hasSuggestions = true;
+  }
   return meta;
 }
 
@@ -4670,6 +4677,21 @@ function diagnosticToESLintMessage(diagnostic, ruleSeverities) {
   }));
   if (fixes.length > 0) {
     message.fix = fixes.length === 1 ? fixes[0] : fixes;
+  }
+  const suggestions = (diagnostic.suggestions ?? []).map((suggestion) => {
+    const suggestionFixes = (suggestion.fix ?? []).map((fix) => ({
+      range: fix.range,
+      text: fix.text
+    }));
+    return {
+      desc: suggestion.desc,
+      ...(suggestionFixes.length === 0 ? {} : {
+        fix: suggestionFixes.length === 1 ? suggestionFixes[0] : suggestionFixes
+      })
+    };
+  });
+  if (suggestions.length > 0) {
+    message.suggestions = suggestions;
   }
   return message;
 }
