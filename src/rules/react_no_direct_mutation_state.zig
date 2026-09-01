@@ -17,14 +17,13 @@ pub fn checkAssignmentExpression(
     expression: ast.AssignmentExpression,
     ctx: *traverser.basic.Ctx,
 ) Allocator.Error!void {
-    const component = componentAncestor(tree, ctx) orelse return;
-    if (isAllowedConstructorMutation(tree, ctx, component)) return;
-
     const member = switch (tree.data(expression.left)) {
         .member_expression => |member| member,
         else => return,
     };
     if (stateRoot(tree, expression.left) == null) return;
+    const component = componentAncestor(tree, ctx) orelse return;
+    if (isAllowedConstructorMutation(tree, ctx, component)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -43,9 +42,9 @@ pub fn checkUpdateExpression(
     expression: ast.UpdateExpression,
     ctx: *traverser.basic.Ctx,
 ) Allocator.Error!void {
+    const root = stateRoot(tree, expression.argument) orelse return;
     const component = componentAncestor(tree, ctx) orelse return;
     if (isAllowedConstructorMutation(tree, ctx, component)) return;
-    const root = stateRoot(tree, expression.argument) orelse return;
 
     try core.addDiagnostic(
         allocator,
