@@ -80,6 +80,7 @@ pub const import_no_unresolved = @import("import_no_unresolved.zig");
 pub const import_no_self_import = @import("import_no_self_import.zig");
 pub const jest_no_conditional_expect = @import("jest_no_conditional_expect.zig");
 pub const jest_no_deprecated_functions = @import("jest_no_deprecated_functions.zig");
+pub const jest_no_export = @import("jest_no_export.zig");
 pub const jsx_a11y_alt_text = @import("jsx_a11y_alt_text.zig");
 pub const jsx_a11y_anchor_has_content = @import("jsx_a11y_anchor_has_content.zig");
 pub const jsx_a11y_aria_props = @import("jsx_a11y_aria_props.zig");
@@ -1011,6 +1012,10 @@ fn runSemanticAfterIo(
 
     if (options.jest_no_conditional_expect) {
         try jest_no_conditional_expect.run(allocator, diagnostics, tree, semantic_result.symbol_table);
+    }
+
+    if (options.jest_no_export) {
+        try jest_no_export.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.block_scoped_var) {

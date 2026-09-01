@@ -293,6 +293,7 @@ fn hasSemanticRules(options: Options) bool {
         options.import_no_unresolved or
         options.jest_no_conditional_expect or
         options.jest_no_deprecated_functions or
+        options.jest_no_export or
         options.no_invalid_regexp or
         options.no_label_var or
         options.no_loop_func or
