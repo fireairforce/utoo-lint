@@ -87,6 +87,8 @@
     "@utoo/lint-win32-x64": "workspace:*"
   },
   "dependencies": {
+    "@eslint/eslintrc": "2.1.4",
+    "@eslint/js": "8.57.1",
     "jiti": "2.7.0"
   },
   "publishConfig": {

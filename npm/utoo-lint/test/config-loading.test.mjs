@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -686,6 +686,661 @@ test("migrator preserves flat config scopes, global ignores, and override order"
       { filePath: specialPath, ruleId: "no-debugger", severity: "warning" }
     ]
   );
+});
+
+test("migrator resolves classic relative package plugin and nested extends in order", (t) => {
+  const project = createProject(t);
+  const relativeConfig = write(
+    join(project, "relative.cjs"),
+    'module.exports = { rules: { "no-alert": "warn" } };\n'
+  );
+  const companyDirectory = join(project, "node_modules", "eslint-config-company");
+  const companyConfig = write(
+    join(companyDirectory, "index.cjs"),
+    [
+      "module.exports = {",
+      '  extends: "./nested.json",',
+      '  ignorePatterns: ["vendor/**"],',
+      '  rules: { "no-debugger": "error" },',
+      "  overrides: [{",
+      '    files: ["test/**/*.js"],',
+      '    excludedFiles: ["test/fixtures/**"],',
+      '    rules: { "no-console": "off", "example/inherited": "error" }',
+      "  }]",
+      "};",
+      ""
+    ].join("\n")
+  );
+  const nestedConfig = write(
+    join(companyDirectory, "nested.json"),
+    JSON.stringify({ rules: { "no-console": "warn" } })
+  );
+  write(
+    join(companyDirectory, "package.json"),
+    JSON.stringify({ name: "eslint-config-company", main: "index.cjs" })
+  );
+  const pluginDirectory = join(project, "node_modules", "eslint-plugin-demo");
+  const pluginConfig = write(
+    join(pluginDirectory, "index.cjs"),
+    'module.exports = { configs: { recommended: { rules: { "no-var": "error" } } } };\n'
+  );
+  write(
+    join(pluginDirectory, "package.json"),
+    JSON.stringify({ name: "eslint-plugin-demo", main: "index.cjs" })
+  );
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      extends: ["./relative.cjs", "company", "plugin:demo/recommended"],
+      rules: { "no-debugger": "off" }
+    })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).slice(1), [
+    { rules: { "no-alert": "warn" } },
+    { rules: { "no-console": "warn" } },
+    { ignores: ["vendor/**"] },
+    { rules: { "no-debugger": "error" } },
+    {
+      files: ["test/**/*.js"],
+      ignores: ["test/fixtures/**"],
+      rules: { "no-console": "off" }
+    },
+    { rules: { "no-var": "error" } },
+    { rules: { "no-debugger": "off" } }
+  ]);
+
+  const report = JSON.parse(result.stderr);
+  assert.deepEqual(report.unsupportedRules, ["example/inherited"]);
+  assert.deepEqual(report.inheritedSources, [
+    { name: "./nested.json", filePath: realpathSync(nestedConfig) },
+    { name: "./relative.cjs", filePath: realpathSync(relativeConfig) },
+    { name: "eslint-config-company", filePath: realpathSync(companyConfig) },
+    { name: "plugin:demo/recommended", filePath: realpathSync(pluginConfig) }
+  ]);
+  assert.deepEqual(report.unsupportedInheritedRules, [
+    {
+      ruleId: "example/inherited",
+      sourceName: "eslint-config-company",
+      sourcePath: realpathSync(companyConfig)
+    }
+  ]);
+});
+
+test("migrator resolves plugins from the extending shareable config", (t) => {
+  const project = createProject(t);
+  const configDirectory = join(project, "node_modules", "eslint-config-local-plugin");
+  const configPath = write(
+    join(configDirectory, "index.cjs"),
+    'module.exports = { extends: "plugin:private/recommended" };\n'
+  );
+  write(
+    join(configDirectory, "package.json"),
+    JSON.stringify({ name: "eslint-config-local-plugin", main: "index.cjs" })
+  );
+  const pluginDirectory = join(configDirectory, "node_modules", "eslint-plugin-private");
+  const pluginPath = write(
+    join(pluginDirectory, "index.cjs"),
+    'module.exports = { configs: { recommended: { rules: { "no-alert": "error" } } } };\n'
+  );
+  write(
+    join(pluginDirectory, "package.json"),
+    JSON.stringify({ name: "eslint-plugin-private", main: "index.cjs" })
+  );
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({ extends: "local-plugin" })
+  );
+
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 0, migration.stderr);
+  const { $schema, ...migratedConfig } = JSON.parse(migration.stdout);
+  assert.equal($schema.endsWith("/schema.json"), true);
+  assert.deepEqual(migratedConfig, { rules: { "no-alert": "error" } });
+  assert.deepEqual(JSON.parse(migration.stderr).inheritedSources, [
+    { name: "eslint-config-local-plugin", filePath: realpathSync(configPath) },
+    { name: "plugin:private/recommended", filePath: realpathSync(pluginPath) }
+  ]);
+});
+
+test("migrator discovers CommonJS eslintrc files and resolves their extends", (t) => {
+  const project = createProject(t);
+  const baseConfig = write(
+    join(project, "base.json"),
+    JSON.stringify({ rules: { "no-console": "warn" } })
+  );
+  write(
+    join(project, ".eslintrc.cjs"),
+    'module.exports = { extends: "./base.json", rules: { "no-debugger": "error" } };\n'
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).slice(1), [
+    { rules: { "no-console": "warn" } },
+    { rules: { "no-debugger": "error" } }
+  ]);
+  assert.deepEqual(JSON.parse(result.stderr).inheritedSources, [
+    { name: "./base.json", filePath: realpathSync(baseConfig) }
+  ]);
+});
+
+test("migrator rebases classic selectors to a descendant output directory", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      overrides: [{
+        files: "packages/app/**/*.js",
+        excludedFiles: "packages/app/generated/**",
+        rules: { "no-console": "error" }
+      }]
+    })
+  );
+  const appDirectory = join(project, "packages", "app");
+  mkdirSync(appDirectory, { recursive: true });
+  const outputPath = join(appDirectory, "utlint.config.json");
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--output=${outputPath}`],
+    { cwd: appDirectory, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 0, migration.stderr);
+  const { $schema, ...migratedConfig } = JSON.parse(readFileSync(outputPath, "utf8"));
+  assert.equal($schema.endsWith("/schema.json"), true);
+  assert.deepEqual(migratedConfig, {
+    files: ["**/*.js"],
+    ignores: ["generated/**"],
+    rules: { "no-console": "error" }
+  });
+
+  const matchingSource = write(join(appDirectory, "src", "index.js"), "console.log('matched');\n");
+  write(join(appDirectory, "generated", "invalid.js"), "const = ;\n");
+  const options = { cwd: appDirectory, binary: testBinary(), encoding: "utf8" };
+
+  for (const [name, execute] of [["ESM", runCli], ["CommonJS", commonJSRunCli]]) {
+    const lint = execute(["--json"], options);
+    assert.equal(lint.status, 1, `${name}: ${lint.stderr}\n${lint.stdout}`);
+    assert.deepEqual(
+      JSON.parse(lint.stdout).diagnostics.map(({ filePath, ruleId }) => ({ filePath, ruleId })),
+      [{ filePath: matchingSource, ruleId: "no-console" }]
+    );
+  }
+});
+
+test("migrator preserves rebased absolute and negated classic ignores", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      ignorePatterns: [
+        "dist/**",
+        "!dist/keep.js",
+        "packages/app/build/**",
+        "!packages/app/build/keep.js",
+        "packages/app/foo*/**",
+        "!packages/app/foo[12]/keep.js"
+      ],
+      rules: { "no-console": "error" }
+    })
+  );
+  const appDirectory = join(project, "packages", "app");
+  mkdirSync(appDirectory, { recursive: true });
+  const outputPath = join(appDirectory, "utlint.config.json");
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--output=${outputPath}`],
+    { cwd: appDirectory, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 0, migration.stderr);
+  const migratedConfig = JSON.parse(readFileSync(outputPath, "utf8"));
+  const ignoreEntry = migratedConfig.find((entry) => entry.ignores);
+  assert.deepEqual(ignoreEntry.ignores, [
+    join(realpathSync(project), "dist", "**"),
+    `!${join(realpathSync(project), "dist", "keep.js")}`,
+    "build/**",
+    "!build/keep.js",
+    "foo*/**",
+    "!foo[12]/keep.js"
+  ]);
+
+  const ignoredSource = write(join(project, "dist", "drop.js"), "console.log('ignored');\n");
+  const keptSource = write(join(project, "dist", "keep.js"), "console.log('kept');\n");
+  const canonicalIgnoredSource = realpathSync(ignoredSource);
+  const canonicalKeptSource = realpathSync(keptSource);
+  write(join(appDirectory, "build", "drop.js"), "console.log('ignored');\n");
+  const defaultKeptSource = write(join(appDirectory, "build", "keep.js"), "console.log('kept');\n");
+  write(join(appDirectory, "foo1", "drop.js"), "console.log('ignored');\n");
+  const globKeptSource = write(join(appDirectory, "foo1", "keep.js"), "console.log('kept');\n");
+  const options = { cwd: appDirectory, binary: testBinary(), encoding: "utf8" };
+
+  for (const [name, execute] of [["ESM", runCli], ["CommonJS", commonJSRunCli]]) {
+    const lint = execute(["--json", `--config=${outputPath}`, canonicalIgnoredSource, canonicalKeptSource], options);
+    assert.equal(lint.status, 1, `${name}: ${lint.stderr}\n${lint.stdout}`);
+    assert.deepEqual(
+      JSON.parse(lint.stdout).diagnostics
+        .filter(({ ruleId }) => ruleId)
+        .map(({ filePath, ruleId }) => ({ filePath, ruleId })),
+      [{ filePath: canonicalKeptSource, ruleId: "no-console" }]
+    );
+
+    const defaultLint = execute(["--json", `--config=${outputPath}`], options);
+    assert.equal(defaultLint.status, 1, `${name}: ${defaultLint.stderr}\n${defaultLint.stdout}`);
+    assert.deepEqual(
+      JSON.parse(defaultLint.stdout).diagnostics
+        .filter(({ ruleId }) => ruleId)
+        .map(({ filePath, ruleId }) => ({ filePath, ruleId }))
+        .sort((left, right) => left.filePath.localeCompare(right.filePath)),
+      [
+        { filePath: defaultKeptSource, ruleId: "no-console" },
+        { filePath: globKeptSource, ruleId: "no-console" }
+      ].sort((left, right) => left.filePath.localeCompare(right.filePath))
+    );
+  }
+});
+
+test("migrator preserves AND semantics for nested classic override extends", (t) => {
+  const project = createProject(t);
+  const packageDirectory = join(project, "node_modules", "eslint-config-scoped");
+  write(
+    join(packageDirectory, "index.json"),
+    JSON.stringify({
+      overrides: [{
+        files: ["**/*.js", "**/*.cjs"],
+        excludedFiles: "**/generated/**",
+        rules: { "no-console": "error" }
+      }]
+    })
+  );
+  write(
+    join(packageDirectory, "package.json"),
+    JSON.stringify({ name: "eslint-config-scoped", main: "index.json" })
+  );
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      overrides: [{
+        files: ["src/**", "lib/**"],
+        extends: "scoped"
+      }]
+    })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  const { $schema, ...config } = JSON.parse(result.stdout);
+  assert.equal($schema.endsWith("/schema.json"), true);
+  assert.deepEqual(config, {
+    files: [
+      ["src/**", "**/*.js"],
+      ["src/**", "**/*.cjs"],
+      ["lib/**", "**/*.js"],
+      ["lib/**", "**/*.cjs"]
+    ],
+    ignores: ["**/generated/**"],
+    rules: { "no-console": "error" }
+  });
+
+  write(join(project, "utlint.config.json"), result.stdout);
+  const matchingSource = write(join(project, "src", "index.js"), "console.log('matched');\n");
+  write(join(project, "src", "invalid.ts"), "const = ;\n");
+  write(join(project, "src", "generated", "invalid.js"), "const = ;\n");
+  write(join(project, "test", "invalid.js"), "const = ;\n");
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const [name, execute] of [["ESM", runCli], ["CommonJS", commonJSRunCli]]) {
+    const lint = execute(["--json"], options);
+    assert.equal(lint.status, 1, `${name}: ${lint.stderr}\n${lint.stdout}`);
+    const report = JSON.parse(lint.stdout);
+    assert.deepEqual(report.filePaths, [matchingSource]);
+    assert.deepEqual(
+      report.diagnostics.map(({ filePath, ruleId }) => ({ filePath, ruleId })),
+      [{ filePath: matchingSource, ruleId: "no-console" }]
+    );
+  }
+});
+
+test("migrator preserves inherited rule options and classic basename override globs", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "base.json"),
+    JSON.stringify({ rules: { "no-console": ["error", { allow: ["warn"] }] } })
+  );
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      extends: "./base.json",
+      rules: { "no-console": "warn" },
+      overrides: [
+        { files: "*.js", rules: { "no-debugger": "warn" } },
+        { files: "./*.cjs", rules: { "no-alert": "warn" } },
+        { files: "**/*.js", excludedFiles: "test/*.js", rules: { "no-alert": "error" } }
+      ]
+    })
+  );
+  const outputPath = join(project, "utlint.config.json");
+
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, `--output=${outputPath}`],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 0, migration.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(outputPath, "utf8")).slice(1), [
+    { rules: { "no-console": ["error", { allow: ["warn"] }] } },
+    { rules: { "no-console": "warn" } },
+    { files: ["**/*.js"], rules: { "no-debugger": "warn" } },
+    { files: ["*.cjs"], rules: { "no-alert": "warn" } },
+    { files: ["**/*.js"], ignores: ["test/*.js"], rules: { "no-alert": "error" } }
+  ]);
+
+  const nestedJavaScript = write(join(project, "src", "index.js"), "console.warn('ok');\ndebugger;\n");
+  const rootCommonJS = write(join(project, "index.cjs"), "alert('root');\n");
+  const nestedCommonJS = write(join(project, "src", "index.cjs"), "alert('nested');\n");
+  const rootTest = write(join(project, "test", "example.js"), "alert('excluded');\n");
+  const nestedTest = write(join(project, "src", "test", "example.js"), "alert('included');\n");
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const lint = execute(["--json", nestedJavaScript, rootCommonJS, nestedCommonJS, rootTest, nestedTest], options);
+    assert.equal(lint.status, 1, lint.stderr);
+    const diagnostics = JSON.parse(lint.stdout).diagnostics
+      .map(({ filePath, ruleId, severity }) => ({ filePath, ruleId, severity }))
+      .sort((left, right) => left.filePath.localeCompare(right.filePath));
+    assert.deepEqual(
+      diagnostics,
+      [
+        { filePath: nestedJavaScript, ruleId: "no-debugger", severity: "warning" },
+        { filePath: rootCommonJS, ruleId: "no-alert", severity: "warning" },
+        { filePath: nestedTest, ruleId: "no-alert", severity: "error" }
+      ].sort((left, right) => left.filePath.localeCompare(right.filePath))
+    );
+  }
+});
+
+test("migrated unscoped rules keep project-wide default lint coverage", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      rules: { "no-console": "error" },
+      overrides: [{ files: "tests/**/*.js", rules: { "no-alert": "error" } }]
+    })
+  );
+  const outputPath = join(project, "utlint.config.json");
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, `--output=${outputPath}`],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 0, migration.stderr);
+  const sourcePath = write(join(project, "src", "app.ts"), "console.log('covered');\n");
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const [name, execute] of [["ESM", runCli], ["CommonJS", commonJSRunCli]]) {
+    const lint = execute(["--json"], options);
+    assert.equal(lint.status, 1, `${name}: ${lint.stderr}\n${lint.stdout}`);
+    assert.deepEqual(
+      JSON.parse(lint.stdout).diagnostics.map(({ filePath, ruleId }) => ({ filePath, ruleId })),
+      [{ filePath: sourcePath, ruleId: "no-console" }]
+    );
+  }
+});
+
+test("migrator propagates inherited scoped ignores to child override rules", (t) => {
+  const project = createProject(t);
+  const packageDirectory = join(project, "node_modules", "eslint-config-ignore-generated");
+  write(
+    join(packageDirectory, "index.json"),
+    JSON.stringify({
+      ignorePatterns: ["generated.js"],
+      rules: { "no-console": "error" }
+    })
+  );
+  write(
+    join(packageDirectory, "package.json"),
+    JSON.stringify({ name: "eslint-config-ignore-generated", main: "index.json" })
+  );
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      overrides: [
+        {
+          files: "src/**/*.js",
+          extends: "ignore-generated",
+          rules: { "no-debugger": "error" }
+        },
+        {
+          files: "src/**/*.js",
+          rules: { "no-alert": "error" }
+        }
+      ]
+    })
+  );
+
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 0, migration.stderr);
+  assert.deepEqual(JSON.parse(migration.stdout).slice(1), [
+    {
+      files: ["src/**/*.js"],
+      ignores: ["generated.js"],
+      rules: { "no-console": "error" }
+    },
+    {
+      files: ["src/**/*.js"],
+      ignores: ["generated.js"],
+      rules: { "no-debugger": "error" }
+    },
+    {
+      files: ["src/**/*.js"],
+      rules: { "no-alert": "error" }
+    }
+  ]);
+
+  write(join(project, "utlint.config.json"), migration.stdout);
+  const generatedSource = write(
+    join(project, "src", "generated.js"),
+    "console.log('ignored in first chain');\ndebugger;\nalert('active sibling');\n"
+  );
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+  for (const [name, execute] of [["ESM", runCli], ["CommonJS", commonJSRunCli]]) {
+    const lint = execute(["--json", generatedSource], options);
+    assert.equal(lint.status, 1, `${name}: ${lint.stderr}\n${lint.stdout}`);
+    assert.deepEqual(
+      JSON.parse(lint.stdout).diagnostics.map(({ filePath, ruleId }) => ({ filePath, ruleId })),
+      [{ filePath: generatedSource, ruleId: "no-alert" }]
+    );
+  }
+});
+
+test("migrator isolates ignores between nested sibling override chains", (t) => {
+  const project = createProject(t);
+  const ignoredPackageDirectory = join(project, "node_modules", "eslint-config-nested-ignore");
+  write(
+    join(ignoredPackageDirectory, "index.json"),
+    JSON.stringify({ ignorePatterns: ["generated.js"], rules: { "no-console": "error" } })
+  );
+  write(
+    join(ignoredPackageDirectory, "package.json"),
+    JSON.stringify({ name: "eslint-config-nested-ignore", main: "index.json" })
+  );
+  const nestedPackageDirectory = join(project, "node_modules", "eslint-config-nested-overrides");
+  write(
+    join(nestedPackageDirectory, "index.json"),
+    JSON.stringify({
+      overrides: [
+        {
+          files: "**/*.test.js",
+          extends: "nested-ignore",
+          rules: { "no-debugger": "error" }
+        },
+        {
+          files: "**/*.js",
+          rules: { "no-alert": "error" }
+        }
+      ]
+    })
+  );
+  write(
+    join(nestedPackageDirectory, "package.json"),
+    JSON.stringify({ name: "eslint-config-nested-overrides", main: "index.json" })
+  );
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      overrides: [{ files: "src/**", extends: "nested-overrides" }]
+    })
+  );
+  const outputPath = join(project, "utlint.config.json");
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, `--output=${outputPath}`],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 0, migration.stderr);
+  const generatedSource = write(join(project, "src", "generated.js"), "alert('active sibling');\n");
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+  for (const [name, execute] of [["ESM", runCli], ["CommonJS", commonJSRunCli]]) {
+    const lint = execute(["--json", generatedSource], options);
+    assert.equal(lint.status, 1, `${name}: ${lint.stderr}\n${lint.stdout}`);
+    assert.deepEqual(
+      JSON.parse(lint.stdout).diagnostics.map(({ filePath, ruleId }) => ({ filePath, ruleId })),
+      [{ filePath: generatedSource, ruleId: "no-alert" }]
+    );
+  }
+});
+
+test("migrator does not report inherited unsupported rules disabled by the child", (t) => {
+  const project = createProject(t);
+  const baseConfig = write(
+    join(project, "base.json"),
+    JSON.stringify({
+      rules: {
+        "example/disabled-by-child": "error",
+        "example/still-enabled": "error"
+      }
+    })
+  );
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      extends: "./base.json",
+      rules: { "example/disabled-by-child": "off" }
+    })
+  );
+
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 1, migration.stderr);
+  const report = JSON.parse(migration.stderr);
+  assert.deepEqual(report.unsupportedRules, ["example/still-enabled"]);
+  assert.deepEqual(report.unsupportedInheritedRules, [{
+    ruleId: "example/still-enabled",
+    sourceName: "./base.json",
+    sourcePath: realpathSync(baseConfig)
+  }]);
+});
+
+test("migrator applies scoped unsupported-rule disables by coverage", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, ".eslintrc.json"),
+    JSON.stringify({
+      overrides: [
+        { files: "src/**/*.js", rules: { "example/disabled-broadly": "error" } },
+        { files: "**/*.ts", rules: { "example/still-enabled": "error" } },
+        { files: "**/*.js", rules: { "example/disabled-broadly": "off" } },
+        { files: "src/**/*.ts", rules: { "example/still-enabled": "off" } }
+      ]
+    })
+  );
+
+  const migration = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(migration.status, 1, migration.stderr);
+  const report = JSON.parse(migration.stderr);
+  assert.deepEqual(report.unsupportedRules, ["example/still-enabled"]);
+  assert.deepEqual(report.unsupportedInheritedRules, []);
+});
+
+test("migrator reports circular and unresolvable classic extends", (t) => {
+  const cycleProject = createProject(t);
+  const cycleConfig = write(
+    join(cycleProject, ".eslintrc.json"),
+    JSON.stringify({ extends: "./cycle-a.json" })
+  );
+  write(
+    join(cycleProject, "cycle-a.json"),
+    JSON.stringify({ extends: "./cycle-b.json" })
+  );
+  write(
+    join(cycleProject, "cycle-b.json"),
+    JSON.stringify({ extends: "./cycle-a.json" })
+  );
+
+  const cycle = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${cycleConfig}`, "--print"],
+    { cwd: cycleProject, encoding: "utf8" }
+  );
+  assert.equal(cycle.status, 2, cycle.stderr);
+  assert.equal(cycle.stdout, "");
+  assert.match(cycle.stderr, /Circular ESLint extends chain detected: \.\/cycle-a\.json -> \.\/cycle-b\.json -> \.\/cycle-a\.json/u);
+
+  const missingProject = createProject(t);
+  const missingConfig = write(
+    join(missingProject, ".eslintrc.json"),
+    JSON.stringify({ extends: "missing-shareable" })
+  );
+  const missing = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${missingConfig}`, "--print"],
+    { cwd: missingProject, encoding: "utf8" }
+  );
+  assert.equal(missing.status, 2, missing.stderr);
+  assert.equal(missing.stdout, "");
+  assert.match(missing.stderr, /Failed to load config "missing-shareable" to extend from/u);
+  assert.match(missing.stderr, /Referenced from:/u);
 });
 
 test("migrator config stdout does not corrupt its serialized input", (t) => {
@@ -1659,6 +2314,32 @@ test("flat config rule options are applied to the matching files", (t) => {
   assert.equal(result.status, 1, result.stderr);
   assert.doesNotMatch(result.stderr, /src\/index\.ts/);
   assert.match(result.stderr, /test\/index\.ts/);
+});
+
+test("ESM and CommonJS flat config nested file selectors use AND semantics", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify([
+      { rules: { "no-console": "off" } },
+      { files: [["src/**", "**/*.js"]], rules: { "no-console": "error" } }
+    ])
+  );
+  const matchingSource = write(join(project, "src", "index.js"), "console.log(1);\n");
+  const wrongExtension = write(join(project, "src", "index.ts"), "console.log(1);\n");
+  const wrongDirectory = write(join(project, "test", "index.js"), "console.log(1);\n");
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const result = execute(["--json", matchingSource, wrongExtension, wrongDirectory], options);
+    const report = JSON.parse(result.stdout);
+
+    assert.equal(result.status, 1, result.stderr);
+    assert.deepEqual(
+      report.diagnostics.map(({ filePath, ruleId }) => ({ filePath, ruleId })),
+      [{ filePath: matchingSource, ruleId: "no-console" }]
+    );
+  }
 });
 
 test("flat config autofixes only files whose matched config enables the rule", (t) => {

@@ -868,8 +868,9 @@ function runCli(args = [], options = {}) {
     extraArgs: parsed.passthroughArgs,
     preserveNativeDefaults: Boolean(parsed.options.noConfig)
   });
-  const targets = parsed.targets.length > 0 ? parsed.targets : defaultLintTargets(cliOptions);
-  const report = lintFiles(targets, cliOptions);
+  const usesDefaultTargets = parsed.targets.length === 0;
+  const targets = usesDefaultTargets ? defaultLintTargets(cliOptions) : parsed.targets;
+  const report = lintFiles(targets, { ...cliOptions, useDefaultConfigTargets: usesDefaultTargets });
   report.diagnostics = normalizeReportDiagnostics(report.diagnostics, cliOptions);
   report.exitCode = exitCodeForDiagnostics(report.diagnostics);
   const status = report.exitCode ?? exitCodeForDiagnostics(report.diagnostics);
@@ -1180,9 +1181,13 @@ function booleanFlagValue(arg) {
 
 function lintFiles(paths, options = {}) {
   options = withConfigCache(options);
+  const usesDefaultTargets = paths == null || options.useDefaultConfigTargets;
   const targets = lintTargetsForInput(paths, options);
   const ignoredDiagnostics = ignoredLintPathDiagnostics(targets, options);
-  const lintPaths = filteredLintPaths(targets, options);
+  let lintPaths = filteredLintPaths(targets, options);
+  if (usesDefaultTargets) {
+    lintPaths = filterDefaultConfigLintPaths(lintPaths, options);
+  }
   if (lintPaths.length === 0) {
     return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, suppressedDiagnostics: [], exitCode: exitCodeForDiagnostics(ignoredDiagnostics) };
   }
@@ -1537,12 +1542,12 @@ function calculatedConfig(options = {}, filePath) {
   );
   return {
     ...configData,
-    rules: {
-      ...rulesFromConfig(options.baseConfig, filePath, options.cwd),
-      ...rulesFromFileConfig(options, filePath),
-      ...rulesFromConfig(options.overrideConfig, filePath, options.cwd),
-      ...rulesFromNativeRuleList(options.rules)
-    }
+    rules: mergeRuleConfigMaps(
+      rulesFromConfig(options.baseConfig, filePath, options.cwd),
+      rulesFromFileConfig(options, filePath),
+      rulesFromConfig(options.overrideConfig, filePath, options.cwd),
+      rulesFromNativeRuleList(options.rules)
+    )
   };
 }
 
@@ -1637,10 +1642,10 @@ function rulesFromConfig(config, filePath, cwd) {
     return {};
   }
   if (Array.isArray(config)) {
-    return config.reduce((rules, entry) => ({
-      ...rules,
-      ...rulesFromConfig(entry, filePath, cwd)
-    }), {});
+    return config.reduce(
+      (rules, entry) => mergeRuleConfigMaps(rules, rulesFromConfig(entry, filePath, cwd)),
+      {}
+    );
   }
   if (!configAppliesToFile(config, filePath, cwd)) {
     return {};
@@ -1693,10 +1698,62 @@ function defaultLintTargets(options = {}) {
     return ["."];
   }
 
-  const targets = filePatternsFromConfig(readConfig(configPath, options.cwd, options.configCache));
+  const config = readConfig(configPath, options.cwd, options.configCache);
+  if (configHasUnscopedRules(config)) {
+    return ["."];
+  }
+
+  const targets = filePatternsFromConfig(config);
   return targets.length > 0
     ? targets.map((target) => resolveConfigPattern(target, dirname(configPath)))
     : ["."];
+}
+
+function filterDefaultConfigLintPaths(paths, options) {
+  const configPath = configPathForOptions(options);
+  if (!configPath) {
+    return paths;
+  }
+  const config = readConfig(configPath, options.cwd, options.configCache);
+  if (!configHasFileSelectors(config)) {
+    return paths;
+  }
+  const cwd = dirname(configPath);
+  return paths.filter((filePath) => configSelectsFile(config, filePath, cwd));
+}
+
+function configHasFileSelectors(config) {
+  if (Array.isArray(config)) {
+    return config.some(configHasFileSelectors);
+  }
+  return Boolean(config && typeof config === "object" && normalizeConfigFileSelectors(config.files).length > 0);
+}
+
+function configHasUnscopedRules(config) {
+  if (Array.isArray(config)) {
+    return config.some(configHasUnscopedRules);
+  }
+  return Boolean(
+    config &&
+    typeof config === "object" &&
+    normalizeConfigFileSelectors(config.files).length === 0 &&
+    config.rules &&
+    typeof config.rules === "object" &&
+    Object.keys(config.rules).length > 0
+  );
+}
+
+function configSelectsFile(config, filePath, cwd) {
+  if (Array.isArray(config)) {
+    return config.some((entry) => configSelectsFile(entry, filePath, cwd));
+  }
+  if (!config || typeof config !== "object") {
+    return false;
+  }
+  const selectors = normalizeConfigFileSelectors(config.files);
+  return selectors.length > 0
+    ? configAppliesToFile(config, filePath, cwd)
+    : configHasUnscopedRules(config) && configAppliesToFile(config, filePath, cwd);
 }
 
 function resolveConfigPattern(pattern, configDirectory) {
@@ -1722,13 +1779,32 @@ function configAppliesToFile(config, filePath, cwd) {
   }
 
   const normalized = normalizeIgnoredPath(filePath, cwd ?? process.cwd());
-  const files = normalizeConfigPatterns(config.files);
-  if (files.length > 0 && !files.some((pattern) => matchesConfigFilePattern(normalized, normalizeIgnoredPattern(pattern)))) {
+  const files = normalizeConfigFileSelectors(config.files);
+  if (files.length > 0 && !files.some((selector) => selector.every(
+    (pattern) => matchesConfigFilePattern(normalized, normalizeIgnoredPattern(pattern))
+  ))) {
     return false;
   }
 
   const ignores = normalizeIgnorePatterns(config.ignores);
   return !pathIgnoredByPatterns(normalized, ignores);
+}
+
+function normalizeConfigFileSelectors(patterns) {
+  if (!patterns) {
+    return [];
+  }
+  const values = Array.isArray(patterns) ? patterns : [patterns];
+  return values.flatMap((value) => {
+    if (typeof value === "string") {
+      return [[value]];
+    }
+    if (Array.isArray(value)) {
+      const selector = normalizeConfigPatterns(value);
+      return selector.length > 0 ? [selector] : [];
+    }
+    return [];
+  });
 }
 
 function normalizeConfigPatterns(patterns) {
@@ -1835,11 +1911,7 @@ function enabledRuleNames(rules) {
 }
 
 function runtimeRulesFromConfigs(...configs) {
-  const rules = {};
-  for (const config of configs) {
-    Object.assign(rules, runtimeRulesFromConfig(config));
-  }
-  return rules;
+  return mergeRuleConfigMaps(...configs.map(runtimeRulesFromConfig));
 }
 
 function materializedRulesFromConfigs(...configs) {
@@ -1851,10 +1923,10 @@ function runtimeRulesFromConfig(config) {
     return {};
   }
   if (Array.isArray(config)) {
-    return config.reduce((rules, entry) => ({
-      ...rules,
-      ...runtimeRulesFromConfig(entry)
-    }), {});
+    return config.reduce(
+      (rules, entry) => mergeRuleConfigMaps(rules, runtimeRulesFromConfig(entry)),
+      {}
+    );
   }
 
   const rules = {};
@@ -1862,6 +1934,26 @@ function runtimeRulesFromConfig(config) {
     rules[rule] = value;
   }
   return rules;
+}
+
+function mergeRuleConfigMaps(...ruleMaps) {
+  const result = {};
+  for (const rules of ruleMaps) {
+    for (const [ruleId, ruleConfig] of Object.entries(rules ?? {})) {
+      const previous = result[ruleId];
+      if (previous !== undefined && isSeverityOnlyRuleConfig(ruleConfig) && Array.isArray(previous) && previous.length > 1) {
+        const severity = Array.isArray(ruleConfig) ? ruleConfig[0] : ruleConfig;
+        result[ruleId] = [severity, ...previous.slice(1)];
+      } else {
+        result[ruleId] = ruleConfig;
+      }
+    }
+  }
+  return result;
+}
+
+function isSeverityOnlyRuleConfig(ruleConfig) {
+  return !Array.isArray(ruleConfig) || ruleConfig.length === 1;
 }
 
 function enabledRuleNamesFromConfigs(...configs) {
@@ -2053,7 +2145,7 @@ function parserOptionsForConfig(config, filePath, cwd) {
 
 function customRuleEntriesForConfig(config, rules, filePath, cwd) {
   const entries = new Map();
-  for (const [ruleId, ruleConfig] of ruleConfigEntries(config, filePath, cwd)) {
+  for (const [ruleId, ruleConfig] of Object.entries(rulesFromConfig(config, filePath, cwd))) {
     if (!rules.has(ruleId)) {
       continue;
     }
@@ -2108,19 +2200,6 @@ function matchingConfigEntries(config, filePath = undefined, cwd = undefined) {
     return [];
   }
   return [config];
-}
-
-function ruleConfigEntries(config, filePath = undefined, cwd = undefined) {
-  if (Array.isArray(config)) {
-    return config.flatMap((item) => ruleConfigEntries(item, filePath, cwd));
-  }
-  if (!config || typeof config !== "object" || !config.rules || typeof config.rules !== "object") {
-    return [];
-  }
-  if (!configAppliesToFile(config, filePath, cwd)) {
-    return [];
-  }
-  return Object.entries(config.rules);
 }
 
 function configWithoutCustomRules(config, rules) {
@@ -3423,10 +3502,7 @@ function mergeRuleTesterConfig(baseConfig, overrideConfig) {
   return {
     ...baseConfig,
     ...overrideConfig,
-    rules: {
-      ...(baseConfig.rules ?? {}),
-      ...(overrideConfig.rules ?? {})
-    }
+    rules: mergeRuleConfigMaps(baseConfig.rules, overrideConfig.rules)
   };
 }
 
@@ -4080,7 +4156,7 @@ function collectGlobFiles(target, cwd, patterns, expression, files) {
 
     const child = join(target, entry.name);
     if (entry.isDirectory()) {
-      if (!pathIgnoredByPatterns(normalizeIgnoredPath(child, cwd), patterns)) {
+      if (shouldTraverseDirectory(normalizeIgnoredPath(child, cwd), patterns)) {
         collectGlobFiles(child, cwd, patterns, expression, files);
       }
       continue;
@@ -4150,7 +4226,7 @@ function expandLintTarget(target, cwd, patterns) {
   if (stat.isFile()) {
     return isLintableFilePath(target) && !pathIgnoredByPatterns(normalizeIgnoredPath(target, cwd), patterns) ? [target] : [];
   }
-  if (!stat.isDirectory() || pathIgnoredByPatterns(normalizeIgnoredPath(target, cwd), patterns)) {
+  if (!stat.isDirectory() || !shouldTraverseDirectory(normalizeIgnoredPath(target, cwd), patterns)) {
     return [];
   }
 
@@ -4168,7 +4244,7 @@ function collectLintableFiles(target, cwd, patterns, files) {
 
     const child = join(target, entry.name);
     if (entry.isDirectory()) {
-      if (!pathIgnoredByPatterns(normalizeIgnoredPath(child, cwd), patterns)) {
+      if (shouldTraverseDirectory(normalizeIgnoredPath(child, cwd), patterns)) {
         collectLintableFiles(child, cwd, patterns, files);
       }
       continue;
@@ -4301,7 +4377,7 @@ function normalizeIgnoredPath(filePath, cwd) {
 }
 
 function normalizeIgnoredPattern(pattern) {
-  return normalizePath(pattern.replace(/^!/, "").replace(/^\//, "")).replace(/\/+$/, "");
+  return normalizePath(pattern.replace(/^!/, "")).replace(/\/+$/, "");
 }
 
 function pathIgnoredByPatterns(target, patterns) {
@@ -4315,10 +4391,55 @@ function pathIgnoredByPatterns(target, patterns) {
   return ignored;
 }
 
+function shouldTraverseDirectory(target, patterns) {
+  return !pathIgnoredByPatterns(target, patterns) || patterns.some(
+    (pattern) => pattern.startsWith("!") && negatedPatternMayMatchDescendant(target, pattern)
+  );
+}
+
+function negatedPatternMayMatchDescendant(target, pattern) {
+  pattern = normalizeIgnoredPattern(pattern);
+  if (pattern.startsWith("/")) {
+    pattern = pattern.slice(1);
+    if (target.startsWith("/")) {
+      target = target.slice(1);
+    }
+  }
+  if (!pattern.includes("/")) {
+    return true;
+  }
+
+  const directoryPattern = pattern.slice(0, pattern.lastIndexOf("/"));
+  if (hasGlobSyntax(directoryPattern)) {
+    const directoryExpression = new RegExp(`^${globPatternRegExpSource(directoryPattern)}(?:/.*)?$`);
+    if (directoryExpression.test(target)) {
+      return true;
+    }
+  }
+
+  const globIndex = pattern.search(/[*?[{]/u);
+  const staticPrefix = (globIndex === -1 ? pattern : pattern.slice(0, globIndex)).replace(/\/+$/u, "");
+  return !staticPrefix ||
+    staticPrefix === target ||
+    staticPrefix.startsWith(`${target}/`) ||
+    target.startsWith(`${staticPrefix}/`);
+}
+
 function matchesIgnorePattern(target, pattern) {
+  const anchored = pattern.startsWith("/");
+  if (anchored) {
+    pattern = pattern.slice(1);
+    if (target.startsWith("/")) {
+      target = target.slice(1);
+    }
+  }
   if (pattern.endsWith("/**")) {
-    const prefix = pattern.slice(0, -3);
-    return target === prefix || target.startsWith(`${prefix}/`) || target.includes(`/${prefix}/`);
+    const directoryPattern = pattern.slice(0, -3);
+    if (hasGlobSyntax(directoryPattern)) {
+      const expression = new RegExp(`^${globPatternRegExpSource(directoryPattern)}(?:/.*)?$`);
+      return expression.test(target);
+    }
+    return target === directoryPattern || target.startsWith(`${directoryPattern}/`);
   }
   if (pattern.startsWith("**/")) {
     const suffix = pattern.slice(3);
@@ -4327,10 +4448,14 @@ function matchesIgnorePattern(target, pattern) {
     }
   }
   if (!hasGlobSyntax(pattern)) {
+    if (anchored || pattern.includes("/")) {
+      return target === pattern || target.startsWith(`${pattern}/`);
+    }
     return target === pattern || target.endsWith(`/${pattern}`) || target.startsWith(`${pattern}/`);
   }
 
-  const expression = new RegExp(`(^|/)${globPatternRegExpSource(pattern)}$`);
+  const prefix = anchored || pattern.includes("/") ? "^" : "(^|/)";
+  const expression = new RegExp(`${prefix}${globPatternRegExpSource(pattern)}$`);
   return expression.test(target);
 }
 
