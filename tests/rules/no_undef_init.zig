@@ -112,6 +112,7 @@ test "does not autofix undefined initializers when syntax must be preserved" {
         .eol_last = false,
         .no_unused_vars = false,
         .no_undef = false,
+        .no_var = false,
         .prefer_const = false,
         .parser_semantic_errors = false,
     });

@@ -1,0 +1,21 @@
+---
+fixture: "tests/snapshots/specs/core/no-var/valid.js"
+rule: "no-var"
+---
+
+# Input
+
+```js
+let mutable = 1;
+mutable += 1;
+const stable = mutable;
+```
+
+# Diagnostics
+
+count: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0

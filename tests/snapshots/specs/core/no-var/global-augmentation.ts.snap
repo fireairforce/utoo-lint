@@ -1,0 +1,22 @@
+---
+fixture: "tests/snapshots/specs/core/no-var/global-augmentation.ts"
+rule: "no-var"
+---
+
+# Input
+
+```ts
+export {};
+declare global {
+  var globalValue: number;
+}
+```
+
+# Diagnostics
+
+count: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0

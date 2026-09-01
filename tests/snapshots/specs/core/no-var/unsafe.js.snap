@@ -1,0 +1,98 @@
+---
+fixture: "tests/snapshots/specs/core/no-var/unsafe.js"
+rule: "no-var"
+---
+
+# Input
+
+```js
+function escaped(ready) {
+  if (ready) {
+    var value = 1;
+  }
+  return value;
+}
+
+function redeclared() {
+  var item = 1;
+  var item = 2;
+  return item;
+}
+
+function closures() {
+  const callbacks = [];
+  for (var index = 0; index < 2; index++) {
+    callbacks.push(() => index);
+  }
+  return callbacks;
+}
+
+function tdz() {
+  var result = result;
+  return result;
+}
+```
+
+# Diagnostics
+
+count: 5
+
+## Diagnostic 1
+
+- rule: "no-var"
+- severity: "warning"
+- message: "Use 'let' or 'const' instead of 'var'."
+- byte span: 45..59
+- start: 3:5
+- end: 3:19
+- source: "var value = 1;"
+- fixes: 0
+
+## Diagnostic 2
+
+- rule: "no-var"
+- severity: "warning"
+- message: "Use 'let' or 'const' instead of 'var'."
+- byte span: 109..122
+- start: 9:3
+- end: 9:16
+- source: "var item = 1;"
+- fixes: 0
+
+## Diagnostic 3
+
+- rule: "no-var"
+- severity: "warning"
+- message: "Use 'let' or 'const' instead of 'var'."
+- byte span: 125..138
+- start: 10:3
+- end: 10:16
+- source: "var item = 2;"
+- fixes: 0
+
+## Diagnostic 4
+
+- rule: "no-var"
+- severity: "warning"
+- message: "Use 'let' or 'const' instead of 'var'."
+- byte span: 210..223
+- start: 16:8
+- end: 16:21
+- source: "var index = 0"
+- fixes: 0
+
+## Diagnostic 5
+
+- rule: "no-var"
+- severity: "warning"
+- message: "Use 'let' or 'const' instead of 'var'."
+- byte span: 326..346
+- start: 23:3
+- end: 23:23
+- source: "var result = result;"
+- fixes: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0

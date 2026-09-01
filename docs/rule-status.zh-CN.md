@@ -194,7 +194,7 @@
 | [`no-useless-escape`](https://eslint.org/docs/latest/rules/no-useless-escape) | 支持 `allowRegexCharacters` 配置及 ESLint 模板转义处理 |
 | [`no-useless-rename`](https://eslint.org/docs/latest/rules/no-useless-rename) | 支持自动修复，以及 `ignoreDestructuring`、`ignoreImport` 和 `ignoreExport` 配置 |
 | [`no-useless-return`](https://eslint.org/docs/latest/rules/no-useless-return) | 已实现对语句列表中 return 语句的注释安全自动修复 |
-| [`no-var`](https://eslint.org/docs/latest/rules/no-var) | 已实现 |
+| [`no-var`](https://eslint.org/docs/latest/rules/no-var) | 已实现作用域安全的 `var` 到 `let` 自动修复；多轮修复随后可应用 `prefer-const` |
 | [`no-void`](https://eslint.org/docs/latest/rules/no-void) | 已实现可选的 `allowAsStatement` 行为 |
 | [`no-warning-comments`](https://eslint.org/docs/latest/rules/no-warning-comments) | 已实现可配置的 `terms`、`location` 和常见 `decoration` 行为 |
 | [`no-with`](https://eslint.org/docs/latest/rules/no-with) | 已实现 |

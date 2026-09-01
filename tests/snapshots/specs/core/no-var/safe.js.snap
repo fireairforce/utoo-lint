@@ -1,0 +1,72 @@
+---
+fixture: "tests/snapshots/specs/core/no-var/safe.js"
+rule: "no-var"
+---
+
+# Input
+
+```js
+var value = 1;
+function increment() {
+  var count = 0;
+  count += value;
+  return count;
+}
+```
+
+# Diagnostics
+
+count: 2
+
+## Diagnostic 1
+
+- rule: "no-var"
+- severity: "warning"
+- message: "Use 'let' or 'const' instead of 'var'."
+- byte span: 0..14
+- start: 1:1
+- end: 1:15
+- source: "var value = 1;"
+- fixes: 1
+
+### Fix 1.1
+
+- byte span: 0..3
+- start: 1:1
+- end: 1:4
+- source: "var"
+- replacement: "let"
+
+## Diagnostic 2
+
+- rule: "no-var"
+- severity: "warning"
+- message: "Use 'let' or 'const' instead of 'var'."
+- byte span: 40..54
+- start: 3:3
+- end: 3:17
+- source: "var count = 0;"
+- fixes: 1
+
+### Fix 2.1
+
+- byte span: 40..43
+- start: 3:3
+- end: 3:6
+- source: "var"
+- replacement: "let"
+
+# First fix pass
+
+- fixed: true
+- applied diagnostics: 2
+- remaining diagnostics: 0
+
+```js
+let value = 1;
+function increment() {
+  let count = 0;
+  count += value;
+  return count;
+}
+```

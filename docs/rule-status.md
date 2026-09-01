@@ -195,7 +195,7 @@ instead of being rewritten.
 | [`no-useless-escape`](https://eslint.org/docs/latest/rules/no-useless-escape) | Supports `allowRegexCharacters` configuration and ESLint template escape handling |
 | [`no-useless-rename`](https://eslint.org/docs/latest/rules/no-useless-rename) | Supports autofix plus `ignoreDestructuring`, `ignoreImport`, and `ignoreExport` configuration |
 | [`no-useless-return`](https://eslint.org/docs/latest/rules/no-useless-return) | Implemented with comment-safe autofix for statement-list returns |
-| [`no-var`](https://eslint.org/docs/latest/rules/no-var) | Implemented |
+| [`no-var`](https://eslint.org/docs/latest/rules/no-var) | Implemented, with a scope-safe `var` to `let` autofix; multi-pass fixing can then apply `prefer-const` |
 | [`no-void`](https://eslint.org/docs/latest/rules/no-void) | Implemented with optional `allowAsStatement` behavior |
 | [`no-warning-comments`](https://eslint.org/docs/latest/rules/no-warning-comments) | Implemented with configurable `terms`, `location`, and common `decoration` behavior |
 | [`no-with`](https://eslint.org/docs/latest/rules/no-with) | Implemented |
