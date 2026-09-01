@@ -83,7 +83,7 @@ npx utoo-lint migrate eslint --print --report=json
 
 flat config 输出以一个 Schema 元数据配置项开始，后面依次是迁移后的配置项。匹配项按数组顺序应用，因此同一规则后出现的值仍会保留 ESLint 的覆盖行为。
 
-对于 `.eslintrc`、`.eslintrc.json`、`.eslintrc.js` 和 `.eslintrc.cjs`，迁移器会先使用 ESLint 的 classic config 解析器展开配置，再进行转换。相对路径、共享配置包名、`plugin:name/preset` 引用及 `extends` 数组都会保留 ESLint 的应用顺序。嵌套继承的规则和 overrides 会成为有序的 utoo 配置项；`files`、`excludedFiles` 和 `ignorePatterns` 会分别转换为对应的作用域选择器和全局忽略项。这些模式会相对输出配置目录重新定位，包括从祖先目录发现 `.eslintrc` 的情况。遇到循环链或缺失配置时，迁移会停止，并在错误中给出 extends 链或引用配置，而不会生成不完整输出。
+对于 `.eslintrc`、`.eslintrc.json`、`.eslintrc.js` 和 `.eslintrc.cjs`，迁移器会先使用 ESLint 的 classic config 解析器展开配置，再进行转换。相对路径、共享配置包名、`plugin:name/preset` 引用及 `extends` 数组都会保留 ESLint 的应用顺序。嵌套继承的规则和 overrides 会成为有序的 utoo 配置项；`files`、`excludedFiles` 和 `ignorePatterns` 会分别转换为对应的作用域选择器和全局忽略项。这些模式会相对输出配置目录重新定位，包括从祖先目录发现 `.eslintrc` 的情况。`**/*.@(js|ts)` 这类仅包含字面选项的 extglob 会展开为原生选择器备选项；无法安全表示的 extglob 会给出可操作的错误并停止迁移，避免静默改变文件范围。遇到循环链或缺失配置时，迁移同样会停止，并在错误中给出 extends 链或引用配置，而不会生成不完整输出。
 
 当下列经过审核的别名存在原生等价行为时，迁移器会进行转换。这些映射是语义兼容性决策，而不只是字符串重命名：每条源规则只有在与目标规则已经实现的行为及所支持的选项完成核对后，才会加入此表。
 
