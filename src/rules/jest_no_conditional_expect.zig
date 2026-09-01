@@ -77,7 +77,7 @@ const Visitor = struct {
     conditional_stack: std.ArrayList(ast.NodeIndex) = .empty,
     test_call_depth: usize = 0,
     callback_function_depth: usize = 0,
-    in_promise_catch: bool = false,
+    promise_catch_depth: usize = 0,
 
     pub fn enter_function(
         self: *Visitor,
@@ -121,15 +121,12 @@ const Visitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         if (isTestCall(ctx.tree, call)) self.test_call_depth += 1;
-        if (isCatchCall(ctx.tree, call)) self.in_promise_catch = true;
+        if (isCatchCall(ctx.tree, call)) self.promise_catch_depth += 1;
 
-        if (isExpectCall(ctx.tree, call)) {
-            if (self.inTestCase() and self.conditional_stack.items.len > 0) {
-                try self.report(ctx.tree, index);
-            }
-            if (self.in_promise_catch) {
-                try self.report(ctx.tree, index);
-            }
+        if (isExpectCall(ctx.tree, call) and
+            ((self.inTestCase() and self.conditional_stack.items.len > 0) or self.promise_catch_depth > 0))
+        {
+            try self.report(ctx.tree, index);
         }
 
         return .proceed;
@@ -142,7 +139,7 @@ const Visitor = struct {
         ctx: *traverser.basic.Ctx,
     ) void {
         if (isTestCall(ctx.tree, call)) self.test_call_depth -= 1;
-        if (isCatchCall(ctx.tree, call)) self.in_promise_catch = false;
+        if (isCatchCall(ctx.tree, call)) self.promise_catch_depth -= 1;
     }
 
     pub fn enter_catch_clause(self: *Visitor, _: ast.CatchClause, index: ast.NodeIndex, _: *traverser.basic.Ctx) Allocator.Error!traverser.Action {

@@ -53,7 +53,18 @@ test "reports catch clauses and Promise catch callbacks" {
     ;
     var promise_result = try lint.lintSource(std.testing.allocator, promise_source, "fixture.js", optionsOnly());
     defer promise_result.deinit(std.testing.allocator);
-    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(promise_result, lint.rules.jest_no_conditional_expect.id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(promise_result, lint.rules.jest_no_conditional_expect.id));
+
+    const overlapping_source =
+        \\test("overlap", () => {
+        \\  Promise.reject().catch(error => {
+        \\    if (error) expect(error).toBeDefined();
+        \\  });
+        \\});
+    ;
+    var overlapping_result = try lint.lintSource(std.testing.allocator, overlapping_source, "fixture.js", optionsOnly());
+    defer overlapping_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(overlapping_result, lint.rules.jest_no_conditional_expect.id));
 }
 
 test "reports named test callbacks without confusing same-name bindings" {
