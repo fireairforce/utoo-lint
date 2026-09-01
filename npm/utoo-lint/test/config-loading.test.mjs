@@ -1557,6 +1557,29 @@ test("a flat config does not leak native default rules that it never enables", a
   assert.equal(results[0].messages.length, 0);
 });
 
+test("ESM and CommonJS register and disable unselected react/no-direct-mutation-state", async (t) => {
+  const ruleId = "react/no-direct-mutation-state";
+  for (const LinterImplementation of [Linter, CommonJSLinter]) {
+    assert.equal(new LinterImplementation().getRules().has(ruleId), true);
+  }
+
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({ rules: { "no-console": "error" } })
+  );
+  const sourcePath = write(
+    join(project, "index.js"),
+    "class View extends React.Component { update() { this.state.count = 1; } }\n"
+  );
+
+  for (const ESLintImplementation of [ESLint, CommonJSESLint]) {
+    const eslint = new ESLintImplementation({ cwd: project, binary: testBinary() });
+    const [result] = await eslint.lintFiles([sourcePath]);
+    assert.equal(result.messages.length, 0);
+  }
+});
+
 test("flat config rule options are applied to the matching files", (t) => {
   const project = createProject(t);
   write(

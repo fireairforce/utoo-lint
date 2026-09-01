@@ -299,6 +299,7 @@ pub const react_jsx_uses_vars = @import("react_jsx_uses_vars.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
 pub const react_no_danger_with_children = @import("react_no_danger_with_children.zig");
 pub const react_no_access_state_in_setstate = @import("react_no_access_state_in_setstate.zig");
+pub const react_no_direct_mutation_state = @import("react_no_direct_mutation_state.zig");
 pub const react_no_deprecated = @import("react_no_deprecated.zig");
 pub const react_forbid_prop_types = @import("react_forbid_prop_types.zig");
 pub const react_no_children_prop = @import("react_no_children_prop.zig");
@@ -773,6 +774,7 @@ pub fn runBasicWithOptionsPtr(
     defer visitor.react_no_access_state_in_setstate_state.deinit(allocator);
     defer visitor.react_no_typos_state.deinit(allocator);
     defer visitor.react_no_unused_state_state.deinit(allocator);
+    defer visitor.react_no_direct_mutation_state_state.deinit(allocator);
     defer visitor.react_display_name_state.deinit(allocator);
     defer visitor.react_forbid_prop_types_state.deinit(allocator);
     defer visitor.react_default_props_match_prop_types_state.deinit(allocator);
@@ -1407,6 +1409,7 @@ const BasicVisitor = struct {
     react_no_multi_comp_state: react_no_multi_comp.State = .{},
     react_no_typos_state: react_no_typos.State = .{},
     react_no_unused_state_state: react_no_unused_state.State = .{},
+    react_no_direct_mutation_state_state: react_no_direct_mutation_state.State = .{},
     react_style_prop_object_bindings: react_style_prop_object.Bindings = .{},
     react_void_dom_elements_no_children_bindings: react_void_dom_elements_no_children.ReactBindings = .{},
     consistent_this_state: consistent_this.State = .{},
@@ -3369,6 +3372,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_unused_state) {
             try react_no_unused_state.checkAssignmentExpression(self.allocator, ctx.tree, expression, ctx, &self.react_no_unused_state_state);
         }
+        if (self.options.react_no_direct_mutation_state) {
+            try react_no_direct_mutation_state.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, ctx, &self.react_no_direct_mutation_state_state);
+        }
         if (self.options.react_forbid_prop_types) {
             try react_forbid_prop_types.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state, self.reactForbidPropTypesOptions());
         }
@@ -3512,7 +3518,7 @@ const BasicVisitor = struct {
 
     pub fn enter_update_expression(
         self: *BasicVisitor,
-        _: ast.UpdateExpression,
+        expression: ast.UpdateExpression,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
@@ -3520,6 +3526,9 @@ const BasicVisitor = struct {
             try no_plusplus.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, index, ctx, .{
                 .allow_for_loop_afterthoughts = self.options.no_plusplus_allow_for_loop_afterthoughts == .yes,
             });
+        }
+        if (self.options.react_no_direct_mutation_state) {
+            try react_no_direct_mutation_state.checkUpdateExpression(self.allocator, self.diagnostics, ctx.tree, expression, ctx, &self.react_no_direct_mutation_state_state);
         }
         return .proceed;
     }
@@ -3547,6 +3556,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.react_no_direct_mutation_state) {
+            react_no_direct_mutation_state.enterCallExpression(ctx.tree, ctx, &self.react_no_direct_mutation_state_state);
+        }
         if (self.options.no_unexpected_multiline) {
             try no_unexpected_multiline.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
         }
@@ -3728,6 +3740,9 @@ const BasicVisitor = struct {
         _: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) void {
+        if (self.options.react_no_direct_mutation_state) {
+            react_no_direct_mutation_state.exitCallExpression(ctx.tree, ctx, &self.react_no_direct_mutation_state_state);
+        }
         if (self.options.react_no_array_index_key) {
             react_no_array_index_key.exitCallExpression(ctx.tree, call, &self.react_no_array_index_key_state);
         }
@@ -4391,6 +4406,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_unused_state) {
             try react_no_unused_state.enterMethodDefinition(self.allocator, ctx.tree, method, &self.react_no_unused_state_state);
         }
+        if (self.options.react_no_direct_mutation_state) {
+            try react_no_direct_mutation_state.enterMethodDefinition(self.allocator, ctx.tree, method, ctx, &self.react_no_direct_mutation_state_state);
+        }
         return .proceed;
     }
 
@@ -4398,10 +4416,13 @@ const BasicVisitor = struct {
         self: *BasicVisitor,
         method: ast.MethodDefinition,
         _: ast.NodeIndex,
-        _: *traverser.basic.Ctx,
+        ctx: *traverser.basic.Ctx,
     ) void {
         if (self.options.react_no_unused_state) {
             react_no_unused_state.exitMethodDefinition(method, &self.react_no_unused_state_state);
+        }
+        if (self.options.react_no_direct_mutation_state) {
+            react_no_direct_mutation_state.exitMethodDefinition(ctx.tree, method, ctx, &self.react_no_direct_mutation_state_state);
         }
     }
 

@@ -1084,6 +1084,8 @@ pub fn main(init: std.process.Init) !void {
             options.react_no_danger_with_children = false;
         } else if (std.mem.eql(u8, arg, "--react-no-access-state-in-setstate=off")) {
             options.react_no_access_state_in_setstate = false;
+        } else if (std.mem.eql(u8, arg, "--react-no-direct-mutation-state=off")) {
+            options.react_no_direct_mutation_state = false;
         } else if (std.mem.eql(u8, arg, "--react-no-deprecated=off")) {
             options.react_no_deprecated = false;
         } else if (std.mem.eql(u8, arg, "--react-forbid-prop-types=off")) {
@@ -2930,6 +2932,7 @@ fn printHelp() void {
         \\  --react-no-danger=off     Disable react/no-danger
         \\  --react-no-danger-with-children=off Disable react/no-danger-with-children
         \\  --react-no-access-state-in-setstate=off Disable react/no-access-state-in-setstate
+        \\  --react-no-direct-mutation-state=off Disable react/no-direct-mutation-state
         \\  --react-no-deprecated=off Disable react/no-deprecated
         \\  --react-forbid-prop-types=off Disable react/forbid-prop-types
         \\  --react-no-array-index-key=off Disable react/no-array-index-key

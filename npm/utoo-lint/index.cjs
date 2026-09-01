@@ -355,6 +355,7 @@ const BUILTIN_RULE_IDS = [
   "react/no-danger",
   "react/no-danger-with-children",
   "react/no-deprecated",
+  "react/no-direct-mutation-state",
   "react/no-find-dom-node",
   "react/no-forward-ref",
   "react/no-is-mounted",
