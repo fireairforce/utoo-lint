@@ -1120,6 +1120,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/react_no_direct_mutation_state.zig");
+}
+
+comptime {
     _ = @import("rules/react_no_deprecated.zig");
 }
 

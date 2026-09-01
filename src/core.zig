@@ -3083,6 +3083,7 @@ pub const Options = struct {
     react_no_danger: bool = true,
     react_no_danger_with_children: bool = true,
     react_no_access_state_in_setstate: bool = true,
+    react_no_direct_mutation_state: bool = true,
     react_no_deprecated: bool = true,
     react_forbid_prop_types: bool = true,
     react_forbid_prop_types_forbid_any: bool = true,

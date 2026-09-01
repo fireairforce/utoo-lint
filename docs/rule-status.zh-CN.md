@@ -319,6 +319,7 @@
 | [`react/no-danger`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-danger.md) | 已实现 |
 | [`react/no-danger-with-children`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-danger-with-children.md) | 已实现 |
 | [`react/no-deprecated`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-deprecated.md) | 已实现 |
+| [`react/no-direct-mutation-state`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-direct-mutation-state.md) | 已实现 |
 | [`react/no-find-dom-node`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-find-dom-node.md) | 已实现 |
 | [`react/no-forward-ref`](https://eslint-react.xyz/docs/rules/no-forward-ref) | 可选择启用的 React 19 诊断；识别来自 `react` 的具名、别名、默认和命名空间导入 |
 | [`react/no-is-mounted`](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md) | 已实现 |

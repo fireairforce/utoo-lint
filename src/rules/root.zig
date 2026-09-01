@@ -299,6 +299,7 @@ pub const react_jsx_uses_vars = @import("react_jsx_uses_vars.zig");
 pub const react_no_danger = @import("react_no_danger.zig");
 pub const react_no_danger_with_children = @import("react_no_danger_with_children.zig");
 pub const react_no_access_state_in_setstate = @import("react_no_access_state_in_setstate.zig");
+pub const react_no_direct_mutation_state = @import("react_no_direct_mutation_state.zig");
 pub const react_no_deprecated = @import("react_no_deprecated.zig");
 pub const react_forbid_prop_types = @import("react_forbid_prop_types.zig");
 pub const react_no_children_prop = @import("react_no_children_prop.zig");
@@ -3369,6 +3370,9 @@ const BasicVisitor = struct {
         if (self.options.react_no_unused_state) {
             try react_no_unused_state.checkAssignmentExpression(self.allocator, ctx.tree, expression, ctx, &self.react_no_unused_state_state);
         }
+        if (self.options.react_no_direct_mutation_state) {
+            try react_no_direct_mutation_state.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, ctx);
+        }
         if (self.options.react_forbid_prop_types) {
             try react_forbid_prop_types.checkAssignmentExpression(self.allocator, self.diagnostics, ctx.tree, expression, self.react_forbid_prop_types_state, self.reactForbidPropTypesOptions());
         }
@@ -3512,7 +3516,7 @@ const BasicVisitor = struct {
 
     pub fn enter_update_expression(
         self: *BasicVisitor,
-        _: ast.UpdateExpression,
+        expression: ast.UpdateExpression,
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
@@ -3520,6 +3524,9 @@ const BasicVisitor = struct {
             try no_plusplus.checkWithOptions(self.allocator, self.diagnostics, ctx.tree, index, ctx, .{
                 .allow_for_loop_afterthoughts = self.options.no_plusplus_allow_for_loop_afterthoughts == .yes,
             });
+        }
+        if (self.options.react_no_direct_mutation_state) {
+            try react_no_direct_mutation_state.checkUpdateExpression(self.allocator, self.diagnostics, ctx.tree, expression, ctx);
         }
         return .proceed;
     }
