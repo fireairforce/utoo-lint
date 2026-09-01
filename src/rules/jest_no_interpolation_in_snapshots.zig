@@ -47,7 +47,8 @@ const Visitor = struct {
         if (!isInlineSnapshotMatcher(matcher.name)) return .proceed;
 
         for (ctx.tree.extra(call_expression.arguments)) |argument| {
-            const template = switch (ctx.tree.data(argument)) {
+            const template_index = unwrapTransparent(ctx.tree, argument);
+            const template = switch (ctx.tree.data(template_index)) {
                 .template_literal => |value| value,
                 else => continue,
             };
@@ -58,7 +59,7 @@ const Visitor = struct {
                 .warning,
                 id,
                 message,
-                ctx.tree.span(argument),
+                ctx.tree.span(template_index),
             );
         }
         return .proceed;
@@ -68,4 +69,20 @@ const Visitor = struct {
 fn isInlineSnapshotMatcher(name: []const u8) bool {
     return std.mem.eql(u8, name, "toMatchInlineSnapshot") or
         std.mem.eql(u8, name, "toThrowErrorMatchingInlineSnapshot");
+}
+
+fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
+    var current = index;
+    while (current != .null) {
+        switch (tree.data(current)) {
+            .chain_expression => |expression| current = expression.expression,
+            .parenthesized_expression => |expression| current = expression.expression,
+            .ts_as_expression => |expression| current = expression.expression,
+            .ts_satisfies_expression => |expression| current = expression.expression,
+            .ts_non_null_expression => |expression| current = expression.expression,
+            .ts_type_assertion => |expression| current = expression.expression,
+            else => return current,
+        }
+    }
+    return current;
 }

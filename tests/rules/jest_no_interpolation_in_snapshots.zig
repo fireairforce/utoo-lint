@@ -12,6 +12,7 @@ test "reports interpolated inline snapshots with useful locations" {
         "expect(value).not.toMatchInlineSnapshot({}, `${interpolated}`);",
         "expect(value).toThrowErrorMatchingInlineSnapshot(`${interpolated}`);",
         "expect(value).rejects.not.toThrowErrorMatchingInlineSnapshot(`${interpolated}`);",
+        "expect(value).toMatchInlineSnapshot(((`${interpolated}`)));",
     };
 
     for (cases) |source| {
