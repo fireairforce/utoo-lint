@@ -120,6 +120,17 @@ Flat-config output starts with a schema metadata entry, followed by the
 migrated entries. Matching entries are applied in array order, so a later value
 for the same rule retains ESLint's override behavior.
 
+Classic `.eslintrc`, `.eslintrc.json`, `.eslintrc.js`, and `.eslintrc.cjs`
+inputs are expanded with ESLint's classic config resolver before conversion.
+Relative paths, shareable config package names, `plugin:name/preset` references,
+and arrays of `extends` values retain their ESLint order. Nested inherited
+rules and overrides become ordered utoo config entries; `files`,
+`excludedFiles`, and `ignorePatterns` become the corresponding scoped selectors
+and global ignores. These patterns are rebased to the output config directory,
+including when an ancestor `.eslintrc` is discovered. Circular chains and missing configs stop migration with the
+extends chain or referring config in the error instead of producing partial
+output.
+
 The migrator translates the following reviewed aliases when their behavior has
 a native equivalent. These mappings are semantic compatibility decisions, not
 string-only renames: each source rule is checked against the target's
@@ -145,6 +156,10 @@ Use that JSON report to size the migration:
 - `unsupportedRules`: require a replacement, a new native rule, or temporary
   ESLint coverage.
 - `ignoredRules`: intentionally left outside `utoo-lint`, usually formatting.
+- `inheritedSources`: the resolved relative, package, plugin, or built-in config
+  sources that contributed to classic config migration.
+- `unsupportedInheritedRules`: unsupported rules paired with the inherited
+  source that introduced them.
 
 The command exits with status `1` when unsupported rules are found. That is a
 useful signal for automation; it does not mean the generated config is unusable.
