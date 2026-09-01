@@ -296,6 +296,7 @@ fn hasSemanticRules(options: Options) bool {
         options.jest_no_deprecated_functions or
         options.jest_no_export or
         options.jest_no_focused_tests or
+        options.jest_no_identical_title or
         options.no_invalid_regexp or
         options.no_label_var or
         options.no_loop_func or
