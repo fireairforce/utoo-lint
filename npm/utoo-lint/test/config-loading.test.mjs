@@ -795,14 +795,67 @@ test("migrator translates reviewed @eslint-react aliases", (t) => {
   ]);
 });
 
-test("migrator does not infer @eslint-react aliases without equivalent rules", (t) => {
+test("migrator preserves enabled disabled and option-bearing reviewed aliases", (t) => {
+  const project = createProject(t);
+  const eslintConfig = write(
+    join(project, "eslint.config.mjs"),
+    [
+      "export default [",
+      "  { rules: {",
+      '    "no-native-reassign": ["warn", { exceptions: ["Object"] }],',
+      '    "@typescript-eslint/no-invalid-this": ["error", { capIsConstructor: false }]',
+      "  } },",
+      '  { files: ["test/**/*.ts"], rules: {',
+      '    "no-native-reassign": 0,',
+      '    "@typescript-eslint/no-invalid-this": "off"',
+      "  } }",
+      "];",
+      ""
+    ].join("\n")
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "migrate", "eslint", `--from=${eslintConfig}`, "--print", "--report=json"],
+    { cwd: project, encoding: "utf8" }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  const config = JSON.parse(result.stdout);
+  assert.deepEqual(config.slice(1), [
+    {
+      rules: {
+        "no-global-assign": ["warn", { exceptions: ["Object"] }],
+        "no-invalid-this": ["error", { capIsConstructor: false }]
+      }
+    },
+    {
+      files: ["test/**/*.ts"],
+      rules: {
+        "no-global-assign": 0,
+        "no-invalid-this": "off"
+      }
+    }
+  ]);
+  const report = JSON.parse(result.stderr);
+  assert.deepEqual(report.supportedRules, ["no-global-assign", "no-invalid-this"]);
+  assert.deepEqual(report.unsupportedRules, []);
+  assert.deepEqual(report.translatedRules, [
+    { sourceRuleId: "@typescript-eslint/no-invalid-this", targetRuleId: "no-invalid-this" },
+    { sourceRuleId: "no-native-reassign", targetRuleId: "no-global-assign" }
+  ]);
+});
+
+test("migrator does not infer unreviewed aliases without equivalent rules", (t) => {
   const project = createProject(t);
   const eslintConfig = write(
     join(project, ".eslintrc.json"),
     JSON.stringify({
       rules: {
         "@eslint-react/no-missing-key": "error",
-        "@eslint-react/dom-no-render": "warn"
+        "@eslint-react/dom-no-render": "warn",
+        "@typescript-eslint/no-invalid-this-extra": "error",
+        "no-native-reassignment": "warn"
       }
     })
   );
@@ -819,7 +872,9 @@ test("migrator does not infer @eslint-react aliases without equivalent rules", (
   assert.deepEqual(report.translatedRules, []);
   assert.deepEqual(report.unsupportedRules, [
     "@eslint-react/dom-no-render",
-    "@eslint-react/no-missing-key"
+    "@eslint-react/no-missing-key",
+    "@typescript-eslint/no-invalid-this-extra",
+    "no-native-reassignment"
   ]);
 });
 
