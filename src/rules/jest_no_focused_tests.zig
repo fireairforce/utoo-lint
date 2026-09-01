@@ -44,7 +44,7 @@ const Visitor = struct {
         const call = self.resolver.parseCall(call_expression, index, ctx.path.parent()) orelse return .proceed;
 
         if (call.function.isFocused()) {
-            if (call.isAliasedImport()) {
+            if (!call.usesCanonicalName()) {
                 try core.addDiagnostic(
                     self.allocator,
                     self.diagnostics,
@@ -77,9 +77,6 @@ const Visitor = struct {
 
         const only = call.memberNamed("only") orelse return .proceed;
         const property_span = ctx.tree.span(only.node);
-        if (property_span.start == 0) return .proceed;
-        const end = property_span.end + @intFromBool(only.computed);
-        if (end > ctx.tree.source.len) return .proceed;
 
         try core.addDiagnosticWithSuggestions(
             self.allocator,
@@ -91,7 +88,7 @@ const Visitor = struct {
             &.{.{
                 .message = suggestion_message,
                 .fixes = &.{.{
-                    .span = .{ .start = property_span.start - 1, .end = end },
+                    .span = only.accessor_span,
                     .replacement = "",
                 }},
             }},

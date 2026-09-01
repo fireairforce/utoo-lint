@@ -14,7 +14,11 @@ test "reports focused global calls with useful locations and suggestions" {
         .{ .source = "describe.only.each()()", .reported = "only", .expected = "describe.each()()" },
         .{ .source = "describe.only.each`table`()", .reported = "only", .expected = "describe.each`table`()" },
         .{ .source = "describe[\"only\"]()", .reported = "\"only\"", .expected = "describe()" },
+        .{ .source = "describe . only()", .reported = "only", .expected = "describe ()" },
+        .{ .source = "describe [ \"only\" /* focus */ ]()", .reported = "\"only\"", .expected = "describe ()" },
         .{ .source = "it.concurrent.only.each``()", .reported = "only", .expected = "it.concurrent.each``()" },
+        .{ .source = "test.concurrent.only()", .reported = "only", .expected = "test.concurrent()" },
+        .{ .source = "test.concurrent.failing.only()", .reported = "only", .expected = "test.concurrent.failing()" },
         .{ .source = "test.only.each()()", .reported = "only", .expected = "test.each()()" },
         .{ .source = "fdescribe()", .reported = "fdescribe", .expected = "describe()" },
         .{ .source = "fit()", .reported = "fit", .expected = "it()" },
@@ -79,6 +83,13 @@ test "supports configured global aliases" {
     const suggested = try applySuggestion(std.testing.allocator, source, diagnostic.suggestions[0]);
     defer std.testing.allocator.free(suggested);
     try std.testing.expectEqualStrings("context('suite', () => {});", suggested);
+
+    var focused_options = optionsOnly();
+    try std.testing.expect(focused_options.jest_global_aliases.append("fdescribe", "focusSuite"));
+    var focused_result = try lint.lintSource(std.testing.allocator, "focusSuite();", "fixture.js", focused_options);
+    defer focused_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(focused_result, rule_id));
+    try std.testing.expectEqual(@as(usize, 0), focused_result.diagnostics[0].suggestions.len);
 }
 
 test "supports ESM aliases and withholds unsafe focused-name suggestions" {

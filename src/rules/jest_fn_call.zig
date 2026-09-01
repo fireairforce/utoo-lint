@@ -56,6 +56,7 @@ pub const Member = struct {
     name: []const u8,
     node: ast.NodeIndex,
     computed: bool,
+    accessor_span: ast.Span,
 };
 
 pub const Call = struct {
@@ -77,8 +78,8 @@ pub const Call = struct {
         return null;
     }
 
-    pub fn isAliasedImport(self: *const Call) bool {
-        return self.origin != .global and !std.mem.eql(u8, self.function.canonicalName(), self.local_name);
+    pub fn usesCanonicalName(self: *const Call) bool {
+        return std.mem.eql(u8, self.function.canonicalName(), self.local_name);
     }
 };
 
@@ -276,10 +277,12 @@ fn collectCalleeChain(tree: *const ast.Tree, index: ast.NodeIndex, chain: *Calle
         .member_expression => |member| blk: {
             if (!collectCalleeChain(tree, member.object, chain)) break :blk false;
             const property = staticPropertyName(tree, member.property) orelse break :blk false;
+            const accessor_start = memberAccessorStart(tree, member) orelse break :blk false;
             break :blk chain.append(.{
                 .name = property,
                 .node = member.property,
                 .computed = member.computed,
+                .accessor_span = .{ .start = @intCast(accessor_start), .end = tree.span(current).end },
             });
         },
         .call_expression => |call| {
@@ -340,8 +343,10 @@ fn isValidCall(function: Function, chain: CalleeChain) bool {
             matchesMembers(members, &.{ "concurrent", "each" }) or
             matchesMembers(members, &.{ "concurrent", "failing" }) or
             matchesMembers(members, &.{ "concurrent", "failing", "each" }) or
+            matchesMembers(members, &.{ "concurrent", "failing", "only" }) or
             matchesMembers(members, &.{ "concurrent", "failing", "only", "each" }) or
             matchesMembers(members, &.{ "concurrent", "failing", "skip", "each" }) or
+            matchesMembers(members, &.{ "concurrent", "only" }) or
             matchesMembers(members, &.{ "concurrent", "only", "each" }) or
             matchesMembers(members, &.{ "concurrent", "skip", "each" }),
         .xtest, .fit, .xit => matchesMembers(members, &.{}) or
@@ -418,6 +423,39 @@ fn templateStringValue(tree: *const ast.Tree, literal: ast.TemplateLiteral) ?[]c
         .template_element => |element| tree.string(element.cooked),
         else => null,
     };
+}
+
+fn memberAccessorStart(tree: *const ast.Tree, member: ast.MemberExpression) ?usize {
+    const source = tree.source;
+    const object_end = tree.span(member.object).end;
+    const property_start = tree.span(member.property).start;
+    if (object_end > property_start or property_start > source.len) return null;
+
+    var cursor = object_end;
+    while (cursor < property_start) {
+        if (std.ascii.isWhitespace(source[cursor])) {
+            cursor += 1;
+            continue;
+        }
+        if (cursor + 1 < property_start and source[cursor] == '/' and source[cursor + 1] == '/') {
+            cursor += 2;
+            while (cursor < property_start and source[cursor] != '\n' and source[cursor] != '\r') cursor += 1;
+            continue;
+        }
+        if (cursor + 1 < property_start and source[cursor] == '/' and source[cursor + 1] == '*') {
+            cursor += 2;
+            while (cursor + 1 < property_start and !(source[cursor] == '*' and source[cursor + 1] == '/')) {
+                cursor += 1;
+            }
+            if (cursor + 1 < property_start) cursor += 2;
+            continue;
+        }
+        if (member.optional and source[cursor] == '?') return cursor;
+        if (member.computed and source[cursor] == '[') return cursor;
+        if (!member.computed and source[cursor] == '.') return cursor;
+        cursor += 1;
+    }
+    return null;
 }
 
 fn unwrapTransparent(tree: *const ast.Tree, index: ast.NodeIndex) ast.NodeIndex {
