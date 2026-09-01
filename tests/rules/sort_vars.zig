@@ -143,6 +143,7 @@ fn baseOptions() lint.Options {
         .eol_last = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .no_var = false,
         .one_var = false,
         .prefer_const = false,
         .parser_semantic_errors = false,

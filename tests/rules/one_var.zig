@@ -27,6 +27,7 @@ test "autofixes combined variable declarations into separate statements" {
     var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", .{
         .eol_last = false,
         .no_unused_vars = false,
+        .no_var = false,
         .prefer_const = false,
         .parser_semantic_errors = false,
     });
@@ -51,6 +52,7 @@ test "autofixes multiline declarations without discarding comments" {
         .capitalized_comments = false,
         .eol_last = false,
         .no_unused_vars = false,
+        .no_var = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);
@@ -123,6 +125,7 @@ test "does not autofix declarations outside statement lists" {
         .eol_last = false,
         .no_undef = false,
         .no_unused_vars = false,
+        .no_var = false,
         .parser_semantic_errors = false,
     });
     defer result.deinit(std.testing.allocator);

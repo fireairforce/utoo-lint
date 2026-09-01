@@ -1,0 +1,30 @@
+---
+fixture: "tests/snapshots/specs/core/no-var/global.cjs"
+rule: "no-var"
+---
+
+# Input
+
+```cjs
+var globalValue = 1;
+```
+
+# Diagnostics
+
+count: 1
+
+## Diagnostic 1
+
+- rule: "no-var"
+- severity: "warning"
+- message: "Use 'let' or 'const' instead of 'var'."
+- byte span: 0..20
+- start: 1:1
+- end: 1:21
+- source: "var globalValue = 1;"
+- fixes: 0
+
+# First fix pass
+
+- fixed: false
+- applied diagnostics: 0

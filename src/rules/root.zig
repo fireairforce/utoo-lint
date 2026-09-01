@@ -998,6 +998,16 @@ fn runSemanticAfterIo(
         try block_scoped_var.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
+    if (options.no_var) {
+        try no_var.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.scope_tree,
+            semantic_result.symbol_table,
+        );
+    }
+
     const promise_check_options =
         options.no_async_promise_executor or
         options.no_promise_executor_return or
@@ -3020,9 +3030,6 @@ const BasicVisitor = struct {
                 &self.init_declarations_state,
                 self.initDeclarationsOptions(),
             );
-        }
-        if (self.options.no_var) {
-            try no_var.check(self.allocator, self.diagnostics, ctx.tree, declaration, index);
         }
         if (self.options.vars_on_top) {
             try vars_on_top.check(self.allocator, self.diagnostics, ctx.tree, declaration, index, ctx);
