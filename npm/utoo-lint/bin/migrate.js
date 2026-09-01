@@ -16,7 +16,11 @@ const JAVASCRIPT_CONFIG_EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
 const IGNORED_RULES = new Map([
   ["prettier/prettier", "formatting is outside utoo-lint"]
 ]);
-const RULE_ALIASES = new Map([
+// Add aliases only after reviewing the source rule against the target rule's
+// implemented behavior and supported options.
+const REVIEWED_RULE_ALIASES = new Map([
+  ["no-native-reassign", "no-global-assign"],
+  ["@typescript-eslint/no-invalid-this", "no-invalid-this"],
   ["@eslint-react/no-array-index-key", "react/no-array-index-key"],
   ["@eslint-react/dom-no-find-dom-node", "react/no-find-dom-node"],
   ["@eslint-react/dom-no-render-return-value", "react/no-render-return-value"],
@@ -195,7 +199,7 @@ function migrateEslintConfig(options) {
     const rules = {};
     if (entry.rules && typeof entry.rules === "object") {
       for (const [ruleId, ruleConfig] of Object.entries(entry.rules)) {
-        const migratedRuleId = RULE_ALIASES.get(ruleId) ?? ruleId;
+        const migratedRuleId = REVIEWED_RULE_ALIASES.get(ruleId) ?? ruleId;
         if (IGNORED_RULES.has(ruleId)) {
           ignoredRules.push({ ruleId, reason: IGNORED_RULES.get(ruleId) });
           continue;

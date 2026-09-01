@@ -120,19 +120,23 @@ Flat-config output starts with a schema metadata entry, followed by the
 migrated entries. Matching entries are applied in array order, so a later value
 for the same rule retains ESLint's override behavior.
 
-The migrator translates the following `@eslint-react` aliases when their
-behavior has a native equivalent:
+The migrator translates the following reviewed aliases when their behavior has
+a native equivalent. These mappings are semantic compatibility decisions, not
+string-only renames: each source rule is checked against the target's
+implemented behavior and supported options before it is added.
 
 | ESLint rule | utoo-lint rule |
 | --- | --- |
+| `no-native-reassign` | `no-global-assign` |
+| `@typescript-eslint/no-invalid-this` | `no-invalid-this` |
 | `@eslint-react/no-array-index-key` | `react/no-array-index-key` |
 | `@eslint-react/dom-no-find-dom-node` | `react/no-find-dom-node` |
 | `@eslint-react/dom-no-render-return-value` | `react/no-render-return-value` |
 | `@eslint-react/dom-no-void-elements-with-children` | `react/void-dom-elements-no-children` |
 | `@eslint-react/rules-of-hooks` | `react-hooks/rules-of-hooks` |
 
-Translated aliases are listed separately in the migration report. Other
-`@eslint-react` rules remain unsupported unless an explicit equivalent is added;
+Translated aliases are listed separately in the migration report. Other legacy
+or plugin rule IDs remain unsupported unless an explicit equivalent is added;
 the migrator does not infer mappings from similar names.
 
 Use that JSON report to size the migration:

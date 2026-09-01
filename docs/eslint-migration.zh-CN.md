@@ -83,17 +83,19 @@ npx utoo-lint migrate eslint --print --report=json
 
 flat config 输出以一个 Schema 元数据配置项开始，后面依次是迁移后的配置项。匹配项按数组顺序应用，因此同一规则后出现的值仍会保留 ESLint 的覆盖行为。
 
-当下列 `@eslint-react` 别名存在原生等价行为时，迁移器会进行转换：
+当下列经过审核的别名存在原生等价行为时，迁移器会进行转换。这些映射是语义兼容性决策，而不只是字符串重命名：每条源规则只有在与目标规则已经实现的行为及所支持的选项完成核对后，才会加入此表。
 
 | ESLint 规则 | utoo-lint 规则 |
 | --- | --- |
+| `no-native-reassign` | `no-global-assign` |
+| `@typescript-eslint/no-invalid-this` | `no-invalid-this` |
 | `@eslint-react/no-array-index-key` | `react/no-array-index-key` |
 | `@eslint-react/dom-no-find-dom-node` | `react/no-find-dom-node` |
 | `@eslint-react/dom-no-render-return-value` | `react/no-render-return-value` |
 | `@eslint-react/dom-no-void-elements-with-children` | `react/void-dom-elements-no-children` |
 | `@eslint-react/rules-of-hooks` | `react-hooks/rules-of-hooks` |
 
-转换后的别名会在迁移报告中单独列出。其他 `@eslint-react` 规则只有在添加明确等价实现后才会受支持；迁移器不会因为名称相似就推断映射关系。
+转换后的别名会在迁移报告中单独列出。其他旧规则或插件规则 ID 只有在添加明确等价实现后才会受支持；迁移器不会因为名称相似就推断映射关系。
 
 使用 JSON 报告评估迁移规模：
 
