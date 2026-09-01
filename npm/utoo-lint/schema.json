@@ -28,6 +28,26 @@
             "$ref": "#/definitions/ruleSeverity"
           }
         },
+        "settings": {
+          "description": "Shared plugin settings.",
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "jest": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "version": {
+                  "description": "Jest version used by version-aware Jest rules.",
+                  "oneOf": [
+                    { "type": "integer", "minimum": 1 },
+                    { "type": "string", "pattern": "^[0-9]+(?:\\..*)?$" }
+                  ]
+                }
+              }
+            }
+          }
+        },
         "files": {
           "description": "File globs this config entry applies to.",
           "oneOf": [

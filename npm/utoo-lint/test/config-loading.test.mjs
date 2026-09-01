@@ -2582,6 +2582,91 @@ test("project config and CLI --rules enable jest/no-conditional-expect", (t) => 
   }
 });
 
+test("jest/no-deprecated-functions uses project settings, auto detection, and fixes", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({
+      settings: { jest: { version: "21.4.0" } },
+      rules: { "jest/no-deprecated-functions": "error" }
+    })
+  );
+  write(join(project, "node_modules", "jest", "package.json"), JSON.stringify({ version: "22.2.0" }));
+  const source = [
+    'require.requireActual("module");',
+    "jest.runTimersToTime(1000);",
+    'jest.genMockFromModule("module");',
+    ""
+  ].join("\n");
+  const sourcePath = write(join(project, "deprecated.test.js"), source);
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const configured = execute(["--json", sourcePath], options);
+    const configuredReport = JSON.parse(configured.stdout);
+    assert.equal(configured.status, 1, configured.stderr);
+    assert.deepEqual(configuredReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-deprecated-functions", severity: "error" }
+    ]);
+
+    const selected = execute(["--rules=jest/no-deprecated-functions", "--json", sourcePath], options);
+    const selectedReport = JSON.parse(selected.stdout);
+    assert.equal(selected.status, 0, selected.stderr);
+    assert.deepEqual(selectedReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-deprecated-functions", severity: "warning" }
+    ]);
+
+    const isolated = execute(
+      ["--no-config", "--rules=jest/no-deprecated-functions", "--json", sourcePath],
+      options
+    );
+    const isolatedReport = JSON.parse(isolated.stdout);
+    assert.equal(isolated.status, 0, isolated.stderr);
+    assert.equal(isolatedReport.diagnostics.length, 2);
+    assert.ok(isolatedReport.diagnostics.every(({ ruleId, severity }) =>
+      ruleId === "jest/no-deprecated-functions" && severity === "warning"
+    ));
+
+    const dryRun = execute(["--fix-dry-run", "--json", sourcePath], options);
+    const dryRunReport = JSON.parse(dryRun.stdout);
+    assert.equal(dryRun.status, 0, dryRun.stderr);
+    assert.equal(dryRunReport.outputs.length, 1);
+    assert.match(dryRunReport.outputs[0].output, /jest\.requireActual\("module"\)/);
+    assert.equal(readFileSync(sourcePath, "utf8"), source);
+
+    const fixed = execute(["--fix", "--json", sourcePath], options);
+    assert.equal(fixed.status, 0, fixed.stderr);
+    assert.match(readFileSync(sourcePath, "utf8"), /jest\.requireActual\("module"\)/);
+    writeFileSync(sourcePath, source);
+  }
+});
+
+test("flat config keeps Jest version settings scoped per file", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.ts"),
+    [
+      "export default [",
+      '  { files: ["old/**/*.js"], settings: { jest: { version: 21 } }, rules: { "jest/no-deprecated-functions": "error" } },',
+      '  { files: ["new/**/*.js"], settings: { jest: { version: 22 } }, rules: { "jest/no-deprecated-functions": "error" } }',
+      "];",
+      ""
+    ].join("\n")
+  );
+  const oldSource = write(join(project, "old", "fixture.js"), "jest.runTimersToTime(1000);\n");
+  const newSource = write(join(project, "new", "fixture.js"), "jest.runTimersToTime(1000);\n");
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const result = execute(["--json", oldSource, newSource], options);
+    const report = JSON.parse(result.stdout);
+    assert.equal(result.status, 1, result.stderr);
+    assert.deepEqual(report.diagnostics.map(({ filePath, ruleId }) => ({ filePath, ruleId })), [
+      { filePath: newSource, ruleId: "jest/no-deprecated-functions" }
+    ]);
+  }
+});
+
 test("CLI --rules preserves per-file options for the selected flat-config rule", (t) => {
   const project = createProject(t);
   write(

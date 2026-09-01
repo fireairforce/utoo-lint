@@ -262,6 +262,7 @@
 | 规则 | 状态 |
 | --- | --- |
 | [`jest/no-conditional-expect`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-conditional-expect.md) | 已实现条件表达式、`catch` 子句、Promise `catch` 回调、内联测试回调及命名测试回调检查 |
+| [`jest/no-deprecated-functions`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-deprecated-functions.md) | 已实现已安装或显式配置的 Jest 版本检测，并支持上游自动修复 |
 
 ## Promise 插件规则
 

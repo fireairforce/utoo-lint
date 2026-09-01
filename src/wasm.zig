@@ -304,6 +304,32 @@ fn parseConfig(
         }
     }
 
+    const settings_value = if (root) |object| object.get("settings") else null;
+    if (settings_value) |value| {
+        const settings = switch (value) {
+            .object => |object| object,
+            else => {
+                failure.* = .{ .code = "INVALID_OPTIONS", .message = "settings must be a JSON object" };
+                return error.InvalidOptions;
+            },
+        };
+        if (settings.get("jest")) |jest_value| {
+            const jest = switch (jest_value) {
+                .object => |object| object,
+                else => {
+                    failure.* = .{ .code = "INVALID_OPTIONS", .message = "settings.jest must be a JSON object" };
+                    return error.InvalidOptions;
+                },
+            };
+            if (jest.get("version")) |version| {
+                config.options.setJestVersionFromConfig(version) catch |err| {
+                    failure.* = .{ .code = "INVALID_OPTIONS", .message = @errorName(err) };
+                    return error.InvalidOptions;
+                };
+            }
+        }
+    }
+
     try appendSkippedRules(allocator, &config.skipped_rules, config.options);
     return config;
 }

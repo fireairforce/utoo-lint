@@ -315,6 +315,7 @@ const BUILTIN_RULE_IDS = [
   "import/no-unresolved",
   "import/no-self-import",
   "jest/no-conditional-expect",
+  "jest/no-deprecated-functions",
   "promise/no-promise-in-callback",
   "promise/no-return-in-finally",
   "promise/no-return-wrap",
@@ -462,6 +463,7 @@ const NATIVE_ONLY_RULE_IDS = [
 ];
 const NATIVE_RULE_IDS = [...BUILTIN_RULE_IDS, ...NATIVE_ONLY_RULE_IDS];
 const FIXABLE_BUILTIN_RULE_IDS = new Set([
+  "jest/no-deprecated-functions",
   "no-extra-semi",
   "@typescript-eslint/no-extra-semi",
   "unused-imports/no-unused-imports"
@@ -3167,13 +3169,15 @@ function nativeConfigRunsForFiles(paths, options) {
     const fileConfigPath = options.noConfig ? undefined : configPathForFile(options, matchPath);
     const configured = Boolean(options.baseConfig || options.overrideConfig || fileConfigPath);
     hasConfigSource ||= configured;
-    let rules = configured ? calculatedConfig({ ...options, rules: undefined }, matchPath).rules : undefined;
+    const calculated = configured ? calculatedConfig({ ...options, rules: undefined }, matchPath) : {};
+    let rules = calculated.rules;
+    const settings = calculated.settings;
     if (configured && options.rules) {
       rules = selectedRulesWithConfigOptions(rules, options.rules);
     }
-    const signature = configured ? stableConfigSignature(rules) : "<native-defaults>";
+    const signature = configured ? stableConfigSignature({ rules, settings }) : "<native-defaults>";
     if (!groups.has(signature)) {
-      groups.set(signature, { paths: [], rules, configured });
+      groups.set(signature, { paths: [], rules, settings, configured });
     }
     groups.get(signature).paths.push(filePath);
   }
@@ -3203,7 +3207,10 @@ function nativeConfigRunsForFiles(paths, options) {
         config: undefined,
         noConfig: true,
         baseConfig: undefined,
-        overrideConfig: { rules: allDisabledNativeRules(group.rules) },
+        overrideConfig: {
+          rules: allDisabledNativeRules(group.rules),
+          ...(group.settings ? { settings: group.settings } : {})
+        },
         forceMaterializedConfig: true
       }
     };
@@ -3758,7 +3765,15 @@ function withTemporaryConfig(options, callback) {
   const rules = shouldMaterializeFileConfig
     ? materializedRulesFromConfigs(...configs)
     : runtimeRulesFromConfigs(...configs);
-  if (Object.keys(rules).length === 0) {
+  const settings = configs.reduce(
+    (result, config) => ({
+      ...result,
+      ...(configDataFromConfig(config, options.filePath ?? options.filename, options.cwd).settings ?? {})
+    }),
+    {}
+  );
+  const hasSettings = Object.keys(settings).length > 0;
+  if (Object.keys(rules).length === 0 && !hasSettings) {
     if (shouldMaterializeFileConfig) {
       return callback({
         ...options,
@@ -3770,7 +3785,7 @@ function withTemporaryConfig(options, callback) {
   }
   const enabledRules = enabledRuleNamesFromConfigs(...configs);
   const hasExplicitOffRules = Object.values(rules).some((value) => ruleConfigSeverity(value) === 0);
-  if (!shouldMaterializeFileConfig && !hasRuleOptions(rules) && !hasExplicitOffRules && !options.forceMaterializedConfig) {
+  if (!shouldMaterializeFileConfig && !hasSettings && !hasRuleOptions(rules) && !hasExplicitOffRules && !options.forceMaterializedConfig) {
     return callback({
       ...options,
       config: shouldMaterializeFileConfig ? undefined : options.config,
@@ -3782,7 +3797,7 @@ function withTemporaryConfig(options, callback) {
   const tmp = mkdtempSync(join(tmpdir(), "utoo-lint-config-"));
   const configPath = join(tmp, "utlint.config.json");
   try {
-    writeFileSync(configPath, JSON.stringify({ rules }));
+    writeFileSync(configPath, JSON.stringify({ rules, ...(hasSettings ? { settings } : {}) }));
     return callback({
       ...options,
       config: shouldMaterializeFileConfig ? configPath : options.config ?? configPath,

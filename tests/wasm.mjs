@@ -111,6 +111,25 @@ test("applies no-magic-numbers Number and BigInt ignore values", () => {
   assert.equal(diagnostics[0].message, "No magic number: 9.");
 });
 
+test("applies configured Jest versions to version-aware rules", () => {
+  const source = "jest.runTimersToTime(1000);";
+  const oldJest = linter.lint(source, {
+    filePath: "input.js",
+    settings: { jest: { version: "21.4.0" } },
+    rules: { "jest/no-deprecated-functions": "error" },
+  });
+  assert.equal(oldJest.diagnostics.length, 0);
+
+  const newJest = linter.lint(source, {
+    filePath: "input.js",
+    settings: { jest: { version: 22 } },
+    rules: { "jest/no-deprecated-functions": "error" },
+  });
+  assert.equal(newJest.diagnostics.length, 1);
+  assert.equal(newJest.diagnostics[0].ruleId, "jest/no-deprecated-functions");
+  assert.equal(newJest.diagnostics[0].fixes.length, 2);
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",

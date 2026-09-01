@@ -101,7 +101,7 @@ export default defineConfig(
 
 npm 封装层会执行 TypeScript 文件，将其结果转换为 JSON，再把该 JSON 传给原生二进制文件。原生二进制文件本身不会执行或查找 TypeScript 配置。它会查找 `utlint.config.json`，然后再查找旧版 JSON 文件名。对于 `utlint.config.ts`，请使用 npm CLI；直接调用原生二进制文件时，请使用 `utlint.config.json`。
 
-原生二进制文件只会应用 JSON 配置中的 `rules`。由配置驱动的 `files` 和 `ignores` 过滤，以及默认 lint 目标的选择，均由 npm/Node 封装层实现。直接调用原生二进制文件时，请显式传入 lint 目标。
+原生二进制文件会应用 JSON 配置中的 `rules` 以及受支持的共享 `settings`。由配置驱动的 `files` 和 `ignores` 过滤，以及默认 lint 目标的选择，均由 npm/Node 封装层实现。直接调用原生二进制文件时，请显式传入 lint 目标。
 
 ## JSON 配置
 
@@ -120,6 +120,15 @@ npm 封装层会执行 TypeScript 文件，将其结果转换为 JSON，再把�
 ```
 
 可选的 `$schema` 属性可以在支持 JSON Schema 的编辑器中启用补全和验证。JSON 配置不能包含导入或计算值；需要这些能力时，请使用 `utlint.config.ts`。
+
+需要感知版本的 Jest 规则默认会检测距离待检查文件最近的已安装 `jest` 包；未找到安装时会回退到当前支持的最新主版本。如果仓库使用多个 Jest 版本，或需要固定 lint 使用的版本，可显式设置 `settings.jest.version`：
+
+```json
+{
+  "settings": { "jest": { "version": "29.7.0" } },
+  "rules": { "jest/no-deprecated-functions": "error" }
+}
+```
 
 ESLint 配置文件仅作为迁移输入，不是推荐的长期配置格式。可使用以下命令生成原生配置：
 

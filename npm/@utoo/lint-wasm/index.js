@@ -64,7 +64,8 @@ function createApi(instance) {
       version: ABI_VERSION,
       filePath: options.filePath ?? options.filename ?? "input.js",
       fix: fix ? "apply" : "none",
-      ...(options.rules === undefined ? {} : { rules: options.rules })
+      ...(options.rules === undefined ? {} : { rules: options.rules }),
+      ...(options.settings === undefined ? {} : { settings: options.settings })
     }));
     assertRequestSize(optionsBytes.length, MAX_OPTIONS_BYTES, "options", "1 MiB");
 

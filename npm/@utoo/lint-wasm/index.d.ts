@@ -1,6 +1,16 @@
 export type RuleSeverity = "off" | "warn" | "warning" | "error" | 0 | 1 | 2 | false | true;
 export type RuleConfig = RuleSeverity | [RuleSeverity, ...unknown[]];
 
+export interface JestPluginSettings {
+  version?: string | number;
+  [key: string]: unknown;
+}
+
+export interface SharedSettings {
+  jest?: JestPluginSettings;
+  [key: string]: unknown;
+}
+
 export interface LintFix {
   range: [number, number];
   text: string;
@@ -29,6 +39,7 @@ export interface LintOptions {
   filePath?: string;
   filename?: string;
   rules?: Record<string, RuleConfig>;
+  settings?: SharedSettings;
 }
 
 export interface LintResultBase {

@@ -163,7 +163,9 @@ pub fn main(init: std.process.Init) !void {
                 std.process.exit(2);
             };
         } else if (std.mem.startsWith(u8, arg, "--rules=")) {
+            const jest_version = options.jest_version;
             options = lint.Options.allDisabled();
+            options.jest_version = jest_version;
             clearRuleSeverities(allocator, &rule_severities);
             try parseEnabledRules(allocator, arg["--rules=".len..], &options, &rule_severities);
         } else if (std.mem.eql(u8, arg, "--accessor-pairs=off")) {
@@ -1472,6 +1474,33 @@ fn loadConfigFile(
     };
 
     options.* = lint.Options.allDisabled();
+    if (root.get("settings")) |settings_value| {
+        const settings = switch (settings_value) {
+            .object => |object| object,
+            else => {
+                std.debug.print("utoo-lint: config {s} field \"settings\" must be an object\n", .{path});
+                std.process.exit(2);
+            },
+        };
+        if (settings.get("jest")) |jest_value| {
+            const jest = switch (jest_value) {
+                .object => |object| object,
+                else => {
+                    std.debug.print("utoo-lint: config {s} field \"settings.jest\" must be an object\n", .{path});
+                    std.process.exit(2);
+                },
+            };
+            if (jest.get("version")) |version| {
+                options.setJestVersionFromConfig(version) catch |err| {
+                    std.debug.print(
+                        "utoo-lint: invalid config {s} setting settings.jest.version: {s}\n",
+                        .{ path, @errorName(err) },
+                    );
+                    std.process.exit(2);
+                };
+            }
+        }
+    }
     const rules_value = root.get("rules") orelse return;
     const rules = switch (rules_value) {
         .object => |object| object,

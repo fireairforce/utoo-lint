@@ -263,6 +263,7 @@ instead of being rewritten.
 | Rule | Status |
 | --- | --- |
 | [`jest/no-conditional-expect`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-conditional-expect.md) | Implemented for conditionals, catch clauses, Promise catch callbacks, inline test callbacks, and named test callbacks |
+| [`jest/no-deprecated-functions`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-deprecated-functions.md) | Implemented with installed or configured Jest version detection and upstream autofixes |
 
 ## Promise plugin rules
 

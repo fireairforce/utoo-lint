@@ -2760,6 +2760,8 @@ pub const Options = struct {
     import_no_unresolved_ignore: ImportNoUnresolvedIgnorePatterns = .{},
     import_no_self_import: bool = true,
     jest_no_conditional_expect: bool = true,
+    jest_no_deprecated_functions: bool = true,
+    jest_version: u32 = 0,
     jsx_a11y_alt_text: bool = true,
     jsx_a11y_alt_text_img: bool = true,
     jsx_a11y_alt_text_object: bool = true,
@@ -4191,6 +4193,27 @@ pub const Options = struct {
         }
     }
 
+    pub fn setJestVersionFromConfig(self: *Options, value: std.json.Value) RuleConfigError!void {
+        self.jest_version = switch (value) {
+            .integer => |version| if (version > 0 and version <= std.math.maxInt(u32))
+                @intCast(version)
+            else
+                return error.InvalidJestVersion,
+            .string => |version| blk: {
+                const separator = std.mem.indexOfScalar(u8, version, '.') orelse version.len;
+                const major = version[0..separator];
+                if (major.len == 0) return error.InvalidJestVersion;
+                for (major) |char| {
+                    if (!std.ascii.isDigit(char)) return error.InvalidJestVersion;
+                }
+                const parsed = std.fmt.parseUnsigned(u32, major, 10) catch return error.InvalidJestVersion;
+                if (parsed == 0) return error.InvalidJestVersion;
+                break :blk parsed;
+            },
+            else => return error.InvalidJestVersion,
+        };
+    }
+
     pub fn severityFromRuleConfigValue(value: std.json.Value) RuleConfigError!?Severity {
         return switch (value) {
             .bool => |enabled| if (enabled) .@"error" else null,
@@ -4224,6 +4247,7 @@ pub const Options = struct {
 
     pub const RuleConfigError = error{
         EmptyRuleConfigArray,
+        InvalidJestVersion,
         UnknownRule,
         UnsupportedRuleConfigValue,
     };
@@ -10411,6 +10435,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.jest_no_conditional_expect);
     try std.testing.expect(options.setByCliName("jest/no-conditional-expect", true));
     try std.testing.expect(options.jest_no_conditional_expect);
+
+    try std.testing.expect(!options.jest_no_deprecated_functions);
+    try std.testing.expect(options.setByCliName("jest/no-deprecated-functions", true));
+    try std.testing.expect(options.jest_no_deprecated_functions);
 
     try std.testing.expect(!options.unused_imports_no_unused_imports);
     try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));
