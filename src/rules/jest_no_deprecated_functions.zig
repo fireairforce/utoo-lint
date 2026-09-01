@@ -16,15 +16,37 @@ const Deprecation = struct {
     property: []const u8,
 };
 
+const JestGlobal = enum {
+    expect,
+    jest,
+};
+
+const ImportedGlobals = std.StringHashMapUnmanaged(JestGlobal);
+
+const ObjectMatch = struct {
+    canonical: []const u8,
+    source: []const u8,
+    scope: traverser.semantic.ScopeId,
+};
+
 pub fn run(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
+    scope_tree: traverser.semantic.ScopeTree,
+    symbol_table: traverser.semantic.SymbolTable,
     jest_version: u32,
 ) Allocator.Error!void {
+    var imported_globals: ImportedGlobals = .empty;
+    defer imported_globals.deinit(allocator);
+    try collectImportedGlobals(allocator, tree, &imported_globals);
+
     var visitor = Visitor{
         .allocator = allocator,
         .diagnostics = diagnostics,
+        .scope_tree = scope_tree,
+        .symbol_table = symbol_table,
+        .imported_globals = &imported_globals,
         .jest_version = if (jest_version == 0) latest_jest_version else jest_version,
     };
     try traverser.basic.traverse(Visitor, tree, &visitor);
@@ -63,6 +85,9 @@ pub fn detectJestVersion(allocator: Allocator, io: std.Io, file_path: []const u8
 const Visitor = struct {
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
+    scope_tree: traverser.semantic.ScopeTree,
+    symbol_table: traverser.semantic.SymbolTable,
+    imported_globals: *const ImportedGlobals,
     jest_version: u32,
 
     pub fn enter_call_expression(
@@ -78,16 +103,29 @@ const Visitor = struct {
         };
         if (member.object == .null or member.property == .null) return .proceed;
 
-        const object_name = identifierName(ctx.tree, member.object) orelse return .proceed;
+        const object = self.matchObject(ctx.tree, member.object) orelse return .proceed;
         const property_name = propertyName(ctx.tree, member) orelse return .proceed;
-        const replacement = deprecationFor(self.jest_version, object_name, property_name) orelse return .proceed;
+        const replacement = deprecationFor(self.jest_version, object.canonical, property_name) orelse return .proceed;
+        const replacement_object = self.replacementObject(object, replacement.object);
 
         const message = try std.fmt.allocPrint(
             self.allocator,
             "`{s}.{s}` has been deprecated in favor of `{s}.{s}`",
-            .{ object_name, property_name, replacement.object, replacement.property },
+            .{ object.source, property_name, replacement_object orelse replacement.object, replacement.property },
         );
         defer self.allocator.free(message);
+
+        if (replacement_object == null) {
+            try core.addDiagnostic(
+                self.allocator,
+                self.diagnostics,
+                .warning,
+                id,
+                message,
+                ctx.tree.span(index),
+            );
+            return .proceed;
+        }
 
         const property_replacement = if (member.computed)
             try std.fmt.allocPrint(self.allocator, "'{s}'", .{replacement.property})
@@ -103,13 +141,115 @@ const Visitor = struct {
             message,
             ctx.tree.span(index),
             &.{
-                .{ .span = ctx.tree.span(member.object), .replacement = replacement.object },
+                .{ .span = ctx.tree.span(member.object), .replacement = replacement_object.? },
                 .{ .span = ctx.tree.span(member.property), .replacement = property_replacement },
             },
         );
         return .proceed;
     }
+
+    fn matchObject(self: *const Visitor, tree: *const ast.Tree, index: ast.NodeIndex) ?ObjectMatch {
+        const object = unwrapTransparent(tree, index);
+        const source_name = identifierName(tree, object) orelse return null;
+        const reference_id = self.symbol_table.model.referenceOf(object) orelse return null;
+        const reference = self.symbol_table.getReference(reference_id);
+        const symbol_id = self.symbol_table.referenceSymbol(reference_id);
+
+        if (symbol_id == .none) {
+            if (!std.mem.eql(u8, source_name, "jest") and !std.mem.eql(u8, source_name, "require")) return null;
+            return .{
+                .canonical = source_name,
+                .source = source_name,
+                .scope = reference.scope,
+            };
+        }
+
+        if (!self.isImportedGlobal(symbol_id, .jest)) return null;
+        return .{
+            .canonical = "jest",
+            .source = source_name,
+            .scope = reference.scope,
+        };
+    }
+
+    fn replacementObject(self: *const Visitor, object: ObjectMatch, canonical: []const u8) ?[]const u8 {
+        if (std.mem.eql(u8, canonical, object.canonical)) return object.source;
+
+        const global: JestGlobal = if (std.mem.eql(u8, canonical, "jest")) .jest else .expect;
+        if (self.accessibleImportedName(object.scope, global)) |name| return name;
+        if (self.hasImportedGlobal(global)) return null;
+        if (self.symbol_table.resolve(self.scope_tree, object.scope, canonical) == null) return canonical;
+        return null;
+    }
+
+    fn hasImportedGlobal(self: *const Visitor, expected: JestGlobal) bool {
+        var iterator = self.imported_globals.valueIterator();
+        while (iterator.next()) |global| {
+            if (global.* == expected) return true;
+        }
+        return false;
+    }
+
+    fn accessibleImportedName(
+        self: *const Visitor,
+        scope: traverser.semantic.ScopeId,
+        expected: JestGlobal,
+    ) ?[]const u8 {
+        var best: ?[]const u8 = null;
+        var iterator = self.imported_globals.iterator();
+        while (iterator.next()) |entry| {
+            if (entry.value_ptr.* != expected) continue;
+            const symbol_id = self.symbol_table.resolve(self.scope_tree, scope, entry.key_ptr.*) orelse continue;
+            if (!self.isImportedGlobal(symbol_id, expected)) continue;
+            if (best == null or std.mem.order(u8, entry.key_ptr.*, best.?) == .lt) best = entry.key_ptr.*;
+        }
+        return best;
+    }
+
+    fn isImportedGlobal(self: *const Visitor, symbol_id: traverser.semantic.SymbolId, expected: JestGlobal) bool {
+        const symbol = self.symbol_table.getSymbol(symbol_id);
+        if (!symbol.flags.import) return false;
+        return (self.imported_globals.get(self.symbol_table.tree.string(symbol.name)) orelse return false) == expected;
+    }
 };
+
+fn collectImportedGlobals(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    imported_globals: *ImportedGlobals,
+) Allocator.Error!void {
+    const program = switch (tree.data(tree.root)) {
+        .program => |value| value,
+        else => return,
+    };
+
+    for (tree.extra(program.body)) |statement_index| {
+        const declaration = switch (tree.data(statement_index)) {
+            .import_declaration => |value| value,
+            else => continue,
+        };
+        if (declaration.import_kind == .type) continue;
+        const source = stringLiteralValue(tree, declaration.source) orelse continue;
+        if (!std.mem.eql(u8, source, "@jest/globals")) continue;
+
+        for (tree.extra(declaration.specifiers)) |specifier_index| {
+            const specifier = switch (tree.data(specifier_index)) {
+                .import_specifier => |value| value,
+                else => continue,
+            };
+            if (specifier.import_kind == .type) continue;
+            const imported = propertyNodeName(tree, specifier.imported) orelse continue;
+            const global: JestGlobal = if (std.mem.eql(u8, imported, "jest"))
+                .jest
+            else if (std.mem.eql(u8, imported, "expect"))
+                .expect
+            else
+                continue;
+            const local = bindingIdentifierName(tree, specifier.local) orelse continue;
+            try imported_globals.put(allocator, local, global);
+        }
+    }
+}
 
 fn deprecationFor(version: u32, object: []const u8, property: []const u8) ?Deprecation {
     if (version >= 15 and std.mem.eql(u8, object, "jest") and std.mem.eql(u8, property, "resetModuleRegistry")) {
@@ -136,6 +276,29 @@ fn deprecationFor(version: u32, object: []const u8, property: []const u8) ?Depre
 fn identifierName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
     return switch (tree.data(unwrapTransparent(tree, index))) {
         .identifier_reference => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn bindingIdentifierName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    return switch (tree.data(index)) {
+        .binding_identifier => |identifier| tree.string(identifier.name),
+        else => null,
+    };
+}
+
+fn propertyNodeName(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    return switch (tree.data(index)) {
+        .identifier_name => |identifier| tree.string(identifier.name),
+        .identifier_reference => |identifier| tree.string(identifier.name),
+        .string_literal => |literal| tree.string(literal.value),
+        else => null,
+    };
+}
+
+fn stringLiteralValue(tree: *const ast.Tree, index: ast.NodeIndex) ?[]const u8 {
+    return switch (tree.data(index)) {
+        .string_literal => |literal| tree.string(literal.value),
         else => null,
     };
 }

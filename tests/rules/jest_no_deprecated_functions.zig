@@ -83,6 +83,51 @@ test "allows functions before deprecation and non-call references" {
     try std.testing.expect(!helpers.hasRule(result, lint.rules.jest_no_deprecated_functions.id));
 }
 
+test "ignores shadowed Jest and require objects" {
+    const source =
+        \\function run(jest, require) {
+        \\  jest.resetModuleRegistry();
+        \\  jest.addMatchers({});
+        \\  require.requireActual("module");
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsFor(30));
+    defer result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.jest_no_deprecated_functions.id));
+}
+
+test "supports aliased @jest/globals imports without unsafe replacements" {
+    const source =
+        \\import { expect as assertion, jest as testJest } from "@jest/globals";
+        \\testJest.resetModuleRegistry();
+        \\testJest.addMatchers({});
+    ;
+    const expected =
+        \\import { expect as assertion, jest as testJest } from "@jest/globals";
+        \\testJest.resetModules();
+        \\assertion.extend({});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsFor(30));
+    defer result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.jest_no_deprecated_functions.id));
+
+    var fixed = try lint.applyFixes(std.testing.allocator, source, result.diagnostics);
+    defer fixed.deinit(std.testing.allocator);
+    try std.testing.expectEqualStrings(expected, fixed.output);
+
+    const shadowed_replacement =
+        \\function load(jest) {
+        \\  return require.requireActual("module");
+        \\}
+    ;
+    var shadowed_result = try lint.lintSource(std.testing.allocator, shadowed_replacement, "fixture.js", optionsFor(30));
+    defer shadowed_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(shadowed_result, lint.rules.jest_no_deprecated_functions.id));
+    try std.testing.expectEqual(@as(usize, 0), shadowed_result.diagnostics[0].fixes.len);
+}
+
 test "supports JavaScript TypeScript JSX and TSX" {
     const cases = [_]struct { source: []const u8, file_name: []const u8 }{
         .{ .source = "jest.genMockFromModule('x');", .file_name = "fixture.js" },

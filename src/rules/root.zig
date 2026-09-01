@@ -586,9 +586,6 @@ pub fn runBasicWithOptionsPtr(
     file_path: []const u8,
     options: *const core.Options,
 ) Allocator.Error!void {
-    if (options.jest_no_deprecated_functions) {
-        try jest_no_deprecated_functions.run(allocator, diagnostics, tree, options.jest_version);
-    }
     if (options.capitalized_comments) {
         try capitalized_comments.runWithOptions(allocator, diagnostics, tree, .{
             .mode = switch (options.capitalized_comments_mode) {
@@ -1001,6 +998,17 @@ fn runSemanticAfterIo(
     semantic_result: traverser.semantic.Result,
     options: core.Options,
 ) Allocator.Error!void {
+    if (options.jest_no_deprecated_functions) {
+        try jest_no_deprecated_functions.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.scope_tree,
+            semantic_result.symbol_table,
+            options.jest_version,
+        );
+    }
+
     if (options.jest_no_conditional_expect) {
         try jest_no_conditional_expect.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
