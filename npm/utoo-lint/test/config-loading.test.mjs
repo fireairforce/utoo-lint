@@ -2641,6 +2641,38 @@ test("jest/no-deprecated-functions uses project settings, auto detection, and fi
   }
 });
 
+test("project config and CLI --rules enable jest/no-export", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({ rules: { "jest/no-export": "error" } })
+  );
+  const sourcePath = write(
+    join(project, "export.test.js"),
+    "export const helper = 1; test('export', () => expect(helper).toBe(1));\n"
+  );
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const configured = execute(["--json", sourcePath], options);
+    const configuredReport = JSON.parse(configured.stdout);
+    assert.equal(configured.status, 1, configured.stderr);
+    assert.deepEqual(configuredReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-export", severity: "error" }
+    ]);
+
+    const isolated = execute(
+      ["--no-config", "--rules=jest/no-export", "--json", sourcePath],
+      options
+    );
+    const isolatedReport = JSON.parse(isolated.stdout);
+    assert.equal(isolated.status, 0, isolated.stderr);
+    assert.deepEqual(isolatedReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-export", severity: "warning" }
+    ]);
+  }
+});
+
 test("flat config keeps Jest version settings scoped per file", (t) => {
   const project = createProject(t);
   write(

@@ -269,6 +269,7 @@ comptime {
 comptime {
     _ = @import("rules/jest_no_conditional_expect.zig");
     _ = @import("rules/jest_no_deprecated_functions.zig");
+    _ = @import("rules/jest_no_export.zig");
 }
 
 comptime {

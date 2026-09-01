@@ -2761,6 +2761,7 @@ pub const Options = struct {
     import_no_self_import: bool = true,
     jest_no_conditional_expect: bool = true,
     jest_no_deprecated_functions: bool = true,
+    jest_no_export: bool = true,
     jest_version: u32 = 0,
     jsx_a11y_alt_text: bool = true,
     jsx_a11y_alt_text_img: bool = true,
@@ -10439,6 +10440,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.jest_no_deprecated_functions);
     try std.testing.expect(options.setByCliName("jest/no-deprecated-functions", true));
     try std.testing.expect(options.jest_no_deprecated_functions);
+
+    try std.testing.expect(!options.jest_no_export);
+    try std.testing.expect(options.setByCliName("jest/no-export", true));
+    try std.testing.expect(options.jest_no_export);
 
     try std.testing.expect(!options.unused_imports_no_unused_imports);
     try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));

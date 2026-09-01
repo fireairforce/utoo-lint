@@ -130,6 +130,19 @@ test("applies configured Jest versions to version-aware rules", () => {
   assert.equal(newJest.diagnostics[0].fixes.length, 2);
 });
 
+test("reports exports from files containing Jest tests", () => {
+  const result = linter.lint(
+    "export const helper = 1; test('export', () => expect(helper).toBe(1));",
+    {
+      filePath: "input.js",
+      rules: { "jest/no-export": "error" },
+    },
+  );
+  assert.equal(result.diagnostics.length, 1);
+  assert.equal(result.diagnostics[0].ruleId, "jest/no-export");
+  assert.equal(result.diagnostics[0].message, "Do not export from a test file");
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",

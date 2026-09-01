@@ -316,6 +316,7 @@ const BUILTIN_RULE_IDS = [
   "import/no-self-import",
   "jest/no-conditional-expect",
   "jest/no-deprecated-functions",
+  "jest/no-export",
   "promise/no-promise-in-callback",
   "promise/no-return-in-finally",
   "promise/no-return-wrap",
