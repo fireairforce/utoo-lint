@@ -166,6 +166,22 @@ test("reports focused Jest tests with non-automatic suggestions", () => {
   assert.equal(fixed.output, source);
 });
 
+test("reports identical Jest titles at the same suite level", () => {
+  const result = linter.lint(
+    "describe('group', () => { it('same', () => {}); test('same', () => {}); });",
+    {
+      filePath: "input.js",
+      rules: { "jest/no-identical-title": "error" },
+    },
+  );
+  assert.equal(result.diagnostics.length, 1);
+  assert.equal(result.diagnostics[0].ruleId, "jest/no-identical-title");
+  assert.equal(
+    result.diagnostics[0].message,
+    "Test title is used multiple times in the same describe block",
+  );
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",
