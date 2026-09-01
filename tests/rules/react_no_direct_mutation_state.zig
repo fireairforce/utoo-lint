@@ -46,6 +46,8 @@ test "allows constructor initialization and setState but reports constructor cal
         \\    this.state = { count: 0 };
         \\    this.state.ready = true;
         \\    this.state.count++;
+        \\    this.onClick = () => { this.state.clicked = true; };
+        \\    consume(this.state.count = 2);
         \\    schedule(() => {
         \\      this.state.count = 1;
         \\    });
