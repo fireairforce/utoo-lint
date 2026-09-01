@@ -68,13 +68,11 @@ test "allows constructor initialization and setState but reports constructor cal
 test "matches upstream alias computed nested and destructured behavior" {
     const source =
         \\class View extends React.Component {
-        \\  update(state) {
+        \\  update() {
         \\    const that = this;
         \\    const { state: localState } = this;
         \\    that.state.aliased = true;
         \\    localState.destructured = true;
-        \\    this["state"].literal = true;
-        \\    this[state].computed = true;
         \\    this.state["person"].name = "Grace";
         \\    (this.state).parenthesized = true;
         \\    this.state = { replaced: true };
@@ -97,7 +95,29 @@ test "matches upstream alias computed nested and destructured behavior" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", ruleOptions());
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, rule_id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, rule_id));
+}
+
+test "matches upstream computed state property-name behavior" {
+    const reported_source =
+        \\class Reported extends React.Component {
+        \\  update(state) { this[state].computed = true; }
+        \\}
+    ;
+    var reported = try lint.lintSource(std.testing.allocator, reported_source, "reported.js", ruleOptions());
+    defer reported.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 0), helpers.countRule(reported, "parse"));
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(reported, rule_id));
+
+    const allowed_source =
+        \\class Allowed extends React.Component {
+        \\  update() { this["state"].literal = true; }
+        \\}
+    ;
+    var allowed = try lint.lintSource(std.testing.allocator, allowed_source, "allowed.js", ruleOptions());
+    defer allowed.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 0), helpers.countRule(allowed, "parse"));
+    try std.testing.expect(!helpers.hasRule(allowed, rule_id));
 }
 
 test "preserves upstream TypeScript non-null assertion behavior" {
