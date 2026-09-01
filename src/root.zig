@@ -13,6 +13,7 @@ pub const Options = core.Options;
 pub const Diagnostic = core.Diagnostic;
 pub const Suppression = core.Suppression;
 pub const Fix = core.Fix;
+pub const Suggestion = core.Suggestion;
 pub const Result = core.Result;
 pub const ApplyFixesResult = fixer.ApplyResult;
 pub const max_autofix_passes = 10;
@@ -294,6 +295,7 @@ fn hasSemanticRules(options: Options) bool {
         options.jest_no_conditional_expect or
         options.jest_no_deprecated_functions or
         options.jest_no_export or
+        options.jest_no_focused_tests or
         options.no_invalid_regexp or
         options.no_label_var or
         options.no_loop_func or

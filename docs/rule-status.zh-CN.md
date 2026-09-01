@@ -264,6 +264,7 @@
 | [`jest/no-conditional-expect`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-conditional-expect.md) | 已实现条件表达式、`catch` 子句、Promise `catch` 回调、内联测试回调及命名测试回调检查 |
 | [`jest/no-deprecated-functions`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-deprecated-functions.md) | 已实现已安装或显式配置的 Jest 版本检测，并支持上游自动修复 |
 | [`jest/no-export`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-export.md) | 已实现对包含 Jest 测试的文件中的 ESM、CommonJS 和 TypeScript 导出检查 |
+| [`jest/no-focused-tests`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-focused-tests.md) | 已实现对全局、导入、别名及链式聚焦测试的检查，并提供上游编辑器建议 |
 
 ## Promise 插件规则
 

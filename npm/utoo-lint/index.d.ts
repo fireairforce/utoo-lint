@@ -69,6 +69,7 @@ export interface PluginObject {
 
 export interface JestPluginSettings {
   version?: string | number;
+  globalAliases?: Record<string, string[]>;
   [key: string]: unknown;
 }
 

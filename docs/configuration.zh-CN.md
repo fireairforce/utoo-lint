@@ -125,10 +125,20 @@ npm 封装层会执行 TypeScript 文件，将其结果转换为 JSON，再把�
 
 ```json
 {
-  "settings": { "jest": { "version": "29.7.0" } },
-  "rules": { "jest/no-deprecated-functions": "error" }
+  "settings": {
+    "jest": {
+      "version": "29.7.0",
+      "globalAliases": { "describe": ["context"] }
+    }
+  },
+  "rules": {
+    "jest/no-deprecated-functions": "error",
+    "jest/no-focused-tests": "error"
+  }
 }
 ```
+
+可通过 `settings.jest.globalAliases` 将 Jest 的标准函数名映射到项目自定义的全局别名。例如，上面的配置会将 `context` 视为 `describe` 的别名。
 
 ESLint 配置文件仅作为迁移输入，不是推荐的长期配置格式。可使用以下命令生成原生配置：
 

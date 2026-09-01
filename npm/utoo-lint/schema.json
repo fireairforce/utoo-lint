@@ -43,6 +43,15 @@
                     { "type": "integer", "minimum": 1 },
                     { "type": "string", "pattern": "^[0-9]+(?:\\..*)?$" }
                   ]
+                },
+                "globalAliases": {
+                  "description": "Additional global aliases for canonical Jest functions.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": { "type": "string", "minLength": 1 },
+                    "uniqueItems": true
+                  }
                 }
               }
             }

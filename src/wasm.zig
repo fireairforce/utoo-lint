@@ -327,6 +327,12 @@ fn parseConfig(
                     return error.InvalidOptions;
                 };
             }
+            if (jest.get("globalAliases")) |aliases| {
+                config.options.setJestGlobalAliasesFromConfig(aliases) catch |err| {
+                    failure.* = .{ .code = "INVALID_OPTIONS", .message = @errorName(err) };
+                    return error.InvalidOptions;
+                };
+            }
         }
     }
 
@@ -458,12 +464,31 @@ fn writeDiagnostic(
         end.column,
     });
     try writeFixes(writer, source, diagnostic.fixes);
+    try writer.writeAll(",\"suggestions\":");
+    try writeSuggestions(writer, source, diagnostic.suggestions);
     if (diagnostic.suppression) |suppression| {
         try writer.writeAll(",\"suppression\":{\"kind\":\"directive\",\"justification\":");
         try writeJsonValue(writer, suppression.justification);
         try writer.writeByte('}');
     }
     try writer.writeByte('}');
+}
+
+fn writeSuggestions(
+    writer: *std.Io.Writer,
+    source: []const u8,
+    suggestions: []const lint_engine.Suggestion,
+) !void {
+    try writer.writeByte('[');
+    for (suggestions, 0..) |suggestion, index| {
+        if (index != 0) try writer.writeByte(',');
+        try writer.writeAll("{\"desc\":");
+        try writeJsonValue(writer, suggestion.message);
+        try writer.writeAll(",\"fix\":");
+        try writeFixes(writer, source, suggestion.fixes);
+        try writer.writeByte('}');
+    }
+    try writer.writeByte(']');
 }
 
 fn writeFixes(

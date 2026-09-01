@@ -36,6 +36,11 @@ const JsonFix = struct {
     text: []const u8,
 };
 
+const JsonSuggestion = struct {
+    desc: []const u8,
+    fix: []const JsonFix,
+};
+
 const JsonSuppression = struct {
     kind: []const u8,
     justification: []const u8,
@@ -49,6 +54,7 @@ const JsonDiagnostic = struct {
     message: []const u8,
     ruleId: []const u8,
     fixes: []const JsonFix,
+    suggestions: []const JsonSuggestion,
     suppression: ?JsonSuppression = null,
 };
 
@@ -163,8 +169,10 @@ pub fn main(init: std.process.Init) !void {
                 std.process.exit(2);
             };
         } else if (std.mem.startsWith(u8, arg, "--rules=")) {
+            const jest_global_aliases = options.jest_global_aliases;
             const jest_version = options.jest_version;
             options = lint.Options.allDisabled();
+            options.jest_global_aliases = jest_global_aliases;
             options.jest_version = jest_version;
             clearRuleSeverities(allocator, &rule_severities);
             try parseEnabledRules(allocator, arg["--rules=".len..], &options, &rule_severities);
@@ -1499,6 +1507,15 @@ fn loadConfigFile(
                     std.process.exit(2);
                 };
             }
+            if (jest.get("globalAliases")) |aliases| {
+                options.setJestGlobalAliasesFromConfig(aliases) catch |err| {
+                    std.debug.print(
+                        "utoo-lint: invalid config {s} setting settings.jest.globalAliases: {s}\n",
+                        .{ path, @errorName(err) },
+                    );
+                    std.process.exit(2);
+                };
+            }
         }
     }
     const rules_value = root.get("rules") orelse return;
@@ -1547,7 +1564,7 @@ fn collectLintablePaths(
         if (json_diagnostics) |diagnostics| {
             const message = try std.fmt.allocPrint(allocator, "unable to stat path: {s}", .{@errorName(err)});
             defer allocator.free(message);
-            try appendJsonDiagnostic(allocator, diagnostics, path, 0, 0, "error", message, "io", "", &.{}, null);
+            try appendJsonDiagnostic(allocator, diagnostics, path, 0, 0, "error", message, "io", "", &.{}, &.{}, null);
         } else {
             std.debug.print("{s}: unable to stat path: {s}\n", .{ path, @errorName(err) });
         }
@@ -2095,7 +2112,7 @@ fn lintFileJson(
     const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_file_size)) catch |err| {
         const message = try std.fmt.allocPrint(allocator, "unable to read file: {s}", .{@errorName(err)});
         defer allocator.free(message);
-        try appendJsonDiagnostic(allocator, json_diagnostics, path, 0, 0, "error", message, "io", "", &.{}, null);
+        try appendJsonDiagnostic(allocator, json_diagnostics, path, 0, 0, "error", message, "io", "", &.{}, &.{}, null);
         stats.errors += 1;
         stats.diagnostics += 1;
         return;
@@ -2232,6 +2249,7 @@ fn appendJsonDiagnostic(
     rule_id: []const u8,
     source: []const u8,
     fixes: []const lint.Fix,
+    suggestions: []const lint.Suggestion,
     suppression: ?JsonSuppression,
 ) !void {
     const owned_path = try allocator.dupe(u8, path);
@@ -2245,6 +2263,9 @@ fn appendJsonDiagnostic(
 
     const owned_fixes = try dupeJsonFixes(allocator, source, fixes);
     errdefer freeOwnedJsonFixes(allocator, owned_fixes);
+
+    const owned_suggestions = try dupeJsonSuggestions(allocator, source, suggestions);
+    errdefer freeOwnedJsonSuggestions(allocator, owned_suggestions);
 
     const owned_suppression: ?JsonSuppression = if (suppression) |item| suppression: {
         const kind = try allocator.dupe(u8, item.kind);
@@ -2265,6 +2286,7 @@ fn appendJsonDiagnostic(
         .message = owned_message,
         .ruleId = owned_rule_id,
         .fixes = owned_fixes,
+        .suggestions = owned_suggestions,
         .suppression = owned_suppression,
     });
 }
@@ -2292,6 +2314,7 @@ fn appendJsonResultDiagnostics(
             diagnostic.rule_id,
             source,
             diagnostic.fixes,
+            diagnostic.suggestions,
             null,
         );
 
@@ -2322,6 +2345,7 @@ fn appendJsonResultSuppressedDiagnostics(
             diagnostic.rule_id,
             source,
             diagnostic.fixes,
+            diagnostic.suggestions,
             if (diagnostic.suppression) |suppression| .{
                 .kind = "directive",
                 .justification = suppression.justification,
@@ -2366,6 +2390,44 @@ fn freeOwnedJsonFixes(allocator: std.mem.Allocator, fixes: []const JsonFix) void
     if (fixes.len > 0) allocator.free(fixes);
 }
 
+fn dupeJsonSuggestions(
+    allocator: std.mem.Allocator,
+    source: []const u8,
+    suggestions: []const lint.Suggestion,
+) ![]JsonSuggestion {
+    if (suggestions.len == 0) return &.{};
+
+    const owned = try allocator.alloc(JsonSuggestion, suggestions.len);
+    var initialized: usize = 0;
+    errdefer {
+        freeJsonSuggestions(allocator, owned[0..initialized]);
+        allocator.free(owned);
+    }
+
+    for (suggestions, 0..) |suggestion, index| {
+        const desc = try allocator.dupe(u8, suggestion.message);
+        errdefer allocator.free(desc);
+        owned[index] = .{
+            .desc = desc,
+            .fix = try dupeJsonFixes(allocator, source, suggestion.fixes),
+        };
+        initialized += 1;
+    }
+    return owned;
+}
+
+fn freeJsonSuggestions(allocator: std.mem.Allocator, suggestions: []const JsonSuggestion) void {
+    for (suggestions) |suggestion| {
+        allocator.free(suggestion.desc);
+        freeOwnedJsonFixes(allocator, suggestion.fix);
+    }
+}
+
+fn freeOwnedJsonSuggestions(allocator: std.mem.Allocator, suggestions: []const JsonSuggestion) void {
+    freeJsonSuggestions(allocator, suggestions);
+    if (suggestions.len > 0) allocator.free(suggestions);
+}
+
 fn appendJsonOutput(allocator: std.mem.Allocator, outputs: *JsonOutputList, path: []const u8, output: []const u8) !void {
     const owned_path = try allocator.dupe(u8, path);
     errdefer allocator.free(owned_path);
@@ -2381,6 +2443,7 @@ fn freeJsonDiagnostics(allocator: std.mem.Allocator, diagnostics: *JsonDiagnosti
         allocator.free(diagnostic.message);
         allocator.free(diagnostic.ruleId);
         freeOwnedJsonFixes(allocator, diagnostic.fixes);
+        freeOwnedJsonSuggestions(allocator, diagnostic.suggestions);
         if (diagnostic.suppression) |suppression| {
             allocator.free(suppression.kind);
             allocator.free(suppression.justification);

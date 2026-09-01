@@ -2673,6 +2673,71 @@ test("project config and CLI --rules enable jest/no-export", (t) => {
   }
 });
 
+test("jest/no-focused-tests preserves project settings and editor suggestions", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({
+      settings: { jest: { globalAliases: { describe: ["context"] } } },
+      rules: { "jest/no-focused-tests": "error" }
+    })
+  );
+  const source = "context.only('suite', () => {});\n";
+  const sourcePath = write(join(project, "focused.test.js"), source);
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const configured = execute(["--json", sourcePath], options);
+    const configuredReport = JSON.parse(configured.stdout);
+    assert.equal(configured.status, 1, configured.stderr);
+    assert.deepEqual(configuredReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-focused-tests", severity: "error" }
+    ]);
+    assert.equal(configuredReport.diagnostics[0].fixes.length, 0);
+    assert.equal(configuredReport.diagnostics[0].suggestions[0].desc, "Remove focus from test");
+    assert.deepEqual(configuredReport.diagnostics[0].suggestions[0].fix, [
+      { range: [7, 12], text: "" }
+    ]);
+
+    const selected = execute(["--rules=jest/no-focused-tests", "--json", sourcePath], options);
+    const selectedReport = JSON.parse(selected.stdout);
+    assert.equal(selected.status, 0, selected.stderr);
+    assert.deepEqual(selectedReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-focused-tests", severity: "warning" }
+    ]);
+
+    const fixed = execute(["--fix", "--json", sourcePath], options);
+    assert.equal(fixed.status, 1, fixed.stderr);
+    assert.equal(readFileSync(sourcePath, "utf8"), source);
+  }
+
+  const previousBinary = process.env.UTOO_LINT_BIN;
+  process.env.UTOO_LINT_BIN = testBinary();
+  t.after(() => {
+    if (previousBinary === undefined) delete process.env.UTOO_LINT_BIN;
+    else process.env.UTOO_LINT_BIN = previousBinary;
+  });
+
+  const importedSource = [
+    'import { describe as suite } from "@jest/globals";',
+    "suite.only('suite', () => {});",
+    ""
+  ].join("\n");
+  for (const LinterImplementation of [Linter, CommonJSLinter]) {
+    const linter = new LinterImplementation();
+    const messages = linter.verify(
+      importedSource,
+      { rules: { "jest/no-focused-tests": "error" } },
+      { filename: "focused.test.js" }
+    );
+    assert.equal(messages.length, 1);
+    assert.equal(messages[0].fix, undefined);
+    assert.equal(messages[0].suggestions[0].desc, "Remove focus from test");
+    assert.deepEqual(messages[0].suggestions[0].fix, { range: [56, 61], text: "" });
+    assert.equal(linter.getRules().get("jest/no-focused-tests").meta.hasSuggestions, true);
+  }
+});
+
 test("flat config keeps Jest version settings scoped per file", (t) => {
   const project = createProject(t);
   write(
