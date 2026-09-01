@@ -76,6 +76,7 @@ test "matches upstream alias computed nested and destructured behavior" {
         \\    this["state"].literal = true;
         \\    this[state].computed = true;
         \\    this.state["person"].name = "Grace";
+        \\    (this.state).parenthesized = true;
         \\    this.state = { replaced: true };
         \\  }
         \\}
@@ -96,7 +97,23 @@ test "matches upstream alias computed nested and destructured behavior" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.jsx", ruleOptions());
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, rule_id));
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, rule_id));
+}
+
+test "preserves upstream TypeScript non-null assertion behavior" {
+    const source =
+        \\class View extends React.Component<{}, { count: number }> {
+        \\  update(): void {
+        \\    this.state!.count = 1;
+        \\  }
+        \\}
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", ruleOptions());
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), helpers.countRule(result, "parse"));
+    try std.testing.expect(!helpers.hasRule(result, rule_id));
 }
 
 test "accepts CLI and project rule configuration" {

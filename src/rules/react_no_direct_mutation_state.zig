@@ -17,11 +17,12 @@ pub fn checkAssignmentExpression(
     expression: ast.AssignmentExpression,
     ctx: *traverser.basic.Ctx,
 ) Allocator.Error!void {
-    const member = switch (tree.data(expression.left)) {
+    const left = unwrapTransparent(tree, expression.left);
+    const member = switch (tree.data(left)) {
         .member_expression => |member| member,
         else => return,
     };
-    if (stateRoot(tree, expression.left) == null) return;
+    if (stateRoot(tree, left) == null) return;
     const component = componentAncestor(tree, ctx) orelse return;
     if (isAllowedConstructorMutation(tree, ctx, component)) return;
 
@@ -31,7 +32,7 @@ pub fn checkAssignmentExpression(
         .@"error",
         id,
         message,
-        tree.span(member.object),
+        tree.span(unwrapTransparent(tree, member.object)),
     );
 }
 
@@ -57,17 +58,18 @@ pub fn checkUpdateExpression(
 }
 
 fn stateRoot(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.NodeIndex {
-    var current = index;
+    var current = unwrapTransparent(tree, index);
     while (current != .null) {
         const member = switch (tree.data(current)) {
             .member_expression => |member| member,
             else => return null,
         };
-        if (tree.data(member.object) == .member_expression) {
-            current = member.object;
+        const object = unwrapTransparent(tree, member.object);
+        if (tree.data(object) == .member_expression) {
+            current = object;
             continue;
         }
-        if (!isThisExpression(tree, member.object)) return null;
+        if (!isThisExpression(tree, object)) return null;
         const property = identifierPropertyName(tree, member.property) orelse return null;
         return if (std.mem.eql(u8, property, "state")) current else null;
     }
