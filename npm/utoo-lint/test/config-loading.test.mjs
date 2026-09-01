@@ -2770,6 +2770,38 @@ test("project config and CLI --rules enable jest/no-identical-title", (t) => {
   }
 });
 
+test("project config and CLI --rules enable jest/no-interpolation-in-snapshots", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({ rules: { "jest/no-interpolation-in-snapshots": "error" } })
+  );
+  const sourcePath = write(
+    join(project, "inline-snapshot.test.js"),
+    "expect(value).toMatchInlineSnapshot(`${value}`);\n"
+  );
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const configured = execute(["--json", sourcePath], options);
+    const configuredReport = JSON.parse(configured.stdout);
+    assert.equal(configured.status, 1, configured.stderr);
+    assert.deepEqual(configuredReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-interpolation-in-snapshots", severity: "error" }
+    ]);
+
+    const isolated = execute(
+      ["--no-config", "--rules=jest/no-interpolation-in-snapshots", "--json", sourcePath],
+      options
+    );
+    const isolatedReport = JSON.parse(isolated.stdout);
+    assert.equal(isolated.status, 0, isolated.stderr);
+    assert.deepEqual(isolatedReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-interpolation-in-snapshots", severity: "warning" }
+    ]);
+  }
+});
+
 test("flat config keeps Jest version settings scoped per file", (t) => {
   const project = createProject(t);
   write(

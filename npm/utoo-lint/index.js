@@ -319,6 +319,7 @@ const BUILTIN_RULE_IDS = [
   "jest/no-export",
   "jest/no-focused-tests",
   "jest/no-identical-title",
+  "jest/no-interpolation-in-snapshots",
   "promise/no-promise-in-callback",
   "promise/no-return-in-finally",
   "promise/no-return-wrap",

@@ -15,6 +15,7 @@ pub const Function = enum {
     it,
     fit,
     xit,
+    expect,
 
     pub fn canonicalName(self: Function) []const u8 {
         return switch (self) {
@@ -26,6 +27,7 @@ pub const Function = enum {
             .it => "it",
             .fit => "fit",
             .xit => "xit",
+            .expect => "expect",
         };
     }
 
@@ -33,6 +35,7 @@ pub const Function = enum {
         return switch (self) {
             .describe, .fdescribe, .xdescribe => .describe,
             .test_case, .xtest, .it, .fit, .xit => .test_case,
+            .expect => .expect,
         };
     }
 
@@ -44,6 +47,7 @@ pub const Function = enum {
 pub const Kind = enum {
     describe,
     test_case,
+    expect,
 };
 
 pub const Origin = enum {
@@ -76,6 +80,11 @@ pub const Call = struct {
             if (std.mem.eql(u8, member.name, name)) return member;
         }
         return null;
+    }
+
+    pub fn lastMember(self: *const Call) ?Member {
+        if (self.member_count == 0) return null;
+        return self.members[self.member_count - 1];
     }
 
     pub fn usesCanonicalName(self: *const Call) bool {
@@ -308,6 +317,8 @@ fn isTopmostCall(tree: *const ast.Tree, index: ast.NodeIndex, parent: ?ast.NodeI
 }
 
 fn isValidCall(function: Function, chain: CalleeChain) bool {
+    if (function == .expect) return isValidExpectCall(chain);
+
     const members = chain.memberSlice();
     const ends_in_each = members.len != 0 and std.mem.eql(u8, members[members.len - 1].name, "each");
 
@@ -353,6 +364,25 @@ fn isValidCall(function: Function, chain: CalleeChain) bool {
             matchesMembers(members, &.{"each"}) or
             matchesMembers(members, &.{"failing"}) or
             matchesMembers(members, &.{ "failing", "each" }),
+        .expect => unreachable,
+    };
+}
+
+fn isValidExpectCall(chain: CalleeChain) bool {
+    if (chain.tagged_templates != 0 or chain.nested_calls > 1) return false;
+    const members = chain.memberSlice();
+    if (members.len == 0) return chain.nested_calls == 0;
+
+    const modifiers = members[0 .. members.len - 1];
+    return switch (modifiers.len) {
+        0 => true,
+        1 => std.mem.eql(u8, modifiers[0].name, "not") or
+            std.mem.eql(u8, modifiers[0].name, "resolves") or
+            std.mem.eql(u8, modifiers[0].name, "rejects"),
+        2 => (std.mem.eql(u8, modifiers[0].name, "resolves") or
+            std.mem.eql(u8, modifiers[0].name, "rejects")) and
+            std.mem.eql(u8, modifiers[1].name, "not"),
+        else => false,
     };
 }
 
@@ -373,6 +403,7 @@ fn functionForName(name: []const u8) ?Function {
     if (std.mem.eql(u8, name, "it")) return .it;
     if (std.mem.eql(u8, name, "fit")) return .fit;
     if (std.mem.eql(u8, name, "xit")) return .xit;
+    if (std.mem.eql(u8, name, "expect")) return .expect;
     return null;
 }
 

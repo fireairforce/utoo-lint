@@ -266,6 +266,7 @@
 | [`jest/no-export`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-export.md) | 已实现对包含 Jest 测试的文件中的 ESM、CommonJS 和 TypeScript 导出检查 |
 | [`jest/no-focused-tests`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-focused-tests.md) | 已实现对全局、导入、别名及链式聚焦测试的检查，并提供上游编辑器建议 |
 | [`jest/no-identical-title`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-identical-title.md) | 已实现对同一测试套件层级中重复静态测试和套件标题的检查 |
+| [`jest/no-interpolation-in-snapshots`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-interpolation-in-snapshots.md) | 已实现对内联快照模板插值的检查，包括属性匹配器重载形式 |
 
 ## Promise 插件规则
 
