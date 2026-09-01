@@ -10,12 +10,27 @@ pub const id = "react/no-direct-mutation-state";
 
 const message = "Do not mutate state directly. Use setState().";
 
+const ConstructorState = struct {
+    component: ast.NodeIndex,
+    in_call_expression: bool = false,
+};
+
+pub const State = struct {
+    constructors: std.ArrayList(ConstructorState) = .empty,
+
+    pub fn deinit(self: *State, allocator: Allocator) void {
+        self.constructors.deinit(allocator);
+        self.* = .{};
+    }
+};
+
 pub fn checkAssignmentExpression(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,
     tree: *const ast.Tree,
     expression: ast.AssignmentExpression,
     ctx: *traverser.basic.Ctx,
+    state: *const State,
 ) Allocator.Error!void {
     const left = unwrapTransparent(tree, expression.left);
     const member = switch (tree.data(left)) {
@@ -24,7 +39,7 @@ pub fn checkAssignmentExpression(
     };
     if (stateRoot(tree, left) == null) return;
     const component = componentAncestor(tree, ctx) orelse return;
-    if (isAllowedConstructorMutation(tree, ctx, component)) return;
+    if (shouldIgnoreConstructorMutation(component, state)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -42,10 +57,11 @@ pub fn checkUpdateExpression(
     tree: *const ast.Tree,
     expression: ast.UpdateExpression,
     ctx: *traverser.basic.Ctx,
+    state: *const State,
 ) Allocator.Error!void {
     const root = stateRoot(tree, expression.argument) orelse return;
     const component = componentAncestor(tree, ctx) orelse return;
-    if (isAllowedConstructorMutation(tree, ctx, component)) return;
+    if (shouldIgnoreConstructorMutation(component, state)) return;
 
     try core.addDiagnostic(
         allocator,
@@ -55,6 +71,46 @@ pub fn checkUpdateExpression(
         message,
         tree.span(root),
     );
+}
+
+pub fn enterMethodDefinition(
+    allocator: Allocator,
+    tree: *const ast.Tree,
+    method: ast.MethodDefinition,
+    ctx: *traverser.basic.Ctx,
+    state: *State,
+) Allocator.Error!void {
+    if (method.kind != .constructor) return;
+    const component = componentAncestor(tree, ctx) orelse return;
+    if (tree.data(component) != .class) return;
+    try state.constructors.append(allocator, .{ .component = component });
+}
+
+pub fn exitMethodDefinition(
+    tree: *const ast.Tree,
+    method: ast.MethodDefinition,
+    ctx: *traverser.basic.Ctx,
+    state: *State,
+) void {
+    if (method.kind != .constructor) return;
+    const component = componentAncestor(tree, ctx) orelse return;
+    if (state.constructors.items.len == 0) return;
+    const current = state.constructors.items[state.constructors.items.len - 1];
+    if (current.component == component) _ = state.constructors.pop();
+}
+
+pub fn enterCallExpression(tree: *const ast.Tree, ctx: *traverser.basic.Ctx, state: *State) void {
+    if (state.constructors.items.len == 0) return;
+    const component = componentAncestor(tree, ctx) orelse return;
+    const constructor = activeConstructor(component, state) orelse return;
+    constructor.in_call_expression = true;
+}
+
+pub fn exitCallExpression(tree: *const ast.Tree, ctx: *traverser.basic.Ctx, state: *State) void {
+    if (state.constructors.items.len == 0) return;
+    const component = componentAncestor(tree, ctx) orelse return;
+    const constructor = activeConstructor(component, state) orelse return;
+    constructor.in_call_expression = false;
 }
 
 fn stateRoot(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.NodeIndex {
@@ -88,24 +144,21 @@ fn componentAncestor(tree: *const ast.Tree, ctx: *traverser.basic.Ctx) ?ast.Node
     return null;
 }
 
-fn isAllowedConstructorMutation(
-    tree: *const ast.Tree,
-    ctx: *traverser.basic.Ctx,
-    component: ast.NodeIndex,
-) bool {
-    if (tree.data(component) != .class) return false;
-
-    var inside_call = false;
-    var depth: usize = 1;
-    while (ctx.path.ancestor(depth)) |ancestor| : (depth += 1) {
-        if (ancestor == component) return false;
-        switch (tree.data(ancestor)) {
-            .call_expression => inside_call = true,
-            .method_definition => |method| return method.kind == .constructor and !inside_call,
-            else => {},
-        }
+fn shouldIgnoreConstructorMutation(component: ast.NodeIndex, state: *const State) bool {
+    for (state.constructors.items) |constructor| {
+        if (constructor.component == component) return !constructor.in_call_expression;
     }
     return false;
+}
+
+fn activeConstructor(component: ast.NodeIndex, state: *State) ?*ConstructorState {
+    var index = state.constructors.items.len;
+    while (index > 0) {
+        index -= 1;
+        const constructor = &state.constructors.items[index];
+        if (constructor.component == component) return constructor;
+    }
+    return null;
 }
 
 fn isCreateClassObject(tree: *const ast.Tree, index: ast.NodeIndex, parent_index: ?ast.NodeIndex) bool {

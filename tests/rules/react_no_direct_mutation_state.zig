@@ -65,6 +65,34 @@ test "allows constructor initialization and setState but reports constructor cal
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, rule_id));
 }
 
+test "matches upstream nested call exit order in constructors" {
+    const allowed_source =
+        \\class View extends React.Component {
+        \\  constructor(props) {
+        \\    super(props);
+        \\    consume(sideEffect(), this.state.allowed = true);
+        \\  }
+        \\}
+    ;
+    var allowed = try lint.lintSource(std.testing.allocator, allowed_source, "allowed.js", ruleOptions());
+    defer allowed.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 0), helpers.countRule(allowed, "parse"));
+    try std.testing.expect(!helpers.hasRule(allowed, rule_id));
+
+    const reported_source =
+        \\class View extends React.Component {
+        \\  constructor(props) {
+        \\    super(props);
+        \\    consume(this.state.reported = true, sideEffect());
+        \\  }
+        \\}
+    ;
+    var reported = try lint.lintSource(std.testing.allocator, reported_source, "reported.js", ruleOptions());
+    defer reported.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 0), helpers.countRule(reported, "parse"));
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(reported, rule_id));
+}
+
 test "matches upstream alias computed nested and destructured behavior" {
     const source =
         \\class View extends React.Component {
