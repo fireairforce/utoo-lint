@@ -311,6 +311,7 @@ const BUILTIN_RULE_IDS = [
   "import/no-named-as-default-member",
   "import/no-unresolved",
   "import/no-self-import",
+  "jest/no-conditional-expect",
   "promise/no-promise-in-callback",
   "promise/no-return-in-finally",
   "promise/no-return-wrap",

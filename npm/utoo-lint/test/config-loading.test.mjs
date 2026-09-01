@@ -2550,6 +2550,38 @@ test("CLI --rules enables exactly the requested rules after project config", (t)
   assert.equal(readFileSync(sourcePath, "utf8"), "debugger;\nconsole.log(1);\nfoo();;\n");
 });
 
+test("project config and CLI --rules enable jest/no-conditional-expect", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({ rules: { "jest/no-conditional-expect": "error" } })
+  );
+  const sourcePath = write(
+    join(project, "conditional.test.js"),
+    "test('conditional', () => { if (enabled) expect(value).toBeDefined(); });\n"
+  );
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const configured = execute(["--json", sourcePath], options);
+    const configuredReport = JSON.parse(configured.stdout);
+    assert.equal(configured.status, 1, configured.stderr);
+    assert.deepEqual(configuredReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-conditional-expect", severity: "error" }
+    ]);
+
+    const isolated = execute(
+      ["--no-config", "--rules=jest/no-conditional-expect", "--json", sourcePath],
+      options
+    );
+    const isolatedReport = JSON.parse(isolated.stdout);
+    assert.equal(isolated.status, 0, isolated.stderr);
+    assert.deepEqual(isolatedReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-conditional-expect", severity: "warning" }
+    ]);
+  }
+});
+
 test("CLI --rules preserves per-file options for the selected flat-config rule", (t) => {
   const project = createProject(t);
   write(
