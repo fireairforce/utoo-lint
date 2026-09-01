@@ -267,6 +267,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("rules/jest_no_conditional_expect.zig");
+}
+
+comptime {
     _ = @import("rules/jsx_a11y_alt_text.zig");
 }
 

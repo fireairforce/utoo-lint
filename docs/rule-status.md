@@ -258,6 +258,12 @@ instead of being rewritten.
 | [`import/no-unresolved`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-unresolved.md) | Implemented for fishlint's node resolver extensions, `smallfish:`/`minifish:` ignores, `commonjs`, `amd`, and common `ignore` pattern behavior |
 | [`import/no-self-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-self-import.md) | Implemented for relative imports resolved with fishlint's configured extensions |
 
+## Jest plugin rules
+
+| Rule | Status |
+| --- | --- |
+| [`jest/no-conditional-expect`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-conditional-expect.md) | Implemented for conditionals, catch clauses, Promise catch callbacks, inline test callbacks, and named test callbacks |
+
 ## Promise plugin rules
 
 | Rule | Status |

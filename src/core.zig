@@ -2759,6 +2759,7 @@ pub const Options = struct {
     import_no_unresolved_commonjs: bool = false,
     import_no_unresolved_ignore: ImportNoUnresolvedIgnorePatterns = .{},
     import_no_self_import: bool = true,
+    jest_no_conditional_expect: bool = true,
     jsx_a11y_alt_text: bool = true,
     jsx_a11y_alt_text_img: bool = true,
     jsx_a11y_alt_text_object: bool = true,
@@ -3343,6 +3344,10 @@ pub const Options = struct {
 
         if (std.mem.startsWith(u8, cli_name, "import/")) {
             return self.setByPrefixedRuleName("import_", cli_name["import/".len..], value);
+        }
+
+        if (std.mem.startsWith(u8, cli_name, "jest/")) {
+            return self.setByPrefixedRuleName("jest_", cli_name["jest/".len..], value);
         }
 
         if (std.mem.startsWith(u8, cli_name, "promise/")) {
@@ -10402,6 +10407,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.react_hooks_rules_of_hooks);
     try std.testing.expect(options.setByCliName("react-hooks/rules-of-hooks", true));
     try std.testing.expect(options.react_hooks_rules_of_hooks);
+
+    try std.testing.expect(!options.jest_no_conditional_expect);
+    try std.testing.expect(options.setByCliName("jest/no-conditional-expect", true));
+    try std.testing.expect(options.jest_no_conditional_expect);
 
     try std.testing.expect(!options.unused_imports_no_unused_imports);
     try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));

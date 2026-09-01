@@ -257,6 +257,12 @@
 | [`import/no-unresolved`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-unresolved.md) | 已实现 fishlint 的 Node 解析器扩展名、`smallfish:`/`minifish:` 忽略、`commonjs`、`amd` 及常见 `ignore` 模式行为 |
 | [`import/no-self-import`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-self-import.md) | 已实现对使用 fishlint 已配置扩展名解析的相对导入的检查 |
 
+## Jest 插件规则
+
+| 规则 | 状态 |
+| --- | --- |
+| [`jest/no-conditional-expect`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-conditional-expect.md) | 已实现条件表达式、`catch` 子句、Promise `catch` 回调、内联测试回调及命名测试回调检查 |
+
 ## Promise 插件规则
 
 | 规则 | 状态 |
