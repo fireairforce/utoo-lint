@@ -182,6 +182,22 @@ test("reports identical Jest titles at the same suite level", () => {
   );
 });
 
+test("reports interpolation in inline Jest snapshots", () => {
+  const result = linter.lint(
+    "expect(value).toMatchInlineSnapshot({}, `${value}`);",
+    {
+      filePath: "input.js",
+      rules: { "jest/no-interpolation-in-snapshots": "error" },
+    },
+  );
+  assert.equal(result.diagnostics.length, 1);
+  assert.equal(result.diagnostics[0].ruleId, "jest/no-interpolation-in-snapshots");
+  assert.equal(
+    result.diagnostics[0].message,
+    "Do not use string interpolation inside of snapshots",
+  );
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",

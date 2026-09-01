@@ -42,6 +42,7 @@ const Visitor = struct {
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
         const call = self.resolver.parseCall(call_expression, index, ctx.path.parent()) orelse return .proceed;
+        if (call.function.kind() == .expect) return .proceed;
 
         if (call.function.isFocused()) {
             if (!call.usesCanonicalName()) {

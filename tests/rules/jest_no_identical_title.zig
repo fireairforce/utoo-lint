@@ -45,6 +45,7 @@ test "keeps nested suites and test and describe namespaces separate" {
         \\describe("child", () => {});
         ,
         "it(); it(); describe(); describe();",
+        "expect('same'); expect('same');",
     };
 
     for (cases) |source| {

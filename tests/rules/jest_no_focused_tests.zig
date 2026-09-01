@@ -59,6 +59,7 @@ test "allows unfocused and indirect Jest calls" {
         "test.each()()",
         "test.each`table`()",
         "test.concurrent()",
+        "expect(value).only();",
         "function fit() {} fit();",
         "function describe() {} describe.only();",
     };

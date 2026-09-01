@@ -64,6 +64,7 @@ const Visitor = struct {
     ) Allocator.Error!traverser.Action {
         const call = self.resolver.parseCall(call_expression, index, ctx.path.parent()) orelse return .proceed;
         const kind = call.function.kind();
+        if (kind == .expect) return .proceed;
         const parent_context_index = self.contexts.items.len - 1;
 
         if (kind == .describe) try self.contexts.append(self.allocator, .{});

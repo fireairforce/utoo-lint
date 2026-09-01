@@ -2764,6 +2764,7 @@ pub const Options = struct {
     jest_no_export: bool = true,
     jest_no_focused_tests: bool = true,
     jest_no_identical_title: bool = true,
+    jest_no_interpolation_in_snapshots: bool = true,
     jest_global_aliases: JestGlobalAliases = .{},
     jest_version: u32 = 0,
     jsx_a11y_alt_text: bool = true,
@@ -10607,6 +10608,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.jest_no_identical_title);
     try std.testing.expect(options.setByCliName("jest/no-identical-title", true));
     try std.testing.expect(options.jest_no_identical_title);
+
+    try std.testing.expect(!options.jest_no_interpolation_in_snapshots);
+    try std.testing.expect(options.setByCliName("jest/no-interpolation-in-snapshots", true));
+    try std.testing.expect(options.jest_no_interpolation_in_snapshots);
 
     try std.testing.expect(!options.unused_imports_no_unused_imports);
     try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));
