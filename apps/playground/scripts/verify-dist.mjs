@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +11,7 @@ const requiredFiles = [
   '_headers',
   '_redirects',
   'deployment.static.json',
+  'versions/manifest.json',
 ];
 const forbiddenText = [
   '@alipay/evjs',
@@ -39,20 +41,33 @@ for (const fileName of requiredFiles) {
 }
 
 const files = await collectFiles(clientDir);
-const wasmFiles = files.filter((file) => path.extname(file) === '.wasm');
-if (wasmFiles.length !== 2) {
-  throw new Error(`expected two WebAssembly assets, found ${wasmFiles.length}`);
+const versionManifest = JSON.parse(
+  await readFile(path.join(clientDir, 'versions', 'manifest.json'), 'utf8'),
+);
+if (
+  typeof versionManifest.latest !== 'string' ||
+  !Array.isArray(versionManifest.versions) ||
+  versionManifest.versions.length === 0 ||
+  versionManifest.versions[0]?.id !== versionManifest.latest
+) {
+  throw new Error('invalid Playground version manifest');
 }
 
-const wasmAssets = new Map();
+const wasmFiles = files.filter((file) => path.extname(file) === '.wasm');
+if (wasmFiles.length !== versionManifest.versions.length + 2) {
+  throw new Error(
+    `expected ${versionManifest.versions.length + 2} WebAssembly assets, found ${wasmFiles.length}`,
+  );
+}
+
+let parserWasm;
+let bundledLintWasm;
 for (const file of wasmFiles) {
   const name = path.basename(file);
-  const kind = name.includes('utoo-lint')
-    ? 'lint'
-    : name.includes('yuku-parser')
-      ? 'parser'
-      : undefined;
-  if (!kind || wasmAssets.has(kind)) {
+  const isParser = name.includes('yuku-parser');
+  const isLintVersion = /^utoo-lint-v\d+\.\d+\.\d+\.wasm$/.test(name);
+  const isBundledLint = /^utoo-lint\.[^.]+\.wasm$/.test(name);
+  if (!isParser && !isLintVersion && !isBundledLint) {
     throw new Error(`unexpected WebAssembly asset: ${name}`);
   }
 
@@ -63,13 +78,55 @@ for (const file of wasmFiles) {
   ) {
     throw new Error(`invalid WebAssembly asset: ${name}`);
   }
-  wasmAssets.set(kind, contents);
+  if (isParser) {
+    if (parserWasm) {
+      throw new Error(`duplicate parser WebAssembly asset: ${name}`);
+    }
+    parserWasm = contents;
+  } else if (isBundledLint) {
+    if (bundledLintWasm) {
+      throw new Error(`duplicate bundled lint WebAssembly asset: ${name}`);
+    }
+    bundledLintWasm = contents;
+  }
 }
 
-for (const kind of ['lint', 'parser']) {
-  if (!wasmAssets.has(kind)) {
-    throw new Error(`missing ${kind} WebAssembly asset`);
+if (!parserWasm) throw new Error('missing parser WebAssembly asset');
+if (!bundledLintWasm) throw new Error('missing bundled lint WebAssembly asset');
+
+const lintWasmSizes = new Map();
+for (const version of versionManifest.versions) {
+  if (
+    !/^\d+\.\d+\.\d+$/.test(version.id) ||
+    version.label !== `v${version.id}` ||
+    version.file !== `utoo-lint-v${version.id}.wasm` ||
+    !/^[a-f0-9]{64}$/.test(version.sha256)
+  ) {
+    throw new Error(
+      `invalid Playground version entry: ${JSON.stringify(version)}`,
+    );
   }
+
+  const contents = await readFile(
+    path.join(clientDir, 'versions', version.file),
+  );
+  const actualSha256 = createHash('sha256').update(contents).digest('hex');
+  if (actualSha256 !== version.sha256) {
+    throw new Error(
+      `unexpected ${version.label} WebAssembly SHA-256: ${actualSha256}`,
+    );
+  }
+  lintWasmSizes.set(version.id, contents.length);
+}
+
+const latestVersion = versionManifest.versions[0];
+const bundledLintSha256 = createHash('sha256')
+  .update(bundledLintWasm)
+  .digest('hex');
+if (bundledLintSha256 !== latestVersion.sha256) {
+  throw new Error(
+    `bundled lint WebAssembly does not match latest ${latestVersion.label}`,
+  );
 }
 
 const deployment = JSON.parse(
@@ -139,9 +196,13 @@ for (const file of files) {
   }
 }
 
-const wasmSizes = [...wasmAssets]
-  .map(([kind, contents]) => `${kind} ${(contents.length / 1024 / 1024).toFixed(1)} MiB`)
-  .join(', ');
+const wasmSizes = [
+  `parser ${(parserWasm.length / 1024 / 1024).toFixed(1)} MiB`,
+  ...versionManifest.versions.map(
+    (version) =>
+      `${version.label} ${(lintWasmSizes.get(version.id) / 1024 / 1024).toFixed(1)} MiB`,
+  ),
+].join(', ');
 console.log(
   `verified static EVJS deployment (${files.length} files, ${wasmSizes})`,
 );

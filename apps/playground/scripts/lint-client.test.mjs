@@ -22,6 +22,9 @@ await run(
     fileURLToPath(
       new URL('../src/features/playground/model.ts', import.meta.url),
     ),
+    fileURLToPath(
+      new URL('../src/features/playground/versions.ts', import.meta.url),
+    ),
     '--target',
     'es2022',
     '--module',
@@ -63,6 +66,14 @@ const {
   removePlaygroundShareState,
 } = await import(
   pathToFileURL(join(outputDirectory, 'playground', 'model.js')).href
+);
+const {
+  initialLintVersion,
+  lintVersionManifestUrl,
+  lintVersionUrl,
+  parseLintVersionCatalog,
+} = await import(
+  pathToFileURL(join(outputDirectory, 'playground', 'versions.js')).href
 );
 await rm(outputDirectory, { force: true, recursive: true });
 
@@ -187,6 +198,103 @@ test('passes the selected WebAssembly version URL to the lint worker', async (t)
     result: { diagnostics: [], mode: 'lint' },
   });
   await result;
+});
+
+test('loads versioned WebAssembly URLs and defaults to the latest release', () => {
+  const manifestUrl = lintVersionManifestUrl(
+    'https://example.test/playground/',
+  );
+  const catalog = parseLintVersionCatalog(
+    {
+      latest: '0.3.4',
+      versions: [
+        {
+          id: '0.3.4',
+          label: 'v0.3.4',
+          file: 'utoo-lint-v0.3.4.wasm',
+          sha256: 'a'.repeat(64),
+        },
+        {
+          id: '0.3.3',
+          label: 'v0.3.3',
+          file: 'utoo-lint-v0.3.3.wasm',
+          sha256: 'b'.repeat(64),
+        },
+      ],
+    },
+    manifestUrl,
+  );
+
+  assert.equal(
+    manifestUrl,
+    'https://example.test/playground/versions/manifest.json',
+  );
+  assert.equal(
+    lintVersionManifestUrl('https://example.test/playground'),
+    'https://example.test/versions/manifest.json',
+  );
+  assert.equal(
+    catalog.versions[0].wasmUrl,
+    'https://example.test/playground/versions/utoo-lint-v0.3.4.wasm',
+  );
+  assert.equal(
+    initialLintVersion(catalog, 'https://example.test/playground/'),
+    '0.3.4',
+  );
+  assert.equal(
+    initialLintVersion(
+      catalog,
+      'https://example.test/playground/?version=0.3.3',
+    ),
+    '0.3.3',
+  );
+  assert.equal(
+    initialLintVersion(
+      catalog,
+      'https://example.test/playground/?version=0.2.9',
+    ),
+    '0.3.4',
+  );
+});
+
+test('keeps old version selections in the URL but leaves latest implicit', () => {
+  assert.equal(
+    lintVersionUrl(
+      'https://example.test/playground/?theme=dark#playground=state',
+      '0.3.3',
+      '0.3.4',
+    ),
+    'https://example.test/playground/?theme=dark&version=0.3.3#playground=state',
+  );
+  assert.equal(
+    lintVersionUrl(
+      'https://example.test/playground/?theme=dark&version=0.3.3#playground=state',
+      '0.3.4',
+      '0.3.4',
+    ),
+    'https://example.test/playground/?theme=dark#playground=state',
+  );
+});
+
+test('rejects unsafe or inconsistent version manifests', () => {
+  assert.throws(
+    () =>
+      parseLintVersionCatalog(
+        {
+          latest: '0.3.4',
+          versions: [
+            {
+              id: '0.3.4',
+              label: 'v0.3.4',
+              file: '../utoo-lint.wasm',
+              sha256: 'a'.repeat(64),
+            },
+          ],
+        },
+        'https://example.test/playground/versions/manifest.json',
+      ),
+    /invalid/i,
+  );
 });
 
 test('coalesces queued AST work to the newest source', async (t) => {

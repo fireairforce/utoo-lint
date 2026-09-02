@@ -25,6 +25,11 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
+  workflow_run:
+    workflows:
+      - Release
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -39,7 +44,7 @@ env:
 
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: (github.event_name != 'workflow_run' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     name: Deploy to Cloudflare Pages
     runs-on: ubuntu-latest
     steps:
@@ -66,6 +71,8 @@ jobs:
 
       - name: Build and audit site
         run: pnpm site:build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
