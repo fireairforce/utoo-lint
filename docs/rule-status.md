@@ -271,6 +271,7 @@ instead of being rewritten.
 | [`jest/no-jasmine-globals`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-jasmine-globals.md) | Implemented for Jasmine globals, member calls, assignments, shadowed bindings, and upstream autofixes |
 | [`jest/no-mocks-import`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-mocks-import.md) | Implemented for static imports, dynamic imports, and CommonJS requires from nested `__mocks__` directories |
 | [`jest/no-standalone-expect`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-standalone-expect.md) | Supports suite, test, hook, helper, imported API, and `additionalTestBlockFunctions` context detection |
+| [`jest/valid-describe-callback`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/valid-describe-callback.md) | Enforces synchronous function callbacks without unexpected parameters or return values, including aliases and `describe.each` |
 
 ## Promise plugin rules
 

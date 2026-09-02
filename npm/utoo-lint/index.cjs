@@ -320,6 +320,7 @@ const BUILTIN_RULE_IDS = [
   "jest/no-jasmine-globals",
   "jest/no-mocks-import",
   "jest/no-standalone-expect",
+  "jest/valid-describe-callback",
   "promise/no-promise-in-callback",
   "promise/no-return-in-finally",
   "promise/no-return-wrap",

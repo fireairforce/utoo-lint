@@ -300,6 +300,7 @@ fn hasSemanticRules(options: Options) bool {
         options.jest_no_interpolation_in_snapshots or
         options.jest_no_jasmine_globals or
         options.jest_no_standalone_expect or
+        options.jest_valid_describe_callback or
         options.no_invalid_regexp or
         options.no_label_var or
         options.no_loop_func or
