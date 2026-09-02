@@ -2771,6 +2771,11 @@ pub const Options = struct {
     jest_no_standalone_expect_additional_test_block_functions: JestAdditionalTestBlockFunctions = .{},
     jest_valid_describe_callback: bool = true,
     jest_valid_expect_in_promise: bool = true,
+    jest_valid_expect: bool = true,
+    jest_valid_expect_always_await: bool = false,
+    jest_valid_expect_async_matchers: JestValidExpectAsyncMatchers = .{},
+    jest_valid_expect_min_args: f64 = 1,
+    jest_valid_expect_max_args: f64 = 1,
     jest_valid_title: bool = true,
     jest_valid_title_ignore_spaces: bool = false,
     jest_valid_title_ignore_type_of_describe_name: bool = false,
@@ -3489,6 +3494,13 @@ pub const Options = struct {
         }
         if (std.mem.eql(u8, cli_name, "jest/no-standalone-expect")) {
             self.jest_no_standalone_expect_additional_test_block_functions = try jestAdditionalTestBlockFunctionsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "jest/valid-expect")) {
+            const config = try jestValidExpectFromConfig(value);
+            self.jest_valid_expect_always_await = config.always_await;
+            self.jest_valid_expect_async_matchers = config.async_matchers;
+            self.jest_valid_expect_min_args = config.min_args;
+            self.jest_valid_expect_max_args = config.max_args;
         }
         if (std.mem.eql(u8, cli_name, "jest/valid-title")) {
             const config = try jestValidTitleFromConfig(value);
@@ -5140,6 +5152,65 @@ pub const Options = struct {
             if (!result.append(function_name)) return error.UnsupportedRuleConfigValue;
         }
         return result;
+    }
+
+    const JestValidExpectConfig = struct {
+        always_await: bool = false,
+        async_matchers: JestValidExpectAsyncMatchers = .{},
+        min_args: f64 = 1,
+        max_args: f64 = 1,
+    };
+
+    fn jestValidExpectFromConfig(value: std.json.Value) RuleConfigError!JestValidExpectConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const object = switch (items[1]) {
+            .object => |config| config,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        var result = JestValidExpectConfig{};
+
+        if (object.get("alwaysAwait")) |configured| {
+            result.always_await = switch (configured) {
+                .bool => |enabled| enabled,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+        }
+        if (object.get("asyncMatchers")) |configured| {
+            const matchers = switch (configured) {
+                .array => |array| array.items,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            result.async_matchers.custom = true;
+            for (matchers) |matcher_value| {
+                const matcher = switch (matcher_value) {
+                    .string => |name| name,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                if (!result.async_matchers.append(matcher)) return error.UnsupportedRuleConfigValue;
+            }
+        }
+        if (object.get("minArgs")) |configured| {
+            result.min_args = try jestValidExpectNumberOption(configured, 0);
+        }
+        if (object.get("maxArgs")) |configured| {
+            result.max_args = try jestValidExpectNumberOption(configured, 1);
+        }
+        return result;
+    }
+
+    fn jestValidExpectNumberOption(value: std.json.Value, minimum: f64) RuleConfigError!f64 {
+        const number: f64 = switch (value) {
+            .integer => |integer| @floatFromInt(integer),
+            .float => |float| float,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        if (!std.math.isFinite(number) or number < minimum) return error.UnsupportedRuleConfigValue;
+        return number;
     }
 
     const JestValidTitleConfig = struct {
@@ -10111,6 +10182,43 @@ pub const DeprecatedDependenceProfile = enum {
     profile_b,
 };
 
+pub const max_jest_valid_expect_async_matchers = 64;
+pub const max_jest_valid_expect_async_matcher_len = 128;
+
+pub const JestValidExpectAsyncMatchers = struct {
+    custom: bool = false,
+    count: usize = 0,
+    lengths: [max_jest_valid_expect_async_matchers]usize = undefined,
+    storage: [max_jest_valid_expect_async_matchers][max_jest_valid_expect_async_matcher_len]u8 = undefined,
+
+    pub fn contains(self: *const JestValidExpectAsyncMatchers, name: []const u8) bool {
+        if (!self.custom) {
+            return std.mem.eql(u8, name, "toResolve") or std.mem.eql(u8, name, "toReject");
+        }
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+        return false;
+    }
+
+    pub fn at(self: *const JestValidExpectAsyncMatchers, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *JestValidExpectAsyncMatchers, name: []const u8) bool {
+        if (name.len > max_jest_valid_expect_async_matcher_len) return false;
+        if (self.count >= max_jest_valid_expect_async_matchers) return false;
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
+    }
+};
+
 pub const max_jest_additional_test_block_functions = 64;
 pub const max_jest_additional_test_block_function_len = 128;
 
@@ -10883,6 +10991,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.jest_valid_expect_in_promise);
     try std.testing.expect(options.setByCliName("jest/valid-expect-in-promise", true));
     try std.testing.expect(options.jest_valid_expect_in_promise);
+
+    try std.testing.expect(!options.jest_valid_expect);
+    try std.testing.expect(options.setByCliName("jest/valid-expect", true));
+    try std.testing.expect(options.jest_valid_expect);
 
     try std.testing.expect(!options.jest_valid_title);
     try std.testing.expect(options.setByCliName("jest/valid-title", true));

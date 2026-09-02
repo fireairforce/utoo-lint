@@ -89,6 +89,7 @@ pub const jest_no_mocks_import = @import("jest_no_mocks_import.zig");
 pub const jest_no_standalone_expect = @import("jest_no_standalone_expect.zig");
 pub const jest_valid_describe_callback = @import("jest_valid_describe_callback.zig");
 pub const jest_valid_expect_in_promise = @import("jest_valid_expect_in_promise.zig");
+pub const jest_valid_expect = @import("jest_valid_expect.zig");
 pub const jest_valid_title = @import("jest_valid_title.zig");
 pub const jsx_a11y_alt_text = @import("jsx_a11y_alt_text.zig");
 pub const jsx_a11y_anchor_has_content = @import("jsx_a11y_anchor_has_content.zig");
@@ -1089,6 +1090,22 @@ fn runSemanticAfterIo(
             tree,
             semantic_result.symbol_table,
             options.jest_global_aliases,
+        );
+    }
+
+    if (options.jest_valid_expect) {
+        try jest_valid_expect.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.jest_global_aliases,
+            .{
+                .always_await = options.jest_valid_expect_always_await,
+                .async_matchers = options.jest_valid_expect_async_matchers,
+                .min_args = options.jest_valid_expect_min_args,
+                .max_args = options.jest_valid_expect_max_args,
+            },
         );
     }
 
