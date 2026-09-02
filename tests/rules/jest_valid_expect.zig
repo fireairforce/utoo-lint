@@ -69,6 +69,8 @@ test "jest valid expect requires async assertions and Promise wrappers to be awa
         \\test('wrappers', async () => {
         \\  await Promise.all([expect(Promise.resolve(1)).resolves.toBe(1)]);
         \\  await Promise.resolve(expect(Promise.resolve(2)).resolves.toBe(2));
+        \\  await Promise.all([expect(Promise.resolve(3)).resolves.toBe(3)]).then(() => {});
+        \\  return Promise.resolve(expect(Promise.resolve(4)).resolves.toBe(4)).catch(() => {});
         \\});
     ;
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsOnly());

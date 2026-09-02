@@ -169,10 +169,10 @@ const Visitor = struct {
         matcher_call: PathNode,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!void {
-        var target = thenifiedTarget(tree, matcher_call, ctx);
-        const promise = promiseWrapperTarget(tree, target, ctx);
-        const wrapped = promise.index != target.index;
-        target = promise;
+        const assertion_target = thenifiedTarget(tree, matcher_call, ctx);
+        const promise_target = promiseWrapperTarget(tree, assertion_target, ctx);
+        const wrapped = promise_target.index != assertion_target.index;
+        const target = thenifiedTarget(tree, promise_target, ctx);
 
         if (acceptableParent(tree, target, ctx, !self.options.always_await)) return;
         const entry = try self.reported_async_nodes.getOrPut(self.allocator, target.index);
