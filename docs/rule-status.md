@@ -269,6 +269,7 @@ instead of being rewritten.
 | [`jest/no-identical-title`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-identical-title.md) | Implemented for duplicate static test and suite titles at the same suite level |
 | [`jest/no-interpolation-in-snapshots`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-interpolation-in-snapshots.md) | Implemented for interpolated inline snapshot templates, including property matcher overloads |
 | [`jest/no-jasmine-globals`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-jasmine-globals.md) | Implemented for Jasmine globals, member calls, assignments, shadowed bindings, and upstream autofixes |
+| [`jest/no-mocks-import`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-mocks-import.md) | Implemented for static imports, dynamic imports, and CommonJS requires from nested `__mocks__` directories |
 
 ## Promise plugin rules
 

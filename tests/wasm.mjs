@@ -215,6 +215,22 @@ test("reports and fixes Jasmine globals", () => {
   ].join("\n"));
 });
 
+test("reports imports from mock directories", () => {
+  const result = linter.lint(
+    [
+      "import mock from './__mocks__/mock.js';",
+      "import('./nested/__mocks__/dynamic.js');",
+      "require('./__mocks__/commonjs.js');",
+    ].join("\n"),
+    {
+      filePath: "input.js",
+      rules: { "jest/no-mocks-import": "error" },
+    },
+  );
+  assert.equal(result.diagnostics.length, 3);
+  assert.ok(result.diagnostics.every(({ ruleId }) => ruleId === "jest/no-mocks-import"));
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",

@@ -85,6 +85,7 @@ pub const jest_no_focused_tests = @import("jest_no_focused_tests.zig");
 pub const jest_no_identical_title = @import("jest_no_identical_title.zig");
 pub const jest_no_interpolation_in_snapshots = @import("jest_no_interpolation_in_snapshots.zig");
 pub const jest_no_jasmine_globals = @import("jest_no_jasmine_globals.zig");
+pub const jest_no_mocks_import = @import("jest_no_mocks_import.zig");
 pub const jsx_a11y_alt_text = @import("jsx_a11y_alt_text.zig");
 pub const jsx_a11y_anchor_has_content = @import("jsx_a11y_anchor_has_content.zig");
 pub const jsx_a11y_aria_props = @import("jsx_a11y_aria_props.zig");
@@ -2037,6 +2038,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.jest_no_mocks_import) {
+            try jest_no_mocks_import.checkImportDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, index);
+        }
         if (self.options.alipay_ant_prefer_import_as_required) {
             try alipay_ant_prefer_import_as_required.checkImportDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, index);
         }
@@ -2045,6 +2049,18 @@ const BasicVisitor = struct {
         }
         if (self.options.alipay_ant_no_import_files_from_pages_in_common) {
             try alipay_ant_no_import_files_from_pages_in_common.checkImportDeclaration(self.allocator, self.diagnostics, ctx.tree, declaration, index, self.file_path);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_import_expression(
+        self: *BasicVisitor,
+        expression: ast.ImportExpression,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.jest_no_mocks_import) {
+            try jest_no_mocks_import.checkImportExpression(self.allocator, self.diagnostics, ctx.tree, expression);
         }
         return .proceed;
     }
@@ -3616,6 +3632,9 @@ const BasicVisitor = struct {
         index: ast.NodeIndex,
         ctx: *traverser.basic.Ctx,
     ) Allocator.Error!traverser.Action {
+        if (self.options.jest_no_mocks_import) {
+            try jest_no_mocks_import.checkCallExpression(self.allocator, self.diagnostics, ctx.tree, call);
+        }
         if (self.options.react_no_direct_mutation_state) {
             react_no_direct_mutation_state.enterCallExpression(ctx.tree, ctx, &self.react_no_direct_mutation_state_state);
         }

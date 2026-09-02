@@ -2855,6 +2855,45 @@ test("jest/no-jasmine-globals supports config, --rules, and safe fixes", (t) => 
   }
 });
 
+test("project config and CLI --rules enable jest/no-mocks-import", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({ rules: { "jest/no-mocks-import": "error" } })
+  );
+  const sourcePath = write(
+    join(project, "mocks.test.js"),
+    [
+      "import mock from './__mocks__/mock.js';",
+      "import('./nested/__mocks__/dynamic.js');",
+      "require('./__mocks__/commonjs.js');",
+      ""
+    ].join("\n")
+  );
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const configured = execute(["--json", sourcePath], options);
+    const configuredReport = JSON.parse(configured.stdout);
+    assert.equal(configured.status, 1, configured.stderr);
+    assert.equal(configuredReport.diagnostics.length, 3);
+    assert.ok(configuredReport.diagnostics.every(({ ruleId, severity }) =>
+      ruleId === "jest/no-mocks-import" && severity === "error"
+    ));
+
+    const isolated = execute(
+      ["--no-config", "--rules=jest/no-mocks-import", "--json", sourcePath],
+      options
+    );
+    const isolatedReport = JSON.parse(isolated.stdout);
+    assert.equal(isolated.status, 0, isolated.stderr);
+    assert.equal(isolatedReport.diagnostics.length, 3);
+    assert.ok(isolatedReport.diagnostics.every(({ ruleId, severity }) =>
+      ruleId === "jest/no-mocks-import" && severity === "warning"
+    ));
+  }
+});
+
 test("flat config keeps Jest version settings scoped per file", (t) => {
   const project = createProject(t);
   write(
