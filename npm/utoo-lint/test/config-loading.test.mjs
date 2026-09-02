@@ -2945,6 +2945,43 @@ test("jest/no-standalone-expect preserves custom test-block options", (t) => {
   }
 });
 
+test("project config and CLI --rules enable jest/valid-describe-callback", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({ rules: { "jest/valid-describe-callback": "error" } })
+  );
+  const sourcePath = write(
+    join(project, "describe.test.js"),
+    [
+      "describe('valid', () => {});",
+      "describe('invalid', async () => {});",
+      ""
+    ].join("\n")
+  );
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const configured = execute(["--json", sourcePath], options);
+    const configuredReport = JSON.parse(configured.stdout);
+    assert.equal(configured.status, 1, configured.stderr);
+    assert.deepEqual(configuredReport.diagnostics.map(({ ruleId, severity, message }) => ({ ruleId, severity, message })), [
+      {
+        ruleId: "jest/valid-describe-callback",
+        severity: "error",
+        message: "No async describe callback"
+      }
+    ]);
+
+    const selected = execute(["--rules=jest/valid-describe-callback", "--json", sourcePath], options);
+    const selectedReport = JSON.parse(selected.stdout);
+    assert.equal(selected.status, 0, selected.stderr);
+    assert.deepEqual(selectedReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/valid-describe-callback", severity: "warning" }
+    ]);
+  }
+});
+
 test("flat config keeps Jest version settings scoped per file", (t) => {
   const project = createProject(t);
   write(

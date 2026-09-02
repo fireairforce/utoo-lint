@@ -252,6 +252,33 @@ test("reports standalone expects and honors custom test blocks", () => {
   assert.equal(result.diagnostics[0].message, "Expect must be inside of a test block");
 });
 
+test("validates describe callbacks", () => {
+  const result = linter.lint(
+    [
+      "describe('invalid', async done => { return value; });",
+      "describe.each([1])('%s', value => {});",
+    ].join("\n"),
+    {
+      filePath: "input.js",
+      rules: { "jest/valid-describe-callback": "error" },
+    },
+  );
+  assert.deepEqual(
+    result.diagnostics.map(({ ruleId, message }) => ({ ruleId, message })),
+    [
+      { ruleId: "jest/valid-describe-callback", message: "No async describe callback" },
+      {
+        ruleId: "jest/valid-describe-callback",
+        message: "Unexpected argument(s) in describe callback",
+      },
+      {
+        ruleId: "jest/valid-describe-callback",
+        message: "Unexpected return statement in describe callback",
+      },
+    ],
+  );
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",
