@@ -298,6 +298,29 @@ test("reports floating expectation-bearing promise chains", () => {
   );
 });
 
+test("validates expect chains with configured argument and async matcher options", () => {
+  const result = linter.lint(
+    [
+      "expect().pass();",
+      "expect(1, 'message').toBe(1);",
+      "expect(Promise.resolve(1)).toSettle();",
+      "expect(Promise.resolve(1)).toResolve();",
+    ].join("\n"),
+    {
+      filePath: "input.js",
+      rules: {
+        "jest/valid-expect": [
+          "error",
+          { minArgs: 0, maxArgs: 2, asyncMatchers: ["toSettle"] },
+        ],
+      },
+    },
+  );
+  assert.equal(result.diagnostics.length, 1);
+  assert.equal(result.diagnostics[0].ruleId, "jest/valid-expect");
+  assert.equal(result.diagnostics[0].message, "Async assertions must be awaited or returned");
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",
