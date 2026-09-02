@@ -13,6 +13,7 @@
     "package:wasm": "bash scripts/package-wasm.sh",
     "stage:playground-wasm": "node scripts/stage-playground-wasm.mjs",
     "test:wasm": "zig build test-wasm",
+    "test:release-publish": "node --test scripts/publish-npm-packages.test.mjs",
     "playground:dev": "pnpm stage:playground-wasm && pnpm --filter @utoo/lint-playground dev",
     "playground:build": "pnpm stage:playground-wasm && pnpm --filter @utoo/lint-playground build",
     "playground:typecheck": "pnpm --filter @utoo/lint-playground typecheck",

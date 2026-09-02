@@ -325,16 +325,17 @@ pnpm add -g ./npm/utoo-lint
 utoo-lint test/fixtures/bad.ts
 ```
 
-Publishing order:
+Publishing is orchestrated by `scripts/publish-npm-packages.mjs`:
 
 ```bash
-for package_dir in npm/@utoo/lint-*; do
-  pnpm publish "${package_dir}/" --access public
-done
-
-pnpm publish npm/utoo-lint/ --access public
+NPM_TAG=latest node scripts/publish-npm-packages.mjs
 ```
 
 GitHub Actions stages the native package directories from the release matrix,
 copies their binaries into the workspace packages, updates package versions from
 the release tag, and publishes with pnpm in `.github/workflows/release.yml`.
+Exact versions that already exist are skipped so interrupted releases can be
+retried. All packages publish through npm Trusted Publishing/OIDC; new packages
+must be initialized and authorize `release.yml` before they are added to a
+release. The WebAssembly package is attempted first and the root `@utoo/lint`
+package last.
