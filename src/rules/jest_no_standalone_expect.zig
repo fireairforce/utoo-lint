@@ -72,31 +72,11 @@ const Visitor = struct {
                     }
                     return .proceed;
                 },
-                .test_case => {
-                    try self.markers.append(self.allocator, .{ .node = index, .kind = .test_case });
-                    return .proceed;
-                },
+                .test_case => return .proceed,
                 .describe => {},
             }
         }
-
-        if (matchesAdditionalTestBlockFunction(
-            ctx.tree,
-            index,
-            self.additional_test_block_functions,
-        )) {
-            try self.markers.append(self.allocator, .{ .node = index, .kind = .test_case });
-        }
         return .proceed;
-    }
-
-    pub fn exit_call_expression(
-        self: *Visitor,
-        _: ast.CallExpression,
-        index: ast.NodeIndex,
-        _: *traverser.basic.Ctx,
-    ) void {
-        self.popMarker(index);
     }
 
     pub fn enter_function(
@@ -158,16 +138,21 @@ const Visitor = struct {
             .call_expression => |call| call,
             else => return null,
         };
-        if (!isCallArgument(tree, parent_call, function_index)) return null;
+        if (!isTestCallback(tree, parent_call, function_index)) return null;
 
         const parsed = self.resolver.parseCall(parent_call, parent_index, grandparent_index);
         if (parsed) |call| {
             return switch (call.function.kind()) {
                 .describe => .describe,
-                .test_case => null,
+                .test_case => .test_case,
                 .expect => null,
             };
         }
+        if (matchesAdditionalTestBlockFunction(
+            tree,
+            parent_index,
+            self.additional_test_block_functions,
+        )) return .test_case;
         return null;
     }
 
@@ -202,11 +187,9 @@ fn isCallExpression(tree: *const ast.Tree, index: ast.NodeIndex) bool {
     return tree.data(index) == .call_expression;
 }
 
-fn isCallArgument(tree: *const ast.Tree, call: ast.CallExpression, index: ast.NodeIndex) bool {
-    for (tree.extra(call.arguments)) |argument| {
-        if (argument == index) return true;
-    }
-    return false;
+fn isTestCallback(tree: *const ast.Tree, call: ast.CallExpression, index: ast.NodeIndex) bool {
+    const arguments = tree.extra(call.arguments);
+    return arguments.len > 1 and arguments[1] == index;
 }
 
 fn matchesAdditionalTestBlockFunction(

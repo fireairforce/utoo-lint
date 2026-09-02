@@ -79,6 +79,24 @@ test "does not leak test context after modified and parameterized tests" {
     try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, rule_id));
 }
 
+test "restricts test context to the callback argument" {
+    const source =
+        \\test(expect(value).toBe(true), () => {});
+        \\test('name', setup(expect(value).toBe(true)), () => {});
+        \\test(() => expect(value).toBe(true), () => {});
+        \\test('works', () => expect(value).toBe(true));
+        \\customTest(expect(value).toBe(true), () => {});
+        \\customTest('works', () => expect(value).toBe(true));
+    ;
+
+    const options = try optionsFromConfig(
+        \\["error", {"additionalTestBlockFunctions":["customTest"]}]
+    );
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, rule_id));
+}
+
 test "reports hooks but allows nested callbacks executing in a test" {
     const source =
         \\beforeAll(() => expect(true).toBe(true));
