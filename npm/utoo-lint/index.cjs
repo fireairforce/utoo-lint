@@ -322,6 +322,7 @@ const BUILTIN_RULE_IDS = [
   "jest/no-standalone-expect",
   "jest/valid-describe-callback",
   "jest/valid-expect-in-promise",
+  "jest/valid-expect",
   "promise/no-promise-in-callback",
   "promise/no-return-in-finally",
   "promise/no-return-wrap",

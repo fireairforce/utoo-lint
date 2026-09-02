@@ -166,6 +166,23 @@ pub const Resolver = struct {
         return result;
     }
 
+    /// Resolves a bare Jest function reference while preserving normal lexical
+    /// shadowing and imports from `@jest/globals`. Rules which validate an
+    /// incomplete call chain (and therefore cannot use `parseCall`) can use
+    /// this to identify the head call before inspecting its parents.
+    pub fn resolveFunctionReference(self: *const Resolver, index: ast.NodeIndex) ?Function {
+        const reference = unwrapTransparent(self.tree, index);
+        const local_name = identifierName(self.tree, reference) orelse return null;
+        const reference_id = self.symbol_table.model.referenceOf(reference) orelse return null;
+        const symbol_id = self.symbol_table.referenceSymbol(reference_id);
+
+        if (symbol_id == .none) {
+            const canonical_name = self.global_aliases.canonicalFor(local_name) orelse local_name;
+            return functionForName(canonical_name);
+        }
+        return (self.bindings.get(symbol_id) orelse return null).function;
+    }
+
     fn collectBindings(self: *Resolver) Allocator.Error!void {
         const program = switch (self.tree.data(self.tree.root)) {
             .program => |value| value,
