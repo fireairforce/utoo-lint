@@ -20,17 +20,20 @@ pnpm 10:
 pnpm install --frozen-lockfile
 ```
 
-The versioned WebAssembly artifact is downloaded from the matching GitHub
-release and intentionally is not checked into Git. The staging script verifies
-its pinned SHA-256 before starting the Playground:
+The available WebAssembly versions are discovered from stable GitHub releases
+that contain `utoo-lint.wasm` and intentionally are not checked into Git. The
+staging script downloads the latest ten versions, verifies their release
+SHA-256 digests, and generates the version manifest before starting the
+Playground. If GitHub is temporarily unavailable during local development, a
+previously verified local manifest and its cached assets are reused:
 
 ```bash
 pnpm playground:dev
 ```
 
-The root script stages the v0.3.0 artifact as
-`npm/@utoo/lint-wasm/utoo-lint.wasm` before starting EVJS. The Utoopack
-development URL is printed in the terminal.
+The newest stable version is selected by default. Selecting an older version
+adds `?version=<version>` to the Playground URL so the same engine can be
+reopened or shared. The Utoopack development URL is printed in the terminal.
 Open the `/playground` route rather than the server root.
 
 ## Verify and build

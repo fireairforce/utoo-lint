@@ -347,6 +347,68 @@ select:focus-visible {
   margin-left: auto;
 }
 
+.version-control {
+  display: inline-flex;
+  min-height: 30px;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding: 0 7px 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.version-control:hover,
+.version-control:focus-within {
+  border-color: #3a4047;
+  background: var(--surface-raised);
+}
+
+.version-control-label {
+  color: var(--muted-subtle);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.version-control .select-wrap::after {
+  right: 1px;
+}
+
+.version-control select {
+  width: 102px;
+  height: 28px;
+  padding: 0 15px 0 0;
+  appearance: none;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+}
+
+.version-control select:focus-visible {
+  outline-width: 1px;
+  outline-offset: 1px;
+}
+
+.version-control select:disabled {
+  color: var(--muted-subtle);
+  cursor: wait;
+}
+
+.version-control option {
+  color: var(--text);
+  background: var(--surface-raised);
+}
+
 .fix-button,
 .share-button {
   display: inline-flex;

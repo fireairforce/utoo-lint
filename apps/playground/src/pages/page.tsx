@@ -33,6 +33,13 @@ import {
 } from '../features/playground/model';
 import '../features/playground/monaco';
 import { Splitter } from '../features/playground/splitter';
+import {
+  initialLintVersion,
+  lintVersionManifestUrl,
+  lintVersionUrl,
+  loadLintVersionCatalog,
+  type LintVersionCatalog,
+} from '../features/playground/versions';
 import '../style.css';
 
 type EditorInstance = Parameters<OnMount>[0];
@@ -46,10 +53,6 @@ const EDITOR_THEME = 'utoo-dark';
 const DEFAULT_EDITOR_RATIO = 68;
 const DEFAULT_RULES_RATIO = 42;
 const INSPECTOR_MODES = ['rules', 'ast'] as const;
-const LINT_WASM_URL = new URL(
-  '../../../../npm/@utoo/lint-wasm/utoo-lint.wasm',
-  import.meta.url,
-).href;
 
 interface RunState {
   phase: RunPhase;
@@ -139,6 +142,10 @@ export default function PlaygroundPage() {
   const [rulesSource, setRulesSource] = useState(
     initialSharePayload?.rulesSource ?? INITIAL_RULES,
   );
+  const [versionCatalog, setVersionCatalog] =
+    useState<LintVersionCatalog>();
+  const [lintVersion, setLintVersion] = useState('');
+  const [versionError, setVersionError] = useState<string>();
   const [runState, setRunState] = useState<RunState>(EMPTY_RUN_STATE);
   const [astState, setASTState] = useState<ASTState>(EMPTY_AST_STATE);
   const [shareState, setShareState] = useState<ShareState>('idle');
@@ -162,6 +169,33 @@ export default function PlaygroundPage() {
   const source = sources[language];
   const fileName = fileNameForLanguage(language);
   const monacoLanguage = monacoLanguageForLanguage(language);
+  const selectedLintVersion = versionCatalog?.versions.find(
+    ({ id }) => id === lintVersion,
+  );
+
+  useEffect(() => {
+    let active = true;
+    const manifestUrl = lintVersionManifestUrl(window.location.href);
+    void loadLintVersionCatalog(manifestUrl)
+      .then((catalog) => {
+        if (!active) return;
+        setVersionCatalog(catalog);
+        setLintVersion(initialLintVersion(catalog, window.location.href));
+        setVersionError(undefined);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Unable to load Playground versions.';
+        setVersionError(message);
+        setRunState({ phase: 'error', message });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const execute = useCallback(
     async (
@@ -169,6 +203,14 @@ export default function PlaygroundPage() {
       requestId = ++latestRequestRef.current,
     ) => {
       if (requestId !== latestRequestRef.current) return;
+
+      if (!selectedLintVersion) {
+        setRunState({
+          phase: 'error',
+          message: versionError ?? 'The lint version is not ready.',
+        });
+        return;
+      }
 
       if (rulesMode === 'custom' && !parsedRules.ok) {
         setRunState({ phase: 'error', message: parsedRules.message });
@@ -190,7 +232,7 @@ export default function PlaygroundPage() {
                   ? parsedRules.rules
                   : {},
           },
-          LINT_WASM_URL,
+          selectedLintVersion.wasmUrl,
         );
 
         if (!result || requestId !== latestRequestRef.current) return;
@@ -215,10 +257,19 @@ export default function PlaygroundPage() {
         });
       }
     },
-    [fileName, language, parsedRules, rulesMode, source],
+    [
+      fileName,
+      language,
+      parsedRules,
+      rulesMode,
+      selectedLintVersion,
+      source,
+      versionError,
+    ],
   );
 
   useEffect(() => {
+    if (!selectedLintVersion) return;
     const requestId = ++latestRequestRef.current;
     clientRef.current?.cancelQueued();
     setRunState(EMPTY_RUN_STATE);
@@ -386,6 +437,26 @@ export default function PlaygroundPage() {
     invalidateShareUrl();
     setRunState(EMPTY_RUN_STATE);
     setLanguage(nextLanguage);
+  };
+
+  const selectLintVersion = (nextVersion: string) => {
+    if (!versionCatalog) return;
+    const definition = versionCatalog.versions.find(
+      ({ id }) => id === nextVersion,
+    );
+    if (!definition || definition.id === lintVersion) return;
+
+    setRunState(EMPTY_RUN_STATE);
+    setLintVersion(definition.id);
+    window.history.replaceState(
+      null,
+      '',
+      lintVersionUrl(
+        window.location.href,
+        definition.id,
+        versionCatalog.latest,
+      ),
+    );
   };
 
   const sharePlayground = async () => {
@@ -565,13 +636,40 @@ export default function PlaygroundPage() {
           <button
             aria-label={fixButtonLabel}
             className="fix-button"
-            disabled={isRetry ? !hasValidRules : !canFix}
+            disabled={
+              !selectedLintVersion || (isRetry ? !hasValidRules : !canFix)
+            }
             onClick={() => void execute(isRetry ? 'lint' : 'fix')}
             title={fixButtonLabel}
             type="button"
           >
             {fixButtonText}
           </button>
+
+          <label className="version-control">
+            <span className="version-control-label">Version</span>
+            <span className="select-wrap">
+              <select
+                aria-label="Utoo Lint version"
+                disabled={!versionCatalog}
+                onChange={(event) => selectLintVersion(event.target.value)}
+                title={versionError}
+                value={lintVersion}
+              >
+                {!versionCatalog && (
+                  <option value="">
+                    {versionError ? 'Unavailable' : 'Loading…'}
+                  </option>
+                )}
+                {versionCatalog?.versions.map((version) => (
+                  <option key={version.id} value={version.id}>
+                    {version.label}
+                    {version.id === versionCatalog.latest ? ' (latest)' : ''}
+                  </option>
+                ))}
+              </select>
+            </span>
+          </label>
 
           <button
             aria-label="Share this playground"

@@ -122,6 +122,8 @@ jobs:
 
       - name: Build and audit unified site
         run: pnpm site:build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps --only-shell chromium

@@ -8,3 +8,4 @@ node_modules/
 /server/
 .DS_Store
 npm/@utoo/lint-wasm/utoo-lint.wasm
+apps/playground/public/versions/

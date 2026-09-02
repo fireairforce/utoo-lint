@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createReadStream } from 'node:fs';
-import { access, stat } from 'node:fs/promises';
+import { access, readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -153,6 +153,12 @@ async function waitForSettledPage(page) {
 }
 
 async function runSmoke(page, origin) {
+  const versionManifest = JSON.parse(
+    await readFile(
+      path.join(siteRoot, 'playground', 'versions', 'manifest.json'),
+      'utf8',
+    ),
+  );
   const issues = [];
   let stage = 'startup';
   const report = (kind, detail) => issues.push(`[${stage}] ${kind}: ${detail}`);
@@ -235,6 +241,21 @@ async function runSmoke(page, origin) {
       undefined,
       { timeout: 30_000 },
     );
+    const versionSelect = page.getByRole('combobox', {
+      name: 'Utoo Lint version',
+    });
+    await versionSelect.waitFor();
+    assert.equal(await versionSelect.inputValue(), versionManifest.latest);
+
+    const previousVersion = versionManifest.versions[1]?.id;
+    if (previousVersion) {
+      await versionSelect.selectOption(previousVersion);
+      await page.waitForURL(
+        (url) => url.searchParams.get('version') === previousVersion,
+      );
+      await versionSelect.selectOption(versionManifest.latest);
+      await page.waitForURL((url) => !url.searchParams.has('version'));
+    }
 
     // Let late worker/resource errors reach the event handlers before leaving
     // the standalone Playground document.

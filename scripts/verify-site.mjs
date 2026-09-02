@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { access, readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -734,12 +735,95 @@ for (const match of playgroundIndex.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
 await verifyLocalAssets(playgroundIndex, 'Playground index');
 
 const playgroundFiles = await collectFiles(playgroundDir);
+const versionManifest = JSON.parse(
+  await readFile(
+    await requireFile('playground/versions/manifest.json'),
+    'utf8',
+  ),
+);
+if (
+  typeof versionManifest.latest !== 'string' ||
+  !Array.isArray(versionManifest.versions) ||
+  versionManifest.versions.length === 0 ||
+  versionManifest.versions[0]?.id !== versionManifest.latest
+) {
+  throw new Error('invalid Playground version manifest');
+}
+
 const wasmFiles = playgroundFiles.filter(
   (file) => path.extname(file) === '.wasm',
 );
-if (wasmFiles.length !== 2) {
+if (wasmFiles.length !== versionManifest.versions.length + 2) {
   throw new Error(
-    `expected two Playground WebAssembly assets, found ${wasmFiles.length}`,
+    `expected ${versionManifest.versions.length + 2} Playground WebAssembly assets, found ${wasmFiles.length}`,
+  );
+}
+
+let parserWasm;
+let bundledLintWasm;
+for (const file of wasmFiles) {
+  const name = path.basename(file);
+  const isParser = name.includes('yuku-parser');
+  const isLintVersion = /^utoo-lint-v\d+\.\d+\.\d+\.wasm$/.test(name);
+  const isBundledLint = /^utoo-lint\.[^.]+\.wasm$/.test(name);
+  if (!isParser && !isLintVersion && !isBundledLint) {
+    throw new Error(`unexpected Playground WebAssembly asset: ${name}`);
+  }
+
+  const contents = await readFile(file);
+  if (
+    contents.length === 0 ||
+    !contents.subarray(0, 4).equals(Buffer.from([0, 97, 115, 109]))
+  ) {
+    throw new Error(`invalid Playground WebAssembly asset: ${name}`);
+  }
+  if (isParser) {
+    if (parserWasm) {
+      throw new Error(`duplicate parser WebAssembly asset: ${name}`);
+    }
+    parserWasm = contents;
+  } else if (isBundledLint) {
+    if (bundledLintWasm) {
+      throw new Error(`duplicate bundled lint WebAssembly asset: ${name}`);
+    }
+    bundledLintWasm = contents;
+  }
+}
+
+for (const version of versionManifest.versions) {
+  if (
+    !/^\d+\.\d+\.\d+$/.test(version.id) ||
+    version.label !== `v${version.id}` ||
+    version.file !== `utoo-lint-v${version.id}.wasm` ||
+    !/^[a-f0-9]{64}$/.test(version.sha256)
+  ) {
+    throw new Error(
+      `invalid Playground version entry: ${JSON.stringify(version)}`,
+    );
+  }
+  const contents = await readFile(
+    path.join(playgroundDir, 'versions', version.file),
+  );
+  const actualSha256 = createHash('sha256').update(contents).digest('hex');
+  if (actualSha256 !== version.sha256) {
+    throw new Error(
+      `unexpected ${version.label} WebAssembly SHA-256: ${actualSha256}`,
+    );
+  }
+}
+
+if (!parserWasm) {
+  throw new Error('missing Playground parser WebAssembly asset');
+}
+if (!bundledLintWasm) {
+  throw new Error('missing bundled Playground lint WebAssembly asset');
+}
+const bundledLintSha256 = createHash('sha256')
+  .update(bundledLintWasm)
+  .digest('hex');
+if (bundledLintSha256 !== versionManifest.versions[0].sha256) {
+  throw new Error(
+    `bundled lint WebAssembly does not match latest ${versionManifest.versions[0].label}`,
   );
 }
 for (const controlFile of ['_headers', '_redirects']) {
