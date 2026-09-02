@@ -103,17 +103,20 @@ test "fixes literal Jasmine timeout assignments but not dynamic values" {
     const source =
         \\jasmine.DEFAULT_TIMEOUT_INTERVAL = 5000;
         \\jasmine.DEFAULT_TIMEOUT_INTERVAL = timeout;
+        \\jasmine.DEFAULT_TIMEOUT_INTERVAL += 5000;
     ;
     const expected =
         \\jest.setTimeout(5000);
         \\jasmine.DEFAULT_TIMEOUT_INTERVAL = timeout;
+        \\jasmine.DEFAULT_TIMEOUT_INTERVAL += 5000;
     ;
 
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsOnly());
     defer result.deinit(std.testing.allocator);
-    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, rule_id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, rule_id));
     try std.testing.expectEqual(@as(usize, 1), result.diagnostics[0].fixes.len);
     try std.testing.expectEqual(@as(usize, 0), result.diagnostics[1].fixes.len);
+    try std.testing.expectEqual(@as(usize, 0), result.diagnostics[2].fixes.len);
     try std.testing.expectEqualStrings(
         "jasmine.DEFAULT_TIMEOUT_INTERVAL",
         source[result.diagnostics[0].span.start..result.diagnostics[0].span.end],

@@ -110,7 +110,8 @@ const Visitor = struct {
         };
 
         const property = staticPropertyName(ctx.tree, member.property, member.computed);
-        if (property != null and
+        if (assignment.operator == .assign and
+            property != null and
             std.mem.eql(u8, property.?, "DEFAULT_TIMEOUT_INTERVAL") and
             isLiteral(ctx.tree, assignment.right))
         {
