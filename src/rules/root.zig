@@ -84,6 +84,7 @@ pub const jest_no_export = @import("jest_no_export.zig");
 pub const jest_no_focused_tests = @import("jest_no_focused_tests.zig");
 pub const jest_no_identical_title = @import("jest_no_identical_title.zig");
 pub const jest_no_interpolation_in_snapshots = @import("jest_no_interpolation_in_snapshots.zig");
+pub const jest_no_jasmine_globals = @import("jest_no_jasmine_globals.zig");
 pub const jsx_a11y_alt_text = @import("jsx_a11y_alt_text.zig");
 pub const jsx_a11y_anchor_has_content = @import("jsx_a11y_anchor_has_content.zig");
 pub const jsx_a11y_aria_props = @import("jsx_a11y_aria_props.zig");
@@ -1049,6 +1050,10 @@ fn runSemanticAfterIo(
             semantic_result.symbol_table,
             options.jest_global_aliases,
         );
+    }
+
+    if (options.jest_no_jasmine_globals) {
+        try jest_no_jasmine_globals.run(allocator, diagnostics, tree, semantic_result.symbol_table);
     }
 
     if (options.block_scoped_var) {
