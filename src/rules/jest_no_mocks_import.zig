@@ -53,11 +53,13 @@ fn checkSource(
 }
 
 fn isMockPath(path: []const u8) bool {
-    var segments = std.mem.splitScalar(u8, path, '/');
-    while (segments.next()) |segment| {
-        if (std.mem.eql(u8, segment, "__mocks__")) return true;
+    var segment_start: usize = 0;
+    for (path, 0..) |character, index| {
+        if (character != '/' and character != '\\') continue;
+        if (std.mem.eql(u8, path[segment_start..index], "__mocks__")) return true;
+        segment_start = index + 1;
     }
-    return false;
+    return std.mem.eql(u8, path[segment_start..], "__mocks__");
 }
 
 fn isRequireIdentifier(tree: *const ast.Tree, index: ast.NodeIndex) bool {

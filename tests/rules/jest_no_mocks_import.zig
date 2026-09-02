@@ -45,6 +45,18 @@ test "reports CommonJS requires and dynamic imports" {
     }
 }
 
+test "reports Windows-style CommonJS mock paths" {
+    const invalid = "require('.\\\\nested\\\\__mocks__\\\\user');";
+    var invalid_result = try lint.lintSource(std.testing.allocator, invalid, "fixture.js", optionsOnly());
+    defer invalid_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(invalid_result, rule_id));
+
+    const valid = "require('.\\\\nested\\\\__mocks__.js');";
+    var valid_result = try lint.lintSource(std.testing.allocator, valid, "fixture.js", optionsOnly());
+    defer valid_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(valid_result, rule_id));
+}
+
 test "allows similarly named paths and non-static module references" {
     const source =
         \\import something from "something";
