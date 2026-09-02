@@ -321,6 +321,7 @@ const BUILTIN_RULE_IDS = [
   "jest/no-identical-title",
   "jest/no-interpolation-in-snapshots",
   "jest/no-jasmine-globals",
+  "jest/no-mocks-import",
   "promise/no-promise-in-callback",
   "promise/no-return-in-finally",
   "promise/no-return-wrap",
