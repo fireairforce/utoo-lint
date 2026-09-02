@@ -321,6 +321,37 @@ test("validates expect chains with configured argument and async matcher options
   assert.equal(result.diagnostics[0].message, "Async assertions must be awaited or returned");
 });
 
+test("validates and fixes Jest titles with configured options", () => {
+  const source = [
+    "describe(makeName(), () => {});",
+    "test('test forbidden ', () => {});",
+  ].join("\n");
+  const options = {
+    filePath: "input.ts",
+    rules: {
+      "jest/valid-title": [
+        "error",
+        {
+          ignoreTypeOfDescribeName: true,
+          disallowedWords: ["forbidden"],
+        },
+      ],
+    },
+  };
+  const checked = linter.lint(source, options);
+  assert.equal(checked.diagnostics.length, 1);
+  assert.equal(checked.diagnostics[0].ruleId, "jest/valid-title");
+  assert.equal(checked.diagnostics[0].message, '"forbidden" is not allowed in test titles');
+
+  const fixed = linter.lintAndFix("it('it works ', () => {});", {
+    filePath: "input.tsx",
+    rules: { "jest/valid-title": "error" },
+  });
+  assert.equal(fixed.fixed, true);
+  assert.equal(fixed.output, "it('works', () => {});");
+  assert.equal(fixed.diagnostics.length, 0);
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",

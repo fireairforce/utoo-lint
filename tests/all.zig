@@ -279,6 +279,7 @@ comptime {
     _ = @import("rules/jest_valid_describe_callback.zig");
     _ = @import("rules/jest_valid_expect_in_promise.zig");
     _ = @import("rules/jest_valid_expect.zig");
+    _ = @import("rules/jest_valid_title.zig");
 }
 
 comptime {

@@ -57,6 +57,25 @@ test("provides a lazy convenience API", async () => {
   assert.ok(result.diagnostics.some((item) => item.ruleId === "no-extra-semi"));
 });
 
+test("exposes jest/valid-title diagnostics and autofixes", async () => {
+  const linter = await createUtooLint();
+  const checked = linter.lint("test(' forbidden ', () => {});", {
+    filePath: "input.jsx",
+    rules: {
+      "jest/valid-title": ["error", { disallowedWords: ["forbidden"] }],
+    },
+  });
+  assert.equal(checked.diagnostics.length, 1);
+  assert.equal(checked.diagnostics[0]?.ruleId, "jest/valid-title");
+
+  const fixed = linter.lintAndFix("test('test works ', () => {});", {
+    filePath: "input.tsx",
+    rules: { "jest/valid-title": "error" },
+  });
+  assert.equal(fixed.fixed, true);
+  assert.equal(fixed.output, "test('works', () => {});");
+});
+
 test("loads browser-friendly Response, byte, and compiled module inputs", async () => {
   const bytes = await wasmBytesPromise;
   const response = new Response(bytes, {

@@ -2776,6 +2776,13 @@ pub const Options = struct {
     jest_valid_expect_async_matchers: JestValidExpectAsyncMatchers = .{},
     jest_valid_expect_min_args: f64 = 1,
     jest_valid_expect_max_args: f64 = 1,
+    jest_valid_title: bool = true,
+    jest_valid_title_ignore_spaces: bool = false,
+    jest_valid_title_ignore_type_of_describe_name: bool = false,
+    jest_valid_title_ignore_type_of_test_name: bool = false,
+    jest_valid_title_disallowed_words: JestValidTitleDisallowedWords = .{},
+    jest_valid_title_must_not_match: JestValidTitleMatchers = .{},
+    jest_valid_title_must_match: JestValidTitleMatchers = .{},
     jest_global_aliases: JestGlobalAliases = .{},
     jest_version: u32 = 0,
     jsx_a11y_alt_text: bool = true,
@@ -3494,6 +3501,15 @@ pub const Options = struct {
             self.jest_valid_expect_async_matchers = config.async_matchers;
             self.jest_valid_expect_min_args = config.min_args;
             self.jest_valid_expect_max_args = config.max_args;
+        }
+        if (std.mem.eql(u8, cli_name, "jest/valid-title")) {
+            const config = try jestValidTitleFromConfig(value);
+            self.jest_valid_title_ignore_spaces = config.ignore_spaces;
+            self.jest_valid_title_ignore_type_of_describe_name = config.ignore_type_of_describe_name;
+            self.jest_valid_title_ignore_type_of_test_name = config.ignore_type_of_test_name;
+            self.jest_valid_title_disallowed_words = config.disallowed_words;
+            self.jest_valid_title_must_not_match = config.must_not_match;
+            self.jest_valid_title_must_match = config.must_match;
         }
         if (std.mem.eql(u8, cli_name, "func-name-matching")) {
             self.func_name_matching_style = try funcNameMatchingStyleFromConfig(value);
@@ -5195,6 +5211,109 @@ pub const Options = struct {
         };
         if (!std.math.isFinite(number) or number < minimum) return error.UnsupportedRuleConfigValue;
         return number;
+    }
+
+    const JestValidTitleConfig = struct {
+        ignore_spaces: bool = false,
+        ignore_type_of_describe_name: bool = false,
+        ignore_type_of_test_name: bool = false,
+        disallowed_words: JestValidTitleDisallowedWords = .{},
+        must_not_match: JestValidTitleMatchers = .{},
+        must_match: JestValidTitleMatchers = .{},
+    };
+
+    fn jestValidTitleFromConfig(value: std.json.Value) RuleConfigError!JestValidTitleConfig {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const object = switch (items[1]) {
+            .object => |config| config,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = JestValidTitleConfig{};
+        result.ignore_spaces = try optionalBoolObjectValue(object, "ignoreSpaces", false);
+        result.ignore_type_of_describe_name = try optionalBoolObjectValue(object, "ignoreTypeOfDescribeName", false);
+        result.ignore_type_of_test_name = try optionalBoolObjectValue(object, "ignoreTypeOfTestName", false);
+
+        if (object.get("disallowedWords")) |configured| {
+            const words = switch (configured) {
+                .array => |array| array.items,
+                .null => &.{},
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            for (words) |word_value| {
+                const word = switch (word_value) {
+                    .string => |text| text,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                if (!result.disallowed_words.append(word)) return error.UnsupportedRuleConfigValue;
+            }
+        }
+
+        if (object.get("mustNotMatch")) |configured| {
+            result.must_not_match = try jestValidTitleMatchersFromValue(configured);
+        }
+        if (object.get("mustMatch")) |configured| {
+            result.must_match = try jestValidTitleMatchersFromValue(configured);
+        }
+        return result;
+    }
+
+    fn optionalBoolObjectValue(object: std.json.ObjectMap, key: []const u8, default: bool) RuleConfigError!bool {
+        return switch (object.get(key) orelse return default) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
+    fn jestValidTitleMatchersFromValue(value: std.json.Value) RuleConfigError!JestValidTitleMatchers {
+        var result = JestValidTitleMatchers{};
+        switch (value) {
+            .string, .array => {
+                const matcher = try jestValidTitleMatcherFromValue(value);
+                result.applyToAll(matcher);
+            },
+            .object => |object| {
+                if (object.get("describe")) |configured| {
+                    result.describe = try jestValidTitleMatcherFromValue(configured);
+                }
+                if (object.get("test")) |configured| {
+                    result.test_case = try jestValidTitleMatcherFromValue(configured);
+                }
+                if (object.get("it")) |configured| {
+                    result.it = try jestValidTitleMatcherFromValue(configured);
+                }
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+        return result;
+    }
+
+    fn jestValidTitleMatcherFromValue(value: std.json.Value) RuleConfigError!JestValidTitleMatcher {
+        var matcher = JestValidTitleMatcher{};
+        switch (value) {
+            .string => |pattern| {
+                if (!matcher.set(pattern, null)) return error.UnsupportedRuleConfigValue;
+            },
+            .array => |array| {
+                if (array.items.len < 1 or array.items.len > 2) return error.UnsupportedRuleConfigValue;
+                const pattern = switch (array.items[0]) {
+                    .string => |text| text,
+                    else => return error.UnsupportedRuleConfigValue,
+                };
+                const message = if (array.items.len == 2) switch (array.items[1]) {
+                    .string => |text| text,
+                    else => return error.UnsupportedRuleConfigValue,
+                } else null;
+                if (!matcher.set(pattern, message)) return error.UnsupportedRuleConfigValue;
+            },
+            else => return error.UnsupportedRuleConfigValue,
+        }
+        return matcher;
     }
 
     const IdLengthConfig = struct {
@@ -10126,6 +10245,75 @@ pub const JestAdditionalTestBlockFunctions = struct {
     }
 };
 
+pub const max_jest_valid_title_disallowed_words = 64;
+pub const max_jest_valid_title_disallowed_word_len = 128;
+
+pub const JestValidTitleDisallowedWords = struct {
+    count: usize = 0,
+    lengths: [max_jest_valid_title_disallowed_words]usize = undefined,
+    storage: [max_jest_valid_title_disallowed_words][max_jest_valid_title_disallowed_word_len]u8 = undefined,
+
+    pub fn at(self: *const JestValidTitleDisallowedWords, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *JestValidTitleDisallowedWords, word: []const u8) bool {
+        if (word.len > max_jest_valid_title_disallowed_word_len) return false;
+        if (self.count >= max_jest_valid_title_disallowed_words) return false;
+
+        @memcpy(self.storage[self.count][0..word.len], word);
+        self.lengths[self.count] = word.len;
+        self.count += 1;
+        return true;
+    }
+};
+
+pub const max_jest_valid_title_pattern_len = 512;
+pub const max_jest_valid_title_matcher_message_len = 512;
+
+pub const JestValidTitleMatcher = struct {
+    active: bool = false,
+    pattern_length: usize = 0,
+    message_length: usize = 0,
+    pattern_storage: [max_jest_valid_title_pattern_len]u8 = undefined,
+    message_storage: [max_jest_valid_title_matcher_message_len]u8 = undefined,
+
+    pub fn pattern(self: *const JestValidTitleMatcher) ?[]const u8 {
+        if (!self.active) return null;
+        return self.pattern_storage[0..self.pattern_length];
+    }
+
+    pub fn message(self: *const JestValidTitleMatcher) ?[]const u8 {
+        if (self.message_length == 0) return null;
+        return self.message_storage[0..self.message_length];
+    }
+
+    pub fn set(self: *JestValidTitleMatcher, pattern_value: []const u8, message_value: ?[]const u8) bool {
+        if (pattern_value.len > max_jest_valid_title_pattern_len) return false;
+        const custom_message = message_value orelse "";
+        if (custom_message.len > max_jest_valid_title_matcher_message_len) return false;
+
+        @memcpy(self.pattern_storage[0..pattern_value.len], pattern_value);
+        @memcpy(self.message_storage[0..custom_message.len], custom_message);
+        self.active = true;
+        self.pattern_length = pattern_value.len;
+        self.message_length = custom_message.len;
+        return true;
+    }
+};
+
+pub const JestValidTitleMatchers = struct {
+    describe: JestValidTitleMatcher = .{},
+    test_case: JestValidTitleMatcher = .{},
+    it: JestValidTitleMatcher = .{},
+
+    pub fn applyToAll(self: *JestValidTitleMatchers, matcher: JestValidTitleMatcher) void {
+        self.describe = matcher;
+        self.test_case = matcher;
+        self.it = matcher;
+    }
+};
+
 pub const max_jest_global_aliases = 32;
 pub const max_jest_global_alias_len = 128;
 
@@ -10807,6 +10995,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.jest_valid_expect);
     try std.testing.expect(options.setByCliName("jest/valid-expect", true));
     try std.testing.expect(options.jest_valid_expect);
+
+    try std.testing.expect(!options.jest_valid_title);
+    try std.testing.expect(options.setByCliName("jest/valid-title", true));
+    try std.testing.expect(options.jest_valid_title);
 
     try std.testing.expect(!options.unused_imports_no_unused_imports);
     try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));

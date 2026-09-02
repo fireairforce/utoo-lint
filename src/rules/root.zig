@@ -90,6 +90,7 @@ pub const jest_no_standalone_expect = @import("jest_no_standalone_expect.zig");
 pub const jest_valid_describe_callback = @import("jest_valid_describe_callback.zig");
 pub const jest_valid_expect_in_promise = @import("jest_valid_expect_in_promise.zig");
 pub const jest_valid_expect = @import("jest_valid_expect.zig");
+pub const jest_valid_title = @import("jest_valid_title.zig");
 pub const jsx_a11y_alt_text = @import("jsx_a11y_alt_text.zig");
 pub const jsx_a11y_anchor_has_content = @import("jsx_a11y_anchor_has_content.zig");
 pub const jsx_a11y_aria_props = @import("jsx_a11y_aria_props.zig");
@@ -1104,6 +1105,24 @@ fn runSemanticAfterIo(
                 .async_matchers = options.jest_valid_expect_async_matchers,
                 .min_args = options.jest_valid_expect_min_args,
                 .max_args = options.jest_valid_expect_max_args,
+            },
+        );
+    }
+
+    if (options.jest_valid_title) {
+        try jest_valid_title.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.jest_global_aliases,
+            .{
+                .ignore_spaces = options.jest_valid_title_ignore_spaces,
+                .ignore_type_of_describe_name = options.jest_valid_title_ignore_type_of_describe_name,
+                .ignore_type_of_test_name = options.jest_valid_title_ignore_type_of_test_name,
+                .disallowed_words = options.jest_valid_title_disallowed_words,
+                .must_not_match = options.jest_valid_title_must_not_match,
+                .must_match = options.jest_valid_title_must_match,
             },
         );
     }
