@@ -310,9 +310,4 @@ jobs:
       - name: Publish npm packages
         env:
           NPM_TAG: ${{ steps.release_version.outputs.npm_tag }}
-        run: |
-          for package_dir in npm/@utoo/lint-*; do
-            pnpm publish "${package_dir}/" --access public --provenance --tag "${NPM_TAG}" --no-git-checks
-          done
-
-          pnpm publish npm/utoo-lint/ --access public --provenance --tag "${NPM_TAG}" --no-git-checks
+        run: node scripts/publish-npm-packages.mjs

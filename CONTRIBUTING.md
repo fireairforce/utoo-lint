@@ -193,14 +193,25 @@ The release workflow builds all native and WebAssembly assets, stages the npm
 packages from the same artifacts, uploads the release assets to GitHub, and
 publishes the scoped packages before the CLI wrapper.
 
-Required GitHub repository secret:
+Every npm package must already exist and authorize this repository through npm
+Trusted Publishing with these GitHub Actions settings:
 
 ```text
-NPM_TOKEN
+Organization: utooland
+Repository: utoo-lint
+Workflow: release.yml
+Allowed action: npm publish
 ```
 
-Create it from npm as an automation token, then add it in GitHub under
-`Settings -> Secrets and variables -> Actions`.
+The release job uses OIDC exclusively and does not receive an npm publishing
+token. Before adding a new package to the release workflow, initialize it on
+npm and configure the Trusted Publisher above.
+
+Publishing is idempotent. The workflow checks every exact package version
+before publishing, skips versions already present on npm, rejects uninitialized
+packages before publishing anything, publishes `@utoo/lint-wasm` first to catch
+Trusted Publisher configuration errors early, and publishes the root
+`@utoo/lint` package last.
 
 Publish from GitHub:
 
