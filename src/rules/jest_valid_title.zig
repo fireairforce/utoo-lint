@@ -122,15 +122,26 @@ const Visitor = struct {
 
         if (!self.options.ignore_spaces and hasAccidentalSpace(title.value)) {
             const fixes = accidentalSpaceFixes(ctx.tree, title.span);
-            try core.addDiagnosticWithFixes(
-                self.allocator,
-                self.diagnostics,
-                .warning,
-                id,
-                accidental_space,
-                title.span,
-                fixes.slice(),
-            );
+            if (fixes.len == 0) {
+                try core.addDiagnostic(
+                    self.allocator,
+                    self.diagnostics,
+                    .warning,
+                    id,
+                    accidental_space,
+                    title.span,
+                );
+            } else {
+                try core.addDiagnosticWithFixes(
+                    self.allocator,
+                    self.diagnostics,
+                    .warning,
+                    id,
+                    accidental_space,
+                    title.span,
+                    fixes.slice(),
+                );
+            }
         }
 
         const function_group = functionGroup(call.function);
@@ -267,13 +278,11 @@ fn staticTitle(tree: *const ast.Tree, index: ast.NodeIndex) ?StaticTitle {
             if (literal.expressions.len != 0) break :blk null;
             const quasis = tree.extra(literal.quasis);
             if (quasis.len != 1) break :blk null;
-            switch (tree.data(quasis[0])) {
-                .template_element => {},
+            const value = switch (tree.data(quasis[0])) {
+                .template_element => |element| tree.string(element.cooked),
                 else => break :blk null,
-            }
-            const span = tree.span(index);
-            if (span.end <= span.start + 1) break :blk null;
-            break :blk .{ .value = tree.source[span.start + 1 .. span.end - 1], .span = span };
+            };
+            break :blk .{ .value = value, .span = tree.span(index) };
         },
         else => null,
     };
@@ -321,56 +330,57 @@ fn hasAccidentalSpace(title: []const u8) bool {
     return startsWithJsWhitespace(title) or endsWithJsWhitespace(title);
 }
 
+const js_unicode_whitespace = [_][]const u8{
+    "\xC2\xA0", // no-break space
+    "\xE1\x9A\x80", // ogham space mark
+    "\xE2\x80\x80",
+    "\xE2\x80\x81",
+    "\xE2\x80\x82",
+    "\xE2\x80\x83",
+    "\xE2\x80\x84",
+    "\xE2\x80\x85",
+    "\xE2\x80\x86",
+    "\xE2\x80\x87",
+    "\xE2\x80\x88",
+    "\xE2\x80\x89",
+    "\xE2\x80\x8A", // U+2000..U+200A
+    "\xE2\x80\xA8",
+    "\xE2\x80\xA9",
+    "\xE2\x80\xAF",
+    "\xE2\x81\x9F",
+    "\xE3\x80\x80",
+    "\xEF\xBB\xBF",
+};
+
 fn startsWithJsWhitespace(value: []const u8) bool {
-    if (std.ascii.isWhitespace(value[0])) return true;
-    const whitespace = [_][]const u8{
-        "\xC2\xA0", // no-break space
-        "\xE1\x9A\x80", // ogham space mark
-        "\xE2\x80\x80",
-        "\xE2\x80\x81",
-        "\xE2\x80\x82",
-        "\xE2\x80\x83",
-        "\xE2\x80\x84",
-        "\xE2\x80\x85",
-        "\xE2\x80\x86",
-        "\xE2\x80\x87",
-        "\xE2\x80\x88", "\xE2\x80\x89", "\xE2\x80\x8A", // U+2000..U+200A
-        "\xE2\x80\xA8", "\xE2\x80\xA9", "\xE2\x80\xAF",
-        "\xE2\x81\x9F", "\xE3\x80\x80", "\xEF\xBB\xBF",
-    };
-    for (whitespace) |sequence| {
-        if (std.mem.startsWith(u8, value, sequence)) return true;
-    }
-    return false;
+    return jsWhitespacePrefixLen(value) != 0;
 }
 
 fn endsWithJsWhitespace(value: []const u8) bool {
-    if (std.ascii.isWhitespace(value[value.len - 1])) return true;
-    const whitespace = [_][]const u8{
-        "\xC2\xA0",
-        "\xE1\x9A\x80",
-        "\xE2\x80\x80",
-        "\xE2\x80\x81",
-        "\xE2\x80\x82",
-        "\xE2\x80\x83",
-        "\xE2\x80\x84",
-        "\xE2\x80\x85",
-        "\xE2\x80\x86",
-        "\xE2\x80\x87",
-        "\xE2\x80\x88",
-        "\xE2\x80\x89",
-        "\xE2\x80\x8A",
-        "\xE2\x80\xA8",
-        "\xE2\x80\xA9",
-        "\xE2\x80\xAF",
-        "\xE2\x81\x9F",
-        "\xE3\x80\x80",
-        "\xEF\xBB\xBF",
-    };
-    for (whitespace) |sequence| {
-        if (std.mem.endsWith(u8, value, sequence)) return true;
+    return jsWhitespaceSuffixLen(value) != 0;
+}
+
+fn jsWhitespacePrefixLen(value: []const u8) usize {
+    if (value.len == 0) return 0;
+    if (std.ascii.isWhitespace(value[0])) return 1;
+    for (js_unicode_whitespace) |sequence| {
+        if (std.mem.startsWith(u8, value, sequence)) return sequence.len;
     }
-    return false;
+    return 0;
+}
+
+fn jsWhitespaceSuffixLen(value: []const u8) usize {
+    if (value.len == 0) return 0;
+    if (std.ascii.isWhitespace(value[value.len - 1])) return 1;
+    for (js_unicode_whitespace) |sequence| {
+        if (std.mem.endsWith(u8, value, sequence)) return sequence.len;
+    }
+    return 0;
+}
+
+fn isJsWhitespaceCodepoint(value: []const u8, start: usize, end: usize) bool {
+    if (start >= end or end > value.len) return false;
+    return jsWhitespacePrefixLen(value[start..end]) == end - start;
 }
 
 const FixBuffer = struct {
@@ -393,9 +403,17 @@ fn accidentalSpaceFixes(tree: *const ast.Tree, span: ast.Span) FixBuffer {
     const content_start: usize = span.start + 1;
     const content_end: usize = span.end - 1;
     var trimmed_start = content_start;
-    while (trimmed_start < content_end and tree.source[trimmed_start] == ' ') trimmed_start += 1;
+    while (trimmed_start < content_end) {
+        const whitespace_len = jsWhitespacePrefixLen(tree.source[trimmed_start..content_end]);
+        if (whitespace_len == 0) break;
+        trimmed_start += whitespace_len;
+    }
     var trimmed_end = content_end;
-    while (trimmed_end > trimmed_start and tree.source[trimmed_end - 1] == ' ') trimmed_end -= 1;
+    while (trimmed_end > trimmed_start) {
+        const whitespace_len = jsWhitespaceSuffixLen(tree.source[trimmed_start..trimmed_end]);
+        if (whitespace_len == 0) break;
+        trimmed_end -= whitespace_len;
+    }
     if (trimmed_start > content_start) result.append(.{
         .span = .{ .start = @intCast(content_start), .end = @intCast(trimmed_start) },
         .replacement = "",
@@ -644,8 +662,8 @@ fn escapedAtomMatches(atom: []const u8, text: []const u8, start: usize, end: usi
         'D' => !std.ascii.isDigit(byte),
         'w' => isAsciiWord(byte),
         'W' => !isAsciiWord(byte),
-        's' => std.ascii.isWhitespace(byte),
-        'S' => !std.ascii.isWhitespace(byte),
+        's' => isJsWhitespaceCodepoint(text, start, end),
+        'S' => !isJsWhitespaceCodepoint(text, start, end),
         'n' => byte == '\n',
         'r' => byte == '\r',
         't' => byte == '\t',
@@ -665,8 +683,14 @@ fn classMatches(atom: []const u8, text: []const u8, start: usize, end: usize) bo
             const escaped = atom[cursor + 1];
             found = found or switch (escaped) {
                 'd' => std.ascii.isDigit(byte),
+                'D' => !std.ascii.isDigit(byte),
                 'w' => isAsciiWord(byte),
-                's' => std.ascii.isWhitespace(byte),
+                'W' => !isAsciiWord(byte),
+                's' => isJsWhitespaceCodepoint(text, start, end),
+                'S' => !isJsWhitespaceCodepoint(text, start, end),
+                'n' => byte == '\n',
+                'r' => byte == '\r',
+                't' => byte == '\t',
                 else => byte == escaped,
             };
             cursor += 2;
@@ -708,4 +732,7 @@ test "configured regular-expression matching" {
     try std.testing.expect(regexMatches("(?:#(?!unit|e2e))\\w+", "works #jest4life"));
     try std.testing.expect(!regexMatches("(?:#(?!unit|e2e))\\w+", "works #unit"));
     try std.testing.expect(regexMatches("\\.$", "ends."));
+    try std.testing.expect(regexMatches("^foo\\sbar$", "foo\xC2\xA0bar"));
+    try std.testing.expect(!regexMatches("^foo\\Sbar$", "foo\xC2\xA0bar"));
+    try std.testing.expect(regexMatches("^foo[\\s]bar$", "foo\xC2\xA0bar"));
 }

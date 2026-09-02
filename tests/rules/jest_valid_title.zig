@@ -129,6 +129,43 @@ test "applies upstream-safe whitespace and duplicate-prefix autofixes" {
     try std.testing.expect(!helpers.hasRule(result.result, rule_id));
 }
 
+test "uses cooked static template values without unsafe escaped fixes" {
+    const source = "test(`\\u0020name`, () => {});";
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsOnly());
+    defer result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, rule_id));
+    const diagnostic = findDiagnostic(result).?;
+    try std.testing.expectEqualStrings("should not have leading or trailing spaces", diagnostic.message);
+    try std.testing.expectEqual(@as(usize, 0), diagnostic.fixes.len);
+}
+
+test "autofixes literal ECMAScript whitespace" {
+    const source = "test('\tworks\xC2\xA0', () => {});";
+    const expected = "test('works', () => {});";
+    var result = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", optionsOnly());
+    defer result.deinit(std.testing.allocator);
+    try std.testing.expect(result.fixed);
+    try std.testing.expectEqualStrings(expected, result.output);
+    try std.testing.expect(!helpers.hasRule(result.result, rule_id));
+}
+
+test "uses ECMAScript whitespace semantics in configured regexes" {
+    const source = "test('foo\xC2\xA0bar', () => {});";
+    const matches_space = try optionsFromConfig(
+        \\["error",{"mustMatch":"^foo\\sbar$"}]
+    );
+    var matching_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", matches_space);
+    defer matching_result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(matching_result, rule_id));
+
+    const requires_non_space = try optionsFromConfig(
+        \\["error",{"mustMatch":"^foo\\Sbar$"}]
+    );
+    var non_matching_result = try lint.lintSource(std.testing.allocator, source, "fixture.js", requires_non_space);
+    defer non_matching_result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(non_matching_result, rule_id));
+}
+
 test "ignoreSpaces disables whitespace diagnostics and fixes" {
     const options = try optionsFromConfig(
         \\["error",{"ignoreSpaces":true}]
