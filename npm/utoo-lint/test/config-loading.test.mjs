@@ -2894,6 +2894,57 @@ test("project config and CLI --rules enable jest/no-mocks-import", (t) => {
   }
 });
 
+test("jest/no-standalone-expect preserves custom test-block options", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({
+      rules: {
+        "jest/no-standalone-expect": [
+          "error",
+          { additionalTestBlockFunctions: ["customTest"] }
+        ]
+      }
+    })
+  );
+  const sourcePath = write(
+    join(project, "standalone.test.js"),
+    [
+      "customTest('works', () => expect(true).toBe(true));",
+      "describe('suite', () => expect(true).toBe(true));",
+      ""
+    ].join("\n")
+  );
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const configured = execute(["--json", sourcePath], options);
+    const configuredReport = JSON.parse(configured.stdout);
+    assert.equal(configured.status, 1, configured.stderr);
+    assert.deepEqual(configuredReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-standalone-expect", severity: "error" }
+    ]);
+
+    const selected = execute(["--rules=jest/no-standalone-expect", "--json", sourcePath], options);
+    const selectedReport = JSON.parse(selected.stdout);
+    assert.equal(selected.status, 0, selected.stderr);
+    assert.deepEqual(selectedReport.diagnostics.map(({ ruleId, severity }) => ({ ruleId, severity })), [
+      { ruleId: "jest/no-standalone-expect", severity: "warning" }
+    ]);
+
+    const isolated = execute(
+      ["--no-config", "--rules=jest/no-standalone-expect", "--json", sourcePath],
+      options
+    );
+    const isolatedReport = JSON.parse(isolated.stdout);
+    assert.equal(isolated.status, 0, isolated.stderr);
+    assert.equal(isolatedReport.diagnostics.length, 2);
+    assert.ok(isolatedReport.diagnostics.every(({ ruleId, severity }) =>
+      ruleId === "jest/no-standalone-expect" && severity === "warning"
+    ));
+  }
+});
+
 test("flat config keeps Jest version settings scoped per file", (t) => {
   const project = createProject(t);
   write(
