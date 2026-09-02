@@ -231,6 +231,27 @@ test("reports imports from mock directories", () => {
   assert.ok(result.diagnostics.every(({ ruleId }) => ruleId === "jest/no-mocks-import"));
 });
 
+test("reports standalone expects and honors custom test blocks", () => {
+  const result = linter.lint(
+    [
+      "customTest('works', () => expect(true).toBe(true));",
+      "describe('suite', () => expect(true).toBe(true));",
+    ].join("\n"),
+    {
+      filePath: "input.js",
+      rules: {
+        "jest/no-standalone-expect": [
+          "error",
+          { additionalTestBlockFunctions: ["customTest"] },
+        ],
+      },
+    },
+  );
+  assert.equal(result.diagnostics.length, 1);
+  assert.equal(result.diagnostics[0].ruleId, "jest/no-standalone-expect");
+  assert.equal(result.diagnostics[0].message, "Expect must be inside of a test block");
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",

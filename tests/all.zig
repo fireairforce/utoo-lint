@@ -275,6 +275,7 @@ comptime {
     _ = @import("rules/jest_no_interpolation_in_snapshots.zig");
     _ = @import("rules/jest_no_jasmine_globals.zig");
     _ = @import("rules/jest_no_mocks_import.zig");
+    _ = @import("rules/jest_no_standalone_expect.zig");
 }
 
 comptime {

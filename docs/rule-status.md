@@ -270,6 +270,7 @@ instead of being rewritten.
 | [`jest/no-interpolation-in-snapshots`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-interpolation-in-snapshots.md) | Implemented for interpolated inline snapshot templates, including property matcher overloads |
 | [`jest/no-jasmine-globals`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-jasmine-globals.md) | Implemented for Jasmine globals, member calls, assignments, shadowed bindings, and upstream autofixes |
 | [`jest/no-mocks-import`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-mocks-import.md) | Implemented for static imports, dynamic imports, and CommonJS requires from nested `__mocks__` directories |
+| [`jest/no-standalone-expect`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-standalone-expect.md) | Supports suite, test, hook, helper, imported API, and `additionalTestBlockFunctions` context detection |
 
 ## Promise plugin rules
 

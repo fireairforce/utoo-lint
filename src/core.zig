@@ -2767,6 +2767,8 @@ pub const Options = struct {
     jest_no_interpolation_in_snapshots: bool = true,
     jest_no_jasmine_globals: bool = true,
     jest_no_mocks_import: bool = true,
+    jest_no_standalone_expect: bool = true,
+    jest_no_standalone_expect_additional_test_block_functions: JestAdditionalTestBlockFunctions = .{},
     jest_global_aliases: JestGlobalAliases = .{},
     jest_version: u32 = 0,
     jsx_a11y_alt_text: bool = true,
@@ -3475,6 +3477,9 @@ pub const Options = struct {
             self.import_no_unresolved_amd = try importNoUnresolvedBoolOptionFromConfig(value, "amd", false);
             self.import_no_unresolved_commonjs = try importNoUnresolvedBoolOptionFromConfig(value, "commonjs", false);
             self.import_no_unresolved_ignore = try importNoUnresolvedIgnorePatternsFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "jest/no-standalone-expect")) {
+            self.jest_no_standalone_expect_additional_test_block_functions = try jestAdditionalTestBlockFunctionsFromConfig(value);
         }
         if (std.mem.eql(u8, cli_name, "func-name-matching")) {
             self.func_name_matching_style = try funcNameMatchingStyleFromConfig(value);
@@ -5089,6 +5094,34 @@ pub const Options = struct {
             names.append(name) catch return error.UnsupportedRuleConfigValue;
         }
         return names;
+    }
+
+    fn jestAdditionalTestBlockFunctionsFromConfig(value: std.json.Value) RuleConfigError!JestAdditionalTestBlockFunctions {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return .{},
+        };
+        if (items.len < 2) return .{};
+
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        const configured = config.get("additionalTestBlockFunctions") orelse return .{};
+        const functions = switch (configured) {
+            .array => |array| array.items,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+
+        var result = JestAdditionalTestBlockFunctions{};
+        for (functions) |function_value| {
+            const function_name = switch (function_value) {
+                .string => |name| name,
+                else => return error.UnsupportedRuleConfigValue,
+            };
+            if (!result.append(function_name)) return error.UnsupportedRuleConfigValue;
+        }
+        return result;
     }
 
     const IdLengthConfig = struct {
@@ -9957,6 +9990,32 @@ pub const DeprecatedDependenceProfile = enum {
     profile_b,
 };
 
+pub const max_jest_additional_test_block_functions = 64;
+pub const max_jest_additional_test_block_function_len = 128;
+
+pub const JestAdditionalTestBlockFunctions = struct {
+    count: usize = 0,
+    lengths: [max_jest_additional_test_block_functions]usize = undefined,
+    storage: [max_jest_additional_test_block_functions][max_jest_additional_test_block_function_len]u8 = undefined,
+
+    pub fn at(self: *const JestAdditionalTestBlockFunctions, index: usize) []const u8 {
+        return self.storage[index][0..self.lengths[index]];
+    }
+
+    pub fn append(self: *JestAdditionalTestBlockFunctions, name: []const u8) bool {
+        if (name.len > max_jest_additional_test_block_function_len) return false;
+        if (self.count >= max_jest_additional_test_block_functions) return false;
+        for (0..self.count) |index| {
+            if (std.mem.eql(u8, self.at(index), name)) return true;
+        }
+
+        @memcpy(self.storage[self.count][0..name.len], name);
+        self.lengths[self.count] = name.len;
+        self.count += 1;
+        return true;
+    }
+};
+
 pub const max_jest_global_aliases = 32;
 pub const max_jest_global_alias_len = 128;
 
@@ -10622,6 +10681,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.jest_no_mocks_import);
     try std.testing.expect(options.setByCliName("jest/no-mocks-import", true));
     try std.testing.expect(options.jest_no_mocks_import);
+
+    try std.testing.expect(!options.jest_no_standalone_expect);
+    try std.testing.expect(options.setByCliName("jest/no-standalone-expect", true));
+    try std.testing.expect(options.jest_no_standalone_expect);
 
     try std.testing.expect(!options.unused_imports_no_unused_imports);
     try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));

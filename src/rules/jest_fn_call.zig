@@ -70,6 +70,7 @@ pub const Call = struct {
     local_name: []const u8,
     members: [4]Member = undefined,
     member_count: usize = 0,
+    nested_calls: usize = 0,
 
     pub fn memberSlice(self: *const Call) []const Member {
         return self.members[0..self.member_count];
@@ -159,6 +160,7 @@ pub const Resolver = struct {
             .head = chain.root,
             .local_name = binding.local_name,
             .member_count = chain.member_count,
+            .nested_calls = chain.nested_calls,
         };
         @memcpy(result.members[0..chain.member_count], chain.members[0..chain.member_count]);
         return result;
