@@ -2770,6 +2770,7 @@ pub const Options = struct {
     jest_no_standalone_expect: bool = true,
     jest_no_standalone_expect_additional_test_block_functions: JestAdditionalTestBlockFunctions = .{},
     jest_valid_describe_callback: bool = true,
+    jest_valid_expect_in_promise: bool = true,
     jest_global_aliases: JestGlobalAliases = .{},
     jest_version: u32 = 0,
     jsx_a11y_alt_text: bool = true,
@@ -10690,6 +10691,10 @@ test "Options can enable rules by CLI name" {
     try std.testing.expect(!options.jest_valid_describe_callback);
     try std.testing.expect(options.setByCliName("jest/valid-describe-callback", true));
     try std.testing.expect(options.jest_valid_describe_callback);
+
+    try std.testing.expect(!options.jest_valid_expect_in_promise);
+    try std.testing.expect(options.setByCliName("jest/valid-expect-in-promise", true));
+    try std.testing.expect(options.jest_valid_expect_in_promise);
 
     try std.testing.expect(!options.unused_imports_no_unused_imports);
     try std.testing.expect(options.setByCliName("unused-imports/no-unused-imports", true));

@@ -271,6 +271,7 @@
 | [`jest/no-mocks-import`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-mocks-import.md) | 已实现对嵌套 `__mocks__` 目录中静态导入、动态导入和 CommonJS `require` 的检查 |
 | [`jest/no-standalone-expect`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/no-standalone-expect.md) | 支持测试套件、测试、钩子、辅助函数、导入 API 和 `additionalTestBlockFunctions` 上下文检查 |
 | [`jest/valid-describe-callback`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/valid-describe-callback.md) | 校验同步函数回调、意外参数和返回值，并支持别名及 `describe.each` |
+| [`jest/valid-expect-in-promise`](https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/valid-expect-in-promise.md) | 要求测试中包含断言的 `then`、`catch` 和 `finally` 链被返回、等待或通过受支持的 Promise 模式消费 |
 
 ## Promise 插件规则
 

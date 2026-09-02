@@ -277,6 +277,7 @@ comptime {
     _ = @import("rules/jest_no_mocks_import.zig");
     _ = @import("rules/jest_no_standalone_expect.zig");
     _ = @import("rules/jest_valid_describe_callback.zig");
+    _ = @import("rules/jest_valid_expect_in_promise.zig");
 }
 
 comptime {

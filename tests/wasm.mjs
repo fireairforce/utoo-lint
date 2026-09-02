@@ -279,6 +279,25 @@ test("validates describe callbacks", () => {
   );
 });
 
+test("reports floating expectation-bearing promise chains", () => {
+  const result = linter.lint(
+    [
+      "it('floating', () => { load().then(value => expect(value).toBeDefined()); });",
+      "it('awaited', async () => { await load().catch(error => expect(error).toBeDefined()); });",
+    ].join("\n"),
+    {
+      filePath: "input.js",
+      rules: { "jest/valid-expect-in-promise": "error" },
+    },
+  );
+  assert.equal(result.diagnostics.length, 1);
+  assert.equal(result.diagnostics[0].ruleId, "jest/valid-expect-in-promise");
+  assert.equal(
+    result.diagnostics[0].message,
+    "This promise should either be returned or awaited to ensure the expects in its chain are called",
+  );
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",

@@ -88,6 +88,7 @@ pub const jest_no_jasmine_globals = @import("jest_no_jasmine_globals.zig");
 pub const jest_no_mocks_import = @import("jest_no_mocks_import.zig");
 pub const jest_no_standalone_expect = @import("jest_no_standalone_expect.zig");
 pub const jest_valid_describe_callback = @import("jest_valid_describe_callback.zig");
+pub const jest_valid_expect_in_promise = @import("jest_valid_expect_in_promise.zig");
 pub const jsx_a11y_alt_text = @import("jsx_a11y_alt_text.zig");
 pub const jsx_a11y_anchor_has_content = @import("jsx_a11y_anchor_has_content.zig");
 pub const jsx_a11y_aria_props = @import("jsx_a11y_aria_props.zig");
@@ -1072,6 +1073,16 @@ fn runSemanticAfterIo(
 
     if (options.jest_valid_describe_callback) {
         try jest_valid_describe_callback.run(
+            allocator,
+            diagnostics,
+            tree,
+            semantic_result.symbol_table,
+            options.jest_global_aliases,
+        );
+    }
+
+    if (options.jest_valid_expect_in_promise) {
+        try jest_valid_expect_in_promise.run(
             allocator,
             diagnostics,
             tree,
