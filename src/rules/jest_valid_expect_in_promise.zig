@@ -273,40 +273,19 @@ fn topMostCall(tree: *const ast.Tree, index: ast.NodeIndex, path: *const parser.
 
     while (path.ancestor(depth)) |parent| {
         switch (tree.data(parent)) {
-            .member_expression => |member| {
-                if (member.object != value) break;
-                value = parent;
-            },
-            .call_expression => |call| {
-                if (call.callee != value) break;
+            .return_statement,
+            .await_expression,
+            .variable_declarator,
+            .assignment_expression,
+            .expression_statement,
+            .function,
+            .arrow_function_expression,
+            => break,
+            .call_expression => {
                 call_index = parent;
                 value = parent;
             },
-            .chain_expression => |expression| {
-                if (expression.expression != value) break;
-                value = parent;
-            },
-            .parenthesized_expression => |expression| {
-                if (expression.expression != value) break;
-                value = parent;
-            },
-            .ts_as_expression => |expression| {
-                if (expression.expression != value) break;
-                value = parent;
-            },
-            .ts_satisfies_expression => |expression| {
-                if (expression.expression != value) break;
-                value = parent;
-            },
-            .ts_non_null_expression => |expression| {
-                if (expression.expression != value) break;
-                value = parent;
-            },
-            .ts_type_assertion => |expression| {
-                if (expression.expression != value) break;
-                value = parent;
-            },
-            else => break,
+            else => value = parent,
         }
         depth += 1;
     }
@@ -346,8 +325,12 @@ fn directTestScope(
 
         const parameter_count = formalParameterCount(tree, params);
         if (parsed.memberNamed("each") != null) {
-            if (!containsTaggedTemplate(tree, call_expression.callee)) return null;
-            if (parameter_count == 2) return null;
+            if (containsTaggedTemplate(tree, call_expression.callee)) {
+                if (parameter_count == 2) return null;
+            } else {
+                const data_arity = arrayEachDataArity(tree, call_expression.callee) orelse return null;
+                if (parameter_count == data_arity + 1) return null;
+            }
         } else if (parameter_count == 1) {
             return null;
         }
@@ -370,6 +353,44 @@ fn containsTaggedTemplate(tree: *const ast.Tree, index: ast.NodeIndex) bool {
         .call_expression => |call| containsTaggedTemplate(tree, call.callee),
         .member_expression => |member| containsTaggedTemplate(tree, member.object),
         else => false,
+    };
+}
+
+fn arrayEachDataArity(tree: *const ast.Tree, index: ast.NodeIndex) ?usize {
+    const each_call = findEachFactoryCall(tree, index) orelse return null;
+    const arguments = tree.extra(each_call.arguments);
+    if (arguments.len != 1) return null;
+    const table = switch (tree.data(unwrapTransparent(tree, arguments[0]))) {
+        .array_expression => |array| array,
+        else => return null,
+    };
+    const rows = tree.extra(table.elements);
+    if (rows.len == 0) return null;
+
+    var arity: usize = 1;
+    for (rows) |row_index| {
+        const row = switch (tree.data(unwrapTransparent(tree, row_index))) {
+            .array_expression => |array| array,
+            else => continue,
+        };
+        arity = @max(arity, tree.extra(row.elements).len);
+    }
+    return arity;
+}
+
+fn findEachFactoryCall(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.CallExpression {
+    const current = unwrapTransparent(tree, index);
+    return switch (tree.data(current)) {
+        .call_expression => |call| blk: {
+            const member = switch (tree.data(unwrapTransparent(tree, call.callee))) {
+                .member_expression => |member| member,
+                else => break :blk findEachFactoryCall(tree, call.callee),
+            };
+            const name = staticPropertyName(tree, member.property, member.computed) orelse break :blk null;
+            break :blk if (std.mem.eql(u8, name, "each")) call else findEachFactoryCall(tree, member.object);
+        },
+        .member_expression => |member| findEachFactoryCall(tree, member.object),
+        else => null,
     };
 }
 
@@ -400,6 +421,7 @@ fn promiseMethodUsesValue(
         .call_expression => |call| call,
         else => return false,
     };
+    if (isDerivedPromiseChain(tree, symbol_table, current, symbol)) return true;
     const method = promiseStaticMethod(tree, call) orelse return false;
     const arguments = tree.extra(call.arguments);
     if ((std.mem.eql(u8, method, "resolve") or std.mem.eql(u8, method, "reject")) and arguments.len == 1) {
@@ -433,6 +455,16 @@ fn promiseStaticMethod(tree: *const ast.Tree, call: ast.CallExpression) ?[]const
 }
 
 fn isChainedAssignment(
+    tree: *const ast.Tree,
+    symbol_table: traverser.semantic.SymbolTable,
+    index: ast.NodeIndex,
+    symbol: SymbolId,
+) bool {
+    const current = unwrapTransparent(tree, index);
+    return isDerivedPromiseChain(tree, symbol_table, current, symbol);
+}
+
+fn isDerivedPromiseChain(
     tree: *const ast.Tree,
     symbol_table: traverser.semantic.SymbolTable,
     index: ast.NodeIndex,

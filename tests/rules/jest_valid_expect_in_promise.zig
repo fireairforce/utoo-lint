@@ -55,6 +55,20 @@ test "allows directly returned awaited and implicitly returned promise chains" {
     try std.testing.expect(!helpers.hasRule(result, rule_id));
 }
 
+test "reports floating chains wrapped in arrays arguments and logical expressions" {
+    const source =
+        \\it('wrapped', () => {
+        \\  Promise.all([load().then(value => expect(value).toBeDefined())]);
+        \\  consume(load().catch(error => expect(error).toBeDefined()));
+        \\  enabled && load().finally(() => expect(cleaned).toBe(true));
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsOnly());
+    defer result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, rule_id));
+}
+
 test "tracks assigned promises consumed later by supported patterns" {
     const source =
         \\it('consumes promises', async () => {
@@ -121,6 +135,44 @@ test "allows promise-preserving reassignment before consumption" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsOnly());
     defer result.deinit(std.testing.allocator);
     try std.testing.expect(!helpers.hasRule(result, rule_id));
+}
+
+test "allows returned and awaited chains derived from tracked promises" {
+    const source =
+        \\it('returned derivative', () => {
+        \\  const promise = load().then(value => expect(value).toBeDefined());
+        \\  return promise.catch(handle);
+        \\});
+        \\it('awaited derivative', async () => {
+        \\  const promise = load().then(value => expect(value).toBeDefined());
+        \\  await promise.finally(cleanup);
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsOnly());
+    defer result.deinit(std.testing.allocator);
+    try std.testing.expect(!helpers.hasRule(result, rule_id));
+}
+
+test "analyzes static array each callbacks and preserves done callback bailouts" {
+    const source =
+        \\test.each([[1]])('one %s', value => {
+        \\  load(value).then(result => expect(result).toBeDefined());
+        \\});
+        \\test.each([[1, 2]])('two %s %s', (value, expected) => {
+        \\  load(value).then(result => expect(result).toBe(expected));
+        \\});
+        \\test.each([[1]])('done %s', (value, done) => {
+        \\  load(value).then(result => { expect(result).toBeDefined(); done(); });
+        \\});
+        \\test.each([])('empty', done => {
+        \\  load().then(result => { expect(result).toBeDefined(); done(); });
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", optionsOnly());
+    defer result.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, rule_id));
 }
 
 test "limits checks to direct test callbacks and bails out for done callbacks" {
