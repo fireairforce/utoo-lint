@@ -3025,6 +3025,77 @@ test("project config and CLI --rules enable jest/valid-expect-in-promise", (t) =
   }
 });
 
+test("jest/valid-title preserves options, CLI selection, and safe fixes", (t) => {
+  const project = createProject(t);
+  write(
+    join(project, "utlint.config.json"),
+    JSON.stringify({
+      rules: {
+        "jest/valid-title": [
+          "error",
+          {
+            ignoreTypeOfDescribeName: true,
+            disallowedWords: ["forbidden"],
+            mustMatch: { test: "^that" }
+          }
+        ]
+      }
+    })
+  );
+  const source = [
+    "describe(makeName(), () => {});",
+    "test('contains forbidden', () => {});",
+    "test('wrong title', () => {});",
+    "it('it works ', () => {});",
+    ""
+  ].join("\n");
+  const expected = [
+    "describe(makeName(), () => {});",
+    "test('contains forbidden', () => {});",
+    "test('wrong title', () => {});",
+    "it('works', () => {});",
+    ""
+  ].join("\n");
+  const sourcePath = write(join(project, "title.test.js"), source);
+  const options = { cwd: project, binary: testBinary(), encoding: "utf8" };
+
+  for (const execute of [runCli, commonJSRunCli]) {
+    const configured = execute(["--json", sourcePath], options);
+    const configuredReport = JSON.parse(configured.stdout);
+    assert.equal(configured.status, 1, configured.stderr);
+    assert.equal(configuredReport.diagnostics.length, 4);
+    assert.ok(configuredReport.diagnostics.every(({ ruleId, severity }) =>
+      ruleId === "jest/valid-title" && severity === "error"
+    ));
+
+    const selected = execute(["--rules=jest/valid-title", "--json", sourcePath], options);
+    const selectedReport = JSON.parse(selected.stdout);
+    assert.equal(selected.status, 0, selected.stderr);
+    assert.equal(selectedReport.diagnostics.length, 4);
+    assert.ok(selectedReport.diagnostics.every(({ ruleId, severity }) =>
+      ruleId === "jest/valid-title" && severity === "warning"
+    ));
+
+    const isolated = execute(
+      ["--no-config", "--rules=jest/valid-title", "--json", sourcePath],
+      options
+    );
+    const isolatedReport = JSON.parse(isolated.stdout);
+    assert.equal(isolated.status, 0, isolated.stderr);
+    assert.equal(isolatedReport.diagnostics.length, 3);
+    assert.ok(isolatedReport.diagnostics.every(({ ruleId, severity }) =>
+      ruleId === "jest/valid-title" && severity === "warning"
+    ));
+
+    const dryRun = execute(["--fix-dry-run", "--json", sourcePath], options);
+    const dryRunReport = JSON.parse(dryRun.stdout);
+    assert.equal(dryRun.status, 1, dryRun.stderr);
+    assert.equal(dryRunReport.outputs.length, 1);
+    assert.equal(dryRunReport.outputs[0].output, expected);
+    assert.equal(readFileSync(sourcePath, "utf8"), source);
+  }
+});
+
 test("flat config keeps Jest version settings scoped per file", (t) => {
   const project = createProject(t);
   write(

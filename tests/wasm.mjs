@@ -298,6 +298,37 @@ test("reports floating expectation-bearing promise chains", () => {
   );
 });
 
+test("validates and fixes Jest titles with configured options", () => {
+  const source = [
+    "describe(makeName(), () => {});",
+    "test('test forbidden ', () => {});",
+  ].join("\n");
+  const options = {
+    filePath: "input.ts",
+    rules: {
+      "jest/valid-title": [
+        "error",
+        {
+          ignoreTypeOfDescribeName: true,
+          disallowedWords: ["forbidden"],
+        },
+      ],
+    },
+  };
+  const checked = linter.lint(source, options);
+  assert.equal(checked.diagnostics.length, 1);
+  assert.equal(checked.diagnostics[0].ruleId, "jest/valid-title");
+  assert.equal(checked.diagnostics[0].message, '"forbidden" is not allowed in test titles');
+
+  const fixed = linter.lintAndFix("it('it works ', () => {});", {
+    filePath: "input.tsx",
+    rules: { "jest/valid-title": "error" },
+  });
+  assert.equal(fixed.fixed, true);
+  assert.equal(fixed.output, "it('works', () => {});");
+  assert.equal(fixed.diagnostics.length, 0);
+});
+
 test("applies control-flow-aware no-useless-assignment analysis", () => {
   const result = linter.lint(
     "let value = 1; console.log(value); value = 2;",
