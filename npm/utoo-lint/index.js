@@ -3225,6 +3225,22 @@ function nativeConfigRunsForFiles(paths, options) {
       };
     }
 
+    const selectedRules = severityOnlyNativeRuleNames(group.rules, group.settings);
+    if (selectedRules) {
+      return {
+        paths: group.paths,
+        options: {
+          ...options,
+          config: undefined,
+          noConfig: true,
+          baseConfig: undefined,
+          overrideConfig: undefined,
+          rules: selectedRules,
+          forceMaterializedConfig: undefined
+        }
+      };
+    }
+
     return {
       paths: group.paths,
       options: {
@@ -3240,6 +3256,40 @@ function nativeConfigRunsForFiles(paths, options) {
       }
     };
   });
+}
+
+function severityOnlyNativeRuleNames(rules, settings) {
+  if (Object.keys(settings ?? {}).length > 0) {
+    return undefined;
+  }
+
+  const selected = [];
+  for (const [rule, config] of Object.entries(rules ?? {})) {
+    if (ruleConfigSeverity(config) === 0) {
+      continue;
+    }
+    if (!isPureRuleSeverity(config)) {
+      return undefined;
+    }
+    selected.push(rule);
+  }
+  return selected.length > 0 ? selected : undefined;
+}
+
+function isPureRuleSeverity(config) {
+  if (Array.isArray(config)) {
+    if (config.length !== 1) {
+      return false;
+    }
+    [config] = config;
+  }
+  if (typeof config === "boolean") {
+    return true;
+  }
+  if (typeof config === "number") {
+    return config === 0 || config === 1 || config === 2;
+  }
+  return typeof config === "string" && ["off", "warn", "warning", "error", "0", "1", "2"].includes(config.toLowerCase());
 }
 
 function allDisabledNativeRules(rules) {
