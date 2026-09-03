@@ -119,6 +119,13 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     test_module.addImport("utoo_lint", lint_module);
+    const flat_config_test_module = b.createModule(.{
+        .root_source_file = b.path("src/flat_config.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    flat_config_test_module.addImport("utoo_lint", lint_module);
+    test_module.addImport("flat_config", flat_config_test_module);
 
     const unit_tests = b.addTest(.{
         .root_module = test_module,

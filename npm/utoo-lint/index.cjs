@@ -1211,6 +1211,12 @@ function lintFiles(paths, options = {}) {
     return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, suppressedDiagnostics: [], exitCode: exitCodeForDiagnostics(ignoredDiagnostics) };
   }
 
+  const nativeFlatOptions = nativeFlatConfigOptions(options);
+  if (nativeFlatOptions) {
+    const report = runNativeLintReport(lintPaths, nativeFlatOptions);
+    return finalizeLintReport(report, ignoredDiagnostics, options);
+  }
+
   const configRuns = nativeConfigRunsForFiles(expandNativeConfigRunPaths(lintPaths, options), options);
   if (configRuns) {
     const report = mergeNativeReports(
@@ -1221,6 +1227,76 @@ function lintFiles(paths, options = {}) {
 
   const report = runNativeLintReport(lintPaths, options);
   return finalizeLintReport(report, ignoredDiagnostics, options);
+}
+
+function nativeFlatConfigOptions(options) {
+  if (options.rules || options.extraArgs?.some((arg) => arg.startsWith("--") && arg !== "--fix" && arg !== "--fix-dry-run")) {
+    return undefined;
+  }
+
+  const fileConfigPath = options.noConfig ? undefined : configPathForOptions(options);
+  const inlineConfigs = [options.baseConfig, options.overrideConfig].filter(Boolean);
+  if (fileConfigPath && inlineConfigs.length > 0) {
+    return undefined;
+  }
+
+  let config;
+  let configRoot;
+  if (fileConfigPath) {
+    config = readConfig(fileConfigPath, options.cwd, options.configCache);
+    configRoot = dirname(fileConfigPath);
+  } else if (inlineConfigs.length > 0) {
+    config = inlineConfigs.length === 1 ? inlineConfigs[0] : inlineConfigs;
+    configRoot = resolvePath(options.cwd ?? process.cwd());
+  } else {
+    return undefined;
+  }
+
+  if (configCanUseNativeRulesFastPath(config)) {
+    return undefined;
+  }
+
+  const serializedConfig = nativeSerializableConfig(config);
+  return {
+    ...options,
+    nativeFlatConfigData: Array.isArray(serializedConfig) ? serializedConfig : [serializedConfig],
+    nativeConfigRoot: configRoot,
+    nativeConfigCwd: resolvePath(options.cwd ?? process.cwd())
+  };
+}
+
+function configCanUseNativeRulesFastPath(config) {
+  const entries = Array.isArray(config) ? config : [config];
+  let hasEnabledRule = false;
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object" || Object.keys(entry.settings ?? {}).length > 0) {
+      return false;
+    }
+    for (const ruleConfig of Object.values(entry.rules ?? {})) {
+      if (ruleConfigSeverity(ruleConfig) === 0) {
+        continue;
+      }
+      if (!isPureRuleSeverity(ruleConfig)) {
+        return false;
+      }
+      hasEnabledRule = true;
+    }
+  }
+  return hasEnabledRule;
+}
+
+function nativeSerializableConfig(config) {
+  if (Array.isArray(config)) {
+    return config.map(nativeSerializableConfig);
+  }
+  if (!config || typeof config !== "object") {
+    return config;
+  }
+  return Object.fromEntries(
+    ["$schema", "name", "files", "ignores", "rules", "settings"]
+      .filter((key) => config[key] !== undefined)
+      .map((key) => [key, config[key]])
+  );
 }
 
 function expandNativeConfigRunPaths(paths, options) {
@@ -1510,7 +1586,7 @@ function buildNativeLintArgs(paths, options) {
   if (options.noConfig) {
     cliArgs.push("--no-config");
   }
-  if (!options.rules && !options.forceMaterializedConfig && (options.config || options.baseConfig || options.overrideConfig)) {
+  if (!options.nativeFlatConfigData && !options.rules && !options.forceMaterializedConfig && (options.config || options.baseConfig || options.overrideConfig)) {
     const configForRuleSelection = options.noConfig
       ? undefined
       : options.config ? readConfig(options.config, options.cwd, options.configCache) : undefined;
@@ -1525,6 +1601,12 @@ function buildNativeLintArgs(paths, options) {
   }
   if (options.config) {
     cliArgs.push(`--config=${options.config}`);
+  }
+  if (options.nativeConfigRoot) {
+    cliArgs.push(`--config-root=${options.nativeConfigRoot}`);
+  }
+  if (options.nativeConfigCwd) {
+    cliArgs.push(`--config-cwd=${options.nativeConfigCwd}`);
   }
   if (options.rules) {
     const rules = Array.isArray(options.rules) ? options.rules.join(",") : options.rules;
@@ -1941,6 +2023,24 @@ function configPathFromDirectory(directory, options) {
 }
 
 function withTemporaryConfig(options, callback) {
+  if (options.nativeFlatConfigData !== undefined) {
+    const tmp = mkdtempSync(join(tmpdir(), "utoo-lint-flat-config-"));
+    const configPath = join(tmp, "utlint.config.json");
+    try {
+      writeFileSync(configPath, JSON.stringify(options.nativeFlatConfigData));
+      return callback({
+        ...options,
+        config: configPath,
+        noConfig: false,
+        baseConfig: undefined,
+        overrideConfig: undefined,
+        forceMaterializedConfig: true
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+
   const fileConfigPath = !options.noConfig ? configPathForOptions(options) : undefined;
   const shouldMaterializeFileConfig = Boolean(fileConfigPath);
   const fileConfig = shouldMaterializeFileConfig

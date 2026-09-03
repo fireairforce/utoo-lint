@@ -133,8 +133,8 @@ test("one lint invocation discovers a shared config only once", (t) => {
 
   assert.equal(first.value.files, 2);
   assert.equal(second.value.files, 2);
-  assert.equal(first.count, CONFIG_FILENAMES.length + 1);
-  assert.equal(second.count, CONFIG_FILENAMES.length + 1);
+  assert.equal(first.count, 1);
+  assert.equal(second.count, 1);
 });
 
 test("separate public config lookups observe config changes", async (t) => {

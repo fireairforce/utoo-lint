@@ -59,7 +59,6 @@ npm run bench -- --skip-eslint
   `no-unsafe-negation`.
 - The runner measures wall-clock time for fresh CLI processes. Editor daemon
   behavior, caches, and type-aware ESLint rules are intentionally out of scope.
-
 ## Node API severity-config benchmark
 
 CodSpeed also runs a `CLIEngine` workload modeled after Umi: 1,000 TypeScript
@@ -68,4 +67,16 @@ rule severities. Run a smaller local sample with:
 
 ```bash
 pnpm codspeed:severity-config -- --files=100 --runs=3 --warmups=1
+```
+
+## Native flat-config benchmark
+
+CodSpeed also exercises the npm wrapper with 1,000 TypeScript files split
+across source and test flat-config groups. The wrapper serializes the config
+once and delegates per-file selector resolution to one native process.
+
+Run a smaller local sample with:
+
+```bash
+pnpm codspeed:native-flat-config -- --files=100 --time=100 --warmup-time=0
 ```
