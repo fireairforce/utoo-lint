@@ -564,6 +564,21 @@ test("multiline eslint-disable-line does not suppress diagnostics", async () => 
   assert.equal(result.output, source.replace("const value = 1;;", "const value = 1;"));
   assert.deepEqual(result.messages, []);
   assert.deepEqual(result.suppressedMessages, []);
+
+  const lintOnly = new ESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+  const [lintResult] = await lintOnly.lintText(source, { filePath: "invalid-directive.js" });
+  assert.equal(lintResult.messages.length, 1);
+  assert.equal(lintResult.messages[0].ruleId, "no-extra-semi");
+  assert.deepEqual(lintResult.suppressedMessages, []);
 });
 
 test("ESLint directives accept ECMAScript whitespace", async () => {
