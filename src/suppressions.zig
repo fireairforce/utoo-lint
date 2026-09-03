@@ -152,7 +152,7 @@ const ParsedEslintDirective = struct {
 };
 
 fn parseEslintDirective(value: []const u8, comment_type: ast.Comment.Type) ?ParsedEslintDirective {
-    const trimmed = std.mem.trim(u8, value, " \t\r\n");
+    const trimmed = trimEslintWhitespace(value);
     const kinds = [_]struct { prefix: []const u8, kind: DirectiveKind }{
         .{ .prefix = "eslint-disable-next-line", .kind = .eslint_disable_next_line },
         .{ .prefix = "eslint-disable-line", .kind = .eslint_disable_line },
@@ -161,15 +161,15 @@ fn parseEslintDirective(value: []const u8, comment_type: ast.Comment.Type) ?Pars
     };
     for (kinds) |entry| {
         if (!std.mem.startsWith(u8, trimmed, entry.prefix)) continue;
-        if (trimmed.len > entry.prefix.len and !std.ascii.isWhitespace(trimmed[entry.prefix.len])) continue;
+        if (trimmed.len > entry.prefix.len and eslintWhitespaceLengthAt(trimmed, entry.prefix.len) == 0) continue;
         if (comment_type == .line and (entry.kind == .eslint_disable or entry.kind == .eslint_enable)) continue;
 
         const tail = trimmed[entry.prefix.len..];
         const separator = eslintDescriptionSeparator(tail);
         return .{
             .kind = entry.kind,
-            .rules = std.mem.trim(u8, if (separator) |item| tail[0..item.start] else tail, " \t\r\n"),
-            .justification = if (separator) |item| std.mem.trim(u8, tail[item.end..], " \t\r\n") else "",
+            .rules = trimEslintWhitespace(if (separator) |item| tail[0..item.start] else tail),
+            .justification = if (separator) |item| trimEslintWhitespace(tail[item.end..]) else "",
         };
     }
     return null;
@@ -183,12 +183,15 @@ const DescriptionSeparator = struct {
 fn eslintDescriptionSeparator(value: []const u8) ?DescriptionSeparator {
     var index: usize = 0;
     while (index < value.len) : (index += 1) {
-        if (!std.ascii.isWhitespace(value[index])) continue;
+        const leading_whitespace_len = eslintWhitespaceLengthAt(value, index);
+        if (leading_whitespace_len == 0) continue;
 
-        var end = index + 1;
+        var end = index + leading_whitespace_len;
         while (end < value.len and value[end] == '-') : (end += 1) {}
-        if (end < index + 3 or end >= value.len or !std.ascii.isWhitespace(value[end])) continue;
-        return .{ .start = index, .end = end + 1 };
+        if (end < index + leading_whitespace_len + 2 or end >= value.len) continue;
+        const trailing_whitespace_len = eslintWhitespaceLengthAt(value, end);
+        if (trailing_whitespace_len == 0) continue;
+        return .{ .start = index, .end = end + trailing_whitespace_len };
     }
     return null;
 }
@@ -212,7 +215,7 @@ fn appendEslintDirectiveTargets(
 
     var rules = std.mem.splitScalar(u8, parsed.rules, ',');
     while (rules.next()) |raw_rule_id| {
-        const rule_id = std.mem.trim(u8, raw_rule_id, " \t\r\n");
+        const rule_id = trimEslintWhitespace(raw_rule_id);
         if (rule_id.len == 0) continue;
         try directives.append(allocator, .{
             .kind = parsed.kind,
@@ -425,6 +428,43 @@ fn lineTerminatorLengthAt(source: []const u8, index: usize) usize {
         return 3;
     }
     return 0;
+}
+
+fn trimEslintWhitespace(value: []const u8) []const u8 {
+    var start: usize = 0;
+    while (start < value.len) {
+        const whitespace_len = eslintWhitespaceLengthAt(value, start);
+        if (whitespace_len == 0) break;
+        start += whitespace_len;
+    }
+
+    var cursor = start;
+    var end = start;
+    while (cursor < value.len) {
+        const whitespace_len = eslintWhitespaceLengthAt(value, cursor);
+        if (whitespace_len > 0) {
+            cursor += whitespace_len;
+        } else {
+            cursor += 1;
+            end = cursor;
+        }
+    }
+    return value[start..end];
+}
+
+fn eslintWhitespaceLengthAt(value: []const u8, index: usize) usize {
+    return switch (value[index]) {
+        '\t', '\n', '\x0b', '\x0c', '\r', ' ' => 1,
+        0xc2 => if (index + 1 < value.len and value[index + 1] == 0xa0) 2 else 0,
+        0xe1 => if (index + 2 < value.len and value[index + 1] == 0x9a and value[index + 2] == 0x80) 3 else 0,
+        0xe2 => if (index + 2 < value.len and ((value[index + 1] == 0x80 and
+            (value[index + 2] >= 0x80 and value[index + 2] <= 0x8a or value[index + 2] == 0xa8 or
+                value[index + 2] == 0xa9 or value[index + 2] == 0xaf)) or
+            (value[index + 1] == 0x81 and value[index + 2] == 0x9f))) 3 else 0,
+        0xe3 => if (index + 2 < value.len and value[index + 1] == 0x80 and value[index + 2] == 0x80) 3 else 0,
+        0xef => if (index + 2 < value.len and value[index + 1] == 0xbb and value[index + 2] == 0xbf) 3 else 0,
+        else => 0,
+    };
 }
 
 fn lineAtOffset(line_starts: []const u32, offset: u32) usize {

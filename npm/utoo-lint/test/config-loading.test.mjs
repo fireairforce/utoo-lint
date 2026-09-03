@@ -535,6 +535,34 @@ test("multiline eslint-disable-line does not suppress diagnostics", async () => 
   assert.deepEqual(result.suppressedMessages, []);
 });
 
+test("ESLint directives accept ECMAScript whitespace", async () => {
+  const source = [
+    "/*\feslint-disable-next-line\fno-extra-semi\f--\fintentional\f*/",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "whitespace.js" });
+  assert.equal(result.output, undefined);
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "intentional" }
+  ]);
+});
+
 test("lintText returns suppressed native diagnostics with the requested file path", () => {
   const report = lintText(
     "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",
