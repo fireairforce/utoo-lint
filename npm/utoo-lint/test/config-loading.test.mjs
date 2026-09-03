@@ -650,6 +650,51 @@ test("ESM and CommonJS ESLint report every overlapping disable directive", async
   ]);
 });
 
+test("ESLint disable directives accept empty justifications", async () => {
+  const source = [
+    "/* eslint-disable no-extra-semi -- */",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: { rules: { "no-extra-semi": "error" } }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "empty-justification.js" });
+  assert.equal(result.output, undefined);
+  assert.deepEqual(result.messages, []);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "" }
+  ]);
+});
+
+test("native reports preserve overlapping utlint and ESLint metadata", () => {
+  const source = [
+    "/* eslint-disable no-extra-semi -- generated */",
+    "// utlint-ignore no-extra-semi: intentional",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const report = lintText(source, {
+    binary: testBinary(),
+    noConfig: true,
+    filePath: "mixed-directives.js",
+    overrideConfig: { rules: { "no-extra-semi": "error" } }
+  });
+
+  assert.deepEqual(report.diagnostics, []);
+  assert.equal(report.suppressedDiagnostics[0].suppression.justification, "intentional");
+  assert.deepEqual(report.suppressedDiagnostics[0].suppressions, [
+    { kind: "directive", justification: "generated" },
+    { kind: "directive", justification: "intentional" }
+  ]);
+});
+
 test("lintText returns suppressed native diagnostics with the requested file path", () => {
   const report = lintText(
     "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",

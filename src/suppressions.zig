@@ -54,7 +54,7 @@ pub fn apply(
     var line_starts = try collectLineStarts(allocator, tree.source);
     defer line_starts.deinit(allocator);
 
-    const decisions = try allocator.alloc(std.ArrayList([]const u8), diagnostics.items.len);
+    const decisions = try allocator.alloc(std.ArrayList(usize), diagnostics.items.len);
     var initialized_decisions: usize = 0;
     defer {
         for (decisions[0..initialized_decisions]) |*decision| decision.deinit(allocator);
@@ -66,20 +66,23 @@ pub fn apply(
     for (diagnostics.items, 0..) |diagnostic, index| {
         decisions[index] = .empty;
         initialized_decisions += 1;
-        if (suppressionFor(directives.items, line_starts.items, diagnostic)) |suppression| {
-            try appendEslintSuppressionsFor(
+        if (suppressionDirectiveIndexFor(directives.items, line_starts.items, diagnostic)) |primary_directive_index| {
+            try appendEslintSuppressionIndicesFor(
                 allocator,
                 &decisions[index],
                 directives.items,
                 line_starts.items,
                 diagnostic,
             );
-            if (decisions[index].items.len == 0) {
-                try decisions[index].append(allocator, suppression.justification);
+            if (std.mem.indexOfScalar(usize, decisions[index].items, primary_directive_index) == null) {
+                try decisions[index].append(allocator, primary_directive_index);
             }
-            primary_decision_indices[index] = for (decisions[index].items, 0..) |justification, suppression_index| {
-                if (std.mem.eql(u8, justification, suppression.justification)) break suppression_index;
-            } else 0;
+            std.mem.sort(usize, decisions[index].items, {}, std.sort.asc(usize));
+            primary_decision_indices[index] = std.mem.indexOfScalar(
+                usize,
+                decisions[index].items,
+                primary_directive_index,
+            ).?;
             suppressed_count += 1;
         }
     }
@@ -113,8 +116,10 @@ pub fn apply(
             for (owned[0..initialized_suppressions]) |suppression| allocator.free(suppression.justification);
             allocator.free(owned);
         }
-        for (decision.items, 0..) |justification, suppression_index| {
-            owned[suppression_index] = .{ .justification = try allocator.dupe(u8, justification) };
+        for (decision.items, 0..) |directive_index, suppression_index| {
+            owned[suppression_index] = .{
+                .justification = try allocator.dupe(u8, directives.items[directive_index].target.justification),
+            };
             initialized_suppressions += 1;
         }
         owned_suppressions[index] = owned;
@@ -136,9 +141,9 @@ pub fn apply(
     diagnostics.* = kept;
 }
 
-fn appendEslintSuppressionsFor(
+fn appendEslintSuppressionIndicesFor(
     allocator: Allocator,
-    suppressions: *std.ArrayList([]const u8),
+    suppression_indices: *std.ArrayList(usize),
     directives: []const Directive,
     line_starts: []const u32,
     diagnostic: core.Diagnostic,
@@ -190,7 +195,7 @@ fn appendEslintSuppressionsFor(
         } else {
             line_index += 1;
         }
-        try suppressions.append(allocator, directives[selected].target.justification);
+        try suppression_indices.append(allocator, selected);
     }
 }
 
@@ -282,7 +287,8 @@ fn eslintDescriptionSeparator(value: []const u8) ?DescriptionSeparator {
 
         var end = index + leading_whitespace_len;
         while (end < value.len and value[end] == '-') : (end += 1) {}
-        if (end < index + leading_whitespace_len + 2 or end >= value.len) continue;
+        if (end < index + leading_whitespace_len + 2) continue;
+        if (end == value.len) return .{ .start = index, .end = end };
         const trailing_whitespace_len = eslintWhitespaceLengthAt(value, end);
         if (trailing_whitespace_len == 0) continue;
         return .{ .start = index, .end = end + trailing_whitespace_len };
@@ -349,23 +355,23 @@ fn parseDirectiveTarget(value: []const u8, prefix: []const u8) ?DirectiveTarget 
     };
 }
 
-fn suppressionFor(
+fn suppressionDirectiveIndexFor(
     directives: []const Directive,
     line_starts: []const u32,
     diagnostic: core.Diagnostic,
-) ?core.Suppression {
+) ?usize {
     if (std.mem.eql(u8, diagnostic.rule_id, "parse")) return null;
 
     const diagnostic_line = lineAtOffset(line_starts, diagnostic.span.start);
     var all_rules_range_depth: usize = 0;
     var named_rule_range_depth: usize = 0;
-    var all_rules_range_justification: []const u8 = "";
-    var named_rule_range_justification: []const u8 = "";
-    var eslint_all_rules_justification: ?[]const u8 = null;
-    var eslint_named_rule_justification: ?[]const u8 = null;
+    var all_rules_range_directive_index: ?usize = null;
+    var named_rule_range_directive_index: ?usize = null;
+    var eslint_all_rules_directive_index: ?usize = null;
+    var eslint_named_rule_directive_index: ?usize = null;
     var eslint_rule_enabled_under_all = false;
 
-    for (directives) |directive| {
+    for (directives, 0..) |directive, index| {
         if (directive.kind == .eslint_disable_line or directive.kind == .eslint_disable_next_line) {
             const directive_offset = if (directive.kind == .eslint_disable_next_line and directive.span_end > directive.span_start)
                 directive.span_end - 1
@@ -374,7 +380,7 @@ fn suppressionFor(
             const directive_line = lineAtOffset(line_starts, directive_offset);
             const target_line = directive_line + @intFromBool(directive.kind == .eslint_disable_next_line);
             if (target_line == diagnostic_line and directive.target.matches(diagnostic.rule_id)) {
-                return .{ .justification = directive.target.justification };
+                return index;
             }
             continue;
         }
@@ -384,11 +390,11 @@ fn suppressionFor(
             .ignore_start => {
                 if (directive.target.rule_id) |rule_id| {
                     if (std.mem.eql(u8, rule_id, diagnostic.rule_id)) {
-                        if (named_rule_range_depth == 0) named_rule_range_justification = directive.target.justification;
+                        if (named_rule_range_depth == 0) named_rule_range_directive_index = index;
                         named_rule_range_depth += 1;
                     }
                 } else {
-                    if (all_rules_range_depth == 0) all_rules_range_justification = directive.target.justification;
+                    if (all_rules_range_depth == 0) all_rules_range_directive_index = index;
                     all_rules_range_depth += 1;
                 }
             },
@@ -401,35 +407,35 @@ fn suppressionFor(
             },
             .ignore_all => {
                 if (directive.top_level and directive.target.matches(diagnostic.rule_id)) {
-                    return .{ .justification = directive.target.justification };
+                    return index;
                 }
             },
             .ignore => {
                 const next_offset = directive.next_code_offset orelse continue;
                 if (lineAtOffset(line_starts, next_offset) == diagnostic_line and directive.target.matches(diagnostic.rule_id)) {
-                    return .{ .justification = directive.target.justification };
+                    return index;
                 }
             },
             .eslint_disable => {
                 if (directive.target.rule_id) |rule_id| {
                     if (std.mem.eql(u8, rule_id, diagnostic.rule_id)) {
-                        eslint_named_rule_justification = directive.target.justification;
+                        eslint_named_rule_directive_index = index;
                         eslint_rule_enabled_under_all = false;
                     }
                 } else {
-                    eslint_all_rules_justification = directive.target.justification;
+                    eslint_all_rules_directive_index = index;
                     eslint_rule_enabled_under_all = false;
                 }
             },
             .eslint_enable => {
                 if (directive.target.rule_id) |rule_id| {
                     if (std.mem.eql(u8, rule_id, diagnostic.rule_id)) {
-                        eslint_named_rule_justification = null;
-                        if (eslint_all_rules_justification != null) eslint_rule_enabled_under_all = true;
+                        eslint_named_rule_directive_index = null;
+                        if (eslint_all_rules_directive_index != null) eslint_rule_enabled_under_all = true;
                     }
                 } else {
-                    eslint_all_rules_justification = null;
-                    eslint_named_rule_justification = null;
+                    eslint_all_rules_directive_index = null;
+                    eslint_named_rule_directive_index = null;
                     eslint_rule_enabled_under_all = false;
                 }
             },
@@ -437,11 +443,11 @@ fn suppressionFor(
         }
     }
 
-    if (named_rule_range_depth > 0) return .{ .justification = named_rule_range_justification };
-    if (all_rules_range_depth > 0) return .{ .justification = all_rules_range_justification };
-    if (eslint_named_rule_justification) |justification| return .{ .justification = justification };
-    if (eslint_all_rules_justification) |justification| {
-        if (!eslint_rule_enabled_under_all) return .{ .justification = justification };
+    if (named_rule_range_depth > 0) return named_rule_range_directive_index.?;
+    if (all_rules_range_depth > 0) return all_rules_range_directive_index.?;
+    if (eslint_named_rule_directive_index) |index| return index;
+    if (eslint_all_rules_directive_index) |index| {
+        if (!eslint_rule_enabled_under_all) return index;
     }
     return null;
 }
