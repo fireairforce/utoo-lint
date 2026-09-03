@@ -188,6 +188,24 @@ test "overlapping ESLint range suppressions precede line suppressions" {
     try std.testing.expectEqualStrings("line", suppressions[1].justification);
 }
 
+test "utlint metadata survives an earlier ESLint line suppression" {
+    const source =
+        \\/* eslint-disable-line no-undef -- eslint */ /* utlint-ignore no-undef: utoo */ foo();
+    ;
+
+    var options = lint.Options.allDisabled();
+    options.no_undef = true;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), result.suppressed_diagnostics.len);
+    const suppressions = result.suppressed_diagnostics[0].suppressions;
+    try std.testing.expectEqual(@as(usize, 2), suppressions.len);
+    try std.testing.expectEqualStrings("eslint", suppressions[0].justification);
+    try std.testing.expectEqualStrings("utoo", suppressions[1].justification);
+}
+
 test "ESLint directive accepts an empty justification after a separator" {
     const source =
         \\/* eslint-disable no-extra-semi -- */

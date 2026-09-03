@@ -74,6 +74,13 @@ pub fn apply(
                 line_starts.items,
                 diagnostic,
             );
+            try appendUtlintSuppressionIndicesFor(
+                allocator,
+                &decisions[index],
+                directives.items,
+                line_starts.items,
+                diagnostic,
+            );
             if (std.mem.indexOfScalar(usize, decisions[index].items, primary_directive_index) == null) {
                 try decisions[index].append(allocator, primary_directive_index);
             }
@@ -183,6 +190,65 @@ fn appendEslintSuppressionIndicesFor(
 
     try suppression_indices.appendSlice(allocator, range_matches.items);
     try suppression_indices.appendSlice(allocator, line_matches.items);
+}
+
+fn appendUtlintSuppressionIndicesFor(
+    allocator: Allocator,
+    suppression_indices: *std.ArrayList(usize),
+    directives: []const Directive,
+    line_starts: []const u32,
+    diagnostic: core.Diagnostic,
+) Allocator.Error!void {
+    if (std.mem.eql(u8, diagnostic.rule_id, "parse")) return;
+
+    const diagnostic_line = lineAtOffset(line_starts, diagnostic.span.start);
+    var all_rule_ranges: std.ArrayList(usize) = .empty;
+    defer all_rule_ranges.deinit(allocator);
+    var named_rule_ranges: std.ArrayList(usize) = .empty;
+    defer named_rule_ranges.deinit(allocator);
+    var matches: std.ArrayList(usize) = .empty;
+    defer matches.deinit(allocator);
+
+    for (directives, 0..) |directive, index| {
+        if (directive.span_start > diagnostic.span.start) continue;
+
+        switch (directive.kind) {
+            .ignore_start => {
+                if (!directive.target.matches(diagnostic.rule_id)) continue;
+                if (directive.target.rule_id == null) {
+                    try all_rule_ranges.append(allocator, index);
+                } else {
+                    try named_rule_ranges.append(allocator, index);
+                }
+            },
+            .ignore_end => {
+                if (directive.target.rule_id) |rule_id| {
+                    if (std.mem.eql(u8, rule_id, diagnostic.rule_id) and named_rule_ranges.items.len > 0) {
+                        _ = named_rule_ranges.pop();
+                    }
+                } else if (all_rule_ranges.items.len > 0) {
+                    _ = all_rule_ranges.pop();
+                }
+            },
+            .ignore_all => {
+                if (directive.top_level and directive.target.matches(diagnostic.rule_id)) {
+                    try matches.append(allocator, index);
+                }
+            },
+            .ignore => {
+                const next_offset = directive.next_code_offset orelse continue;
+                if (lineAtOffset(line_starts, next_offset) == diagnostic_line and directive.target.matches(diagnostic.rule_id)) {
+                    try matches.append(allocator, index);
+                }
+            },
+            else => {},
+        }
+    }
+
+    try matches.appendSlice(allocator, all_rule_ranges.items);
+    try matches.appendSlice(allocator, named_rule_ranges.items);
+    std.mem.sort(usize, matches.items, {}, std.sort.asc(usize));
+    try suppression_indices.appendSlice(allocator, matches.items);
 }
 
 fn collectDirectives(allocator: Allocator, tree: *const ast.Tree) Allocator.Error!std.ArrayList(Directive) {

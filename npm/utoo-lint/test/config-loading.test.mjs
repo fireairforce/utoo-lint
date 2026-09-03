@@ -666,6 +666,22 @@ test("ESLint range suppressions precede earlier same-line suppressions", async (
   ]);
 });
 
+test("utlint metadata survives an earlier ESLint line suppression", () => {
+  const source = "/* eslint-disable-line no-undef -- eslint */ /* utlint-ignore no-undef: utoo */ foo();\n";
+  const report = lintText(source, {
+    binary: testBinary(),
+    noConfig: true,
+    filePath: "mixed-line-directives.js",
+    overrideConfig: { rules: { "no-undef": "error" } }
+  });
+
+  assert.deepEqual(report.diagnostics, []);
+  assert.deepEqual(report.suppressedDiagnostics[0].suppressions, [
+    { kind: "directive", justification: "eslint" },
+    { kind: "directive", justification: "utoo" }
+  ]);
+});
+
 test("ESLint disable directives accept empty justifications", async () => {
   const source = [
     "/* eslint-disable no-extra-semi -- */",
