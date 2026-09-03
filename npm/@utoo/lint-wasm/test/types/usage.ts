@@ -15,6 +15,8 @@ const direct: LintResult = linter.lint("debugger;", {
 });
 const diagnostic: LintDiagnostic | undefined = direct.diagnostics[0];
 void diagnostic?.range;
+const suppressedDiagnostic: LintDiagnostic | undefined = direct.suppressedDiagnostics[0];
+void suppressedDiagnostic?.suppressions?.[0]?.justification;
 
 const lintOnly: LintOnlyResult = await lint("console.log('x');", {
   rules: { "no-console": "warn" },
