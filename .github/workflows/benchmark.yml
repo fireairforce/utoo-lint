@@ -8,6 +8,8 @@ on:
       - "benchmarks/**"
       - "build.zig"
       - "build.zig.zon"
+      - "npm/utoo-lint/index.*"
+      - "npm/utoo-lint/lib/config-loader.*"
       - "src/**"
       - "vendor/yuku/**"
   push:
@@ -18,6 +20,8 @@ on:
       - "benchmarks/**"
       - "build.zig"
       - "build.zig.zon"
+      - "npm/utoo-lint/index.*"
+      - "npm/utoo-lint/lib/config-loader.*"
       - "src/**"
       - "vendor/yuku/**"
 
