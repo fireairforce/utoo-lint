@@ -672,6 +672,25 @@ test("ESLint disable directives accept empty justifications", async () => {
   ]);
 });
 
+test("ESLint justification separators require trailing whitespace", async () => {
+  const source = [
+    "/* eslint-disable-next-line no-extra-semi --*/",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: { rules: { "no-extra-semi": "error" } }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "invalid-separator.js" });
+  assert.notEqual(result.output, undefined);
+  assert.deepEqual(result.suppressedMessages, []);
+});
+
 test("native reports preserve overlapping utlint and ESLint metadata", () => {
   const source = [
     "/* eslint-disable no-extra-semi -- generated */",

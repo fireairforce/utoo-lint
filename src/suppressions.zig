@@ -251,7 +251,7 @@ const ParsedEslintDirective = struct {
 };
 
 fn parseEslintDirective(value: []const u8, comment_type: ast.Comment.Type) ?ParsedEslintDirective {
-    const trimmed = trimEslintWhitespace(value);
+    const trimmed = trimEslintWhitespaceStart(value);
     const kinds = [_]struct { prefix: []const u8, kind: DirectiveKind }{
         .{ .prefix = "eslint-disable-next-line", .kind = .eslint_disable_next_line },
         .{ .prefix = "eslint-disable-line", .kind = .eslint_disable_line },
@@ -287,8 +287,7 @@ fn eslintDescriptionSeparator(value: []const u8) ?DescriptionSeparator {
 
         var end = index + leading_whitespace_len;
         while (end < value.len and value[end] == '-') : (end += 1) {}
-        if (end < index + leading_whitespace_len + 2) continue;
-        if (end == value.len) return .{ .start = index, .end = end };
+        if (end < index + leading_whitespace_len + 2 or end == value.len) continue;
         const trailing_whitespace_len = eslintWhitespaceLengthAt(value, end);
         if (trailing_whitespace_len == 0) continue;
         return .{ .start = index, .end = end + trailing_whitespace_len };
@@ -550,12 +549,8 @@ fn lineTerminatorLengthAt(source: []const u8, index: usize) usize {
 }
 
 fn trimEslintWhitespace(value: []const u8) []const u8 {
-    var start: usize = 0;
-    while (start < value.len) {
-        const whitespace_len = eslintWhitespaceLengthAt(value, start);
-        if (whitespace_len == 0) break;
-        start += whitespace_len;
-    }
+    const without_leading = trimEslintWhitespaceStart(value);
+    const start = value.len - without_leading.len;
 
     var cursor = start;
     var end = start;
@@ -569,6 +564,16 @@ fn trimEslintWhitespace(value: []const u8) []const u8 {
         }
     }
     return value[start..end];
+}
+
+fn trimEslintWhitespaceStart(value: []const u8) []const u8 {
+    var start: usize = 0;
+    while (start < value.len) {
+        const whitespace_len = eslintWhitespaceLengthAt(value, start);
+        if (whitespace_len == 0) break;
+        start += whitespace_len;
+    }
+    return value[start..];
 }
 
 fn eslintWhitespaceLengthAt(value: []const u8, index: usize) usize {

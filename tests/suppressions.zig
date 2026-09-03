@@ -189,6 +189,23 @@ test "ESLint directive accepts an empty justification after a separator" {
     try std.testing.expectEqualStrings("", fixed.result.suppressed_diagnostics[0].suppression.?.justification);
 }
 
+test "ESLint justification separator requires trailing whitespace" {
+    const source =
+        \\/* eslint-disable-next-line no-extra-semi --*/
+        \\const value = 1;;
+        \\void value;
+    ;
+
+    var options = lint.Options.allDisabled();
+    options.no_extra_semi = true;
+
+    var fixed = try lint.lintSourceAndFix(std.testing.allocator, source, "fixture.js", options);
+    defer fixed.deinit(std.testing.allocator);
+
+    try std.testing.expect(fixed.fixed);
+    try std.testing.expectEqual(@as(usize, 0), fixed.result.suppressed_diagnostics.len);
+}
+
 test "overlapping utlint and ESLint directives preserve both suppressions" {
     const source =
         \\/* eslint-disable no-extra-semi -- generated */
