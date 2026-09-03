@@ -62,6 +62,27 @@ test("uses defaults only when rules is absent", () => {
   assert.ok(!empty.diagnostics.some((item) => item.ruleId === "no-debugger"));
 });
 
+test("returns every overlapping ESLint suppression", () => {
+  const source = [
+    "/* eslint-disable no-extra-semi -- generated */",
+    "const value = 1;; // eslint-disable-line no-extra-semi -- intentional",
+    "void value;",
+    "",
+  ].join("\n");
+  const result = linter.lint(source, {
+    filePath: "overlapping-directives.js",
+    rules: { "no-extra-semi": "error" },
+  });
+
+  assert.deepEqual(result.diagnostics, []);
+  assert.equal(result.suppressedDiagnostics.length, 1);
+  assert.deepEqual(result.suppressedDiagnostics[0].suppressions, [
+    { kind: "directive", justification: "generated" },
+    { kind: "directive", justification: "intentional" },
+  ]);
+  assert.equal(result.suppressedDiagnostics[0].suppression.justification, "intentional");
+});
+
 test("parses JS, TS, JSX, and TSX by file name", () => {
   const fixtures = [
     ["input.js", "export const value = 1;"],

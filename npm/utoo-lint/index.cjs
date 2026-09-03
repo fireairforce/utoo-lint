@@ -2526,6 +2526,7 @@ function applyDisableDirectives(messages, sourceCode) {
   }
   const directives = sourceCode.getDisableDirectives()
     .filter((directive) => directive.node?.loc?.start?.line)
+    .filter((directive) => directive.type !== "eslint-disable-line" || directive.node.loc.start.line === directive.node.loc.end.line)
     .sort((left, right) => left.node.loc.start.line - right.node.loc.start.line);
   const utlintDirectives = sourceCode.getAllComments()
     .map((comment) => utlintDirectiveFromComment(comment, sourceCode))
@@ -4903,10 +4904,12 @@ function diagnosticToESLintMessage(diagnostic, ruleSeverities) {
 function suppressedDiagnosticToESLintMessage(diagnostic, ruleSeverities) {
   return {
     ...diagnosticToESLintMessage(diagnostic, ruleSeverities),
-    suppressions: [{
-      kind: diagnostic.suppression?.kind ?? "directive",
-      justification: diagnostic.suppression?.justification ?? ""
-    }]
+    suppressions: diagnostic.suppressions?.length > 0
+      ? diagnostic.suppressions
+      : [{
+          kind: diagnostic.suppression?.kind ?? "directive",
+          justification: diagnostic.suppression?.justification ?? ""
+        }]
   };
 }
 

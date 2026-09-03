@@ -471,6 +471,16 @@ fn writeDiagnostic(
         try writeJsonValue(writer, suppression.justification);
         try writer.writeByte('}');
     }
+    if (diagnostic.suppressions.len > 0) {
+        try writer.writeAll(",\"suppressions\":[");
+        for (diagnostic.suppressions, 0..) |suppression, index| {
+            if (index != 0) try writer.writeByte(',');
+            try writer.writeAll("{\"kind\":\"directive\",\"justification\":");
+            try writeJsonValue(writer, suppression.justification);
+            try writer.writeByte('}');
+        }
+        try writer.writeByte(']');
+    }
     try writer.writeByte('}');
 }
 

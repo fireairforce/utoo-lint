@@ -17,7 +17,7 @@ export interface LintSuppression {
   justification: string;
 }
 
-export interface LintDiagnostic extends Omit<LintMessage, "severity" | "suppressions"> {
+export interface LintDiagnostic extends Omit<LintMessage, "severity"> {
   severity: "warning" | "error";
   suppression?: LintSuppression;
 }

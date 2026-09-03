@@ -40,6 +40,7 @@ export interface LintDiagnostic {
   fixes: LintFix[];
   suggestions: LintSuggestion[];
   suppression?: LintSuppression;
+  suppressions?: LintSuppression[];
 }
 
 export interface LintOptions {

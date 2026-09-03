@@ -57,6 +57,7 @@ const JsonDiagnostic = struct {
     fixes: []const JsonFix,
     suggestions: []const JsonSuggestion,
     suppression: ?JsonSuppression = null,
+    suppressions: []const JsonSuppression = &.{},
 };
 
 const JsonDiagnosticList = std.ArrayList(JsonDiagnostic);
@@ -1656,7 +1657,7 @@ fn collectLintablePaths(
         if (json_diagnostics) |diagnostics| {
             const message = try std.fmt.allocPrint(allocator, "unable to stat path: {s}", .{@errorName(err)});
             defer allocator.free(message);
-            try appendJsonDiagnostic(allocator, diagnostics, path, 0, 0, "error", message, "io", "", &.{}, &.{}, null);
+            try appendJsonDiagnostic(allocator, diagnostics, path, 0, 0, "error", message, "io", "", &.{}, &.{}, null, &.{});
         } else {
             std.debug.print("{s}: unable to stat path: {s}\n", .{ path, @errorName(err) });
         }
@@ -2231,7 +2232,7 @@ fn lintFileJson(
     const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_file_size)) catch |err| {
         const message = try std.fmt.allocPrint(allocator, "unable to read file: {s}", .{@errorName(err)});
         defer allocator.free(message);
-        try appendJsonDiagnostic(allocator, json_diagnostics, path, 0, 0, "error", message, "io", "", &.{}, &.{}, null);
+        try appendJsonDiagnostic(allocator, json_diagnostics, path, 0, 0, "error", message, "io", "", &.{}, &.{}, null, &.{});
         stats.errors += 1;
         stats.diagnostics += 1;
         return;
@@ -2375,7 +2376,8 @@ fn appendJsonDiagnostic(
     source: []const u8,
     fixes: []const lint.Fix,
     suggestions: []const lint.Suggestion,
-    suppression: ?JsonSuppression,
+    suppression: ?lint.Suppression,
+    suppressions: []const lint.Suppression,
 ) !void {
     const owned_path = try allocator.dupe(u8, path);
     errdefer allocator.free(owned_path);
@@ -2392,16 +2394,42 @@ fn appendJsonDiagnostic(
     const owned_suggestions = try dupeJsonSuggestions(allocator, source, suggestions);
     errdefer freeOwnedJsonSuggestions(allocator, owned_suggestions);
 
-    const owned_suppression: ?JsonSuppression = if (suppression) |item| suppression: {
-        const kind = try allocator.dupe(u8, item.kind);
-        errdefer allocator.free(kind);
-        const justification = try allocator.dupe(u8, item.justification);
-        break :suppression .{ .kind = kind, .justification = justification };
-    } else null;
-    errdefer if (owned_suppression) |item| {
-        allocator.free(item.kind);
-        allocator.free(item.justification);
+    const owned_suppressions = if (suppressions.len == 0)
+        &.{}
+    else suppressions: {
+        const owned = try allocator.alloc(JsonSuppression, suppressions.len);
+        var initialized: usize = 0;
+        errdefer {
+            for (owned[0..initialized]) |item| {
+                allocator.free(item.kind);
+                allocator.free(item.justification);
+            }
+            allocator.free(owned);
+        }
+        for (suppressions, 0..) |item, index| {
+            const kind = try allocator.dupe(u8, "directive");
+            errdefer allocator.free(kind);
+            owned[index] = .{
+                .kind = kind,
+                .justification = try allocator.dupe(u8, item.justification),
+            };
+            initialized += 1;
+        }
+        break :suppressions owned;
     };
+    errdefer {
+        for (owned_suppressions) |item| {
+            allocator.free(item.kind);
+            allocator.free(item.justification);
+        }
+        if (owned_suppressions.len > 0) allocator.free(owned_suppressions);
+    }
+    const primary_suppression_index: ?usize = if (suppression) |primary| suppression_index: {
+        for (suppressions, 0..) |item, index| {
+            if (std.mem.eql(u8, item.justification, primary.justification)) break :suppression_index index;
+        }
+        break :suppression_index null;
+    } else null;
 
     try diagnostics.append(allocator, .{
         .filePath = owned_path,
@@ -2412,7 +2440,13 @@ fn appendJsonDiagnostic(
         .ruleId = owned_rule_id,
         .fixes = owned_fixes,
         .suggestions = owned_suggestions,
-        .suppression = owned_suppression,
+        .suppression = if (primary_suppression_index) |index|
+            owned_suppressions[index]
+        else if (owned_suppressions.len > 0)
+            owned_suppressions[0]
+        else
+            null,
+        .suppressions = owned_suppressions,
     });
 }
 
@@ -2441,6 +2475,7 @@ fn appendJsonResultDiagnostics(
             diagnostic.fixes,
             diagnostic.suggestions,
             null,
+            &.{},
         );
 
         stats.diagnostics += 1;
@@ -2471,10 +2506,13 @@ fn appendJsonResultSuppressedDiagnostics(
             source,
             diagnostic.fixes,
             diagnostic.suggestions,
-            if (diagnostic.suppression) |suppression| .{
-                .kind = "directive",
-                .justification = suppression.justification,
-            } else null,
+            diagnostic.suppression,
+            if (diagnostic.suppressions.len > 0)
+                diagnostic.suppressions
+            else if (diagnostic.suppression) |suppression|
+                &.{suppression}
+            else
+                &.{},
         );
     }
 }
@@ -2569,10 +2607,11 @@ fn freeJsonDiagnostics(allocator: std.mem.Allocator, diagnostics: *JsonDiagnosti
         allocator.free(diagnostic.ruleId);
         freeOwnedJsonFixes(allocator, diagnostic.fixes);
         freeOwnedJsonSuggestions(allocator, diagnostic.suggestions);
-        if (diagnostic.suppression) |suppression| {
+        for (diagnostic.suppressions) |suppression| {
             allocator.free(suppression.kind);
             allocator.free(suppression.justification);
         }
+        if (diagnostic.suppressions.len > 0) allocator.free(diagnostic.suppressions);
     }
     diagnostics.deinit(allocator);
 }

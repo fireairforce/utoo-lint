@@ -369,6 +369,403 @@ test("CLIEngine.executeOnFiles applies eslint-disable directives to native diagn
   assert.equal(report.results[0].suppressedMessages[0].ruleId, "no-param-reassign");
 });
 
+test("ESLint fix mode does not apply fixes disabled by eslint directives", async () => {
+  const source = "const value = 1;; // eslint-disable-line no-extra-semi\nconsole.log(value);\n";
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-console": "off",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "suppressed.js" });
+  assert.equal(result.output, undefined);
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.equal(result.suppressedMessages[0].ruleId, "no-extra-semi");
+});
+
+test("ESLint fix mode honors disable ranges with selective enables", async () => {
+  const source = [
+    "/* eslint-disable -- generated code */",
+    "const first = 1;;",
+    "/* eslint-enable no-extra-semi */",
+    "const second = 2;;",
+    "void first;",
+    "void second;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "suppressed.js" });
+  assert.equal(result.output, source.replace("const second = 2;;", "const second = 2;"));
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.equal(result.suppressedMessages[0].ruleId, "no-extra-semi");
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "generated code" }
+  ]);
+});
+
+test("ESLint disable ranges treat comma-only rule lists as all rules", async () => {
+  const source = [
+    "/* eslint-disable , -- generated code */",
+    "const first = 1;;",
+    "/* eslint-enable , */",
+    "const second = 2;;",
+    "void first;",
+    "void second;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "comma-only.js" });
+  assert.equal(result.output, source.replace("const second = 2;;", "const second = 2;"));
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "generated code" }
+  ]);
+});
+
+test("ESLint directives inside template interpolations suppress native diagnostics", async () => {
+  const source = [
+    "const text = `${",
+    "  // eslint-disable-next-line no-console, no-undef",
+    "  missingValue",
+    "}`;",
+    "void text;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-undef": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "template.js" });
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.equal(result.suppressedMessages[0].ruleId, "no-undef");
+});
+
+test("multiline eslint-disable-next-line starts after the block comment", async () => {
+  const source = [
+    "/* eslint-disable-next-line",
+    "   no-extra-semi */",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "multiline.js" });
+  assert.equal(result.output, undefined);
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.equal(result.suppressedMessages[0].ruleId, "no-extra-semi");
+});
+
+test("eslint-disable-next-line recognizes every JavaScript line terminator", async (t) => {
+  for (const [name, lineTerminator] of [
+    ["carriage return", "\r"],
+    ["line separator", "\u2028"],
+    ["paragraph separator", "\u2029"]
+  ]) {
+    await t.test(name, async () => {
+      const source = [
+        "// eslint-disable-next-line no-extra-semi",
+        "const value = 1;;",
+        "void value;",
+        ""
+      ].join(lineTerminator);
+      const eslint = new ESLint({
+        binary: testBinary(),
+        fix: true,
+        noConfig: true,
+        overrideConfig: {
+          rules: {
+            "no-extra-semi": "error",
+            "no-unused-vars": "off"
+          }
+        }
+      });
+
+      const [result] = await eslint.lintText(source, { filePath: `${name}.js` });
+      assert.equal(result.output, undefined);
+      assert.deepEqual(result.messages, []);
+      assert.equal(result.suppressedMessages.length, 1);
+      assert.equal(result.suppressedMessages[0].ruleId, "no-extra-semi");
+    });
+  }
+});
+
+test("multiline eslint-disable-line does not suppress diagnostics", async () => {
+  const source = [
+    "const value = 1;; /* eslint-disable-line",
+    "   no-extra-semi */",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "invalid-directive.js" });
+  assert.equal(result.output, source.replace("const value = 1;;", "const value = 1;"));
+  assert.deepEqual(result.messages, []);
+  assert.deepEqual(result.suppressedMessages, []);
+
+  const lintOnly = new ESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+  const [lintResult] = await lintOnly.lintText(source, { filePath: "invalid-directive.js" });
+  assert.equal(lintResult.messages.length, 1);
+  assert.equal(lintResult.messages[0].ruleId, "no-extra-semi");
+  assert.deepEqual(lintResult.suppressedMessages, []);
+});
+
+test("ESLint directives accept ECMAScript whitespace", async () => {
+  const source = [
+    "/*\feslint-disable-next-line\fno-extra-semi\f--\fintentional\f*/",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "whitespace.js" });
+  assert.equal(result.output, undefined);
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "intentional" }
+  ]);
+});
+
+test("ESM and CommonJS ESLint report every overlapping disable directive", async () => {
+  const source = [
+    "/* eslint-disable no-extra-semi -- generated */",
+    "const value = 1;; // eslint-disable-line no-extra-semi -- intentional",
+    "void value;",
+    ""
+  ].join("\n");
+  for (const ESLintImplementation of [ESLint, CommonJSESLint]) {
+    const eslint = new ESLintImplementation({
+      binary: testBinary(),
+      noConfig: true,
+      overrideConfig: {
+        rules: {
+          "no-extra-semi": "error",
+          "no-unused-vars": "off"
+        }
+      }
+    });
+
+    const [result] = await eslint.lintText(source, { filePath: "overlapping-directives.js" });
+    assert.deepEqual(result.messages, []);
+    assert.equal(result.suppressedMessages.length, 1);
+    assert.deepEqual(result.suppressedMessages[0].suppressions, [
+      { kind: "directive", justification: "generated" },
+      { kind: "directive", justification: "intentional" }
+    ]);
+  }
+
+  const report = lintText(source, {
+    binary: testBinary(),
+    noConfig: true,
+    filePath: "overlapping-directives.js",
+    overrideConfig: { rules: { "no-extra-semi": "error" } }
+  });
+  assert.equal(report.suppressedDiagnostics[0].suppression.justification, "intentional");
+  assert.deepEqual(report.suppressedDiagnostics[0].suppressions, [
+    { kind: "directive", justification: "generated" },
+    { kind: "directive", justification: "intentional" }
+  ]);
+});
+
+test("ESLint range suppressions precede earlier same-line suppressions", async () => {
+  const source = "/* eslint-disable-line no-undef -- line */ /* eslint-disable no-undef -- range */ foo();\n";
+  const eslint = new ESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: { rules: { "no-undef": "error" } }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "suppression-order.js" });
+  assert.deepEqual(result.messages, []);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "range" },
+    { kind: "directive", justification: "line" }
+  ]);
+});
+
+test("utlint metadata survives an earlier ESLint line suppression", () => {
+  const source = "/* eslint-disable-line no-undef -- eslint */ /* utlint-ignore no-undef: utoo */ foo();\n";
+  const report = lintText(source, {
+    binary: testBinary(),
+    noConfig: true,
+    filePath: "mixed-line-directives.js",
+    overrideConfig: { rules: { "no-undef": "error" } }
+  });
+
+  assert.deepEqual(report.diagnostics, []);
+  assert.deepEqual(report.suppressedDiagnostics[0].suppressions, [
+    { kind: "directive", justification: "eslint" },
+    { kind: "directive", justification: "utoo" }
+  ]);
+});
+
+test("ESLint disable directives accept empty justifications", async () => {
+  const source = [
+    "/* eslint-disable no-extra-semi -- */",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: { rules: { "no-extra-semi": "error" } }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "empty-justification.js" });
+  assert.equal(result.output, undefined);
+  assert.deepEqual(result.messages, []);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "" }
+  ]);
+});
+
+test("ESLint justification separators require trailing whitespace", async () => {
+  const source = [
+    "/* eslint-disable-next-line no-extra-semi --*/",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: { rules: { "no-extra-semi": "error" } }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "invalid-separator.js" });
+  assert.notEqual(result.output, undefined);
+  assert.deepEqual(result.suppressedMessages, []);
+});
+
+test("native reports preserve overlapping utlint and ESLint metadata", () => {
+  const source = [
+    "/* eslint-disable no-extra-semi -- generated */",
+    "// utlint-ignore no-extra-semi: intentional",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const report = lintText(source, {
+    binary: testBinary(),
+    noConfig: true,
+    filePath: "mixed-directives.js",
+    overrideConfig: { rules: { "no-extra-semi": "error" } }
+  });
+
+  assert.deepEqual(report.diagnostics, []);
+  assert.equal(report.suppressedDiagnostics[0].suppression.justification, "intentional");
+  assert.deepEqual(report.suppressedDiagnostics[0].suppressions, [
+    { kind: "directive", justification: "generated" },
+    { kind: "directive", justification: "intentional" }
+  ]);
+});
+
+test("repeated rule targets produce one suppression per ESLint directive", async () => {
+  const source = [
+    "/* eslint-disable no-extra-semi, no-extra-semi -- generated */",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: { rules: { "no-extra-semi": "error" } }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "repeated-rule-target.js" });
+  assert.deepEqual(result.messages, []);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "generated" }
+  ]);
+});
+
 test("lintText returns suppressed native diagnostics with the requested file path", () => {
   const report = lintText(
     "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",
