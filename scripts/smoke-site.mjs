@@ -245,7 +245,7 @@ async function runSmoke(page, origin) {
       name: 'Utoo Lint version',
     });
     await versionSelect.waitFor();
-    assert.equal(await versionSelect.inputValue(), versionManifest.latest);
+    assert.equal(await versionSelect.inputValue(), 'latest');
 
     const previousVersion = versionManifest.versions[1]?.id;
     if (previousVersion) {
@@ -254,6 +254,10 @@ async function runSmoke(page, origin) {
         (url) => url.searchParams.get('version') === previousVersion,
       );
       await versionSelect.selectOption(versionManifest.latest);
+      await page.waitForURL(
+        (url) => url.searchParams.get('version') === versionManifest.latest,
+      );
+      await versionSelect.selectOption('latest');
       await page.waitForURL((url) => !url.searchParams.has('version'));
     }
 

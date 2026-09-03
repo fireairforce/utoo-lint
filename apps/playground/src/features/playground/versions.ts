@@ -24,6 +24,8 @@ interface VersionManifest {
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 
+export const LATEST_LINT_VERSION = 'latest';
+
 function isManifestVersion(value: unknown): value is ManifestVersion {
   if (!value || typeof value !== 'object') return false;
   const version = value as Partial<ManifestVersion>;
@@ -94,16 +96,24 @@ export function initialLintVersion(
   const requested = new URL(currentUrl).searchParams.get('version');
   return catalog.versions.some(({ id }) => id === requested)
     ? requested!
-    : catalog.latest;
+    : LATEST_LINT_VERSION;
+}
+
+export function resolveLintVersion(
+  catalog: LintVersionCatalog,
+  selection: string,
+): LintVersionDefinition | undefined {
+  const version =
+    selection === LATEST_LINT_VERSION ? catalog.latest : selection;
+  return catalog.versions.find(({ id }) => id === version);
 }
 
 export function lintVersionUrl(
   currentUrl: string,
   version: string,
-  latest: string,
 ): string {
   const url = new URL(currentUrl);
-  if (version === latest) url.searchParams.delete('version');
+  if (version === LATEST_LINT_VERSION) url.searchParams.delete('version');
   else url.searchParams.set('version', version);
   return url.href;
 }

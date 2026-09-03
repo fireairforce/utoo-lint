@@ -35,9 +35,11 @@ import '../features/playground/monaco';
 import { Splitter } from '../features/playground/splitter';
 import {
   initialLintVersion,
+  LATEST_LINT_VERSION,
   lintVersionManifestUrl,
   lintVersionUrl,
   loadLintVersionCatalog,
+  resolveLintVersion,
   type LintVersionCatalog,
 } from '../features/playground/versions';
 import '../style.css';
@@ -169,9 +171,9 @@ export default function PlaygroundPage() {
   const source = sources[language];
   const fileName = fileNameForLanguage(language);
   const monacoLanguage = monacoLanguageForLanguage(language);
-  const selectedLintVersion = versionCatalog?.versions.find(
-    ({ id }) => id === lintVersion,
-  );
+  const selectedLintVersion = versionCatalog
+    ? resolveLintVersion(versionCatalog, lintVersion)
+    : undefined;
 
   useEffect(() => {
     let active = true;
@@ -441,21 +443,15 @@ export default function PlaygroundPage() {
 
   const selectLintVersion = (nextVersion: string) => {
     if (!versionCatalog) return;
-    const definition = versionCatalog.versions.find(
-      ({ id }) => id === nextVersion,
-    );
-    if (!definition || definition.id === lintVersion) return;
+    const definition = resolveLintVersion(versionCatalog, nextVersion);
+    if (!definition || nextVersion === lintVersion) return;
 
     setRunState(EMPTY_RUN_STATE);
-    setLintVersion(definition.id);
+    setLintVersion(nextVersion);
     window.history.replaceState(
       null,
       '',
-      lintVersionUrl(
-        window.location.href,
-        definition.id,
-        versionCatalog.latest,
-      ),
+      lintVersionUrl(window.location.href, nextVersion),
     );
   };
 
@@ -661,10 +657,14 @@ export default function PlaygroundPage() {
                     {versionError ? 'Unavailable' : 'Loading…'}
                   </option>
                 )}
+                {versionCatalog && (
+                  <option value={LATEST_LINT_VERSION}>
+                    latest (v{versionCatalog.latest})
+                  </option>
+                )}
                 {versionCatalog?.versions.map((version) => (
                   <option key={version.id} value={version.id}>
                     {version.label}
-                    {version.id === versionCatalog.latest ? ' (latest)' : ''}
                   </option>
                 ))}
               </select>
