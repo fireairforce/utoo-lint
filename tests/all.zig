@@ -3,6 +3,10 @@ comptime {
 }
 
 comptime {
+    _ = @import("flat_config");
+}
+
+comptime {
     _ = @import("suppressions.zig");
 }
 

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { Bench } from "tinybench";
 import { withCodSpeed } from "@codspeed/tinybench-plugin";
 import { findConfigPath } from "../../npm/utoo-lint/lib/config-loader.js";
@@ -12,7 +12,7 @@ const configOnly = Boolean(args["config-only"]);
 const target = args.target ?? "fixtures/codspeed";
 const time = nonNegativeNumber(args.time, 1000, "time");
 const warmupTime = nonNegativeNumber(args["warmup-time"], 500, "warmup-time");
-const utooBin = process.env.UTOO_LINT_BIN ?? join("..", "zig-out", "bin", process.platform === "win32" ? "utoo-lint.exe" : "utoo-lint");
+const utooBin = resolve(process.env.UTOO_LINT_BIN ?? join("..", "zig-out", "bin", process.platform === "win32" ? "utoo-lint.exe" : "utoo-lint"));
 
 if (!configOnly && !existsSync(utooBin)) {
   throw new Error(`utoo-lint binary was not found at ${utooBin}. Build utoo-lint first.`);
@@ -24,12 +24,12 @@ if (!configOnly && !existsSync(target)) {
 
 const bench = withCodSpeed(
   new Bench({
+    throws: true,
     time,
     warmup: warmupTime > 0,
     warmupTime
   })
 );
-
 if (!configOnly) {
   bench.add(`utoo-lint/${target}`, () => {
     runUtooLint(target);

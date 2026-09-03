@@ -9,6 +9,7 @@
     "bench:config-discovery": "node scripts/run-codspeed.mjs --config-only",
     "chart": "node scripts/render-chart.mjs",
     "codspeed": "node scripts/run-all-codspeed.mjs",
+    "codspeed:native-flat-config": "node scripts/run-native-flat-config-codspeed.mjs",
     "codspeed:severity-config": "node scripts/run-severity-config-codspeed.mjs"
   },
   "devDependencies": {

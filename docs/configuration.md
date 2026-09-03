@@ -138,16 +138,16 @@ CLI, JavaScript API, and fishlint compatibility command apply this rule
 resolution separately for each linted file.
 
 The npm wrapper executes the TypeScript file, materializes its result as JSON,
-and passes that JSON to the native binary. The raw native binary intentionally
-does not execute or discover TypeScript. It searches for `utlint.config.json`
-and then the legacy JSON names. Use the npm CLI for `utlint.config.ts`; when
+and passes that flat config to one native process. The raw native binary does
+not execute or discover TypeScript; it searches for `utlint.config.json` and
+then the legacy JSON names. Use the npm CLI for `utlint.config.ts`; when
 invoking the raw binary directly, use `utlint.config.json`.
 
-The raw binary applies the JSON config's `rules` and supported shared
-`settings`. Config-driven
-`files` and `ignores` filtering, including choosing default lint targets, is an
-npm/Node wrapper feature. Pass lint targets explicitly when invoking the raw
-binary.
+The raw binary resolves static flat-config `files`, global and entry-scoped
+`ignores`, ordered rule overrides, and supported shared `settings` for each
+file. With no explicit lint target, config selectors and global ignores also
+control native file discovery. Patterns are relative to the selected config's
+directory.
 
 ## JSON Config
 

@@ -1,5 +1,6 @@
 const std = @import("std");
 const lint = @import("utoo_lint");
+const flat_config = @import("flat_config.zig");
 
 const max_file_size = 64 * 1024 * 1024;
 const max_config_file_size = 1024 * 1024;
@@ -66,7 +67,7 @@ const JsonOutput = struct {
 };
 
 const JsonOutputList = std.ArrayList(JsonOutput);
-const RuleSeverityMap = std.StringHashMap(lint.Severity);
+const RuleSeverityMap = flat_config.RuleSeverityMap;
 
 const JsonReport = struct {
     files: usize,
@@ -81,6 +82,7 @@ const WorkQueue = struct {
     files: []const []const u8,
     options: lint.Options,
     rule_severities: *const RuleSeverityMap,
+    config: ?*const flat_config.FlatConfig,
     fix_mode: FixMode,
     use_color: bool,
     next_index: std.atomic.Value(usize) = .init(0),
@@ -109,12 +111,14 @@ pub fn main(init: std.process.Init) !void {
         rule_severities.deinit();
     }
     const config = parseConfigArgs(args[1..]);
+    var loaded_flat_config: ?flat_config.FlatConfig = null;
+    defer if (loaded_flat_config) |*loaded| loaded.deinit(allocator);
     if (config.enabled) {
         if (config.path) |path| {
-            try loadConfigFile(allocator, io, path, true, &options, &rule_severities);
+            loaded_flat_config = try loadConfigFile(allocator, io, path, config.root, config.cwd, true, &options, &rule_severities);
         } else if (try findDefaultConfig(allocator, io)) |path| {
             defer allocator.free(path);
-            try loadConfigFile(allocator, io, path, false, &options, &rule_severities);
+            loaded_flat_config = try loadConfigFile(allocator, io, path, config.root, config.cwd, false, &options, &rule_severities);
         }
     }
 
@@ -132,6 +136,10 @@ pub fn main(init: std.process.Init) !void {
         } else if (std.mem.eql(u8, arg, "--no-config")) {
             continue;
         } else if (std.mem.startsWith(u8, arg, "--config=")) {
+            continue;
+        } else if (std.mem.startsWith(u8, arg, "--config-root=")) {
+            continue;
+        } else if (std.mem.startsWith(u8, arg, "--config-cwd=")) {
             continue;
         } else if (std.mem.startsWith(u8, arg, "--threads=")) {
             const value = arg["--threads=".len..];
@@ -1334,7 +1342,8 @@ pub fn main(init: std.process.Init) !void {
         }
     }
 
-    if (targets.items.len == 0) {
+    const uses_default_targets = targets.items.len == 0;
+    if (uses_default_targets) {
         try targets.append(allocator, ".");
     }
 
@@ -1356,21 +1365,45 @@ pub fn main(init: std.process.Init) !void {
 
     var stats = Stats{};
     for (targets.items) |target| {
-        try collectLintablePaths(allocator, io, target, &files, &stats, json_diagnostics_ptr);
+        try collectLintablePaths(allocator, io, target, &files, &stats, json_diagnostics_ptr, if (loaded_flat_config) |*loaded| loaded else null, uses_default_targets);
     }
 
+    const resolve_flat_rules = !hasRuleOverrideArg(args[1..]);
+    const flat_config_for_lint: ?*const flat_config.FlatConfig = if (resolve_flat_rules)
+        if (loaded_flat_config) |*loaded| loaded else null
+    else
+        null;
     if (output_format == .json) {
-        try lintFilesJson(allocator, io, files.items, options, &rule_severities, fix_mode, &stats, &json_diagnostics, &json_suppressed_diagnostics, &json_outputs);
+        try lintFilesJson(allocator, io, files.items, options, &rule_severities, flat_config_for_lint, fix_mode, &stats, &json_diagnostics, &json_suppressed_diagnostics, &json_outputs);
         try writeJsonReport(io, stats, files.items, json_diagnostics.items, json_suppressed_diagnostics.items, json_outputs.items);
     } else {
         const use_color = color_override orelse detectColorSupport(io, init.environ_map.*);
-        try lintFiles(allocator, io, files.items, options, &rule_severities, fix_mode, thread_count_override, use_color, &stats);
+        try lintFiles(allocator, io, files.items, options, &rule_severities, flat_config_for_lint, fix_mode, thread_count_override, use_color, &stats);
         printTextSummary(stats, fix_mode, use_color);
     }
 
     if (stats.errors > 0) {
         std.process.exit(1);
     }
+}
+
+fn hasRuleOverrideArg(args: []const []const u8) bool {
+    for (args) |arg| {
+        if (!std.mem.startsWith(u8, arg, "--")) continue;
+        if (std.mem.eql(u8, arg, "--no-config") or
+            std.mem.eql(u8, arg, "--json") or
+            std.mem.eql(u8, arg, "--color") or
+            std.mem.eql(u8, arg, "--no-color") or
+            std.mem.eql(u8, arg, "--fix") or
+            std.mem.eql(u8, arg, "--fix-dry-run") or
+            std.mem.startsWith(u8, arg, "--config=") or
+            std.mem.startsWith(u8, arg, "--config-root=") or
+            std.mem.startsWith(u8, arg, "--config-cwd=") or
+            std.mem.startsWith(u8, arg, "--threads=") or
+            std.mem.startsWith(u8, arg, "--format=")) continue;
+        return true;
+    }
+    return false;
 }
 
 fn hasHelpArg(args: []const []const u8) bool {
@@ -1383,6 +1416,8 @@ fn hasHelpArg(args: []const []const u8) bool {
 const ConfigArgs = struct {
     enabled: bool = true,
     path: ?[]const u8 = null,
+    root: ?[]const u8 = null,
+    cwd: ?[]const u8 = null,
 };
 
 fn parseConfigArgs(args: []const []const u8) ConfigArgs {
@@ -1398,13 +1433,27 @@ fn parseConfigArgs(args: []const []const u8) ConfigArgs {
                 std.debug.print("utoo-lint: --config requires a path\n", .{});
                 std.process.exit(2);
             }
+        } else if (std.mem.startsWith(u8, arg, "--config-root=")) {
+            config.root = arg["--config-root=".len..];
+            if (config.root.?.len == 0) {
+                std.debug.print("utoo-lint: --config-root requires a path\n", .{});
+                std.process.exit(2);
+            }
+        } else if (std.mem.startsWith(u8, arg, "--config-cwd=")) {
+            config.cwd = arg["--config-cwd=".len..];
+            if (config.cwd.?.len == 0) {
+                std.debug.print("utoo-lint: --config-cwd requires a path\n", .{});
+                std.process.exit(2);
+            }
         }
     }
     return config;
 }
 
 fn findDefaultConfig(allocator: std.mem.Allocator, io: std.Io) !?[]u8 {
-    const start = try std.process.currentPathAlloc(io, allocator);
+    const current = try std.process.currentPathAlloc(io, allocator);
+    defer allocator.free(current);
+    const start = try allocator.dupe(u8, current);
     return findDefaultConfigFrom(allocator, io, start);
 }
 
@@ -1454,16 +1503,18 @@ fn loadConfigFile(
     allocator: std.mem.Allocator,
     io: std.Io,
     path: []const u8,
+    config_root: ?[]const u8,
+    config_cwd: ?[]const u8,
     explicit: bool,
     options: *lint.Options,
     rule_severities: *RuleSeverityMap,
-) !void {
+) !?flat_config.FlatConfig {
     const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_config_file_size)) catch |err| {
         if (explicit) {
             std.debug.print("utoo-lint: unable to read config {s}: {s}\n", .{ path, @errorName(err) });
             std.process.exit(2);
         }
-        return;
+        return null;
     };
     defer allocator.free(source);
 
@@ -1471,16 +1522,55 @@ fn loadConfigFile(
         std.debug.print("utoo-lint: invalid config {s}: {s}\n", .{ path, @errorName(err) });
         std.process.exit(2);
     };
-    defer parsed.deinit();
 
-    const root = switch (parsed.value) {
-        .object => |object| object,
+    switch (parsed.value) {
+        .object => |root| {
+            defer parsed.deinit();
+            try loadConfigObject(allocator, path, root, options, rule_severities);
+            return null;
+        },
+        .array => {
+            errdefer parsed.deinit();
+            const current = try std.process.currentPathAlloc(io, allocator);
+            defer allocator.free(current);
+            const cwd = try flat_config.canonicalPathAlloc(allocator, io, current, config_cwd orelse current);
+            errdefer allocator.free(cwd);
+            const absolute_path = try flat_config.canonicalPathAlloc(allocator, io, cwd, path);
+            defer allocator.free(absolute_path);
+            const directory = try flat_config.canonicalPathAlloc(
+                allocator,
+                io,
+                cwd,
+                config_root orelse std.fs.path.dirname(absolute_path) orelse ".",
+            );
+            var loaded = flat_config.FlatConfig{
+                .parsed = parsed,
+                .io = io,
+                .directory = directory,
+                .cwd = cwd,
+            };
+            loaded.validateAndApplyAggregate(allocator, options, rule_severities) catch |err| {
+                loaded.deinit(allocator);
+                std.debug.print("utoo-lint: invalid flat config {s}: {s}\n", .{ path, @errorName(err) });
+                std.process.exit(2);
+            };
+            return loaded;
+        },
         else => {
-            std.debug.print("utoo-lint: config {s} must be a JSON object\n", .{path});
+            parsed.deinit();
+            std.debug.print("utoo-lint: config {s} must be a JSON object or flat-config array\n", .{path});
             std.process.exit(2);
         },
-    };
+    }
+}
 
+fn loadConfigObject(
+    allocator: std.mem.Allocator,
+    path: []const u8,
+    root: std.json.ObjectMap,
+    options: *lint.Options,
+    rule_severities: *RuleSeverityMap,
+) !void {
     options.* = lint.Options.allDisabled();
     if (root.get("settings")) |settings_value| {
         const settings = switch (settings_value) {
@@ -1558,6 +1648,8 @@ fn collectLintablePaths(
     files: *std.ArrayList([]const u8),
     stats: *Stats,
     json_diagnostics: ?*JsonDiagnosticList,
+    config: ?*const flat_config.FlatConfig,
+    default_targets: bool,
 ) !void {
     const cwd = std.Io.Dir.cwd();
     const stat = cwd.statFile(io, path, .{}) catch |err| {
@@ -1575,13 +1667,24 @@ fn collectLintablePaths(
 
     switch (stat.kind) {
         .file => {
-            if (lint.isLintablePath(path)) {
+            if (lint.isLintablePath(path) and try shouldLintCollectedPath(allocator, path, config, default_targets)) {
                 try files.append(allocator, try allocator.dupe(u8, path));
             }
         },
-        .directory => try collectLintableDirectory(allocator, io, path, files, stats, json_diagnostics),
+        .directory => try collectLintableDirectory(allocator, io, path, files, stats, json_diagnostics, config, default_targets),
         else => {},
     }
+}
+
+fn shouldLintCollectedPath(
+    allocator: std.mem.Allocator,
+    path: []const u8,
+    config: ?*const flat_config.FlatConfig,
+    default_targets: bool,
+) !bool {
+    const loaded = config orelse return true;
+    if (try loaded.isGloballyIgnored(allocator, path)) return false;
+    return !default_targets or try loaded.selectsFile(allocator, path);
 }
 
 fn parseEnabledRules(
@@ -1967,6 +2070,8 @@ fn collectLintableDirectory(
     files: *std.ArrayList([]const u8),
     stats: *Stats,
     json_diagnostics: ?*JsonDiagnosticList,
+    config: ?*const flat_config.FlatConfig,
+    default_targets: bool,
 ) !void {
     var dir = try std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true });
     defer dir.close(io);
@@ -1980,11 +2085,15 @@ fn collectLintableDirectory(
 
         switch (entry.kind) {
             .file => {
-                if (lint.isLintablePath(child_path)) {
+                if (lint.isLintablePath(child_path) and try shouldLintCollectedPath(allocator, child_path, config, default_targets)) {
                     try files.append(allocator, try allocator.dupe(u8, child_path));
                 }
             },
-            .directory => try collectLintableDirectory(allocator, io, child_path, files, stats, json_diagnostics),
+            .directory => {
+                if (config == null or try config.?.shouldTraverseDirectory(allocator, child_path)) {
+                    try collectLintableDirectory(allocator, io, child_path, files, stats, json_diagnostics, config, default_targets);
+                }
+            },
             else => {},
         }
     }
@@ -1996,6 +2105,7 @@ fn lintFiles(
     files: []const []const u8,
     options: lint.Options,
     rule_severities: *const RuleSeverityMap,
+    config: ?*const flat_config.FlatConfig,
     fix_mode: FixMode,
     thread_count_override: ?usize,
     use_color: bool,
@@ -2006,7 +2116,7 @@ fn lintFiles(
     const worker_count = @min(files.len, thread_count_override orelse (std.Thread.getCpuCount() catch 1));
     if (worker_count <= 1) {
         for (files) |file| {
-            try lintFile(std.heap.smp_allocator, io, file, options, rule_severities, fix_mode, use_color, stats, null);
+            try lintFile(std.heap.smp_allocator, io, file, options, rule_severities, config, fix_mode, use_color, stats, null);
         }
         return;
     }
@@ -2016,6 +2126,7 @@ fn lintFiles(
         .files = files,
         .options = options,
         .rule_severities = rule_severities,
+        .config = config,
         .fix_mode = fix_mode,
         .use_color = use_color,
     };
@@ -2064,6 +2175,7 @@ fn lintFilesJson(
     files: []const []const u8,
     options: lint.Options,
     rule_severities: *const RuleSeverityMap,
+    config: ?*const flat_config.FlatConfig,
     fix_mode: FixMode,
     stats: *Stats,
     json_diagnostics: *JsonDiagnosticList,
@@ -2071,7 +2183,7 @@ fn lintFilesJson(
     json_outputs: *JsonOutputList,
 ) !void {
     for (files) |file| {
-        try lintFileJson(allocator, io, file, options, rule_severities, fix_mode, stats, json_diagnostics, json_suppressed_diagnostics, json_outputs);
+        try lintFileJson(allocator, io, file, options, rule_severities, config, fix_mode, stats, json_diagnostics, json_suppressed_diagnostics, json_outputs);
     }
 }
 
@@ -2086,6 +2198,7 @@ fn lintWorker(queue: *WorkQueue, result: *WorkerResult) void {
             queue.files[index],
             queue.options,
             queue.rule_severities,
+            queue.config,
             queue.fix_mode,
             queue.use_color,
             &result.stats,
@@ -2103,12 +2216,18 @@ fn lintFileJson(
     path: []const u8,
     options: lint.Options,
     rule_severities: *const RuleSeverityMap,
+    config: ?*const flat_config.FlatConfig,
     fix_mode: FixMode,
     stats: *Stats,
     json_diagnostics: *JsonDiagnosticList,
     json_suppressed_diagnostics: *JsonDiagnosticList,
     json_outputs: *JsonOutputList,
 ) !void {
+    var resolved_config = if (config) |loaded| try loaded.resolveForFile(allocator, path) else null;
+    defer if (resolved_config) |*resolved| resolved.deinit(allocator);
+    const effective_options = if (resolved_config) |*resolved| resolved.options else options;
+    const effective_rule_severities = if (resolved_config) |*resolved| &resolved.rule_severities else rule_severities;
+
     const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_file_size)) catch |err| {
         const message = try std.fmt.allocPrint(allocator, "unable to read file: {s}", .{@errorName(err)});
         defer allocator.free(message);
@@ -2122,13 +2241,13 @@ fn lintFileJson(
     stats.files += 1;
 
     if (fix_mode == .none) {
-        var result = try lint.lintSourceWithIo(allocator, io, source, path, options);
+        var result = try lint.lintSourceWithIo(allocator, io, source, path, effective_options);
         defer result.deinit(allocator);
-        try appendJsonResultDiagnostics(allocator, json_diagnostics, path, source, result, rule_severities, stats);
-        return appendJsonResultSuppressedDiagnostics(allocator, json_suppressed_diagnostics, path, source, result, rule_severities);
+        try appendJsonResultDiagnostics(allocator, json_diagnostics, path, source, result, effective_rule_severities, stats);
+        return appendJsonResultSuppressedDiagnostics(allocator, json_suppressed_diagnostics, path, source, result, effective_rule_severities);
     }
 
-    var fixed = try lint.lintSourceAndFixWithIo(allocator, io, source, path, options);
+    var fixed = try lint.lintSourceAndFixWithIo(allocator, io, source, path, effective_options);
     defer fixed.deinit(allocator);
 
     if (fixed.fixed) {
@@ -2139,8 +2258,8 @@ fn lintFileJson(
         try appendJsonOutput(allocator, json_outputs, path, fixed.output);
     }
 
-    try appendJsonResultDiagnostics(allocator, json_diagnostics, path, fixed.output, fixed.result, rule_severities, stats);
-    try appendJsonResultSuppressedDiagnostics(allocator, json_suppressed_diagnostics, path, fixed.output, fixed.result, rule_severities);
+    try appendJsonResultDiagnostics(allocator, json_diagnostics, path, fixed.output, fixed.result, effective_rule_severities, stats);
+    try appendJsonResultSuppressedDiagnostics(allocator, json_suppressed_diagnostics, path, fixed.output, fixed.result, effective_rule_severities);
 }
 
 fn lintFile(
@@ -2149,11 +2268,17 @@ fn lintFile(
     path: []const u8,
     options: lint.Options,
     rule_severities: *const RuleSeverityMap,
+    config: ?*const flat_config.FlatConfig,
     fix_mode: FixMode,
     use_color: bool,
     stats: *Stats,
     print_mutex: ?*std.Io.Mutex,
 ) !void {
+    var resolved_config = if (config) |loaded| try loaded.resolveForFile(allocator, path) else null;
+    defer if (resolved_config) |*resolved| resolved.deinit(allocator);
+    const effective_options = if (resolved_config) |*resolved| resolved.options else options;
+    const effective_rule_severities = if (resolved_config) |*resolved| &resolved.rule_severities else rule_severities;
+
     const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_file_size)) catch |err| {
         printLocked(io, print_mutex, "{s}: unable to read file: {s}\n", .{ path, @errorName(err) });
         stats.errors += 1;
@@ -2165,12 +2290,12 @@ fn lintFile(
     stats.files += 1;
 
     if (fix_mode == .none) {
-        var result = try lint.lintSourceWithIo(allocator, io, source, path, options);
+        var result = try lint.lintSourceWithIo(allocator, io, source, path, effective_options);
         defer result.deinit(allocator);
-        return printResultDiagnostics(allocator, io, print_mutex, path, source, result, rule_severities, use_color, stats);
+        return printResultDiagnostics(allocator, io, print_mutex, path, source, result, effective_rule_severities, use_color, stats);
     }
 
-    var fixed = try lint.lintSourceAndFixWithIo(allocator, io, source, path, options);
+    var fixed = try lint.lintSourceAndFixWithIo(allocator, io, source, path, effective_options);
     defer fixed.deinit(allocator);
 
     if (fixed.fixed) {
@@ -2180,7 +2305,7 @@ fn lintFile(
         }
     }
 
-    try printResultDiagnostics(allocator, io, print_mutex, path, fixed.output, fixed.result, rule_severities, use_color, stats);
+    try printResultDiagnostics(allocator, io, print_mutex, path, fixed.output, fixed.result, effective_rule_severities, use_color, stats);
 }
 
 fn printResultDiagnostics(
