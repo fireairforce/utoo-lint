@@ -148,6 +148,28 @@ test "autofix does not apply fixes from suppressed diagnostics" {
     try std.testing.expectEqual(@as(usize, 1), fixed.result.suppressed_diagnostics.len);
 }
 
+test "overlapping ESLint directives preserve every suppression" {
+    const source =
+        \\/* eslint-disable no-extra-semi -- generated */
+        \\const value = 1;; // eslint-disable-line no-extra-semi -- intentional
+        \\void value;
+    ;
+
+    var options = lint.Options.allDisabled();
+    options.no_extra_semi = true;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), result.diagnostics.len);
+    try std.testing.expectEqual(@as(usize, 1), result.suppressed_diagnostics.len);
+    const suppressions = result.suppressed_diagnostics[0].suppressions;
+    try std.testing.expectEqual(@as(usize, 2), suppressions.len);
+    try std.testing.expectEqualStrings("generated", suppressions[0].justification);
+    try std.testing.expectEqualStrings("intentional", suppressions[1].justification);
+    try std.testing.expectEqualStrings("intentional", result.suppressed_diagnostics[0].suppression.?.justification);
+}
+
 test "utlint-ignore-all suppresses a named rule throughout the file" {
     const source =
         \\// utlint-ignore-all no-debugger: generated file

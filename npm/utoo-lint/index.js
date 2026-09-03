@@ -4807,10 +4807,12 @@ function diagnosticToESLintMessage(diagnostic, ruleSeverities) {
 function suppressedDiagnosticToESLintMessage(diagnostic, ruleSeverities) {
   return {
     ...diagnosticToESLintMessage(diagnostic, ruleSeverities),
-    suppressions: [{
-      kind: diagnostic.suppression?.kind ?? "directive",
-      justification: diagnostic.suppression?.justification ?? ""
-    }]
+    suppressions: diagnostic.suppressions?.length > 0
+      ? diagnostic.suppressions
+      : [{
+          kind: diagnostic.suppression?.kind ?? "directive",
+          justification: diagnostic.suppression?.justification ?? ""
+        }]
   };
 }
 

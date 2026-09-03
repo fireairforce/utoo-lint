@@ -609,6 +609,47 @@ test("ESLint directives accept ECMAScript whitespace", async () => {
   ]);
 });
 
+test("ESM and CommonJS ESLint report every overlapping disable directive", async () => {
+  const source = [
+    "/* eslint-disable no-extra-semi -- generated */",
+    "const value = 1;; // eslint-disable-line no-extra-semi -- intentional",
+    "void value;",
+    ""
+  ].join("\n");
+  for (const ESLintImplementation of [ESLint, CommonJSESLint]) {
+    const eslint = new ESLintImplementation({
+      binary: testBinary(),
+      noConfig: true,
+      overrideConfig: {
+        rules: {
+          "no-extra-semi": "error",
+          "no-unused-vars": "off"
+        }
+      }
+    });
+
+    const [result] = await eslint.lintText(source, { filePath: "overlapping-directives.js" });
+    assert.deepEqual(result.messages, []);
+    assert.equal(result.suppressedMessages.length, 1);
+    assert.deepEqual(result.suppressedMessages[0].suppressions, [
+      { kind: "directive", justification: "generated" },
+      { kind: "directive", justification: "intentional" }
+    ]);
+  }
+
+  const report = lintText(source, {
+    binary: testBinary(),
+    noConfig: true,
+    filePath: "overlapping-directives.js",
+    overrideConfig: { rules: { "no-extra-semi": "error" } }
+  });
+  assert.equal(report.suppressedDiagnostics[0].suppression.justification, "intentional");
+  assert.deepEqual(report.suppressedDiagnostics[0].suppressions, [
+    { kind: "directive", justification: "generated" },
+    { kind: "directive", justification: "intentional" }
+  ]);
+});
+
 test("lintText returns suppressed native diagnostics with the requested file path", () => {
   const report = lintText(
     "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",

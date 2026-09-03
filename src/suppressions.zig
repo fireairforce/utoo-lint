@@ -54,12 +54,34 @@ pub fn apply(
     var line_starts = try collectLineStarts(allocator, tree.source);
     defer line_starts.deinit(allocator);
 
-    const decisions = try allocator.alloc(?core.Suppression, diagnostics.items.len);
-    defer allocator.free(decisions);
+    const decisions = try allocator.alloc(std.ArrayList([]const u8), diagnostics.items.len);
+    var initialized_decisions: usize = 0;
+    defer {
+        for (decisions[0..initialized_decisions]) |*decision| decision.deinit(allocator);
+        allocator.free(decisions);
+    }
+    const primary_decision_indices = try allocator.alloc(usize, diagnostics.items.len);
+    defer allocator.free(primary_decision_indices);
     var suppressed_count: usize = 0;
     for (diagnostics.items, 0..) |diagnostic, index| {
-        decisions[index] = suppressionFor(directives.items, line_starts.items, diagnostic);
-        if (decisions[index] != null) suppressed_count += 1;
+        decisions[index] = .empty;
+        initialized_decisions += 1;
+        if (suppressionFor(directives.items, line_starts.items, diagnostic)) |suppression| {
+            try appendEslintSuppressionsFor(
+                allocator,
+                &decisions[index],
+                directives.items,
+                line_starts.items,
+                diagnostic,
+            );
+            if (decisions[index].items.len == 0) {
+                try decisions[index].append(allocator, suppression.justification);
+            }
+            primary_decision_indices[index] = for (decisions[index].items, 0..) |justification, suppression_index| {
+                if (std.mem.eql(u8, justification, suppression.justification)) break suppression_index;
+            } else 0;
+            suppressed_count += 1;
+        }
     }
     if (suppressed_count == 0) return;
 
@@ -68,27 +90,41 @@ pub fn apply(
     try kept.ensureTotalCapacity(allocator, diagnostics.items.len);
     try suppressed_diagnostics.ensureUnusedCapacity(allocator, suppressed_count);
 
-    const owned_justifications = try allocator.alloc(?[]u8, diagnostics.items.len);
-    @memset(owned_justifications, null);
+    const owned_suppressions = try allocator.alloc(?[]core.Suppression, diagnostics.items.len);
+    @memset(owned_suppressions, null);
     var ownership_transferred = false;
     defer {
         if (!ownership_transferred) {
-            for (owned_justifications) |justification| {
-                if (justification) |owned| allocator.free(owned);
+            for (owned_suppressions) |maybe_suppressions| {
+                if (maybe_suppressions) |owned| {
+                    for (owned) |suppression| allocator.free(suppression.justification);
+                    allocator.free(owned);
+                }
             }
         }
-        allocator.free(owned_justifications);
+        allocator.free(owned_suppressions);
     }
     for (decisions, 0..) |decision, index| {
-        if (decision) |suppression| {
-            owned_justifications[index] = try allocator.dupe(u8, suppression.justification);
+        if (decision.items.len == 0) continue;
+
+        const owned = try allocator.alloc(core.Suppression, decision.items.len);
+        var initialized_suppressions: usize = 0;
+        errdefer {
+            for (owned[0..initialized_suppressions]) |suppression| allocator.free(suppression.justification);
+            allocator.free(owned);
         }
+        for (decision.items, 0..) |justification, suppression_index| {
+            owned[suppression_index] = .{ .justification = try allocator.dupe(u8, justification) };
+            initialized_suppressions += 1;
+        }
+        owned_suppressions[index] = owned;
     }
 
     for (diagnostics.items, 0..) |item, index| {
         var diagnostic = item;
-        if (owned_justifications[index]) |justification| {
-            diagnostic.suppression = .{ .justification = justification };
+        if (owned_suppressions[index]) |items| {
+            diagnostic.suppression = items[primary_decision_indices[index]];
+            diagnostic.suppressions = items;
             suppressed_diagnostics.appendAssumeCapacity(diagnostic);
         } else {
             kept.appendAssumeCapacity(diagnostic);
@@ -98,6 +134,64 @@ pub fn apply(
 
     diagnostics.deinit(allocator);
     diagnostics.* = kept;
+}
+
+fn appendEslintSuppressionsFor(
+    allocator: Allocator,
+    suppressions: *std.ArrayList([]const u8),
+    directives: []const Directive,
+    line_starts: []const u32,
+    diagnostic: core.Diagnostic,
+) Allocator.Error!void {
+    if (std.mem.eql(u8, diagnostic.rule_id, "parse")) return;
+
+    const diagnostic_line = lineAtOffset(line_starts, diagnostic.span.start);
+    var range_matches: std.ArrayList(usize) = .empty;
+    defer range_matches.deinit(allocator);
+    var line_matches: std.ArrayList(usize) = .empty;
+    defer line_matches.deinit(allocator);
+
+    for (directives, 0..) |directive, index| {
+        if (directive.kind == .eslint_disable_line or directive.kind == .eslint_disable_next_line) {
+            const directive_offset = if (directive.kind == .eslint_disable_next_line and directive.span_end > directive.span_start)
+                directive.span_end - 1
+            else
+                directive.span_start;
+            const directive_line = lineAtOffset(line_starts, directive_offset);
+            const target_line = directive_line + @intFromBool(directive.kind == .eslint_disable_next_line);
+            if (target_line == diagnostic_line and directive.target.matches(diagnostic.rule_id)) {
+                try line_matches.append(allocator, index);
+            }
+            continue;
+        }
+        if (directive.span_start > diagnostic.span.start) continue;
+
+        switch (directive.kind) {
+            .eslint_disable => {
+                if (directive.target.matches(diagnostic.rule_id)) try range_matches.append(allocator, index);
+            },
+            .eslint_enable => {
+                if (directive.target.matches(diagnostic.rule_id)) range_matches.clearRetainingCapacity();
+            },
+            else => {},
+        }
+    }
+
+    var range_index: usize = 0;
+    var line_index: usize = 0;
+    while (range_index < range_matches.items.len or line_index < line_matches.items.len) {
+        const selected = if (line_index >= line_matches.items.len or
+            (range_index < range_matches.items.len and range_matches.items[range_index] < line_matches.items[line_index]))
+            range_matches.items[range_index]
+        else
+            line_matches.items[line_index];
+        if (range_index < range_matches.items.len and selected == range_matches.items[range_index]) {
+            range_index += 1;
+        } else {
+            line_index += 1;
+        }
+        try suppressions.append(allocator, directives[selected].target.justification);
+    }
 }
 
 fn collectDirectives(allocator: Allocator, tree: *const ast.Tree) Allocator.Error!std.ArrayList(Directive) {

@@ -10362,6 +10362,7 @@ pub const Diagnostic = struct {
     fixes: []Fix,
     suggestions: []Suggestion = &.{},
     suppression: ?Suppression = null,
+    suppressions: []Suppression = &.{},
 };
 
 pub const Suppression = struct {
@@ -10601,7 +10602,12 @@ pub fn freeDiagnostic(allocator: Allocator, diagnostic: Diagnostic) void {
     allocator.free(diagnostic.message);
     freeFixes(allocator, diagnostic.fixes);
     freeSuggestions(allocator, diagnostic.suggestions);
-    if (diagnostic.suppression) |suppression| allocator.free(suppression.justification);
+    if (diagnostic.suppressions.len > 0) {
+        for (diagnostic.suppressions) |suppression| allocator.free(suppression.justification);
+        allocator.free(diagnostic.suppressions);
+    } else if (diagnostic.suppression) |suppression| {
+        allocator.free(suppression.justification);
+    }
 }
 
 pub fn freeDiagnosticSlice(allocator: Allocator, diagnostics: []Diagnostic) void {
