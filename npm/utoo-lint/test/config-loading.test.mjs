@@ -449,6 +449,67 @@ test("ESLint directives inside template interpolations suppress native diagnosti
   assert.equal(result.suppressedMessages[0].ruleId, "no-undef");
 });
 
+test("multiline eslint-disable-next-line starts after the block comment", async () => {
+  const source = [
+    "/* eslint-disable-next-line",
+    "   no-extra-semi */",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "multiline.js" });
+  assert.equal(result.output, undefined);
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.equal(result.suppressedMessages[0].ruleId, "no-extra-semi");
+});
+
+test("eslint-disable-next-line recognizes every JavaScript line terminator", async (t) => {
+  for (const [name, lineTerminator] of [
+    ["carriage return", "\r"],
+    ["line separator", "\u2028"],
+    ["paragraph separator", "\u2029"]
+  ]) {
+    await t.test(name, async () => {
+      const source = [
+        "// eslint-disable-next-line no-extra-semi",
+        "const value = 1;;",
+        "void value;",
+        ""
+      ].join(lineTerminator);
+      const eslint = new ESLint({
+        binary: testBinary(),
+        fix: true,
+        noConfig: true,
+        overrideConfig: {
+          rules: {
+            "no-extra-semi": "error",
+            "no-unused-vars": "off"
+          }
+        }
+      });
+
+      const [result] = await eslint.lintText(source, { filePath: `${name}.js` });
+      assert.equal(result.output, undefined);
+      assert.deepEqual(result.messages, []);
+      assert.equal(result.suppressedMessages.length, 1);
+      assert.equal(result.suppressedMessages[0].ruleId, "no-extra-semi");
+    });
+  }
+});
+
 test("lintText returns suppressed native diagnostics with the requested file path", () => {
   const report = lintText(
     "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",

@@ -34,6 +34,7 @@ const Directive = struct {
     kind: DirectiveKind,
     target: DirectiveTarget,
     span_start: u32,
+    span_end: u32,
     next_code_offset: ?u32 = null,
     top_level: bool = false,
 };
@@ -110,13 +111,14 @@ fn collectDirectives(allocator: Allocator, tree: *const ast.Tree) Allocator.Erro
                 .kind = parsed.kind,
                 .target = parsed.target,
                 .span_start = comment.span.start,
+                .span_end = comment.span.end,
                 .next_code_offset = if (parsed.kind == .ignore) nextCodeOffset(tree, comment.span.end) else null,
                 .top_level = parsed.kind == .ignore_all and isTopLevelComment(tree, comment),
             });
             continue;
         }
         if (parseEslintDirective(value, comment.type)) |parsed| {
-            try appendEslintDirectiveTargets(allocator, &directives, parsed, comment.span.start);
+            try appendEslintDirectiveTargets(allocator, &directives, parsed, comment.span.start, comment.span.end);
         }
     }
 
@@ -191,12 +193,14 @@ fn appendEslintDirectiveTargets(
     directives: *std.ArrayList(Directive),
     parsed: ParsedEslintDirective,
     span_start: u32,
+    span_end: u32,
 ) Allocator.Error!void {
     if (parsed.rules.len == 0) {
         try directives.append(allocator, .{
             .kind = parsed.kind,
             .target = .{ .rule_id = null, .justification = parsed.justification },
             .span_start = span_start,
+            .span_end = span_end,
         });
         return;
     }
@@ -209,6 +213,7 @@ fn appendEslintDirectiveTargets(
             .kind = parsed.kind,
             .target = .{ .rule_id = rule_id, .justification = parsed.justification },
             .span_start = span_start,
+            .span_end = span_end,
         });
     }
 }
@@ -250,7 +255,11 @@ fn suppressionFor(
 
     for (directives) |directive| {
         if (directive.kind == .eslint_disable_line or directive.kind == .eslint_disable_next_line) {
-            const directive_line = lineAtOffset(line_starts, directive.span_start);
+            const directive_offset = if (directive.kind == .eslint_disable_next_line and directive.span_end > directive.span_start)
+                directive.span_end - 1
+            else
+                directive.span_start;
+            const directive_line = lineAtOffset(line_starts, directive_offset);
             const target_line = directive_line + @intFromBool(directive.kind == .eslint_disable_next_line);
             if (target_line == diagnostic_line and directive.target.matches(diagnostic.rule_id)) {
                 return .{ .justification = directive.target.justification };
@@ -375,8 +384,25 @@ fn collectLineStarts(allocator: Allocator, source: []const u8) Allocator.Error!s
     var starts: std.ArrayList(u32) = .empty;
     errdefer starts.deinit(allocator);
     try starts.append(allocator, 0);
-    for (source, 0..) |byte, index| {
-        if (byte == '\n' and index + 1 < source.len) try starts.append(allocator, @intCast(index + 1));
+
+    var index: usize = 0;
+    while (index < source.len) {
+        const terminator_len: usize = if (source[index] == '\r')
+            if (index + 1 < source.len and source[index + 1] == '\n') 2 else 1
+        else if (source[index] == '\n')
+            1
+        else if (index + 2 < source.len and source[index] == 0xe2 and source[index + 1] == 0x80 and
+            (source[index + 2] == 0xa8 or source[index + 2] == 0xa9))
+            3
+        else
+            0;
+        if (terminator_len == 0) {
+            index += 1;
+            continue;
+        }
+
+        index += terminator_len;
+        if (index < source.len) try starts.append(allocator, @intCast(index));
     }
     return starts;
 }
