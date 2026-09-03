@@ -69,9 +69,11 @@ const {
 );
 const {
   initialLintVersion,
+  LATEST_LINT_VERSION,
   lintVersionManifestUrl,
   lintVersionUrl,
   parseLintVersionCatalog,
+  resolveLintVersion,
 } = await import(
   pathToFileURL(join(outputDirectory, 'playground', 'versions.js')).href
 );
@@ -239,7 +241,7 @@ test('loads versioned WebAssembly URLs and defaults to the latest release', () =
   );
   assert.equal(
     initialLintVersion(catalog, 'https://example.test/playground/'),
-    '0.3.4',
+    LATEST_LINT_VERSION,
   );
   assert.equal(
     initialLintVersion(
@@ -253,16 +255,17 @@ test('loads versioned WebAssembly URLs and defaults to the latest release', () =
       catalog,
       'https://example.test/playground/?version=0.2.9',
     ),
-    '0.3.4',
+    LATEST_LINT_VERSION,
   );
+  assert.equal(resolveLintVersion(catalog, LATEST_LINT_VERSION)?.id, '0.3.4');
+  assert.equal(resolveLintVersion(catalog, '0.3.3')?.id, '0.3.3');
 });
 
-test('keeps old version selections in the URL but leaves latest implicit', () => {
+test('pins concrete version selections but leaves the latest channel implicit', () => {
   assert.equal(
     lintVersionUrl(
       'https://example.test/playground/?theme=dark#playground=state',
       '0.3.3',
-      '0.3.4',
     ),
     'https://example.test/playground/?theme=dark&version=0.3.3#playground=state',
   );
@@ -270,7 +273,13 @@ test('keeps old version selections in the URL but leaves latest implicit', () =>
     lintVersionUrl(
       'https://example.test/playground/?theme=dark&version=0.3.3#playground=state',
       '0.3.4',
-      '0.3.4',
+    ),
+    'https://example.test/playground/?theme=dark&version=0.3.4#playground=state',
+  );
+  assert.equal(
+    lintVersionUrl(
+      'https://example.test/playground/?theme=dark&version=0.3.3#playground=state',
+      LATEST_LINT_VERSION,
     ),
     'https://example.test/playground/?theme=dark#playground=state',
   );

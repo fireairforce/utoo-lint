@@ -31,10 +31,11 @@ previously verified local manifest and its cached assets are reused:
 pnpm playground:dev
 ```
 
-The newest stable version is selected by default. Selecting an older version
-adds `?version=<version>` to the Playground URL so the same engine can be
-reopened or shared. The Utoopack development URL is printed in the terminal.
-Open the `/playground` route rather than the server root.
+The `latest` channel is selected by default and follows the newest stable
+version. Selecting a concrete version adds `?version=<version>` to the
+Playground URL so the same engine can be reopened or shared even after a newer
+release. The Utoopack development URL is printed in the terminal. Open the
+`/playground` route rather than the server root.
 
 ## Verify and build
 
