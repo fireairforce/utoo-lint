@@ -8,7 +8,8 @@
     "bench": "node scripts/run-benchmark.mjs",
     "bench:config-discovery": "node scripts/run-codspeed.mjs --config-only",
     "chart": "node scripts/render-chart.mjs",
-    "codspeed": "node scripts/run-codspeed.mjs"
+    "codspeed": "node scripts/run-all-codspeed.mjs",
+    "codspeed:severity-config": "node scripts/run-severity-config-codspeed.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.16",
