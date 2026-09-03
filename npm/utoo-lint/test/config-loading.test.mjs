@@ -510,6 +510,31 @@ test("eslint-disable-next-line recognizes every JavaScript line terminator", asy
   }
 });
 
+test("multiline eslint-disable-line does not suppress diagnostics", async () => {
+  const source = [
+    "const value = 1;; /* eslint-disable-line",
+    "   no-extra-semi */",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "invalid-directive.js" });
+  assert.equal(result.output, source.replace("const value = 1;;", "const value = 1;"));
+  assert.deepEqual(result.messages, []);
+  assert.deepEqual(result.suppressedMessages, []);
+});
+
 test("lintText returns suppressed native diagnostics with the requested file path", () => {
   const report = lintText(
     "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",

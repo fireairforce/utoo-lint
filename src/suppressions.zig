@@ -118,6 +118,11 @@ fn collectDirectives(allocator: Allocator, tree: *const ast.Tree) Allocator.Erro
             continue;
         }
         if (parseEslintDirective(value, comment.type)) |parsed| {
+            if (parsed.kind == .eslint_disable_line and comment.type == .block and
+                containsLineTerminator(tree.source[@intCast(comment.span.start)..@intCast(comment.span.end)]))
+            {
+                continue;
+            }
             try appendEslintDirectiveTargets(allocator, &directives, parsed, comment.span.start, comment.span.end);
         }
     }
@@ -387,15 +392,7 @@ fn collectLineStarts(allocator: Allocator, source: []const u8) Allocator.Error!s
 
     var index: usize = 0;
     while (index < source.len) {
-        const terminator_len: usize = if (source[index] == '\r')
-            if (index + 1 < source.len and source[index + 1] == '\n') 2 else 1
-        else if (source[index] == '\n')
-            1
-        else if (index + 2 < source.len and source[index] == 0xe2 and source[index + 1] == 0x80 and
-            (source[index + 2] == 0xa8 or source[index + 2] == 0xa9))
-            3
-        else
-            0;
+        const terminator_len = lineTerminatorLengthAt(source, index);
         if (terminator_len == 0) {
             index += 1;
             continue;
@@ -405,6 +402,29 @@ fn collectLineStarts(allocator: Allocator, source: []const u8) Allocator.Error!s
         if (index < source.len) try starts.append(allocator, @intCast(index));
     }
     return starts;
+}
+
+fn containsLineTerminator(source: []const u8) bool {
+    var index: usize = 0;
+    while (index < source.len) {
+        const terminator_len = lineTerminatorLengthAt(source, index);
+        if (terminator_len > 0) return true;
+        index += 1;
+    }
+    return false;
+}
+
+fn lineTerminatorLengthAt(source: []const u8, index: usize) usize {
+    if (source[index] == '\r') {
+        return if (index + 1 < source.len and source[index + 1] == '\n') 2 else 1;
+    }
+    if (source[index] == '\n') return 1;
+    if (index + 2 < source.len and source[index] == 0xe2 and source[index + 1] == 0x80 and
+        (source[index + 2] == 0xa8 or source[index + 2] == 0xa9))
+    {
+        return 3;
+    }
+    return 0;
 }
 
 fn lineAtOffset(line_starts: []const u32, offset: u32) usize {
