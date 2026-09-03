@@ -14,6 +14,7 @@ const version = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf8")
 
 const LINTABLE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"]);
 const MAX_AUTOFIX_PASSES = 10;
+const CONFIG_DISCOVERY_CACHE = Symbol("configDiscoveryCache");
 const JS_KEYWORDS = new Set([
   "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete",
   "do", "else", "export", "extends", "finally", "for", "function", "if", "import", "in",
@@ -569,7 +570,7 @@ class UtooLint {
   }
 
   async isPathIgnored(filePath) {
-    return isPathIgnored(filePath, mergeLintOptions(this.options, {}));
+    return isPathIgnored(filePath, withConfigCache(mergeLintOptions(this.options, {})));
   }
 
   async calculateConfigForFile(filePath) {
@@ -577,7 +578,7 @@ class UtooLint {
   }
 
   async findConfigFile(filePath) {
-    const options = eslintConstructorOptions(this.options);
+    const options = withConfigCache(eslintConstructorOptions(this.options));
     if (options.noConfig) {
       return undefined;
     }
@@ -711,7 +712,7 @@ class CLIEngine {
   }
 
   isPathIgnored(filePath) {
-    return isPathIgnored(filePath, eslintConstructorOptions(this.options));
+    return isPathIgnored(filePath, withConfigCache(eslintConstructorOptions(this.options)));
   }
 
   getConfigForFile(filePath) {
@@ -1509,9 +1510,17 @@ function mergeLintOptions(base, override) {
 }
 
 function withConfigCache(options) {
-  // Executable configs are otherwise re-evaluated at every per-file lookup.
-  // Keep the cache on the options object so one public invocation shares it.
-  return options.configCache ? options : { ...options, configCache: new Map() };
+  if (options.configCache && options[CONFIG_DISCOVERY_CACHE]) {
+    return options;
+  }
+
+  return {
+    ...options,
+    // Executable configs are otherwise re-evaluated at every per-file lookup.
+    configCache: options.configCache ?? new Map(),
+    // Discovery results must not survive into a later public invocation.
+    [CONFIG_DISCOVERY_CACHE]: new Map()
+  };
 }
 
 function eslintConstructorOptions(options) {
@@ -1852,7 +1861,7 @@ function configPathForOptions(options) {
   }
 
   const cwd = options.cwd ?? process.cwd();
-  return configPathFromDirectory(cwd);
+  return configPathFromDirectory(cwd, options);
 }
 
 function configPathForFile(options, filePath) {
@@ -1862,7 +1871,7 @@ function configPathForFile(options, filePath) {
   if (options.config) {
     return resolvePath(options.cwd ?? process.cwd(), options.config);
   }
-  return configPathFromDirectory(configSearchDirectoryForFile(filePath, options.cwd));
+  return configPathFromDirectory(configSearchDirectoryForFile(filePath, options.cwd), options);
 }
 
 function configSearchDirectoryForFile(filePath, cwd) {
@@ -1877,8 +1886,8 @@ function configSearchDirectoryForFile(filePath, cwd) {
   return dirname(absolute);
 }
 
-function configPathFromDirectory(directory) {
-  return findConfigPathFromDirectory(directory);
+function configPathFromDirectory(directory, options) {
+  return findConfigPathFromDirectory(directory, options[CONFIG_DISCOVERY_CACHE]);
 }
 
 function withTemporaryConfig(options, callback) {

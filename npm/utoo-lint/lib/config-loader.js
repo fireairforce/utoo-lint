@@ -14,21 +14,34 @@ const TYPESCRIPT_CONFIG_EXTENSIONS = new Set([".ts", ".mts", ".cts"]);
 const JAVASCRIPT_CONFIG_EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
 const loaderPath = fileURLToPath(new URL("./load-config.js", import.meta.url));
 
-export function findConfigPath(directory) {
+export function findConfigPath(directory, cache) {
   let current = resolvePath(directory);
+  const visited = [];
   while (true) {
+    if (cache?.has(current)) {
+      return cacheConfigPath(cache, visited, cache.get(current));
+    }
+
+    visited.push(current);
     for (const filename of CONFIG_FILENAMES) {
       const candidate = resolvePath(current, filename);
       if (isFile(candidate)) {
-        return candidate;
+        return cacheConfigPath(cache, visited, candidate);
       }
     }
     const parent = dirname(current);
     if (parent === current) {
-      return undefined;
+      return cacheConfigPath(cache, visited, undefined);
     }
     current = parent;
   }
+}
+
+function cacheConfigPath(cache, directories, configPath) {
+  for (const directory of directories) {
+    cache?.set(directory, configPath);
+  }
+  return configPath;
 }
 
 function isFile(path) {

@@ -24,7 +24,12 @@ including the target file count and the shared rule list used for that run.
 ```bash
 npm run generate -- --files=2000 --statements=40
 npm run bench -- --runs=10 --warmups=3
+npm run bench:config-discovery -- --time=1000 --warmup-time=500
 ```
+
+The config-discovery benchmark models 1,000 lint inputs spread across 100
+package directories. It reports both uncached upward searches and the
+per-invocation directory cache used by the npm wrapper.
 
 The default `utoo-lint` command is `../zig-out/bin/utoo-lint fixtures/src`.
 Override it with:
