@@ -369,6 +369,86 @@ test("CLIEngine.executeOnFiles applies eslint-disable directives to native diagn
   assert.equal(report.results[0].suppressedMessages[0].ruleId, "no-param-reassign");
 });
 
+test("ESLint fix mode does not apply fixes disabled by eslint directives", async () => {
+  const source = "const value = 1;; // eslint-disable-line no-extra-semi\nconsole.log(value);\n";
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-console": "off",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "suppressed.js" });
+  assert.equal(result.output, undefined);
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.equal(result.suppressedMessages[0].ruleId, "no-extra-semi");
+});
+
+test("ESLint fix mode honors disable ranges with selective enables", async () => {
+  const source = [
+    "/* eslint-disable -- generated code */",
+    "const first = 1;;",
+    "/* eslint-enable no-extra-semi */",
+    "const second = 2;;",
+    "void first;",
+    "void second;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "suppressed.js" });
+  assert.equal(result.output, source.replace("const second = 2;;", "const second = 2;"));
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.equal(result.suppressedMessages[0].ruleId, "no-extra-semi");
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "generated code" }
+  ]);
+});
+
+test("ESLint directives inside template interpolations suppress native diagnostics", async () => {
+  const source = [
+    "const text = `${",
+    "  // eslint-disable-next-line no-console, no-undef",
+    "  missingValue",
+    "}`;",
+    "void text;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-undef": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "template.js" });
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.equal(result.suppressedMessages[0].ruleId, "no-undef");
+});
+
 test("lintText returns suppressed native diagnostics with the requested file path", () => {
   const report = lintText(
     "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",

@@ -10,6 +10,10 @@ const DirectiveKind = enum {
     ignore_all,
     ignore_start,
     ignore_end,
+    eslint_disable,
+    eslint_enable,
+    eslint_disable_line,
+    eslint_disable_next_line,
 };
 
 const DirectiveTarget = struct {
@@ -100,14 +104,20 @@ fn collectDirectives(allocator: Allocator, tree: *const ast.Tree) Allocator.Erro
     errdefer directives.deinit(allocator);
 
     for (tree.comments) |comment| {
-        const parsed = parseCommentDirective(tree.string(comment.value)) orelse continue;
-        try directives.append(allocator, .{
-            .kind = parsed.kind,
-            .target = parsed.target,
-            .span_start = comment.span.start,
-            .next_code_offset = if (parsed.kind == .ignore) nextCodeOffset(tree, comment.span.end) else null,
-            .top_level = parsed.kind == .ignore_all and isTopLevelComment(tree, comment),
-        });
+        const value = tree.string(comment.value);
+        if (parseCommentDirective(value)) |parsed| {
+            try directives.append(allocator, .{
+                .kind = parsed.kind,
+                .target = parsed.target,
+                .span_start = comment.span.start,
+                .next_code_offset = if (parsed.kind == .ignore) nextCodeOffset(tree, comment.span.end) else null,
+                .top_level = parsed.kind == .ignore_all and isTopLevelComment(tree, comment),
+            });
+            continue;
+        }
+        if (parseEslintDirective(value, comment.type)) |parsed| {
+            try appendEslintDirectiveTargets(allocator, &directives, parsed, comment.span.start);
+        }
     }
 
     return directives;
@@ -126,6 +136,81 @@ fn parseCommentDirective(value: []const u8) ?ParsedDirective {
         }
     }
     return null;
+}
+
+const ParsedEslintDirective = struct {
+    kind: DirectiveKind,
+    rules: []const u8,
+    justification: []const u8,
+};
+
+fn parseEslintDirective(value: []const u8, comment_type: ast.Comment.Type) ?ParsedEslintDirective {
+    const trimmed = std.mem.trim(u8, value, " \t\r\n");
+    const kinds = [_]struct { prefix: []const u8, kind: DirectiveKind }{
+        .{ .prefix = "eslint-disable-next-line", .kind = .eslint_disable_next_line },
+        .{ .prefix = "eslint-disable-line", .kind = .eslint_disable_line },
+        .{ .prefix = "eslint-disable", .kind = .eslint_disable },
+        .{ .prefix = "eslint-enable", .kind = .eslint_enable },
+    };
+    for (kinds) |entry| {
+        if (!std.mem.startsWith(u8, trimmed, entry.prefix)) continue;
+        if (trimmed.len > entry.prefix.len and !std.ascii.isWhitespace(trimmed[entry.prefix.len])) continue;
+        if (comment_type == .line and (entry.kind == .eslint_disable or entry.kind == .eslint_enable)) continue;
+
+        const tail = trimmed[entry.prefix.len..];
+        const separator = eslintDescriptionSeparator(tail);
+        return .{
+            .kind = entry.kind,
+            .rules = std.mem.trim(u8, if (separator) |item| tail[0..item.start] else tail, " \t\r\n"),
+            .justification = if (separator) |item| std.mem.trim(u8, tail[item.end..], " \t\r\n") else "",
+        };
+    }
+    return null;
+}
+
+const DescriptionSeparator = struct {
+    start: usize,
+    end: usize,
+};
+
+fn eslintDescriptionSeparator(value: []const u8) ?DescriptionSeparator {
+    var index: usize = 0;
+    while (index < value.len) : (index += 1) {
+        if (!std.ascii.isWhitespace(value[index])) continue;
+
+        var end = index + 1;
+        while (end < value.len and value[end] == '-') : (end += 1) {}
+        if (end < index + 3 or end >= value.len or !std.ascii.isWhitespace(value[end])) continue;
+        return .{ .start = index, .end = end + 1 };
+    }
+    return null;
+}
+
+fn appendEslintDirectiveTargets(
+    allocator: Allocator,
+    directives: *std.ArrayList(Directive),
+    parsed: ParsedEslintDirective,
+    span_start: u32,
+) Allocator.Error!void {
+    if (parsed.rules.len == 0) {
+        try directives.append(allocator, .{
+            .kind = parsed.kind,
+            .target = .{ .rule_id = null, .justification = parsed.justification },
+            .span_start = span_start,
+        });
+        return;
+    }
+
+    var rules = std.mem.splitScalar(u8, parsed.rules, ',');
+    while (rules.next()) |raw_rule_id| {
+        const rule_id = std.mem.trim(u8, raw_rule_id, " \t\r\n");
+        if (rule_id.len == 0) continue;
+        try directives.append(allocator, .{
+            .kind = parsed.kind,
+            .target = .{ .rule_id = rule_id, .justification = parsed.justification },
+            .span_start = span_start,
+        });
+    }
 }
 
 fn parseDirectiveTarget(value: []const u8, prefix: []const u8) ?DirectiveTarget {
@@ -159,9 +244,20 @@ fn suppressionFor(
     var named_rule_range_depth: usize = 0;
     var all_rules_range_justification: []const u8 = "";
     var named_rule_range_justification: []const u8 = "";
+    var eslint_all_rules_justification: ?[]const u8 = null;
+    var eslint_named_rule_justification: ?[]const u8 = null;
+    var eslint_rule_enabled_under_all = false;
 
     for (directives) |directive| {
-        if (directive.span_start > diagnostic.span.start) break;
+        if (directive.kind == .eslint_disable_line or directive.kind == .eslint_disable_next_line) {
+            const directive_line = lineAtOffset(line_starts, directive.span_start);
+            const target_line = directive_line + @intFromBool(directive.kind == .eslint_disable_next_line);
+            if (target_line == diagnostic_line and directive.target.matches(diagnostic.rule_id)) {
+                return .{ .justification = directive.target.justification };
+            }
+            continue;
+        }
+        if (directive.span_start > diagnostic.span.start) continue;
 
         switch (directive.kind) {
             .ignore_start => {
@@ -193,11 +289,39 @@ fn suppressionFor(
                     return .{ .justification = directive.target.justification };
                 }
             },
+            .eslint_disable => {
+                if (directive.target.rule_id) |rule_id| {
+                    if (std.mem.eql(u8, rule_id, diagnostic.rule_id)) {
+                        eslint_named_rule_justification = directive.target.justification;
+                        eslint_rule_enabled_under_all = false;
+                    }
+                } else {
+                    eslint_all_rules_justification = directive.target.justification;
+                    eslint_rule_enabled_under_all = false;
+                }
+            },
+            .eslint_enable => {
+                if (directive.target.rule_id) |rule_id| {
+                    if (std.mem.eql(u8, rule_id, diagnostic.rule_id)) {
+                        eslint_named_rule_justification = null;
+                        if (eslint_all_rules_justification != null) eslint_rule_enabled_under_all = true;
+                    }
+                } else {
+                    eslint_all_rules_justification = null;
+                    eslint_named_rule_justification = null;
+                    eslint_rule_enabled_under_all = false;
+                }
+            },
+            .eslint_disable_line, .eslint_disable_next_line => unreachable,
         }
     }
 
     if (named_rule_range_depth > 0) return .{ .justification = named_rule_range_justification };
     if (all_rules_range_depth > 0) return .{ .justification = all_rules_range_justification };
+    if (eslint_named_rule_justification) |justification| return .{ .justification = justification };
+    if (eslint_all_rules_justification) |justification| {
+        if (!eslint_rule_enabled_under_all) return .{ .justification = justification };
+    }
     return null;
 }
 
