@@ -77,7 +77,6 @@ pub fn apply(
             if (std.mem.indexOfScalar(usize, decisions[index].items, primary_directive_index) == null) {
                 try decisions[index].append(allocator, primary_directive_index);
             }
-            std.mem.sort(usize, decisions[index].items, {}, std.sort.asc(usize));
             primary_decision_indices[index] = std.mem.indexOfScalar(
                 usize,
                 decisions[index].items,
@@ -182,21 +181,8 @@ fn appendEslintSuppressionIndicesFor(
         }
     }
 
-    var range_index: usize = 0;
-    var line_index: usize = 0;
-    while (range_index < range_matches.items.len or line_index < line_matches.items.len) {
-        const selected = if (line_index >= line_matches.items.len or
-            (range_index < range_matches.items.len and range_matches.items[range_index] < line_matches.items[line_index]))
-            range_matches.items[range_index]
-        else
-            line_matches.items[line_index];
-        if (range_index < range_matches.items.len and selected == range_matches.items[range_index]) {
-            range_index += 1;
-        } else {
-            line_index += 1;
-        }
-        try suppression_indices.append(allocator, selected);
-    }
+    try suppression_indices.appendSlice(allocator, range_matches.items);
+    try suppression_indices.appendSlice(allocator, line_matches.items);
 }
 
 fn collectDirectives(allocator: Allocator, tree: *const ast.Tree) Allocator.Error!std.ArrayList(Directive) {

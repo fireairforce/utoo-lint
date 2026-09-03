@@ -650,6 +650,22 @@ test("ESM and CommonJS ESLint report every overlapping disable directive", async
   ]);
 });
 
+test("ESLint range suppressions precede earlier same-line suppressions", async () => {
+  const source = "/* eslint-disable-line no-undef -- line */ /* eslint-disable no-undef -- range */ foo();\n";
+  const eslint = new ESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: { rules: { "no-undef": "error" } }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "suppression-order.js" });
+  assert.deepEqual(result.messages, []);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "range" },
+    { kind: "directive", justification: "line" }
+  ]);
+});
+
 test("ESLint disable directives accept empty justifications", async () => {
   const source = [
     "/* eslint-disable no-extra-semi -- */",
