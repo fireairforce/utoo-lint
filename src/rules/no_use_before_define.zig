@@ -61,10 +61,14 @@ pub fn runWithOptions(
     var init_ranges: std.ArrayList(InitRange) = .empty;
     defer init_ranges.deinit(allocator);
 
+    var deferred_initializer_ranges: std.ArrayList(ast.Span) = .empty;
+    defer deferred_initializer_ranges.deinit(allocator);
+
     var visitor = InitVisitor{
         .allocator = allocator,
         .decl_symbols = &decl_symbols,
         .init_ranges = &init_ranges,
+        .deferred_initializer_ranges = &deferred_initializer_ranges,
     };
     try traverser.basic.traverse(InitVisitor, tree, &visitor);
     std.mem.sort(InitRange, init_ranges.items, {}, lessThanInitRange);
@@ -97,7 +101,11 @@ pub fn runWithOptions(
 
         const reference_span = tree.span(reference.node);
         const definition_span = tree.span(decls[0]);
-        if (reference_span.end >= definition_span.end and !isInInitializer(symbol_id, reference_span, init_ranges.items)) {
+        const is_deferred_initializer_reference = crossesFunctionScope(scope_tree, reference.scope, symbol.scope) or
+            isInSpan(reference_span, deferred_initializer_ranges.items);
+        const is_direct_initializer_reference = isInInitializer(symbol_id, reference_span, init_ranges.items) and
+            !is_deferred_initializer_reference;
+        if (reference_span.end >= definition_span.end and !is_direct_initializer_reference) {
             continue;
         }
 
@@ -117,6 +125,7 @@ const InitVisitor = struct {
     allocator: Allocator,
     decl_symbols: *const DeclSymbolMap,
     init_ranges: *std.ArrayList(InitRange),
+    deferred_initializer_ranges: *std.ArrayList(ast.Span),
 
     pub fn enter_variable_declarator(
         self: *InitVisitor,
@@ -126,6 +135,18 @@ const InitVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (declarator.init == .null) return .proceed;
         try self.collectBinding(ctx.tree, declarator.id, ctx.tree.span(declarator.init));
+        return .proceed;
+    }
+
+    pub fn enter_property_definition(
+        self: *InitVisitor,
+        property: ast.PropertyDefinition,
+        _: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (!property.static and property.value != .null) {
+            try self.deferred_initializer_ranges.append(self.allocator, ctx.tree.span(property.value));
+        }
         return .proceed;
     }
 
@@ -226,6 +247,13 @@ fn lowerBoundInitRange(init_ranges: []const InitRange, symbol_id: SymbolId) usiz
 
 fn spanInside(span: ast.Span, container: ast.Span) bool {
     return span.start >= container.start and span.end <= container.end;
+}
+
+fn isInSpan(span: ast.Span, containers: []const ast.Span) bool {
+    for (containers) |container| {
+        if (spanInside(span, container)) return true;
+    }
+    return false;
 }
 
 fn shouldIgnoreVariableReference(

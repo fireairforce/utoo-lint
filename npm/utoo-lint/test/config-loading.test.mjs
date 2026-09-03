@@ -8,10 +8,11 @@ import { fileURLToPath } from "node:url";
 
 import { createRequire } from "node:module";
 
-import { ESLint, Linter, lintFiles, lintText, resolveBinary, run, runCli } from "../index.js";
+import { CLIEngine, ESLint, Linter, lintFiles, lintText, resolveBinary, run, runCli } from "../index.js";
 
 const require = createRequire(import.meta.url);
 const {
+  CLIEngine: CommonJSCLIEngine,
   ESLint: CommonJSESLint,
   Linter: CommonJSLinter,
   run: commonJSRun,
@@ -273,6 +274,99 @@ test("ESM and CommonJS Linter expose suppressed messages", (t) => {
       { kind: "directive", justification: "generated breakpoint" }
     ]);
   }
+});
+
+test("ESLint compatibility APIs apply eslint-disable directives to native diagnostics", async (t) => {
+  const previousBinary = process.env.UTOO_LINT_BIN;
+  process.env.UTOO_LINT_BIN = testBinary();
+  t.after(() => {
+    if (previousBinary === undefined) {
+      delete process.env.UTOO_LINT_BIN;
+    } else {
+      process.env.UTOO_LINT_BIN = previousBinary;
+    }
+  });
+
+  const source = [
+    "export function update(value) {",
+    "  value.count += 1; // eslint-disable-line no-param-reassign -- intentional mutation",
+    "}",
+    ""
+  ].join("\n");
+  const overrideConfig = {
+    rules: {
+      "no-param-reassign": ["error", { props: true }],
+      "no-unused-vars": "off"
+    }
+  };
+
+  for (const ESLintImplementation of [ESLint, CommonJSESLint]) {
+    const eslint = new ESLintImplementation({
+      binary: testBinary(),
+      noConfig: true,
+      overrideConfig
+    });
+    const [result] = await eslint.lintText(source, { filePath: "suppressed.js" });
+    assert.deepEqual(result.messages, []);
+    assert.equal(result.suppressedMessages.length, 1);
+    assert.equal(result.suppressedMessages[0].ruleId, "no-param-reassign");
+    assert.deepEqual(result.suppressedMessages[0].suppressions, [
+      { kind: "directive", justification: "intentional mutation" }
+    ]);
+  }
+
+  for (const LinterImplementation of [Linter, CommonJSLinter]) {
+    const linter = new LinterImplementation();
+    const messages = linter.verify(source, overrideConfig, { filename: "suppressed.js" });
+    assert.deepEqual(messages, []);
+    assert.equal(linter.getSuppressedMessages().length, 1);
+    assert.equal(linter.getSuppressedMessages()[0].ruleId, "no-param-reassign");
+
+    const parseMessages = linter.verify(
+      "/* eslint-disable */\nconst value = ;\n",
+      {},
+      { filename: "broken.js" }
+    );
+    assert.equal(parseMessages.length, 1);
+    assert.equal(parseMessages[0].ruleId, "parse");
+    assert.deepEqual(linter.getSuppressedMessages(), []);
+  }
+
+  for (const CLIEngineImplementation of [CLIEngine, CommonJSCLIEngine]) {
+    const cli = new CLIEngineImplementation({
+      binary: testBinary(),
+      noConfig: true,
+      overrideConfig
+    });
+    const report = cli.executeOnText(source, "suppressed.js");
+    assert.deepEqual(report.results[0].messages, []);
+    assert.equal(report.results[0].suppressedMessages.length, 1);
+    assert.equal(report.results[0].suppressedMessages[0].ruleId, "no-param-reassign");
+  }
+});
+
+test("CLIEngine.executeOnFiles applies eslint-disable directives to native diagnostics", (t) => {
+  const project = createProject(t);
+  const sourcePath = write(
+    join(project, "suppressed.js"),
+    "export function update(value) {\n  value.count += 1; // eslint-disable-line no-param-reassign\n}\n"
+  );
+  const cli = new CLIEngine({
+    binary: testBinary(),
+    cwd: project,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-param-reassign": ["error", { props: true }],
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const report = cli.executeOnFiles([sourcePath]);
+  assert.deepEqual(report.results[0].messages, []);
+  assert.equal(report.results[0].suppressedMessages.length, 1);
+  assert.equal(report.results[0].suppressedMessages[0].ruleId, "no-param-reassign");
 });
 
 test("lintText returns suppressed native diagnostics with the requested file path", () => {
