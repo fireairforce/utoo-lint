@@ -213,13 +213,23 @@ fn appendEslintDirectiveTargets(
         return;
     }
 
+    var appended_rule = false;
     var rules = std.mem.splitScalar(u8, parsed.rules, ',');
     while (rules.next()) |raw_rule_id| {
         const rule_id = trimEslintWhitespace(raw_rule_id);
         if (rule_id.len == 0) continue;
+        appended_rule = true;
         try directives.append(allocator, .{
             .kind = parsed.kind,
             .target = .{ .rule_id = rule_id, .justification = parsed.justification },
+            .span_start = span_start,
+            .span_end = span_end,
+        });
+    }
+    if (!appended_rule) {
+        try directives.append(allocator, .{
+            .kind = parsed.kind,
+            .target = .{ .rule_id = null, .justification = parsed.justification },
             .span_start = span_start,
             .span_end = span_end,
         });

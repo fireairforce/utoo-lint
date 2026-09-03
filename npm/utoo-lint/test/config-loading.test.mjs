@@ -423,6 +423,37 @@ test("ESLint fix mode honors disable ranges with selective enables", async () =>
   ]);
 });
 
+test("ESLint disable ranges treat comma-only rule lists as all rules", async () => {
+  const source = [
+    "/* eslint-disable , -- generated code */",
+    "const first = 1;;",
+    "/* eslint-enable , */",
+    "const second = 2;;",
+    "void first;",
+    "void second;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    fix: true,
+    noConfig: true,
+    overrideConfig: {
+      rules: {
+        "no-extra-semi": "error",
+        "no-unused-vars": "off"
+      }
+    }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "comma-only.js" });
+  assert.equal(result.output, source.replace("const second = 2;;", "const second = 2;"));
+  assert.deepEqual(result.messages, []);
+  assert.equal(result.suppressedMessages.length, 1);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "generated code" }
+  ]);
+});
+
 test("ESLint directives inside template interpolations suppress native diagnostics", async () => {
   const source = [
     "const text = `${",
