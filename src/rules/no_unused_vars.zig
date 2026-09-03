@@ -17,7 +17,7 @@ pub const Options = struct {
     check_parameters: bool = false,
     args_after_used: bool = false,
     vars: core.NoUnusedVarsVars = .all,
-    check_caught_errors: bool = true,
+    check_caught_errors: bool = false,
     ignore_rest_siblings: bool = false,
     ignore_class_with_static_init_block: bool = false,
     ignore_using_declarations: bool = false,
@@ -106,6 +106,9 @@ pub fn runWithOptions(
     var destructured_array_ignored_decls = IgnoredDecls.init(allocator);
     defer destructured_array_ignored_decls.deinit();
 
+    var implicitly_used_visitor = ImplicitlyUsedBindingVisitor{ .ignored_decls = &ignored_decls };
+    try traverser.basic.traverse(ImplicitlyUsedBindingVisitor, tree, &implicitly_used_visitor);
+
     if (options.ignore_rest_siblings) {
         var visitor = RestSiblingVisitor{ .ignored_decls = &ignored_decls };
         try traverser.basic.traverse(RestSiblingVisitor, tree, &visitor);
@@ -138,6 +141,8 @@ pub fn runWithOptions(
         const symbol = entry.symbol;
         const flags = symbol.flags;
 
+        // Enum members are property-like names, not standalone variables.
+        if (flags.enum_member) continue;
         if (!isLintableSymbol(flags, options)) continue;
         if (!options.check_imports and (flags.import or flags.type_import)) continue;
         if (flags.exported or flags.ambient) continue;
@@ -350,6 +355,44 @@ fn shouldCheckParameter(
     const last = last_used orelse return true;
     return current > last;
 }
+
+const ImplicitlyUsedBindingVisitor = struct {
+    ignored_decls: *IgnoredDecls,
+
+    pub fn enter_function(
+        self: *ImplicitlyUsedBindingVisitor,
+        function: ast.Function,
+        _: ast.NodeIndex,
+        _: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (function.type == .function_expression and function.id != .null) {
+            try self.ignored_decls.put(function.id, {});
+        }
+        return .proceed;
+    }
+
+    pub fn enter_class(
+        self: *ImplicitlyUsedBindingVisitor,
+        class: ast.Class,
+        _: ast.NodeIndex,
+        _: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (class.type == .class_expression and class.id != .null) {
+            try self.ignored_decls.put(class.id, {});
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_mapped_type(
+        self: *ImplicitlyUsedBindingVisitor,
+        mapped_type: ast.TSMappedType,
+        _: ast.NodeIndex,
+        _: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        try self.ignored_decls.put(mapped_type.key, {});
+        return .proceed;
+    }
+};
 
 const RestSiblingVisitor = struct {
     ignored_decls: *IgnoredDecls,

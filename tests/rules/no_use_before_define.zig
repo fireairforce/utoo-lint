@@ -69,6 +69,61 @@ test "reports no-use-before-define for repeated initializer self references" {
     try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_use_before_define.id));
 }
 
+test "does not report deferred self references inside variable initializers" {
+    const source =
+        \\const visit = (node) => (node ? visit(node.next) : null);
+        \\const store = createStore({
+        \\  update(value) {
+        \\    store.value = value;
+        \\  },
+        \\});
+        \\const Model = class {
+        \\  value = Model;
+        \\  method() {
+        \\    return Model;
+        \\  }
+        \\};
+        \\visit(root);
+        \\store.update(1);
+        \\new Model();
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .typescript_eslint_no_use_before_define = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_use_before_define.id));
+}
+
+test "reports eager class self references inside variable initializers" {
+    const source =
+        \\const Derived = class extends Derived {};
+        \\const StaticField = class {
+        \\  static value = StaticField;
+        \\};
+        \\const StaticBlock = class {
+        \\  static {
+        \\    StaticBlock;
+        \\  }
+        \\};
+        \\const Computed = class {
+        \\  [Computed]() {}
+        \\};
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .no_unused_vars = false,
+        .typescript_eslint_no_use_before_define = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.no_use_before_define.id));
+}
+
 test "uses configured no-use-before-define function and class checks" {
     var config = try std.json.parseFromSlice(
         std.json.Value,

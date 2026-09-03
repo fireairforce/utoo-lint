@@ -62,6 +62,34 @@ test "does not report array-callback-return for callbacks that return on all pat
     try std.testing.expect(!helpers.hasRule(result, lint.rules.array_callback_return.id));
 }
 
+test "does not report async or generator array callbacks" {
+    const source =
+        \\items.map(async (item) => {
+        \\  await item.load();
+        \\});
+        \\items.map(function* (item) {
+        \\  yield item;
+        \\});
+        \\items.forEach(async (item) => {
+        \\  return item.save();
+        \\});
+        \\items.forEach(function* (item) {
+        \\  return item;
+        \\});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", .{
+        .array_callback_return_check_for_each = .yes,
+        .no_undef = false,
+        .no_unused_vars = false,
+        .no_useless_return = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.array_callback_return.id));
+}
+
 test "reports array-callback-return for implicit returns by default" {
     const source =
         \\items.filter(function(item) {

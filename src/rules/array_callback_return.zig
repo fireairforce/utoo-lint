@@ -100,10 +100,10 @@ fn callbackTarget(tree: *const ast.Tree, call: ast.CallExpression, options: Opti
 }
 
 fn callbackIfFunction(tree: *const ast.Tree, index: ast.NodeIndex) ?ast.NodeIndex {
-    return switch (tree.data(unwrapTransparent(tree, index))) {
-        .function,
-        .arrow_function_expression,
-        => unwrapTransparent(tree, index),
+    const callback = unwrapTransparent(tree, index);
+    return switch (tree.data(callback)) {
+        .function => |function| if (function.async or function.generator) null else callback,
+        .arrow_function_expression => |arrow| if (arrow.async) null else callback,
         else => null,
     };
 }

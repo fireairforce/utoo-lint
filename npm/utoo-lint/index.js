@@ -679,15 +679,20 @@ export class Linter {
       filename: filePath,
       config: calculatedConfig({ cwd: verifyOptions.cwd, noConfig: true, overrideConfig: config }, normalizedFilePath)
     });
+    const nativeRuleFilter = applyDisableDirectives(
+      (report.diagnostics ?? []).map((diagnostic) => diagnosticToESLintMessage(diagnostic, ruleSeverities)),
+      sourceCode
+    );
     const customRuleFilter = applyDisableDirectives(customRuleMessages, sourceCode);
     this.suppressedMessages = [
       ...(report.suppressedDiagnostics ?? []).map((diagnostic) => suppressedDiagnosticToESLintMessage(diagnostic, ruleSeverities)),
+      ...nativeRuleFilter.suppressedMessages,
       ...customRuleFilter.suppressedMessages
     ];
     this.times = { passes: [] };
     this.fixPassCount = 0;
     return [
-      ...(report.diagnostics ?? []).map((diagnostic) => diagnosticToESLintMessage(diagnostic, ruleSeverities)),
+      ...nativeRuleFilter.messages,
       ...customRuleFilter.messages
     ];
   }
@@ -990,6 +995,10 @@ function applyDisableDirectives(messages, sourceCode) {
   const kept = [];
   const suppressed = [];
   for (const message of messages) {
+    if (!message.ruleId || message.ruleId === "parse" || message.ruleId === "io") {
+      kept.push(message);
+      continue;
+    }
     const directive = utlintDirectiveForMessage(message, utlintDirectives) ?? disableDirectiveForMessage(message, directives);
     if (directive) {
       suppressed.push({
@@ -3957,10 +3966,36 @@ function reportToESLintResults(report, textOptions = {}) {
   }
 
   for (const result of byFile.values()) {
+    applyCompatibilityDisableDirectives(result, textOptions);
     finalizeESLintResult(result);
   }
 
   return [...byFile.values()];
+}
+
+function applyCompatibilityDisableDirectives(result, textOptions) {
+  if (result.messages.length === 0) {
+    return;
+  }
+
+  let source = result.source;
+  if (typeof source !== "string" && textOptions.filePath === result.filePath) {
+    source = textOptions.source;
+  }
+  if (typeof source !== "string") {
+    try {
+      source = readFileSync(result.filePath, "utf8");
+    } catch {
+      return;
+    }
+  }
+  if (!source.includes("eslint-")) {
+    return;
+  }
+
+  const filtered = applyDisableDirectives(result.messages, createLinterSourceCode(source));
+  result.messages = filtered.messages;
+  result.suppressedMessages.push(...filtered.suppressedMessages);
 }
 
 function normalizeReportDiagnostics(diagnostics, options = {}) {

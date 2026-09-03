@@ -2,7 +2,7 @@ const std = @import("std");
 const lint = @import("utoo_lint");
 const helpers = @import("../helpers.zig");
 
-test "reports @typescript-eslint/no-unused-vars for unused variables and after-used parameters" {
+test "reports @typescript-eslint/no-unused-vars while ignoring catch parameters by default" {
     const source =
         \\const unused = 1;
         \\const used = 2;
@@ -27,13 +27,37 @@ test "reports @typescript-eslint/no-unused-vars for unused variables and after-u
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 4), helpers.countRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
+    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
     try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unused_vars.id));
     for (result.diagnostics) |diagnostic| {
         if (std.mem.eql(u8, diagnostic.rule_id, lint.rules.typescript_eslint_no_unused_vars.id)) {
             try std.testing.expectEqual(lint.Severity.@"error", diagnostic.severity);
         }
     }
+}
+
+test "does not report TypeScript member bindings or expression names as unused variables" {
+    const source =
+        \\export enum Mode {
+        \\  Read = "read",
+        \\  Write = "write",
+        \\}
+        \\export type EnvMap = {
+        \\  [key in "DEV" | "PROD"]: number;
+        \\};
+        \\export const Component = wrap(function DisplayName() {
+        \\  return null;
+        \\});
+        \\export const Constructor = wrap(class ClassName {});
+    ;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", .{
+        .no_undef = false,
+        .parser_semantic_errors = false,
+    });
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.typescript_eslint_no_unused_vars.id));
 }
 
 test "ignores rest siblings for object destructuring" {

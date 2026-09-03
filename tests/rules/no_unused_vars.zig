@@ -17,7 +17,7 @@ test "reports no-unused-vars for unused declarations" {
     try std.testing.expect(helpers.hasRule(result, lint.rules.no_unused_vars.id));
 }
 
-test "reports no-unused-vars for unused catch parameters" {
+test "ignores unused catch parameters by default" {
     const source =
         \\try {
         \\  run();
@@ -41,7 +41,7 @@ test "reports no-unused-vars for unused catch parameters" {
     });
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 1), helpers.countRule(result, lint.rules.no_unused_vars.id));
+    try std.testing.expect(!helpers.hasRule(result, lint.rules.no_unused_vars.id));
 }
 
 test "supports configured no-unused-vars args all" {
@@ -266,7 +266,7 @@ test "supports configured no-unused-vars varsIgnorePattern" {
     var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
     defer result.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(@as(usize, 3), helpers.countRule(result, lint.rules.no_unused_vars.id));
+    try std.testing.expectEqual(@as(usize, 2), helpers.countRule(result, lint.rules.no_unused_vars.id));
 }
 
 test "supports configured no-unused-vars argsIgnorePattern" {
