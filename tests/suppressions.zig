@@ -211,6 +211,24 @@ test "overlapping utlint and ESLint directives preserve both suppressions" {
     try std.testing.expectEqualStrings("intentional", result.suppressed_diagnostics[0].suppression.?.justification);
 }
 
+test "repeated rule targets produce one suppression per ESLint directive" {
+    const source =
+        \\/* eslint-disable no-extra-semi, no-extra-semi -- generated */
+        \\const value = 1;;
+        \\void value;
+    ;
+
+    var options = lint.Options.allDisabled();
+    options.no_extra_semi = true;
+
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.js", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), result.suppressed_diagnostics.len);
+    try std.testing.expectEqual(@as(usize, 1), result.suppressed_diagnostics[0].suppressions.len);
+    try std.testing.expectEqualStrings("generated", result.suppressed_diagnostics[0].suppressions[0].justification);
+}
+
 test "utlint-ignore-all suppresses a named rule throughout the file" {
     const source =
         \\// utlint-ignore-all no-debugger: generated file

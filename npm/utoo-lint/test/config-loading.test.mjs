@@ -695,6 +695,26 @@ test("native reports preserve overlapping utlint and ESLint metadata", () => {
   ]);
 });
 
+test("repeated rule targets produce one suppression per ESLint directive", async () => {
+  const source = [
+    "/* eslint-disable no-extra-semi, no-extra-semi -- generated */",
+    "const value = 1;;",
+    "void value;",
+    ""
+  ].join("\n");
+  const eslint = new ESLint({
+    binary: testBinary(),
+    noConfig: true,
+    overrideConfig: { rules: { "no-extra-semi": "error" } }
+  });
+
+  const [result] = await eslint.lintText(source, { filePath: "repeated-rule-target.js" });
+  assert.deepEqual(result.messages, []);
+  assert.deepEqual(result.suppressedMessages[0].suppressions, [
+    { kind: "directive", justification: "generated" }
+  ]);
+});
+
 test("lintText returns suppressed native diagnostics with the requested file path", () => {
   const report = lintText(
     "// utlint-ignore no-debugger: generated breakpoint\ndebugger;\n",

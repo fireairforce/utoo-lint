@@ -313,11 +313,20 @@ fn appendEslintDirectiveTargets(
         return;
     }
 
+    const first_target_index = directives.items.len;
     var appended_rule = false;
     var rules = std.mem.splitScalar(u8, parsed.rules, ',');
     while (rules.next()) |raw_rule_id| {
         const rule_id = trimEslintWhitespace(raw_rule_id);
         if (rule_id.len == 0) continue;
+        var duplicate = false;
+        for (directives.items[first_target_index..]) |existing| {
+            if (std.mem.eql(u8, existing.target.rule_id.?, rule_id)) {
+                duplicate = true;
+                break;
+            }
+        }
+        if (duplicate) continue;
         appended_rule = true;
         try directives.append(allocator, .{
             .kind = parsed.kind,
