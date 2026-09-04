@@ -87,6 +87,39 @@ test("severity-only config groups use the native --rules fast path", (t) => {
   }
 });
 
+test("severity-only config groups preserve native rule defaults", (t) => {
+  const project = createProject(t);
+  writeConfig(project, [
+    {
+      files: ["**/*.tsx"],
+      rules: { "react/button-has-type": "error" }
+    },
+    {
+      files: ["**/*.ts"],
+      rules: {
+        "@typescript-eslint/no-namespace": "error",
+        "@typescript-eslint/no-use-before-define": "error"
+      }
+    }
+  ]);
+  const paths = [
+    write(join(project, "src", "button.tsx"), 'const button = <button type="button" />;\n'),
+    write(
+      join(project, "src", "types.ts"),
+      "interface Before { value: After }\ninterface After { value: string }\n"
+    ),
+    write(
+      join(project, "src", "global.d.ts"),
+      "declare namespace API { interface Value { value: string } }\n"
+    )
+  ];
+
+  const report = lintFiles(paths, { cwd: project });
+
+  assert.deepEqual(report.diagnostics, []);
+  assert.equal(report.exitCode, 0);
+});
+
 test("fast-path diagnostics keep configured severities and exit status", (t) => {
   const project = createProject(t);
   writeConfig(project, [

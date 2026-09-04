@@ -1706,10 +1706,14 @@ fn parseEnabledRules(
             std.debug.print("utoo-lint: --rules contains an empty rule name\n", .{});
             std.process.exit(2);
         }
-        if (!options.setByCliName(rule, true)) {
-            std.debug.print("utoo-lint: unknown rule in --rules: {s}\n", .{rule});
+        options.setByRuleConfigValue(rule, .{ .string = "warn" }) catch |err| {
+            if (err == error.UnknownRule) {
+                std.debug.print("utoo-lint: unknown rule in --rules: {s}\n", .{rule});
+            } else {
+                std.debug.print("utoo-lint: invalid rule in --rules {s}: {s}\n", .{ rule, @errorName(err) });
+            }
             std.process.exit(2);
-        }
+        };
         const owned_rule = try allocator.dupe(u8, rule);
         errdefer allocator.free(owned_rule);
         const entry = try rule_severities.getOrPut(owned_rule);
