@@ -1,28 +1,29 @@
 :root {
-  color: #d9dde3;
-  background: #111315;
+  color: #e5eaf1;
+  background: #0f131a;
   color-scheme: dark;
-  font-family:
-    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --app: #111315;
-  --canvas: #141618;
-  --surface: #191b1e;
-  --surface-raised: #202328;
-  --surface-hover: #1d2024;
-  --line: #2a2e33;
-  --line-muted: #23272b;
-  --text: #d9dde3;
-  --text-strong: #f3f5f7;
-  --muted: #9299a3;
-  --muted-subtle: #69717c;
-  --accent: #2ba7ee;
-  --accent-hover: #4ab6f4;
-  --success: #69c38d;
-  --error: #ff716c;
-  --warning: #d6a956;
+  font-size: 14px;
+  line-height: 1.5;
+  --mono: 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+  --app: #0f131a;
+  --canvas: #151a22;
+  --surface: #1a212c;
+  --surface-raised: #242e3d;
+  --surface-hover: #1e2836;
+  --line: #303b4c;
+  --line-muted: #252f3e;
+  --text: #e5eaf1;
+  --text-strong: #f4f7fb;
+  --muted: #a7b3c4;
+  --muted-subtle: #95a2b5;
+  --accent: #51b5f5;
+  --accent-hover: #7bc8fa;
+  --success: #85d6ab;
+  --error: #ff8e88;
+  --warning: #ebbf70;
   --splitter-size: 7px;
 }
 
@@ -80,7 +81,7 @@ select:focus-visible {
 
 .playground-shell {
   display: grid;
-  grid-template-rows: 76px 44px minmax(0, 1fr);
+  grid-template-rows: 64px 76px minmax(0, 1fr);
   width: 100%;
   height: 100vh;
   height: 100dvh;
@@ -91,7 +92,7 @@ select:focus-visible {
 .site-header {
   min-width: 0;
   border-bottom: 1px solid var(--line);
-  background: rgba(21, 22, 22, 0.96);
+  background: var(--app);
 }
 
 .brand,
@@ -111,7 +112,7 @@ select:focus-visible {
 }
 
 .site-header-content {
-  width: min(100%, 1280px);
+  width: 100%;
   height: 100%;
   min-width: 0;
   margin: 0 auto;
@@ -119,7 +120,7 @@ select:focus-visible {
 }
 
 .brand {
-  width: 184px;
+  width: 180px;
   height: 100%;
   flex: none;
   gap: 10px;
@@ -150,7 +151,7 @@ select:focus-visible {
 .brand h1 {
   margin: 0;
   color: currentColor;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.025em;
 }
@@ -165,7 +166,7 @@ select:focus-visible {
   display: inline-flex;
   height: 100%;
   align-items: center;
-  color: #c3c6c4;
+  color: var(--muted);
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
@@ -176,7 +177,7 @@ select:focus-visible {
 .site-nav a::after {
   position: absolute;
   right: 0;
-  bottom: 17px;
+  bottom: 0;
   left: 0;
   height: 2px;
   border-radius: 999px;
@@ -209,7 +210,7 @@ select:focus-visible {
 .site-language-link,
 .site-github-link {
   display: inline-flex;
-  min-height: 34px;
+  min-height: 36px;
   align-items: center;
   justify-content: center;
   color: var(--muted);
@@ -235,7 +236,7 @@ select:focus-visible {
 }
 
 .site-github-link {
-  width: 34px;
+  width: 36px;
   border-radius: 7px;
 }
 
@@ -252,15 +253,14 @@ select:focus-visible {
 
 .controlbar {
   min-width: 0;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-  padding: 0 10px 0 12px;
+  gap: 16px;
+  padding: 16px 20px;
 }
 
 .language-select-control {
   position: relative;
   display: flex;
-  height: 28px;
+  height: 36px;
   flex: none;
   align-items: center;
 }
@@ -273,27 +273,28 @@ select:focus-visible {
 .select-wrap::after {
   position: absolute;
   top: 50%;
-  right: 2px;
-  width: 4px;
-  height: 4px;
+  right: 10px;
+  width: 6px;
+  height: 6px;
   border-right: 1px solid var(--muted);
   border-bottom: 1px solid var(--muted);
-  content: "";
+  content: '';
   pointer-events: none;
   transform: translateY(-70%) rotate(45deg);
 }
 
 .language-select-control select {
-  width: 102px;
-  height: 28px;
-  padding: 0 18px 0 0;
+  width: 138px;
+  height: 38px;
+  padding: 0 30px 0 12px;
   appearance: none;
-  border: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   color: var(--text);
-  background: transparent;
+  background: var(--surface);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 550;
+  font-size: 14px;
+  font-weight: 600;
   transition: color 120ms ease;
 }
 
@@ -313,17 +314,14 @@ select:focus-visible {
 
 .run-summary {
   min-width: 0;
-  gap: 12px;
-  margin-left: 12px;
-  padding-left: 14px;
-  border-left: 1px solid var(--line);
+  gap: 16px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
 .summary-count {
-  gap: 4px;
+  gap: 6px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -332,30 +330,32 @@ select:focus-visible {
   font-weight: 600;
 }
 
-.error-count strong {
+.error-count strong,
+.error-count .ui-icon {
   color: var(--error);
 }
 
-.warning-count strong {
+.warning-count strong,
+.warning-count .ui-icon {
   color: var(--warning);
 }
 
 .control-actions {
   min-width: 0;
   flex: none;
-  gap: 7px;
+  gap: 8px;
   margin-left: auto;
 }
 
 .version-control {
   display: inline-flex;
-  min-height: 30px;
+  min-height: 38px;
   flex: none;
   align-items: center;
-  gap: 7px;
-  padding: 0 7px 0 9px;
+  gap: 8px;
+  padding: 0 10px 0 12px;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 8px;
   background: transparent;
   transition:
     border-color 120ms ease,
@@ -370,10 +370,8 @@ select:focus-visible {
 
 .version-control-label {
   color: var(--muted-subtle);
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .version-control .select-wrap::after {
@@ -381,17 +379,17 @@ select:focus-visible {
 }
 
 .version-control select {
-  width: 102px;
-  height: 28px;
-  padding: 0 15px 0 0;
+  width: 120px;
+  height: 36px;
+  padding: 0 20px 0 0;
   appearance: none;
   border: 0;
   color: var(--text);
   background: transparent;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
-  font-weight: 550;
+  font-weight: 600;
 }
 
 .version-control select:focus-visible {
@@ -412,13 +410,13 @@ select:focus-visible {
 .fix-button,
 .share-button {
   display: inline-flex;
-  min-height: 30px;
+  min-height: 38px;
   flex: none;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 550;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
   text-decoration: none;
   transition:
     color 120ms ease,
@@ -427,9 +425,9 @@ select:focus-visible {
 }
 
 .fix-button {
-  min-width: 60px;
+  min-width: 100px;
   padding: 0 12px;
-  border: 1px solid #238dca;
+  border: 1px solid var(--accent);
   color: #081117;
   background: var(--accent);
   cursor: pointer;
@@ -452,11 +450,11 @@ select:focus-visible {
 }
 
 .share-button {
-  min-width: 58px;
+  min-width: 106px;
   padding: 0 10px;
   border: 1px solid var(--line);
-  color: var(--muted);
-  background: transparent;
+  color: var(--text);
+  background: var(--surface);
   cursor: pointer;
 }
 
@@ -468,12 +466,13 @@ select:focus-visible {
 
 .workspace {
   display: grid;
+  margin: 0 20px 20px;
   grid-template-columns:
-    minmax(480px, var(--editor-ratio, 68%)) var(--splitter-size)
-    minmax(340px, 1fr);
+    minmax(440px, var(--editor-ratio, 58%)) var(--splitter-size)
+    minmax(360px, 1fr);
   min-height: 0;
   overflow: hidden;
-  background: var(--canvas);
+  background: var(--app);
 }
 
 .editor-panel,
@@ -486,18 +485,18 @@ select:focus-visible {
 
 .editor-panel {
   display: grid;
-  grid-template-rows: 40px minmax(0, 1fr);
+  grid-template-rows: 48px minmax(0, 1fr);
 }
 
 .panel-heading {
   justify-content: space-between;
-  min-height: 40px;
-  padding: 0 13px;
+  min-height: 48px;
+  padding: 0 18px;
   border-bottom: 1px solid var(--line);
   color: var(--text);
   background: var(--surface);
-  font-size: 12px;
-  font-weight: 550;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .panel-heading-copy {
@@ -510,14 +509,13 @@ select:focus-visible {
   color: var(--text);
   font-size: inherit;
   font-weight: inherit;
-  line-height: 1.2;
+  line-height: 1.5;
 }
 
 .file-name {
-  font-family:
-    "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 11px;
-  font-weight: 550;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .editor-frame {
@@ -539,7 +537,7 @@ select:focus-visible {
 }
 
 .rules-section {
-  grid-template-rows: 40px minmax(0, 1fr);
+  grid-template-rows: 48px minmax(0, 1fr);
 }
 
 .pane-splitter {
@@ -547,7 +545,7 @@ select:focus-visible {
   z-index: 2;
   min-width: 0;
   min-height: 0;
-  background: var(--surface);
+  background: var(--app);
   cursor: default;
   touch-action: none;
   user-select: none;
@@ -555,9 +553,31 @@ select:focus-visible {
 
 .pane-splitter::before {
   position: absolute;
-  background: var(--line);
-  content: "";
+  border-radius: 4px;
+  background: transparent;
+  content: '';
   transition: background-color 120ms ease;
+}
+
+.pane-splitter::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 4px;
+  background: var(--line);
+  content: '';
+  transform: translate(-50%, -50%);
+  transition: background-color 120ms ease;
+}
+
+.pane-splitter-vertical::after {
+  width: 3px;
+  height: 32px;
+}
+
+.pane-splitter-horizontal::after {
+  width: 32px;
+  height: 3px;
 }
 
 .pane-splitter-vertical {
@@ -583,7 +603,9 @@ select:focus-visible {
 }
 
 .pane-splitter:hover::before,
-.pane-splitter:focus-visible::before {
+.pane-splitter:focus-visible::before,
+.pane-splitter:hover::after,
+.pane-splitter:focus-visible::after {
   background: var(--accent);
 }
 
@@ -592,9 +614,7 @@ select:focus-visible {
 }
 
 .rules-heading {
-  gap: 12px;
-  padding-right: 12px;
-  padding-left: 0;
+  padding: 0 6px;
 }
 
 .inspector-tabs {
@@ -613,13 +633,13 @@ select:focus-visible {
 .inspector-tabs button {
   position: relative;
   display: inline-flex;
-  min-width: 74px;
+  min-width: 90px;
   align-items: center;
   justify-content: center;
   padding: 0 14px;
-  border-right: 1px solid var(--line-muted);
-  font-size: 11px;
-  font-weight: 550;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
   transition:
     color 120ms ease,
     background-color 120ms ease;
@@ -627,12 +647,13 @@ select:focus-visible {
 
 .inspector-tabs button:hover,
 .segmented-control button:hover {
-  color: var(--text);
+  color: var(--text-strong);
+  background: var(--surface-hover);
 }
 
 .inspector-tabs button.is-active {
   color: var(--text-strong);
-  background: var(--canvas);
+  background: transparent;
 }
 
 .inspector-tabs button.is-active::after {
@@ -642,24 +663,22 @@ select:focus-visible {
   left: 12px;
   height: 2px;
   background: var(--accent);
-  content: "";
+  content: '';
 }
 
 .segmented-control {
-  align-self: stretch;
-  gap: 3px;
-}
-
-.segmented-label {
-  margin-right: 4px;
-  color: var(--muted-subtle);
-  font-size: 10px;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--app);
 }
 
 .segmented-control button {
-  padding: 4px 7px;
-  border-radius: 3px;
-  font-size: 10px;
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -672,27 +691,26 @@ select:focus-visible {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .rules-editor {
   width: 100%;
   min-height: 0;
-  padding: 15px 16px;
+  padding: 16px 20px;
   resize: none;
   border: 0;
   color: var(--text);
   background: var(--canvas);
-  font-family:
-    "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  line-height: 1.65;
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.85;
   scrollbar-color: #363c43 transparent;
   tab-size: 2;
 }
 
 .rules-editor:read-only {
-  color: #a8afb8;
+  color: var(--muted);
   cursor: default;
 }
 
@@ -706,7 +724,7 @@ select:focus-visible {
   border-top: 1px solid #553033;
   color: #ff918d;
   background: #25191b;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -732,16 +750,15 @@ select:focus-visible {
   border-bottom: 1px solid #544529;
   color: var(--warning);
   background: #211d16;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .ast-tree {
   min-width: max-content;
   padding: 12px 16px 20px;
-  font-family:
-    "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  line-height: 1.75;
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.85;
 }
 
 .ast-tree details {
@@ -765,7 +782,7 @@ select:focus-visible {
   display: inline-block;
   width: 1.1em;
   color: var(--muted-subtle);
-  content: "\25B8";
+  content: '\25B8';
   transition: transform 120ms ease;
 }
 
@@ -820,17 +837,20 @@ select:focus-visible {
 }
 
 .diagnostics-section {
-  grid-template-rows: 40px minmax(0, 1fr) auto;
+  grid-template-rows: 48px minmax(0, 1fr) auto;
 }
 
 .diagnostic-total {
-  min-width: 18px;
-  color: var(--muted-subtle);
-  font-family:
-    "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 10px;
+  min-width: 26px;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: center;
 }
 
 .diagnostic-list {
@@ -843,11 +863,11 @@ select:focus-visible {
 
 .diagnostic-card {
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 12px;
   width: 100%;
   margin: 0;
-  padding: 11px 14px 12px;
+  padding: 16px 18px;
   border: 0;
   border-bottom: 1px solid var(--line-muted);
   color: inherit;
@@ -863,10 +883,9 @@ select:focus-visible {
 
 .severity-symbol {
   display: block;
-  width: 16px;
-  margin-top: 1px;
-  font-family:
-    "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  width: 20px;
+  margin-top: 2px;
+  font-family: var(--mono);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.45;
@@ -888,53 +907,56 @@ select:focus-visible {
 .diagnostic-message {
   display: block;
   color: var(--text);
-  font-size: 12px;
-  font-weight: 450;
-  line-height: 1.5;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 .diagnostic-meta {
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 5px;
+  margin-top: 8px;
   color: var(--muted-subtle);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .diagnostic-meta code {
   max-width: 100%;
   overflow: hidden;
-  color: #67b8e8;
-  font-family:
-    "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  color: #84caff;
+  font-family: var(--mono);
   text-overflow: ellipsis;
 }
 
-.fixable-badge::before {
-  margin-right: 8px;
-  color: var(--line);
-  content: "/";
+.fixable-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--success);
+  background: #20372e;
+  font-size: 12px;
 }
 
 .empty-state {
   display: flex;
   min-height: 120px;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 18px 16px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 20px;
   color: var(--muted-subtle);
 }
 
 .empty-state strong {
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .error-state {
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
+  align-items: flex-start;
   color: #ff918d;
 }
 
@@ -944,7 +966,7 @@ select:focus-visible {
 }
 
 .error-state span {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -955,7 +977,7 @@ select:focus-visible {
   border-top: 1px solid var(--line);
   color: var(--muted);
   background: var(--surface);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -969,27 +991,147 @@ select:focus-visible {
   color: var(--warning);
 }
 
+.ui-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.fix-button,
+.share-button {
+  gap: 8px;
+}
+
+.editor-panel,
+.rules-section,
+.diagnostics-section {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--canvas);
+}
+
+.panel-heading-copy > .ui-icon {
+  color: var(--accent);
+}
+
+.editor-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.status-idle .status-dot,
+.status-running .status-dot {
+  background: var(--warning);
+}
+
+.status-error .status-dot {
+  background: var(--error);
+}
+
+.rules-toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line-muted);
+}
+
+.rules-toolbar-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.diagnostic-location {
+  font-variant-numeric: tabular-nums;
+}
+
+.diagnostic-message {
+  overflow-wrap: anywhere;
+}
+
+.severity-symbol .ui-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.success-state {
+  flex-direction: column;
+  min-height: 220px;
+  text-align: center;
+}
+
+.success-state strong {
+  color: var(--text-strong);
+}
+
+.success-state > span:last-child {
+  max-width: 260px;
+  font-size: 13px;
+}
+
+.success-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 4px;
+  place-items: center;
+  border: 1px solid #365649;
+  border-radius: 50%;
+  color: var(--success);
+  background: #20372e;
+}
+
+.success-icon .ui-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (min-width: 901px) and (max-height: 599px) {
   body {
     overflow: auto;
   }
-
   .playground-shell {
     height: 600px;
   }
 }
 
-@media (min-width: 901px) and (max-width: 1120px) {
+@media (max-width: 1100px) {
   .brand {
-    width: 160px;
+    width: 150px;
   }
-
   .site-nav {
-    gap: 22px;
-  }
-
-  .segmented-label {
-    display: none;
+    gap: 20px;
   }
 }
 
@@ -1007,39 +1149,31 @@ select:focus-visible {
   .site-header-content {
     min-height: 64px;
   }
-
-  .brand {
-    width: 150px;
-  }
-
-  .controlbar {
-    min-height: 44px;
-  }
-
   .site-nav {
     gap: 18px;
   }
-
-  .workspace {
-    grid-template-columns: 1fr;
+  .controlbar {
+    min-height: 72px;
   }
-
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
   .pane-splitter {
     display: none;
   }
 
   .editor-panel {
-    height: 58vh;
-    min-height: 420px;
-    border-bottom: 1px solid var(--line);
+    height: 52vh;
+    min-height: 360px;
   }
 
   .side-panel {
-    grid-template-rows: 260px minmax(400px, auto);
+    grid-template-rows: 340px minmax(340px, auto);
+    gap: 16px;
   }
-
   .diagnostics-section {
-    min-height: 400px;
+    min-height: 340px;
   }
 }
 
@@ -1048,20 +1182,18 @@ select:focus-visible {
     min-height: 0;
     flex-wrap: wrap;
   }
-
   .brand {
     width: auto;
-    height: 54px;
+    height: 58px;
     flex: 1;
   }
-
   .site-header-actions {
-    height: 54px;
+    height: 58px;
   }
 
   .site-nav {
     width: calc(100% + 48px);
-    height: 42px;
+    height: 44px;
     min-width: 0;
     flex: none;
     order: 3;
@@ -1076,34 +1208,18 @@ select:focus-visible {
   .site-nav::-webkit-scrollbar {
     display: none;
   }
-
-  .site-nav a::after {
-    bottom: 5px;
-  }
-}
-
-@media (max-width: 640px) {
   .controlbar {
     flex-wrap: wrap;
-    gap: 0;
-    padding: 8px 10px;
+    gap: 14px 12px;
   }
-
   .run-summary {
-    gap: 9px;
-    margin-left: 12px;
+    margin-left: auto;
   }
-
   .control-actions {
-    gap: 5px;
+    width: 100%;
   }
-
-  .side-panel {
-    grid-template-rows: 240px minmax(360px, auto);
-  }
-
-  .diagnostics-section {
-    min-height: 360px;
+  .version-control {
+    margin-right: auto;
   }
 }
 
@@ -1111,35 +1227,59 @@ select:focus-visible {
   .site-header-content {
     padding: 0 16px;
   }
-
   .site-nav {
     width: calc(100% + 32px);
     margin-inline: -16px;
     padding-inline: 16px;
   }
-
   .controlbar {
-    row-gap: 8px;
+    padding: 14px 12px;
   }
-
+  .workspace {
+    margin: 0 12px 12px;
+    gap: 12px;
+  }
   .run-summary {
-    margin-left: auto;
+    gap: 10px;
+    font-size: 12px;
   }
-
-  .control-actions {
-    width: 100%;
-  }
-
-  .segmented-label {
+  .run-summary .ui-icon {
     display: none;
   }
-
-  .rules-heading {
-    gap: 6px;
+  .control-actions {
+    gap: 8px;
+    flex-wrap: wrap;
   }
-
-  .segmented-control button {
-    padding-inline: 5px;
+  .version-control {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .version-control select {
+    width: 146px;
+  }
+  .share-button,
+  .fix-button {
+    flex: 1;
+    min-height: 40px;
+  }
+  .panel-heading {
+    padding-inline: 14px;
+  }
+  .rules-heading {
+    padding-inline: 4px;
+  }
+  .rules-toolbar {
+    padding-inline: 12px;
+  }
+  .rules-editor {
+    padding-inline: 14px;
+  }
+  .side-panel {
+    gap: 12px;
+  }
+  .diagnostic-card {
+    padding: 14px;
+    gap: 10px;
   }
 }
 

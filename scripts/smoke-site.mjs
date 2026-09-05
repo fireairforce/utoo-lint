@@ -253,6 +253,13 @@ async function runSmoke(page, origin) {
       await page.waitForURL(
         (url) => url.searchParams.get('version') === previousVersion,
       );
+      stage = 'Playground pinned version reload';
+      await page.reload({ waitUntil: 'networkidle' });
+      await waitForSettledPage(page);
+      assert.equal(await versionSelect.inputValue(), previousVersion);
+      await page.waitForFunction(() =>
+        document.querySelector('[role="status"]')?.textContent?.includes('Lint complete.'),
+      );
       await versionSelect.selectOption(versionManifest.latest);
       await page.waitForURL(
         (url) => url.searchParams.get('version') === versionManifest.latest,

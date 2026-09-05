@@ -5,7 +5,7 @@ export default definePageConfig({
   meta: {
     description: 'Run utoo-lint in the browser and inspect diagnostics or AST output.',
     viewport: 'width=device-width, initial-scale=1',
-    'theme-color': '#111315',
+    'theme-color': '#0f131a',
   },
   render: 'csr',
 });
