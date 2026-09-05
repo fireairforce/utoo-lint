@@ -816,6 +816,14 @@ body:where(html[data-prefers-color='dark'] *)
 .product-hero .product-actions {
   justify-content: center;
 }
+.product-hero-logo {
+  display: block;
+  width: 105px;
+  height: 150px;
+  margin: 0 auto 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 28px #38a9ec26);
+}
 .product-hero h1 {
   margin: 0 0 28px;
   font-size: clamp(52px, 6vw, 84px);
@@ -1744,6 +1752,11 @@ body:where(html[data-prefers-color='dark'] *)
   }
   .product-hero h1 {
     font-size: clamp(40px, 11vw, 58px);
+  }
+  .product-hero-logo {
+    width: 73px;
+    height: 104px;
+    margin-bottom: 24px;
   }
   .product-hero-copy > p {
     font-size: 16px;

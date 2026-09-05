@@ -23,6 +23,13 @@ export default function Hero() {
     >
       <div className="product-container product-hero-content">
         <div className="product-hero-copy">
+          <img
+            className="product-hero-logo"
+            src="/utoo-lint-mark.svg"
+            alt={isChinese ? 'UTOO 蓝白兔子标志' : 'UTOO rabbit logo'}
+            width="105"
+            height="150"
+          />
           <h1 id="product-title">
             {hero.title} <span>{hero.accent}</span>
           </h1>
