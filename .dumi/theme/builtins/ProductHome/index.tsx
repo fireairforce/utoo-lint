@@ -1,6 +1,7 @@
 import { Link, useLocale } from 'dumi';
 import React from 'react';
 import SourceCode from '../SourceCode';
+import BenchmarkChart from '../../components/BenchmarkChart';
 import NativeLink from '../../components/NativeLink';
 import benchmark from '../../../../public/benchmarks/2026-08-30.json';
 
@@ -35,12 +36,7 @@ const messages = {
     benchmarkDescription:
       'The same TypeScript corpus. The same 12 shared rules. Every sample starts a fresh CLI process, including startup time.',
     median: 'utoo-lint median',
-    files: 'TypeScript files',
-    runs: 'measured runs per tool',
-    chartAlt:
-      'Median lint time: utoo-lint 9.52 ms, Oxlint 35.78 ms, Biome 47.38 ms, ESLint 742.05 ms. Linear scale; lower is better.',
-    chartNote:
-      'Recorded August 30, 2026 · macOS arm64 · Node.js 20.19.1 · 5 warmups, 20 measured runs.',
+    faster: 'faster than ESLint in this run',
     benchmarkNote:
       'A recorded run on one generated workload. Results vary with hardware, code, and enabled rules. The archived report documents the environment and comparison limits.',
     methodology: 'Reproduce the benchmark',
@@ -125,14 +121,9 @@ const messages = {
     performance: '性能基准',
     benchmarkTitle: '更快获得反馈，少一点等待。',
     benchmarkDescription:
-      '同一批 TypeScript 文件，相同的 12 条共有规则。每个样本启动新的 CLI 进程，耗时包含进程启动。',
+      '同一批 TypeScript 文件，同样的 12 条共有规则。每次独立启动 CLI，计时包含启动开销。',
     median: 'utoo-lint 耗时中位数',
-    files: '个 TypeScript 文件',
-    runs: '次测量 / 工具',
-    chartAlt:
-      'Lint 耗时中位数：utoo-lint 9.52 毫秒、Oxlint 35.78 毫秒、Biome 47.38 毫秒、ESLint 742.05 毫秒。线性刻度，越低越好。',
-    chartNote:
-      '记录于 2026-08-30 · macOS arm64 · Node.js 20.19.1 · 5 次预热，20 次测量。',
+    faster: '本次测试中，相对 ESLint 的速度',
     benchmarkNote:
       '数据来自一组已归档的生成语料测试。结果会随硬件、代码和启用规则变化；完整测试条件与对比范围见测试记录。',
     methodology: '复现基准测试',
@@ -207,6 +198,9 @@ export default function ProductHome() {
   const median = benchmark.results.find(
     (result) => result.name === 'utoo-lint',
   )!.summary.medianMs;
+  const speedup =
+    benchmark.results.find((result) => result.name === 'eslint')!.summary
+      .medianMs / median;
   return (
     <div className="product-home">
       <section
@@ -224,6 +218,7 @@ export default function ProductHome() {
         ))}
       </section>
       <section
+        id="performance"
         className="product-container product-section product-benchmark"
         aria-labelledby="benchmark-title"
       >
@@ -241,50 +236,18 @@ export default function ProductHome() {
               </strong>
               <span>{t.median}</span>
             </div>
-            <div>
+            <div className="product-benchmark-speedup">
               <strong>
-                {benchmark.targetFiles}
-                <small> / {benchmark.rules.length}</small>
+                {speedup.toFixed(1)}
+                <small>×</small>
               </strong>
-              <span>
-                {t.files} / {chinese ? '条共有规则' : 'shared rules'}
-              </span>
-            </div>
-            <div>
-              <strong>{benchmark.results[0].runs}</strong>
-              <span>{t.runs}</span>
+              <span>{t.faster}</span>
             </div>
             <Link className="product-text-link" to={`${base}/benchmarks`}>
               {t.details} <span aria-hidden="true">↗</span>
             </Link>
           </div>
-          <figure className="product-chart">
-            <a
-              href={`/benchmarks/comparison-${chinese ? 'zh' : 'en'}.svg`}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={
-                chinese
-                  ? '查看完整性能对比图（新窗口）'
-                  : 'View full benchmark chart (new tab)'
-              }
-            >
-              <picture>
-                <source
-                  media="(max-width: 600px)"
-                  srcSet={`/benchmarks/comparison-${chinese ? 'zh' : 'en'}-compact.svg`}
-                />
-                <img
-                  src={`/benchmarks/comparison-${chinese ? 'zh' : 'en'}.svg`}
-                  alt={t.chartAlt}
-                  width="1000"
-                  height="510"
-                  loading="lazy"
-                />
-              </picture>
-            </a>
-            <figcaption>{t.chartNote}</figcaption>
-          </figure>
+          <BenchmarkChart chinese={chinese} />
         </div>
         <div className="product-benchmark-notes">
           <p>{t.benchmarkNote}</p>

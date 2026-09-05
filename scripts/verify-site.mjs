@@ -274,13 +274,27 @@ function verifyHomepageVisual(html) {
       throw new Error(`docs index is missing ${requiredClass}`);
     }
   }
-  const chart = [...html.matchAll(/<img\b[^>]*>/gi)].find((match) =>
-    /\/benchmarks\/comparison-(en|zh)\.svg/.test(
-      getHtmlAttribute(match[0], 'src') ?? '',
-    ),
-  );
-  if (!chart || !getHtmlAttribute(chart[0], 'alt')) {
-    throw new Error('docs index is missing its accessible benchmark image');
+  const chart = findOpeningTagByClass(html, 'product-chart');
+  if (!getHtmlAttribute(chart, 'aria-labelledby')) {
+    throw new Error(
+      'docs index is missing its accessible benchmark chart title',
+    );
+  }
+  const lanes = [
+    ...html.matchAll(/<button\b[^>]*class="benchmark-lane"[^>]*>/gi),
+  ];
+  if (
+    lanes.length !== 4 ||
+    lanes.some(
+      ([tag]) => !getHtmlAttribute(tag, 'aria-label')?.match(/\d+\.\d{2}/),
+    )
+  ) {
+    throw new Error(
+      'docs index must render all four benchmark times before JavaScript runs',
+    );
+  }
+  if (!/href="\/benchmarks\/comparison-(en|zh)\.svg"/.test(html)) {
+    throw new Error('docs index is missing its downloadable benchmark image');
   }
   if (!html.includes('/benchmarks/2026-08-30.json')) {
     throw new Error('docs index is missing its raw benchmark data link');
