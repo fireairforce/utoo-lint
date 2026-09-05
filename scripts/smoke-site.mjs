@@ -190,9 +190,66 @@ async function runSmoke(page, origin) {
     await page.goto(`${origin}/`, { waitUntil: 'networkidle' });
     await waitForSettledPage(page);
     await page
-      .getByRole('heading', { name: 'Find code problems faster.' })
+      .getByRole('heading', { name: 'Fast linting. Familiar rules.' })
       .waitFor();
     assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+
+    stage = 'Homepage autofix example';
+    await page.getByRole('button', { name: 'After fix', exact: true }).click();
+    await page
+      .getByText('Four fixes. Cleaner code.', { exact: true })
+      .waitFor();
+    await page.getByRole('button', { name: 'Before', exact: true }).click();
+    await page
+      .getByText('4 diagnostics with safe autofixes', { exact: true })
+      .waitFor();
+    stage = 'Interactive benchmark';
+    const chart = page.locator('.product-chart');
+    await chart.scrollIntoViewIfNeeded();
+    await page.waitForFunction(
+      () =>
+        document.querySelector('.product-chart')?.dataset.animated === 'true',
+    );
+    assert.equal(await chart.locator('.benchmark-lane').count(), 4);
+    await chart
+      .getByRole('button', { name: 'Native tools', exact: true })
+      .click();
+    assert.equal(await chart.getAttribute('data-domain'), '50');
+    assert.equal(await chart.locator('.benchmark-lane').count(), 3);
+    await chart
+      .getByRole('button', { name: 'Oxlint: 35.78 milliseconds', exact: true })
+      .click();
+    assert.match(
+      await chart.locator('.benchmark-range').innerText(),
+      /34\.63–36\.89/,
+    );
+    await chart.getByRole('button', { name: 'Replay', exact: true }).click();
+    assert.equal(
+      await chart
+        .getByRole('button', {
+          name: 'Oxlint: 35.78 milliseconds',
+          exact: true,
+        })
+        .getAttribute('aria-pressed'),
+      'true',
+    );
+    await chart.getByRole('button', { name: 'All tools', exact: true }).click();
+    assert.equal(await chart.getAttribute('data-domain'), '800');
+    await chart
+      .getByRole('button', { name: 'ESLint: 742.05 milliseconds', exact: true })
+      .click();
+    await chart
+      .getByRole('button', { name: 'Native tools', exact: true })
+      .click();
+    assert.equal(
+      await chart
+        .getByRole('button', {
+          name: 'utoo-lint: 9.52 milliseconds',
+          exact: true,
+        })
+        .getAttribute('aria-pressed'),
+      'true',
+    );
 
     stage = 'SPA navigation to configuration';
     const initialTimeOrigin = await page.evaluate(() => performance.timeOrigin);
@@ -221,7 +278,38 @@ async function runSmoke(page, origin) {
     await page.goto(`${origin}/zh-CN/`, { waitUntil: 'networkidle' });
     await waitForSettledPage(page);
     assert.equal(await page.locator('html').getAttribute('lang'), 'zh-CN');
-    await page.getByRole('heading', { name: '更快地发现代码问题。' }).waitFor();
+    await page
+      .getByRole('heading', { name: '原生速度。 熟悉的规则。' })
+      .waitFor();
+
+    stage = 'Chinese benchmark with reduced motion';
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const chineseChart = page.locator('.product-chart');
+    await chineseChart.scrollIntoViewIfNeeded();
+    await chineseChart
+      .getByRole('heading', { name: '每一毫秒，都算数。' })
+      .waitFor();
+    await chineseChart
+      .getByRole('button', { name: '原生工具', exact: true })
+      .click();
+    await chineseChart
+      .getByRole('button', { name: 'Biome: 47.38 毫秒', exact: true })
+      .click();
+    assert.match(
+      await chineseChart.locator('.benchmark-range').innerText(),
+      /46\.20–48\.36/,
+    );
+    await chineseChart
+      .getByRole('button', { name: '重播', exact: true })
+      .click();
+    assert.equal(
+      await chineseChart
+        .locator('.benchmark-bar-fill')
+        .first()
+        .evaluate((element) => getComputedStyle(element).animationName),
+      'none',
+    );
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
 
     stage = 'Playground';
     await page.locator('main a[href="/playground/"]').first().click();
@@ -258,7 +346,9 @@ async function runSmoke(page, origin) {
       await waitForSettledPage(page);
       assert.equal(await versionSelect.inputValue(), previousVersion);
       await page.waitForFunction(() =>
-        document.querySelector('[role="status"]')?.textContent?.includes('Lint complete.'),
+        document
+          .querySelector('[role="status"]')
+          ?.textContent?.includes('Lint complete.'),
       );
       await versionSelect.selectOption(versionManifest.latest);
       await page.waitForURL(
@@ -293,7 +383,7 @@ async function runSmoke(page, origin) {
     await page.waitForURL(`${origin}/`);
     await waitForSettledPage(page);
     await page
-      .getByRole('heading', { name: 'Find code problems faster.' })
+      .getByRole('heading', { name: 'Fast linting. Familiar rules.' })
       .waitFor();
   } catch (error) {
     assertionError = error;

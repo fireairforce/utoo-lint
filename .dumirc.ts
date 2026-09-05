@@ -19,7 +19,7 @@ export default defineConfig({
     atomDirs: [],
   },
   metas: [
-    { name: 'theme-color', content: '#f5f4ef' },
+    { name: 'theme-color', content: '#0f131a' },
     {
       name: 'keywords',
       content: 'linter, JavaScript, TypeScript, Zig, ESLint, WebAssembly',
