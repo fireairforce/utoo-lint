@@ -233,7 +233,7 @@ test('loads versioned WebAssembly URLs and defaults to the latest release', () =
   );
   assert.equal(
     lintVersionManifestUrl('https://example.test/playground'),
-    'https://example.test/versions/manifest.json',
+    'https://example.test/playground/versions/manifest.json',
   );
   assert.equal(
     catalog.versions[0].wasmUrl,
@@ -259,6 +259,21 @@ test('loads versioned WebAssembly URLs and defaults to the latest release', () =
   );
   assert.equal(resolveLintVersion(catalog, LATEST_LINT_VERSION)?.id, '0.3.4');
   assert.equal(resolveLintVersion(catalog, '0.3.3')?.id, '0.3.3');
+});
+
+test('resolves version assets within the Playground after shared URL normalization', () => {
+  for (const route of ['/playground', '/playground/']) {
+    assert.equal(
+      lintVersionManifestUrl(
+        `https://example.test${route}?version=0.3.3#playground=state`,
+      ),
+      'https://example.test/playground/versions/manifest.json',
+    );
+  }
+  assert.equal(
+    lintVersionManifestUrl('http://localhost:3000/playground?version=0.3.3'),
+    'http://localhost:3000/playground/versions/manifest.json',
+  );
 });
 
 test('pins concrete version selections but leaves the latest channel implicit', () => {

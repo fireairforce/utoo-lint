@@ -40,7 +40,10 @@ function isManifestVersion(value: unknown): value is ManifestVersion {
 }
 
 export function lintVersionManifestUrl(pageUrl: string): string {
-  return new URL('versions/manifest.json', pageUrl).href;
+  const baseUrl = new URL(pageUrl);
+  // The router can remove the trailing slash when restoring a shared URL.
+  baseUrl.pathname = baseUrl.pathname.replace(/\/playground$/, '/playground/');
+  return new URL('versions/manifest.json', baseUrl).href;
 }
 
 export function parseLintVersionCatalog(

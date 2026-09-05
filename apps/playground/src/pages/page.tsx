@@ -31,6 +31,7 @@ import {
   type PlaygroundLanguage,
   type PlaygroundRulesMode,
 } from '../features/playground/model';
+import { Icon } from '../features/playground/icon';
 import '../features/playground/monaco';
 import { Splitter } from '../features/playground/splitter';
 import {
@@ -52,7 +53,7 @@ type RunPhase = 'idle' | 'running' | 'ready' | 'error';
 type ShareState = 'idle' | 'copied' | 'error';
 
 const EDITOR_THEME = 'utoo-dark';
-const DEFAULT_EDITOR_RATIO = 68;
+const DEFAULT_EDITOR_RATIO = 58;
 const DEFAULT_RULES_RATIO = 42;
 const INSPECTOR_MODES = ['rules', 'ast'] as const;
 
@@ -77,22 +78,22 @@ function defineEditorTheme(monaco: MonacoInstance): void {
     base: 'vs-dark',
     inherit: true,
     rules: [
-      { token: 'comment', foreground: '727A85' },
+      { token: 'comment', foreground: '9AA7B8' },
       { token: 'keyword', foreground: 'E58A82' },
       { token: 'number', foreground: '79B8EA' },
       { token: 'string', foreground: 'A9C98F' },
       { token: 'type.identifier', foreground: 'C49ADD' },
     ],
     colors: {
-      'editor.background': '#141618',
-      'editor.foreground': '#D9DDE3',
+      'editor.background': '#151A22',
+      'editor.foreground': '#E5EAF1',
       'editorCursor.foreground': '#2BA7EE',
-      'editorGutter.background': '#141618',
-      'editorIndentGuide.background1': '#25292E',
-      'editorIndentGuide.activeBackground1': '#3A4047',
+      'editorGutter.background': '#151A22',
+      'editorIndentGuide.background1': '#293342',
+      'editorIndentGuide.activeBackground1': '#46556A',
       'editorLineNumber.activeForeground': '#C4C9D0',
-      'editorLineNumber.foreground': '#59616B',
-      'editor.lineHighlightBackground': '#191C1F',
+      'editorLineNumber.foreground': '#8793A4',
+      'editor.lineHighlightBackground': '#1D2531',
       'editor.selectionBackground': '#164A67',
       'editor.inactiveSelectionBackground': '#183B4F',
       'editorWhitespace.foreground': '#2B3035',
@@ -531,6 +532,7 @@ export default function PlaygroundPage() {
         ? `Fix all ${fixableCount} diagnostics`
         : `Fix ${fixableCount} of ${diagnostics.length} diagnostics with safe autofixes`
       : 'No safe autofixes available';
+  const isChecking = runState.phase === 'idle' || runState.phase === 'running';
   const rulesDescriptionId = hasCustomRulesError
     ? 'rules-config-error'
     : undefined;
@@ -606,10 +608,12 @@ export default function PlaygroundPage() {
 
         <div className="run-summary" aria-hidden="true">
           <span className="summary-count error-count">
+            <Icon name="error" />
             <strong>{errorCount}</strong>{' '}
             {errorCount === 1 ? 'error' : 'errors'}
           </span>
           <span className="summary-count warning-count">
+            <Icon name="warning" />
             <strong>{warningCount}</strong>{' '}
             {warningCount === 1 ? 'warning' : 'warnings'}
           </span>
@@ -629,19 +633,6 @@ export default function PlaygroundPage() {
         </span>
 
         <div className="control-actions">
-          <button
-            aria-label={fixButtonLabel}
-            className="fix-button"
-            disabled={
-              !selectedLintVersion || (isRetry ? !hasValidRules : !canFix)
-            }
-            onClick={() => void execute(isRetry ? 'lint' : 'fix')}
-            title={fixButtonLabel}
-            type="button"
-          >
-            {fixButtonText}
-          </button>
-
           <label className="version-control">
             <span className="version-control-label">Version</span>
             <span className="select-wrap">
@@ -677,11 +668,26 @@ export default function PlaygroundPage() {
             onClick={() => void sharePlayground()}
             type="button"
           >
+            <Icon name={shareState === 'copied' ? 'check' : 'link'} />
             <span aria-live="polite">
               {shareState === 'idle' && 'Share'}
               {shareState === 'copied' && 'Copied'}
               {shareState === 'error' && 'Copy failed'}
             </span>
+          </button>
+
+          <button
+            aria-label={fixButtonLabel}
+            className="fix-button"
+            disabled={
+              !selectedLintVersion || (isRetry ? !hasValidRules : !canFix)
+            }
+            onClick={() => void execute(isRetry ? 'lint' : 'fix')}
+            title={fixButtonLabel}
+            type="button"
+          >
+            <Icon name="fix" />
+            {fixButtonText}
           </button>
         </div>
       </section>
@@ -698,13 +704,29 @@ export default function PlaygroundPage() {
         >
           <div className="panel-heading">
             <div className="panel-heading-copy">
+              <Icon name="code" />
               <span className="panel-title file-name">{fileName}</span>
             </div>
+            <span
+              aria-hidden="true"
+              className={`editor-status status-${runState.phase}`}
+            >
+              <span className="status-dot" />
+              {isChecking
+                ? 'Checking…'
+                : runState.phase === 'error' ? 'Check failed' : 'Live lint'}
+            </span>
           </div>
           <div className="editor-frame">
             <Editor
               beforeMount={handleEditorBeforeMount}
               height="100%"
+              loading={
+                <div className="empty-state">
+                  <span className="loading-spinner" />
+                  <strong>Loading editor…</strong>
+                </div>
+              }
               language={monacoLanguage}
               onChange={(value) => {
                 invalidateShareUrl();
@@ -723,15 +745,19 @@ export default function PlaygroundPage() {
                 automaticLayout: true,
                 bracketPairColorization: { enabled: true },
                 fontFamily:
-                  "'SFMono-Regular', Consolas, 'Liberation Mono', monospace",
-                fontLigatures: true,
+                  "'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace",
+                fontLigatures: false,
+                fontWeight: '400',
                 fontSize: 16,
-                lineHeight: 25,
+                lineHeight: 27,
+                lineNumbersMinChars: 3,
                 minimap: { enabled: false },
-                padding: { top: 16 },
+                padding: { top: 20, bottom: 20 },
                 renderLineHighlight: 'gutter',
                 scrollBeyondLastLine: false,
-                smoothScrolling: true,
+                smoothScrolling:
+                  typeof window !== 'undefined' &&
+                  !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
                 tabSize: 2,
               }}
             />
@@ -742,8 +768,8 @@ export default function PlaygroundPage() {
           ariaControls="source-editor-panel lint-side-panel"
           ariaLabel="Resize source editor and lint sidebar"
           containerRef={workspaceRef}
-          minPrimaryPx={480}
-          minSecondaryPx={340}
+          minPrimaryPx={440}
+          minSecondaryPx={360}
           onChange={setEditorRatio}
           onReset={() => setEditorRatio(DEFAULT_EDITOR_RATIO)}
           orientation="vertical"
@@ -779,6 +805,7 @@ export default function PlaygroundPage() {
                   tabIndex={inspectorMode === 'rules' ? 0 : -1}
                   type="button"
                 >
+                  <Icon name="config" />
                   utlint.json
                 </button>
                 <button
@@ -792,41 +819,10 @@ export default function PlaygroundPage() {
                   tabIndex={inspectorMode === 'ast' ? 0 : -1}
                   type="button"
                 >
+                  <Icon name="tree" />
                   AST
                 </button>
               </div>
-
-              {inspectorMode === 'rules' ? (
-                <div className="segmented-control">
-                  <span className="segmented-label">Ruleset</span>
-                  <button
-                    aria-pressed={rulesMode === 'recommended'}
-                    className={
-                      rulesMode === 'recommended' ? 'is-active' : undefined
-                    }
-                    onClick={() => {
-                      invalidateShareUrl();
-                      setRunState(EMPTY_RUN_STATE);
-                      setRulesMode('recommended');
-                    }}
-                    type="button"
-                  >
-                    Recommended
-                  </button>
-                  <button
-                    aria-pressed={rulesMode === 'custom'}
-                    className={rulesMode === 'custom' ? 'is-active' : undefined}
-                    onClick={() => {
-                      invalidateShareUrl();
-                      setRunState(EMPTY_RUN_STATE);
-                      setRulesMode('custom');
-                    }}
-                    type="button"
-                  >
-                    Custom
-                  </button>
-                </div>
-              ) : null}
             </div>
 
             {inspectorMode === 'rules' ? (
@@ -836,6 +832,41 @@ export default function PlaygroundPage() {
                 id="rules-config-panel"
                 role="tabpanel"
               >
+                <div className="rules-toolbar">
+                  <span className="rules-toolbar-label">Ruleset</span>
+                  <div
+                    aria-label="Ruleset"
+                    className="segmented-control"
+                    role="group"
+                  >
+                    <button
+                      aria-pressed={rulesMode === 'recommended'}
+                      className={
+                        rulesMode === 'recommended' ? 'is-active' : undefined
+                      }
+                      onClick={() => {
+                        invalidateShareUrl();
+                        setRunState(EMPTY_RUN_STATE);
+                        setRulesMode('recommended');
+                      }}
+                      type="button"
+                    >
+                      Recommended
+                    </button>
+                    <button
+                      aria-pressed={rulesMode === 'custom'}
+                      className={rulesMode === 'custom' ? 'is-active' : undefined}
+                      onClick={() => {
+                        invalidateShareUrl();
+                        setRunState(EMPTY_RUN_STATE);
+                        setRulesMode('custom');
+                      }}
+                      type="button"
+                    >
+                      Custom
+                    </button>
+                  </div>
+                </div>
                 <textarea
                   aria-describedby={rulesDescriptionId}
                   aria-invalid={hasCustomRulesError || undefined}
@@ -881,6 +912,7 @@ export default function PlaygroundPage() {
                 {(astState.phase === 'idle' ||
                   astState.phase === 'running') && (
                   <div className="empty-state ast-loading-state">
+                    <span className="loading-spinner" />
                     <strong>Parsing syntax tree…</strong>
                   </div>
                 )}
@@ -927,7 +959,9 @@ export default function PlaygroundPage() {
                   Diagnostics
                 </h2>
               </div>
-              <span className="diagnostic-total">{diagnostics.length}</span>
+              <span className="diagnostic-total">
+                {isChecking ? '…' : diagnostics.length}
+              </span>
             </div>
 
             <div className="diagnostic-list">
@@ -940,13 +974,18 @@ export default function PlaygroundPage() {
 
               {(runState.phase === 'idle' || runState.phase === 'running') && (
                 <div className="empty-state">
-                  <strong>Checking…</strong>
+                  <span className="loading-spinner" />
+                  <strong>Checking your code…</strong>
                 </div>
               )}
 
               {runState.phase === 'ready' && diagnostics.length === 0 && (
-                <div className="empty-state">
+                <div className="empty-state success-state">
+                  <span className="success-icon">
+                    <Icon name="check" />
+                  </span>
                   <strong>No problems found</strong>
+                  <span>Your code is clear of diagnostics for this ruleset.</span>
                 </div>
               )}
 
@@ -959,7 +998,9 @@ export default function PlaygroundPage() {
                   type="button"
                 >
                   <span className="severity-symbol" aria-hidden="true">
-                    {diagnostic.severity === 'error' ? '×' : '!'}
+                    <Icon
+                      name={diagnostic.severity === 'error' ? 'error' : 'warning'}
+                    />
                   </span>
                   <span className="diagnostic-content">
                     <span className="diagnostic-message">
@@ -967,7 +1008,9 @@ export default function PlaygroundPage() {
                     </span>
                     <span className="diagnostic-meta">
                       <code>{diagnostic.ruleId}</code>
-                      <span>{diagnosticLabel(diagnostic)}</span>
+                      <span className="diagnostic-location">
+                        {diagnosticLabel(diagnostic)}
+                      </span>
                       {diagnostic.fixes.length > 0 && (
                         <span className="fixable-badge">fixable</span>
                       )}
