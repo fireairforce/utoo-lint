@@ -80,3 +80,19 @@ Run a smaller local sample with:
 ```bash
 pnpm codspeed:native-flat-config -- --files=100 --time=100 --warmup-time=0
 ```
+
+## Published website chart
+
+The website uses the archived 2026-08-30 run in
+[`public/benchmarks/2026-08-30.json`](../public/benchmarks/2026-08-30.json).
+It contains the original samples and commands, but not exact tool versions or
+the CPU model. It is a dated snapshot, not a benchmark of the latest release.
+
+Regenerate its English and Chinese SVG images from the repository root:
+
+```bash
+node scripts/render-site-benchmark.mjs
+```
+
+The published chart uses a linear zero-based scale. New local runs continue to
+write to `results/latest.json`; they do not silently replace the published data.

@@ -190,9 +190,25 @@ async function runSmoke(page, origin) {
     await page.goto(`${origin}/`, { waitUntil: 'networkidle' });
     await waitForSettledPage(page);
     await page
-      .getByRole('heading', { name: 'Find code problems faster.' })
+      .getByRole('heading', { name: 'Fast linting. Familiar rules.' })
       .waitFor();
     assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+
+    stage = 'Homepage autofix example';
+    await page.getByRole('button', { name: 'After fix', exact: true }).click();
+    await page
+      .getByText('Four fixes. Cleaner code.', { exact: true })
+      .waitFor();
+    await page.getByRole('button', { name: 'Before', exact: true }).click();
+    await page
+      .getByText('4 diagnostics with safe autofixes', { exact: true })
+      .waitFor();
+    const chart = page.locator('.product-chart img');
+    await chart.scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => {
+      const image = document.querySelector('.product-chart img');
+      return image?.complete && image.naturalWidth > 0;
+    });
 
     stage = 'SPA navigation to configuration';
     const initialTimeOrigin = await page.evaluate(() => performance.timeOrigin);
@@ -221,7 +237,9 @@ async function runSmoke(page, origin) {
     await page.goto(`${origin}/zh-CN/`, { waitUntil: 'networkidle' });
     await waitForSettledPage(page);
     assert.equal(await page.locator('html').getAttribute('lang'), 'zh-CN');
-    await page.getByRole('heading', { name: '更快地发现代码问题。' }).waitFor();
+    await page
+      .getByRole('heading', { name: '原生速度。 熟悉的规则。' })
+      .waitFor();
 
     stage = 'Playground';
     await page.locator('main a[href="/playground/"]').first().click();
@@ -258,7 +276,9 @@ async function runSmoke(page, origin) {
       await waitForSettledPage(page);
       assert.equal(await versionSelect.inputValue(), previousVersion);
       await page.waitForFunction(() =>
-        document.querySelector('[role="status"]')?.textContent?.includes('Lint complete.'),
+        document
+          .querySelector('[role="status"]')
+          ?.textContent?.includes('Lint complete.'),
       );
       await versionSelect.selectOption(versionManifest.latest);
       await page.waitForURL(
@@ -293,7 +313,7 @@ async function runSmoke(page, origin) {
     await page.waitForURL(`${origin}/`);
     await waitForSettledPage(page);
     await page
-      .getByRole('heading', { name: 'Find code problems faster.' })
+      .getByRole('heading', { name: 'Fast linting. Familiar rules.' })
       .waitFor();
   } catch (error) {
     assertionError = error;

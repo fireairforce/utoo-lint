@@ -39,6 +39,7 @@ async function verifyTranslationSources() {
     'rule-status',
     'suppressions',
     'wasm',
+    'benchmarks',
   ];
   const sources = new Map();
 
@@ -257,56 +258,32 @@ function verifyLanguageSwitch(html, expectedHref, expectedText, label) {
 }
 
 function verifyHomepageVisual(html) {
-  if (html.includes('WebGPU shader')) {
-    throw new Error('docs index exposes the homepage rendering technology');
-  }
-
-  for (const removedClass of [
-    'utlint-engine-stage',
-    'utlint-shader',
-    'utlint-shader-fallback',
-    'utlint-workbench',
-    'utlint-release-strip',
-    'utlint-hero-command',
-    'utlint-hero-evidence',
-  ]) {
-    if (findOpeningTagByClass(html, removedClass)) {
-      throw new Error(
-        `docs index still renders removed visual ${removedClass}`,
-      );
-    }
-  }
-
   for (const requiredClass of [
-    'utlint-gpu-logo',
-    'utlint-home-kicker',
-    'utlint-home-section--benchmark',
-    'utlint-benchmark-chart',
-    'utlint-benchmark-row--oxlint',
-    'utlint-benchmark-row--biome',
-    'utlint-migration-boundary',
+    'product-hero',
+    'product-demo',
+    'product-install',
+    'product-features',
+    'product-benchmark',
+    'product-chart',
+    'product-config',
+    'product-steps',
+    'product-runtimes',
+    'product-cta',
   ]) {
     if (!findOpeningTagByClass(html, requiredClass)) {
       throw new Error(`docs index is missing ${requiredClass}`);
     }
   }
-
-  for (const result of ['8.35 ms', '57.35 ms', '61.56 ms', '747.84 ms']) {
-    if (html.includes(result)) {
-      throw new Error(`docs index still renders benchmark result ${result}`);
-    }
+  const chart = [...html.matchAll(/<img\b[^>]*>/gi)].find((match) =>
+    /\/benchmarks\/comparison-(en|zh)\.svg/.test(
+      getHtmlAttribute(match[0], 'src') ?? '',
+    ),
+  );
+  if (!chart || !getHtmlAttribute(chart[0], 'alt')) {
+    throw new Error('docs index is missing its accessible benchmark image');
   }
-
-  if (
-    !['~4×', '~5×', '~70×'].every((comparison) =>
-      html.includes(comparison),
-    )
-  ) {
-    throw new Error('docs index is missing the rounded benchmark comparison');
-  }
-
-  if (/\b0[123]\s*·/.test(html)) {
-    throw new Error('docs index still numbers homepage section labels');
+  if (!html.includes('/benchmarks/2026-08-30.json')) {
+    throw new Error('docs index is missing its raw benchmark data link');
   }
 }
 
@@ -331,7 +308,8 @@ function verifyHomepageActions(html, quickStartText, quickStartHref) {
 
     quickStartFound ||= text === quickStartText && href === quickStartHref;
     githubFound ||=
-      text === 'GitHub' && href === 'https://github.com/utooland/utoo-lint';
+      text.startsWith('GitHub') &&
+      href === 'https://github.com/utooland/utoo-lint';
   }
 
   if (!quickStartFound) {
@@ -650,6 +628,30 @@ const documentSpecs = [
     switchText: 'English',
     colorThemeLabel: '颜色主题',
   },
+  {
+    file: 'benchmarks/index.html',
+    title: 'Benchmark results',
+    label: 'English benchmark report',
+    language: 'en',
+    currentPath: '/benchmarks',
+    englishPath: '/benchmarks',
+    chinesePath: '/zh-CN/benchmarks',
+    switchHref: '/zh-CN/benchmarks',
+    switchText: '中文',
+    colorThemeLabel: 'Color theme',
+  },
+  {
+    file: 'zh-CN/benchmarks/index.html',
+    title: '性能测试记录',
+    label: 'Chinese benchmark report',
+    language: 'zh-CN',
+    currentPath: '/zh-CN/benchmarks',
+    englishPath: '/benchmarks',
+    chinesePath: '/zh-CN/benchmarks',
+    switchHref: '/benchmarks',
+    switchText: 'English',
+    colorThemeLabel: '颜色主题',
+  },
 ];
 const documents = new Map();
 
@@ -673,6 +675,34 @@ for (const spec of documentSpecs) {
   }
 }
 
+const benchmark = JSON.parse(
+  await readFile(await requireFile('benchmarks/2026-08-30.json'), 'utf8'),
+);
+for (const language of ['en', 'zh', 'en-compact', 'zh-compact']) {
+  const chart = await readFile(
+    await requireFile(`benchmarks/comparison-${language}.svg`),
+    'utf8',
+  );
+  for (const result of benchmark.results) {
+    const sorted = [...result.samplesMs].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    const median =
+      sorted.length % 2
+        ? sorted[middle]
+        : (sorted[middle - 1] + sorted[middle]) / 2;
+    if (
+      sorted.length !== result.runs ||
+      !Number.isFinite(median) ||
+      Math.abs(median - result.summary.medianMs) > 0.001 ||
+      !chart.includes(`${result.summary.medianMs.toFixed(2)} ms`)
+    ) {
+      throw new Error(
+        `benchmark chart does not match ${result.name} measurements`,
+      );
+    }
+  }
+}
+
 await requireFile('robots.txt');
 await requireFile('sitemap.xml');
 const docsIndex = documents.get('index.html');
@@ -689,7 +719,7 @@ for (const [label, html] of [
   ['English root document', docsIndex],
   ['Chinese root document', chineseDocsIndex],
 ]) {
-  if (!findOpeningTagByClass(html, 'utlint-home-section')) {
+  if (!findOpeningTagByClass(html, 'product-home')) {
     throw new Error(`${label} was not statically rendered`);
   }
 }
@@ -703,12 +733,14 @@ for (const url of [
   'https://utlint.umijs.org/eslint-migration',
   'https://utlint.umijs.org/suppressions',
   'https://utlint.umijs.org/wasm',
+  'https://utlint.umijs.org/benchmarks',
   'https://utlint.umijs.org/zh-CN/',
   'https://utlint.umijs.org/zh-CN/configuration',
   'https://utlint.umijs.org/zh-CN/rule-status',
   'https://utlint.umijs.org/zh-CN/eslint-migration',
   'https://utlint.umijs.org/zh-CN/suppressions',
   'https://utlint.umijs.org/zh-CN/wasm',
+  'https://utlint.umijs.org/zh-CN/benchmarks',
   'https://utlint.umijs.org/playground/',
 ]) {
   if (!sitemap.includes(`<loc>${url}</loc>`)) {
