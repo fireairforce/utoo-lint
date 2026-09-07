@@ -418,6 +418,7 @@ const BUILTIN_RULE_IDS = [
   "@typescript-eslint/no-duplicate-enum-values",
   "@typescript-eslint/no-extra-semi",
   "@typescript-eslint/no-extra-non-null-assertion",
+  "@typescript-eslint/no-explicit-any",
   "@typescript-eslint/no-inferrable-types",
   "@typescript-eslint/no-invalid-void-type",
   "@typescript-eslint/no-loop-func",
@@ -475,6 +476,7 @@ const NATIVE_ONLY_RULE_IDS = [
 ];
 const NATIVE_RULE_IDS = [...BUILTIN_RULE_IDS, ...NATIVE_ONLY_RULE_IDS];
 const FIXABLE_BUILTIN_RULE_IDS = new Set([
+  "@typescript-eslint/no-explicit-any",
   "jest/no-deprecated-functions",
   "jest/no-jasmine-globals",
   "no-extra-semi",
@@ -482,6 +484,7 @@ const FIXABLE_BUILTIN_RULE_IDS = new Set([
   "unused-imports/no-unused-imports"
 ]);
 const SUGGESTION_BUILTIN_RULE_IDS = new Set([
+  "@typescript-eslint/no-explicit-any",
   "jest/no-focused-tests"
 ]);
 const BUILTIN_RULES = new Map(BUILTIN_RULE_IDS.map((ruleId) => [ruleId, createBuiltinRule(ruleId)]));
