@@ -51,6 +51,8 @@ const JsonDiagnostic = struct {
     filePath: []const u8,
     line: usize,
     column: usize,
+    endLine: ?usize = null,
+    endColumn: ?usize = null,
     severity: []const u8,
     message: []const u8,
     ruleId: []const u8,
@@ -1657,7 +1659,7 @@ fn collectLintablePaths(
         if (json_diagnostics) |diagnostics| {
             const message = try std.fmt.allocPrint(allocator, "unable to stat path: {s}", .{@errorName(err)});
             defer allocator.free(message);
-            try appendJsonDiagnostic(allocator, diagnostics, path, 0, 0, "error", message, "io", "", &.{}, &.{}, null, &.{});
+            try appendJsonDiagnostic(allocator, diagnostics, path, 0, 0, null, "error", message, "io", "", &.{}, &.{}, null, &.{});
         } else {
             std.debug.print("{s}: unable to stat path: {s}\n", .{ path, @errorName(err) });
         }
@@ -2236,7 +2238,7 @@ fn lintFileJson(
     const source = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(max_file_size)) catch |err| {
         const message = try std.fmt.allocPrint(allocator, "unable to read file: {s}", .{@errorName(err)});
         defer allocator.free(message);
-        try appendJsonDiagnostic(allocator, json_diagnostics, path, 0, 0, "error", message, "io", "", &.{}, &.{}, null, &.{});
+        try appendJsonDiagnostic(allocator, json_diagnostics, path, 0, 0, null, "error", message, "io", "", &.{}, &.{}, null, &.{});
         stats.errors += 1;
         stats.diagnostics += 1;
         return;
@@ -2374,6 +2376,7 @@ fn appendJsonDiagnostic(
     path: []const u8,
     line: usize,
     column: usize,
+    end: ?lint.SourcePosition,
     severity: []const u8,
     message: []const u8,
     rule_id: []const u8,
@@ -2439,6 +2442,8 @@ fn appendJsonDiagnostic(
         .filePath = owned_path,
         .line = line,
         .column = column,
+        .endLine = if (end) |position| position.line else null,
+        .endColumn = if (end) |position| position.column else null,
         .severity = severity,
         .message = owned_message,
         .ruleId = owned_rule_id,
@@ -2454,6 +2459,18 @@ fn appendJsonDiagnostic(
     });
 }
 
+fn diagnosticEndPosition(source: []const u8, diagnostic: lint.Diagnostic, start: lint.SourcePosition) lint.SourcePosition {
+    if (diagnostic.span.end < diagnostic.span.start) return lint.offsetToUtf16LineColumn(source, diagnostic.span.end);
+    const start_byte = @min(@as(usize, diagnostic.span.start), source.len);
+    const end_byte = @min(@as(usize, diagnostic.span.end), source.len);
+    // Reuse the start position instead of rescanning the entire file for every end.
+    const relative_end = lint.offsetToUtf16LineColumn(source[start_byte..], @intCast(end_byte - start_byte));
+    return .{
+        .line = start.line + relative_end.line - 1,
+        .column = if (relative_end.line == 1) start.column + relative_end.column - 1 else relative_end.column,
+    };
+}
+
 fn appendJsonResultDiagnostics(
     allocator: std.mem.Allocator,
     json_diagnostics: *JsonDiagnosticList,
@@ -2465,13 +2482,14 @@ fn appendJsonResultDiagnostics(
 ) !void {
     for (result.diagnostics) |diagnostic| {
         const severity = effectiveDiagnosticSeverity(rule_severities, diagnostic);
-        const position = lint.offsetToLineColumn(source, diagnostic.span.start);
+        const position = lint.offsetToUtf16LineColumn(source, diagnostic.span.start);
         try appendJsonDiagnostic(
             allocator,
             json_diagnostics,
             path,
             position.line,
             position.column,
+            diagnosticEndPosition(source, diagnostic, position),
             severity.toString(),
             diagnostic.message,
             diagnostic.rule_id,
@@ -2497,13 +2515,14 @@ fn appendJsonResultSuppressedDiagnostics(
 ) !void {
     for (result.suppressed_diagnostics) |diagnostic| {
         const severity = effectiveDiagnosticSeverity(rule_severities, diagnostic);
-        const position = lint.offsetToLineColumn(source, diagnostic.span.start);
+        const position = lint.offsetToUtf16LineColumn(source, diagnostic.span.start);
         try appendJsonDiagnostic(
             allocator,
             json_diagnostics,
             path,
             position.line,
             position.column,
+            diagnosticEndPosition(source, diagnostic, position),
             severity.toString(),
             diagnostic.message,
             diagnostic.rule_id,

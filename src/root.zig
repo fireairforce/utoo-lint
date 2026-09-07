@@ -395,6 +395,49 @@ pub fn offsetToUtf16Offset(source: []const u8, offset: u32) usize {
     return utf16_offset;
 }
 
+/// ESLint positions are one-based UTF-16 columns and recognize every JS line terminator.
+pub fn offsetToUtf16LineColumn(source: []const u8, offset: u32) SourcePosition {
+    const end = @min(@as(usize, @intCast(offset)), source.len);
+    var line: usize = 1;
+    var column: usize = 1;
+    var byte_index: usize = 0;
+
+    while (byte_index < end) {
+        const byte = source[byte_index];
+        if (byte < 0x80) {
+            const partial_crlf = byte == '\r' and byte_index + 1 == end and end < source.len and source[end] == '\n';
+            if ((byte == '\r' and !partial_crlf) or byte == '\n') {
+                line += 1;
+                column = 1;
+            } else {
+                column += 1;
+            }
+            byte_index += 1;
+            if (byte == '\r' and byte_index < end and source[byte_index] == '\n') byte_index += 1;
+            continue;
+        }
+        if (byte == 0xe2 and byte_index + 2 < end and source[byte_index + 1] == 0x80 and
+            (source[byte_index + 2] == 0xa8 or source[byte_index + 2] == 0xa9))
+        {
+            line += 1;
+            column = 1;
+            byte_index += 3;
+            continue;
+        }
+
+        const sequence_len = std.unicode.utf8ByteSequenceLength(byte) catch 1;
+        if (byte_index + sequence_len > end) {
+            column += 1;
+            byte_index += 1;
+            continue;
+        }
+        column += if (sequence_len == 4) 2 else 1;
+        byte_index += sequence_len;
+    }
+
+    return .{ .line = line, .column = column };
+}
+
 fn appendParserDiagnostics(
     allocator: Allocator,
     diagnostics: *core.DiagnosticList,

@@ -90,6 +90,22 @@ test "converts byte offsets to ESLint UTF-16 offsets" {
     try std.testing.expectEqual(@as(usize, 4), lint.offsetToUtf16Offset(source, 8));
 }
 
+test "UTF-16 positions preserve the boundary inside a CRLF line ending" {
+    const source = "a\r\nb";
+    const expected = [_]lint.SourcePosition{
+        .{ .line = 1, .column = 1 },
+        .{ .line = 1, .column = 2 },
+        .{ .line = 1, .column = 3 },
+        .{ .line = 2, .column = 1 },
+        .{ .line = 2, .column = 2 },
+    };
+    for (expected, 0..) |position, offset| {
+        try std.testing.expectEqualDeep(position, lint.offsetToUtf16LineColumn(source, @intCast(offset)));
+    }
+    try std.testing.expectEqualDeep(expected[4], lint.offsetToUtf16LineColumn(source, 99));
+    try std.testing.expectEqualDeep(expected[0], lint.offsetToUtf16LineColumn("", 0));
+}
+
 fn diagnostic(rule_id: []const u8, fixes: []lint.Fix) lint.Diagnostic {
     return .{
         .rule_id = rule_id,

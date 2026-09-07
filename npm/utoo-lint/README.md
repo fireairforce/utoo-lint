@@ -248,6 +248,12 @@ Raw reports include active diagnostics, suppressed diagnostics, fixed outputs,
 and an exit code. The compatibility layer also exports `Linter`, `CLIEngine`,
 `RuleTester`, and `SourceCode` APIs.
 
+Native JSON diagnostics and ESLint-compatible messages include one-based `line`,
+`column`, `endLine`, and `endColumn` positions for source spans. Columns count
+UTF-16 code units, and the end position is exclusive. Suppressed diagnostics keep
+the same range. I/O errors without a source span omit the end positions; messages
+from older native binaries may also omit them.
+
 `ESLint` and `CLIEngine` also discover classic `.eslintrc.*` files (or
 `eslintConfig` in `package.json`) when no native config applies. Legacy
 `extends`, directory cascades, `root`, `overrides`, and ignore patterns are
