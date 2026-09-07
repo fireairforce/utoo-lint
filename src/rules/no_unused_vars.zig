@@ -157,7 +157,7 @@ pub fn runWithOptions(
         const decls = symbol_table.symbolDecls(entry.id);
         if (decls.len == 0) continue;
 
-        if (symbol_table.isReferenced(entry.id)) {
+        if (symbol_table.isReferenced(entry.id) or isParameterProperty(tree, symbol_table, decls[0])) {
             if (options.report_used_ignore_pattern and isReportedUsedIgnoredName(name, flags, decls, &destructured_array_ignored_decls, options)) {
                 try core.addDiagnosticFmt(
                     allocator,
@@ -307,6 +307,14 @@ fn isLintableSymbol(flags: traverser.semantic.Symbol.Flags, options: Options) bo
         (options.check_type_parameters and flags.type_parameter);
 }
 
+fn isParameterProperty(tree: *const ast.Tree, symbol_table: traverser.semantic.SymbolTable, declaration: ast.NodeIndex) bool {
+    var parent = symbol_table.parentOf(declaration) orelse return false;
+    if (tree.data(parent) == .assignment_pattern) {
+        parent = symbol_table.parentOf(parent) orelse return false;
+    }
+    return tree.data(parent) == .ts_parameter_property;
+}
+
 fn collectParameters(
     allocator: Allocator,
     tree: *const ast.Tree,
@@ -325,7 +333,7 @@ fn collectParameters(
             .symbol_id = entry.id,
             .scope = symbol.scope,
             .start = tree.span(decls[0]).start,
-            .used = symbol_table.isReferenced(entry.id),
+            .used = symbol_table.isReferenced(entry.id) or isParameterProperty(tree, symbol_table, decls[0]),
         });
     }
 }
