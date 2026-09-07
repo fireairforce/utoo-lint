@@ -399,6 +399,7 @@ instead of being rewritten.
 | [`@typescript-eslint/no-duplicate-enum-values`](https://typescript-eslint.io/rules/no-duplicate-enum-values/) | Implemented |
 | [`@typescript-eslint/no-extra-semi`](https://typescript-eslint.io/rules/no-extra-semi/) | Implemented with autofix |
 | [`@typescript-eslint/no-extra-non-null-assertion`](https://typescript-eslint.io/rules/no-extra-non-null-assertion/) | Implemented |
+| [`@typescript-eslint/no-explicit-any`](https://typescript-eslint.io/rules/no-explicit-any/) | Opt-in; supports `ignoreRestArgs`, `fixToUnknown`, and editor suggestions for `unknown` and `never` |
 | [`@typescript-eslint/no-inferrable-types`](https://typescript-eslint.io/rules/no-inferrable-types/) | Supports `ignoreParameters` and `ignoreProperties` configuration |
 | [`@typescript-eslint/no-invalid-void-type`](https://typescript-eslint.io/rules/no-invalid-void-type/) | Supports `allowAsThisParameter` and boolean/string-list `allowInGenericTypeArguments` configuration |
 | [`@typescript-eslint/no-loop-func`](https://typescript-eslint.io/rules/no-loop-func/) | Implemented for TypeScript loop captures with core `no-loop-func` fallback when disabled |

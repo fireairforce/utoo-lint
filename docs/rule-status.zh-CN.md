@@ -398,6 +398,7 @@
 | [`@typescript-eslint/no-duplicate-enum-values`](https://typescript-eslint.io/rules/no-duplicate-enum-values/) | 已实现 |
 | [`@typescript-eslint/no-extra-semi`](https://typescript-eslint.io/rules/no-extra-semi/) | 已实现并支持自动修复 |
 | [`@typescript-eslint/no-extra-non-null-assertion`](https://typescript-eslint.io/rules/no-extra-non-null-assertion/) | 已实现 |
+| [`@typescript-eslint/no-explicit-any`](https://typescript-eslint.io/rules/no-explicit-any/) | 按配置启用；支持 `ignoreRestArgs`、`fixToUnknown` 及替换为 `unknown` 或 `never` 的编辑器建议 |
 | [`@typescript-eslint/no-inferrable-types`](https://typescript-eslint.io/rules/no-inferrable-types/) | 支持 `ignoreParameters` 和 `ignoreProperties` 配置 |
 | [`@typescript-eslint/no-invalid-void-type`](https://typescript-eslint.io/rules/no-invalid-void-type/) | 支持 `allowAsThisParameter`，以及布尔值/字符串列表形式的 `allowInGenericTypeArguments` 配置 |
 | [`@typescript-eslint/no-loop-func`](https://typescript-eslint.io/rules/no-loop-func/) | 已实现 TypeScript 循环捕获检查；禁用时回退到核心 `no-loop-func` |
