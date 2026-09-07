@@ -2,6 +2,41 @@ const std = @import("std");
 const lint = @import("utoo_lint");
 const helpers = @import("../helpers.zig");
 
+test "treats TypeScript constructor parameter properties as implicitly used" {
+    const source =
+        \\export class Message {
+        \\  constructor(
+        \\    public readonly id: string,
+        \\    readonly body: string,
+        \\    protected handler: () => void,
+        \\    private label: string = "message",
+        \\  ) {}
+        \\  read() { return this.body; }
+        \\}
+    ;
+    var options = lint.Options.allDisabled();
+    try options.setByRuleConfigValue("@typescript-eslint/no-unused-vars", .{ .string = "error" });
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), result.diagnostics.len);
+}
+
+test "counts parameter properties as used when checking trailing unused arguments" {
+    const source =
+        \\export class Message {
+        \\  constructor(before: string, public id: string, after: string) {}
+        \\}
+    ;
+    var options = lint.Options.allDisabled();
+    try options.setByRuleConfigValue("@typescript-eslint/no-unused-vars", .{ .string = "error" });
+    var result = try lint.lintSource(std.testing.allocator, source, "fixture.ts", options);
+    defer result.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), result.diagnostics.len);
+    try std.testing.expectEqualStrings("'after' is declared but never used.", result.diagnostics[0].message);
+}
+
 test "reports @typescript-eslint/no-unused-vars while ignoring catch parameters by default" {
     const source =
         \\const unused = 1;

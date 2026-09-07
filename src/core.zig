@@ -3230,6 +3230,10 @@ pub const Options = struct {
     typescript_eslint_no_extra_semi: bool = true,
     typescript_eslint_no_extra_non_null_assertion: bool = true,
     typescript_eslint_no_duplicate_enum_values: bool = true,
+    // Opt-in: adding support must not enable a new check in existing projects.
+    typescript_eslint_no_explicit_any: bool = false,
+    typescript_eslint_no_explicit_any_fix_to_unknown: bool = false,
+    typescript_eslint_no_explicit_any_ignore_rest_args: bool = false,
     typescript_eslint_no_inferrable_types: bool = true,
     typescript_eslint_no_inferrable_types_ignore_parameters: bool = false,
     typescript_eslint_no_inferrable_types_ignore_properties: bool = false,
@@ -4122,6 +4126,10 @@ pub const Options = struct {
             self.typescript_eslint_no_empty_object_type_allow_interfaces = try typescriptEslintNoEmptyObjectTypeAllowInterfacesFromConfig(value);
             self.typescript_eslint_no_empty_object_type_allow_object_types = try typescriptEslintNoEmptyObjectTypeAllowObjectTypesFromConfig(value);
             self.typescript_eslint_no_empty_object_type_allow_with_name = try typescriptEslintNoEmptyObjectTypeAllowWithNameFromConfig(value);
+        }
+        if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-explicit-any")) {
+            self.typescript_eslint_no_explicit_any_fix_to_unknown = try typescriptEslintNoExplicitAnyBoolOptionFromConfig(value, "fixToUnknown");
+            self.typescript_eslint_no_explicit_any_ignore_rest_args = try typescriptEslintNoExplicitAnyBoolOptionFromConfig(value, "ignoreRestArgs");
         }
         if (std.mem.eql(u8, cli_name, "@typescript-eslint/no-inferrable-types")) {
             self.typescript_eslint_no_inferrable_types_ignore_parameters = try typescriptEslintNoInferrableTypesBoolOptionFromConfig(value, "ignoreParameters", false);
@@ -9845,6 +9853,22 @@ pub const Options = struct {
         };
     }
 
+    fn typescriptEslintNoExplicitAnyBoolOptionFromConfig(value: std.json.Value, key: []const u8) RuleConfigError!bool {
+        const items = switch (value) {
+            .array => |array| array.items,
+            else => return false,
+        };
+        if (items.len < 2) return false;
+        const config = switch (items[1]) {
+            .object => |object| object,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+        return switch (config.get(key) orelse return false) {
+            .bool => |enabled| enabled,
+            else => return error.UnsupportedRuleConfigValue,
+        };
+    }
+
     fn typescriptEslintNoInferrableTypesBoolOptionFromConfig(value: std.json.Value, key: []const u8, default: bool) RuleConfigError!bool {
         const items = switch (value) {
             .array => |array| array.items,
@@ -10488,7 +10512,7 @@ pub fn addDiagnosticWithSuggestions(
     );
 }
 
-fn addDiagnosticWithFixesAndSuggestions(
+pub fn addDiagnosticWithFixesAndSuggestions(
     allocator: Allocator,
     diagnostics: *DiagnosticList,
     severity: Severity,

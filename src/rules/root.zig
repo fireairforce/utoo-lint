@@ -379,6 +379,7 @@ pub const typescript_eslint_no_loss_of_precision = @import("typescript_eslint_no
 pub const typescript_eslint_no_loop_func = @import("typescript_eslint_no_loop_func.zig");
 pub const typescript_eslint_no_misused_new = @import("typescript_eslint_no_misused_new.zig");
 pub const typescript_eslint_no_namespace = @import("typescript_eslint_no_namespace.zig");
+pub const typescript_eslint_no_explicit_any = @import("typescript_eslint_no_explicit_any.zig");
 pub const typescript_eslint_no_non_null_asserted_optional_chain = @import("typescript_eslint_no_non_null_asserted_optional_chain.zig");
 pub const typescript_eslint_no_redeclare = @import("typescript_eslint_no_redeclare.zig");
 pub const typescript_eslint_no_require_imports = @import("typescript_eslint_no_require_imports.zig");
@@ -2731,6 +2732,21 @@ const BasicVisitor = struct {
     ) Allocator.Error!traverser.Action {
         if (self.options.typescript_eslint_no_unnecessary_type_constraint) {
             try typescript_eslint_no_unnecessary_type_constraint.check(self.allocator, self.diagnostics, ctx.tree, parameter, index);
+        }
+        return .proceed;
+    }
+
+    pub fn enter_ts_any_keyword(
+        self: *BasicVisitor,
+        _: ast.TSAnyKeyword,
+        index: ast.NodeIndex,
+        ctx: *traverser.basic.Ctx,
+    ) Allocator.Error!traverser.Action {
+        if (self.options.typescript_eslint_no_explicit_any) {
+            try typescript_eslint_no_explicit_any.check(self.allocator, self.diagnostics, ctx.tree, index, ctx, .{
+                .fix_to_unknown = self.options.typescript_eslint_no_explicit_any_fix_to_unknown,
+                .ignore_rest_args = self.options.typescript_eslint_no_explicit_any_ignore_rest_args,
+            });
         }
         return .proceed;
     }
