@@ -6,6 +6,7 @@ import { dirname, extname, isAbsolute, join, relative, resolve as resolvePath } 
 import { fileURLToPath } from "node:url";
 
 import { resolveBinary } from "./lib/binary.js";
+import { createLegacyConfigResolver } from "./lib/legacy-config.cjs";
 import {
   findConfigPath as findConfigPathFromDirectory,
   readConfig
@@ -18,6 +19,8 @@ export const version = JSON.parse(readFileSync(new URL("./package.json", import.
 const LINTABLE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"]);
 const MAX_AUTOFIX_PASSES = 10;
 const CONFIG_DISCOVERY_CACHE = Symbol("configDiscoveryCache");
+const LEGACY_CONFIG_ENABLED = Symbol("legacyConfigEnabled");
+const LEGACY_CONFIG_RESOLVER = Symbol("legacyConfigResolver");
 const JS_KEYWORDS = new Set([
   "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete",
   "do", "else", "export", "extends", "finally", "for", "function", "if", "import", "in",
@@ -3106,6 +3109,9 @@ export function lintFiles(paths, options = {}) {
   if (usesDefaultTargets) {
     lintPaths = filterDefaultConfigLintPaths(lintPaths, options);
   }
+  if (options[LEGACY_CONFIG_ENABLED] && (!options.noConfig || options.legacyConfigFile) && !options.deferDiagnosticConfigFiltering) {
+    lintPaths = expandNativeConfigRunPaths(lintPaths, options).filter((filePath) => !isPathIgnored(filePath, options));
+  }
   if (lintPaths.length === 0) {
     return { files: 0, filePaths: [], diagnostics: ignoredDiagnostics, suppressedDiagnostics: [], exitCode: exitCodeForDiagnostics(ignoredDiagnostics) };
   }
@@ -3129,6 +3135,10 @@ export function lintFiles(paths, options = {}) {
 }
 
 function nativeFlatConfigOptions(options) {
+  if (defersLegacyIgnores(options)) {
+    // A legacy config may cascade from a nested directory even with baseConfig.
+    return undefined;
+  }
   if (options.rules || options.extraArgs?.some((arg) => arg.startsWith("--") && arg !== "--fix" && arg !== "--fix-dry-run")) {
     return undefined;
   }
@@ -3200,7 +3210,7 @@ function nativeSerializableConfig(config) {
 
 function expandNativeConfigRunPaths(paths, options) {
   const cwd = options.cwd ?? process.cwd();
-  const patterns = ignoreDisabled(options) ? [] : ignorePatternsForOptions(options, cwd);
+  const patterns = ignoreDisabled(options) || defersLegacyIgnores(options) ? [] : ignorePatternsForOptions(options, cwd);
   return paths.flatMap((path) => expandLintTarget(path, cwd, patterns) ?? [path]);
 }
 
@@ -3258,7 +3268,7 @@ function finalizeLintReport(report, ignoredDiagnostics, options) {
 }
 
 function nativeConfigRunsForFiles(paths, options) {
-  if (options.noConfig && !options.baseConfig && !options.overrideConfig) {
+  if (options.noConfig && !options.legacyConfigFile && !options.baseConfig && !options.overrideConfig) {
     return undefined;
   }
 
@@ -3269,7 +3279,7 @@ function nativeConfigRunsForFiles(paths, options) {
       ? options.filePath ?? options.filename ?? filePath
       : filePath;
     const fileConfigPath = options.noConfig ? undefined : configPathForFile(options, matchPath);
-    const configured = Boolean(options.baseConfig || options.overrideConfig || fileConfigPath);
+    const configured = Boolean(options.baseConfig || options.overrideConfig || fileConfigPath || legacyConfigForFile(options, matchPath));
     hasConfigSource ||= configured;
     const calculated = configured ? calculatedConfig({ ...options, rules: undefined }, matchPath) : {};
     let rules = calculated.rules;
@@ -3372,7 +3382,9 @@ function isPureRuleSeverity(config) {
 function allDisabledNativeRules(rules) {
   return {
     ...Object.fromEntries(NATIVE_RULE_IDS.map((rule) => [rule, "off"])),
-    ...rules
+    ...Object.fromEntries(Object.entries(rules ?? {}).filter(
+      ([rule, value]) => NATIVE_RULE_IDS.includes(rule) || ruleConfigSeverity(value) > 0
+    ))
   };
 }
 
@@ -3556,6 +3568,7 @@ function withConfigCache(options) {
 
 function eslintConstructorOptions(options) {
   const mapped = {
+    [LEGACY_CONFIG_ENABLED]: true,
     cwd: options.cwd,
     threads: options.threads,
     binary: options.binary,
@@ -3579,13 +3592,12 @@ function eslintConstructorOptions(options) {
   if (typeof options.overrideConfigFile === "string") {
     mapped.config = options.overrideConfigFile;
   }
+  if (mapped.config && /(?:^|[/\\\\])\.eslintrc(?:\.(?:js|cjs|json|yaml|yml))?$/.test(mapped.config)) {
+    mapped.legacyConfigFile = mapped.config;
+    mapped.config = undefined;
+  }
   if (options.overrideConfig) {
     mapped.overrideConfig = Array.isArray(options.overrideConfig) ? options.overrideConfig : { ...options.overrideConfig };
-    if (!Array.isArray(mapped.overrideConfig) && !mapped.overrideConfig.rules && options.baseConfig?.rules) {
-      mapped.overrideConfig.rules = options.baseConfig.rules;
-    }
-  } else if (options.baseConfig?.rules) {
-    mapped.overrideConfig = { rules: options.baseConfig.rules };
   }
   return mapped;
 }
@@ -3717,13 +3729,13 @@ function rulesFromConfig(config, filePath, cwd) {
 }
 
 function rulesFromFileConfig(options, filePath) {
-  if (options.noConfig) {
+  if (options.noConfig && !options.legacyConfigFile) {
     return {};
   }
 
   const configPath = filePath ? configPathForFile(options, filePath) : configPathForOptions(options);
   if (!configPath) {
-    return {};
+    return legacyConfigForFile(options, filePath)?.rules ?? {};
   }
 
   const config = readConfig(configPath, options.cwd, options.configCache);
@@ -3731,17 +3743,38 @@ function rulesFromFileConfig(options, filePath) {
 }
 
 function configDataFromFileConfig(options, filePath) {
-  if (options.noConfig) {
+  if (options.noConfig && !options.legacyConfigFile) {
     return {};
   }
 
   const configPath = filePath ? configPathForFile(options, filePath) : configPathForOptions(options);
   if (!configPath) {
-    return {};
+    return configDataFromConfig(legacyConfigForFile(options, filePath), filePath, options.cwd);
   }
 
   const config = readConfig(configPath, options.cwd, options.configCache);
   return configDataFromConfig(config, filePath, dirname(configPath));
+}
+
+function legacyConfigForFile(options, filePath) {
+  if (!options[LEGACY_CONFIG_ENABLED] || (options.noConfig && !options.legacyConfigFile)) return undefined;
+  if (filePath ? configPathForFile(options, filePath) : configPathForOptions(options)) return undefined;
+  const cwd = resolvePath(options.cwd ?? process.cwd());
+  let resolver = options.configCache?.get(LEGACY_CONFIG_RESOLVER);
+  if (!resolver) {
+    resolver = createLegacyConfigResolver(cwd, {
+      configFile: options.legacyConfigFile,
+      useEslintrc: !options.noConfig,
+      ignorePath: options.ignorePath,
+      ignorePatterns: [
+        ...ignorePatternsFromConfig(options.baseConfig),
+        ...normalizeIgnorePatterns(options.ignorePatterns),
+        ...ignorePatternsFromConfig(options.overrideConfig)
+      ]
+    });
+    options.configCache?.set(LEGACY_CONFIG_RESOLVER, resolver);
+  }
+  return resolver(normalizeESLintFilePath(filePath ?? options.filePath ?? options.filename ?? "__placeholder__.js", cwd));
 }
 
 function lintTargetsForInput(paths, options = {}) {
@@ -3887,6 +3920,7 @@ function normalizeConfigPatterns(patterns) {
 }
 
 function configPathForOptions(options) {
+  if (options.legacyConfigFile) return undefined;
   if (options.config) {
     return resolvePath(options.cwd ?? process.cwd(), options.config);
   }
@@ -3896,6 +3930,7 @@ function configPathForOptions(options) {
 }
 
 function configPathForFile(options, filePath) {
+  if (options.legacyConfigFile) return undefined;
   if (options.noConfig) {
     return undefined;
   }
@@ -4289,7 +4324,7 @@ function isLintableFilePath(filePath) {
 function filteredLintPaths(paths, options = {}) {
   const values = normalizeStringArray(Array.isArray(paths) ? paths : [paths], "paths");
   const cwd = options.cwd ?? process.cwd();
-  const patterns = ignoreDisabled(options) ? [] : ignorePatternsForOptions(options, cwd);
+  const patterns = ignoreDisabled(options) || defersLegacyIgnores(options) ? [] : ignorePatternsForOptions(options, cwd);
   if (patterns.length === 0 && options.errorOnUnmatchedPattern !== false && !values.some(hasGlobMagic)) {
     return values;
   }
@@ -4408,7 +4443,7 @@ function ignoredLintPathDiagnostics(paths, options = {}) {
 
   const cwd = options.cwd ?? process.cwd();
   const patterns = ignorePatternsForOptions(options, cwd);
-  if (patterns.length === 0) {
+  if (patterns.length === 0 && !options[LEGACY_CONFIG_ENABLED]) {
     return [];
   }
 
@@ -4425,7 +4460,7 @@ function ignoredLintPathDiagnostics(paths, options = {}) {
       continue;
     }
 
-    if (pathIgnoredByPatterns(normalizeIgnoredPath(target, cwd), patterns)) {
+    if (isPathIgnored(filePath, options)) {
       diagnostics.push(ignoredFileDiagnostic(filePath));
     }
   }
@@ -4497,9 +4532,17 @@ function isPathIgnored(filePath, options = {}) {
   }
 
   const cwd = options.cwd ?? process.cwd();
+  const legacyConfig = legacyConfigForFile(options, filePath);
+  if (legacyConfig) {
+    return Boolean(legacyConfig.isIgnored?.(normalizeESLintFilePath(filePath, cwd)));
+  }
   const normalized = normalizeIgnoredPath(filePath, cwd);
   const patterns = ignorePatternsForOptions(options, cwd, filePath);
   return pathIgnoredByPatterns(normalized, patterns);
+}
+
+function defersLegacyIgnores(options) {
+  return options[LEGACY_CONFIG_ENABLED] && (options.legacyConfigFile || (!options.noConfig && !configPathForOptions(options)));
 }
 
 function ignoreDisabled(options = {}) {
