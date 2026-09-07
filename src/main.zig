@@ -2459,6 +2459,18 @@ fn appendJsonDiagnostic(
     });
 }
 
+fn diagnosticEndPosition(source: []const u8, diagnostic: lint.Diagnostic, start: lint.SourcePosition) lint.SourcePosition {
+    if (diagnostic.span.end < diagnostic.span.start) return lint.offsetToUtf16LineColumn(source, diagnostic.span.end);
+    const start_byte = @min(@as(usize, diagnostic.span.start), source.len);
+    const end_byte = @min(@as(usize, diagnostic.span.end), source.len);
+    // Reuse the start position instead of rescanning the entire file for every end.
+    const relative_end = lint.offsetToUtf16LineColumn(source[start_byte..], @intCast(end_byte - start_byte));
+    return .{
+        .line = start.line + relative_end.line - 1,
+        .column = if (relative_end.line == 1) start.column + relative_end.column - 1 else relative_end.column,
+    };
+}
+
 fn appendJsonResultDiagnostics(
     allocator: std.mem.Allocator,
     json_diagnostics: *JsonDiagnosticList,
@@ -2477,7 +2489,7 @@ fn appendJsonResultDiagnostics(
             path,
             position.line,
             position.column,
-            lint.offsetToUtf16LineColumn(source, diagnostic.span.end),
+            diagnosticEndPosition(source, diagnostic, position),
             severity.toString(),
             diagnostic.message,
             diagnostic.rule_id,
@@ -2510,7 +2522,7 @@ fn appendJsonResultSuppressedDiagnostics(
             path,
             position.line,
             position.column,
-            lint.offsetToUtf16LineColumn(source, diagnostic.span.end),
+            diagnosticEndPosition(source, diagnostic, position),
             severity.toString(),
             diagnostic.message,
             diagnostic.rule_id,

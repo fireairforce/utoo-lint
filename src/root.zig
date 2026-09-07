@@ -404,9 +404,14 @@ pub fn offsetToUtf16LineColumn(source: []const u8, offset: u32) SourcePosition {
 
     while (byte_index < end) {
         const byte = source[byte_index];
-        if (byte == '\r' or byte == '\n') {
-            line += 1;
-            column = 1;
+        if (byte < 0x80) {
+            const partial_crlf = byte == '\r' and byte_index + 1 == end and end < source.len and source[end] == '\n';
+            if ((byte == '\r' and !partial_crlf) or byte == '\n') {
+                line += 1;
+                column = 1;
+            } else {
+                column += 1;
+            }
             byte_index += 1;
             if (byte == '\r' and byte_index < end and source[byte_index] == '\n') byte_index += 1;
             continue;
