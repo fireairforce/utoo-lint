@@ -4879,6 +4879,12 @@ function diagnosticToESLintMessage(diagnostic, ruleSeverities) {
     column: diagnostic.column,
     nodeType: null
   };
+  if (diagnostic.endLine != null) {
+    message.endLine = diagnostic.endLine;
+  }
+  if (diagnostic.endColumn != null) {
+    message.endColumn = diagnostic.endColumn;
+  }
   const fixes = (diagnostic.fixes ?? []).map((fix) => ({
     range: fix.range,
     text: fix.text
