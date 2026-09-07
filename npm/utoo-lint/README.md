@@ -254,6 +254,20 @@ UTF-16 code units, and the end position is exclusive. Suppressed diagnostics kee
 the same range. I/O errors without a source span omit the end positions; messages
 from older native binaries may also omit them.
 
+`ESLint` and `CLIEngine` also discover classic `.eslintrc.*` files (or
+`eslintConfig` in `package.json`) when no native config applies. Legacy
+`extends`, directory cascades, `root`, `overrides`, and ignore patterns are
+resolved per source filename. Precedence is `baseConfig`, project config,
+then `overrideConfig`; `useEslintrc: false` disables discovery. Native config
+files still take priority. The lower-level `lintFiles`, `lintText`, and native
+CLI keep their native-only discovery behavior.
+
+Legacy configuration resolution uses `@eslint/eslintrc`. If the project has
+ESLint 8 installed, its configuration resolver is used instead to support
+shared configs that patch ESLint's module resolution. Neither path uses ESLint
+to parse or lint source files: rules still run in utoo-lint. Enabled rules that
+utoo-lint does not support remain errors, not silently skipped checks.
+
 The Node wrapper captures up to 64 MiB from each native stdout and stderr
 stream by default. Programmatic `run`, `runCli`, and `runFishlint` calls can set
 `maxBuffer` to another positive byte count. Set `UTOO_LINT_MAX_BUFFER` to apply
