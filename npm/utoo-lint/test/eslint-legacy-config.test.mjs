@@ -9,7 +9,7 @@ import test from "node:test";
 import { CLIEngine, ESLint, lintText } from "../index.js";
 
 const require = createRequire(import.meta.url);
-const { CLIEngine: CommonJSCLIEngine } = require("../index.cjs");
+const { CLIEngine: CommonJSCLIEngine, ESLint: CommonJSESLint } = require("../index.cjs");
 
 process.env.UTOO_LINT_BIN ??= fileURLToPath(new URL(
   `../../../zig-out/bin/utoo-lint${process.platform === "win32" ? ".exe" : ""}`,
@@ -163,5 +163,64 @@ test("explicit eslintrc files resolve extends even with automatic discovery disa
     assert.deepEqual(engine.getConfigForFile(file).rules["no-alert"], [2]);
     assert.equal(engine.getConfigForFile(file).rules["no-debugger"], undefined);
     assert.equal(engine.executeOnFiles([file]).errorCount, 1);
+  }
+});
+
+test("CLIEngine configFile loads arbitrary legacy filenames with or without discovery", (t) => {
+  const cwd = project(t);
+  write(join(cwd, ".eslintrc.json"), JSON.stringify({ root: true, rules: { "no-debugger": 2 } }));
+  write(join(cwd, "configs", "preset.cjs"), 'module.exports = { rules: { "no-alert": 2 } };');
+  write(join(cwd, "configs", "lint.cjs"), 'module.exports = { extends: "./preset.cjs" };');
+  const file = write(join(cwd, "index.js"), "alert('message'); debugger;");
+  for (const Engine of [CLIEngine, CommonJSCLIEngine]) {
+    for (const useEslintrc of [false, true]) {
+      const engine = new Engine({ cwd, configFile: "configs/lint.cjs", useEslintrc });
+      assert.deepEqual(engine.getConfigForFile(file).rules["no-alert"], [2]);
+      assert.equal(engine.executeOnFiles([file]).errorCount, useEslintrc ? 2 : 1);
+      assert.equal(engine.executeOnText("alert('message'); debugger;", file).errorCount, useEslintrc ? 2 : 1);
+    }
+  }
+});
+
+test("findConfigFile returns the explicit legacy path even with discovery disabled", async (t) => {
+  const cwd = project(t);
+  write(join(cwd, "utlint.config.json"), JSON.stringify({ rules: { "no-debugger": "off" } }));
+  const file = write(join(cwd, "src", "index.js"), "debugger;");
+  for (const filename of ["configs/lint.cjs", "configs/.eslintrc.cjs"]) {
+    write(join(cwd, filename), 'module.exports = { rules: { "no-debugger": 2 } };');
+  }
+  for (const Engine of [ESLint, CommonJSESLint]) {
+    for (const explicit of [
+      { configFile: "configs/lint.cjs" },
+      { overrideConfigFile: "configs/.eslintrc.cjs" },
+    ]) {
+      for (const useEslintrc of [false, true]) {
+        const engine = new Engine({ cwd, ...explicit, useEslintrc });
+        const expected = join(cwd, explicit.configFile ?? explicit.overrideConfigFile);
+        assert.equal(await engine.findConfigFile(), expected);
+        assert.equal(await engine.findConfigFile(file), expected);
+        assert.deepEqual((await engine.calculateConfigForFile(file)).rules["no-debugger"], [2]);
+        assert.equal((await engine.lintText("debugger;", { filePath: file }))[0].errorCount, 1);
+      }
+    }
+  }
+});
+
+test("explicit native config options keep precedence over legacy configFile", (t) => {
+  const cwd = project(t);
+  write(join(cwd, "legacy.cjs"), 'throw new Error("superseded legacy config must not load");');
+  write(join(cwd, "native.json"), JSON.stringify({ rules: { "no-debugger": "error" } }));
+  write(join(cwd, "override.json"), JSON.stringify({ rules: { "no-alert": "error" } }));
+  const file = write(join(cwd, "index.js"), "alert('message'); debugger;");
+  for (const Engine of [CLIEngine, CommonJSCLIEngine]) {
+    for (const options of [
+      { config: "native.json", expected: "no-debugger" },
+      { overrideConfigFile: "override.json", expected: "no-alert" },
+      { config: "native.json", overrideConfigFile: "override.json", expected: "no-alert" },
+    ]) {
+      const { expected, ...configOptions } = options;
+      const engine = new Engine({ cwd, configFile: "legacy.cjs", ...configOptions });
+      assert.deepEqual(engine.executeOnFiles([file]).results[0].messages.map((message) => message.ruleId), [expected]);
+    }
   }
 });

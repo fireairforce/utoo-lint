@@ -582,6 +582,9 @@ class UtooLint {
 
   async findConfigFile(filePath) {
     const options = withConfigCache(eslintConstructorOptions(this.options));
+    if (options.legacyConfigFile) {
+      return resolvePath(options.cwd ?? process.cwd(), options.legacyConfigFile);
+    }
     if (options.noConfig) {
       return undefined;
     }
@@ -1675,7 +1678,8 @@ function eslintConstructorOptions(options) {
     binary: options.binary,
     env: options.env,
     extraArgs: options.extraArgs,
-    config: options.config ?? options.configFile,
+    config: options.config,
+    legacyConfigFile: options.config == null ? options.configFile : undefined,
     ignorePath: options.ignorePath,
     ignorePatterns: options.ignorePatterns,
     noIgnore: options.noIgnore ?? options.ignore === false,
@@ -1692,6 +1696,7 @@ function eslintConstructorOptions(options) {
   }
   if (typeof options.overrideConfigFile === "string") {
     mapped.config = options.overrideConfigFile;
+    mapped.legacyConfigFile = undefined;
   }
   if (mapped.config && /(?:^|[/\\\\])\.eslintrc(?:\.(?:js|cjs|json|yaml|yml))?$/.test(mapped.config)) {
     mapped.legacyConfigFile = mapped.config;
